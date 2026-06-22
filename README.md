@@ -62,10 +62,10 @@ plugins/loops-workflow/
 
 ## 設計與紀錄
 
-- [DESIGN.md](./DESIGN.md) — 完整設計（三層融合、流程圖、各階段職責、subagent 策略、採用總表）
-- [AGENT-SKILLS-採用評估.md](./AGENT-SKILLS-採用評估.md) — agent-skills 35 資產逐項採用決策（work-plugins 校準後）
-- [RESEARCH-agent-skills.md](./RESEARCH-agent-skills.md) — 借鑑研究
-- [SMOKE.md](./SMOKE.md) — smoke test 紀錄
+- [docs/DESIGN.md](./docs/DESIGN.md) — 完整設計（三層融合、流程圖、各階段職責、subagent 策略、採用總表）
+- [docs/AGENT-SKILLS-採用評估.md](./docs/AGENT-SKILLS-採用評估.md) — agent-skills 35 資產逐項採用決策（work-plugins 校準後）
+- [docs/RESEARCH-agent-skills.md](./docs/RESEARCH-agent-skills.md) — 借鑑研究
+- [docs/SMOKE.md](./docs/SMOKE.md) — smoke test 紀錄
 
 ## 借鑑歸屬
 
