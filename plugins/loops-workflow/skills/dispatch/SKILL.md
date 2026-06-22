@@ -36,15 +36,18 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 顯式語法可跳過判斷：`dispatch <type> <ref>`，例如 `dispatch issue #5`、`dispatch explore "command pattern 怎麼設計"`、`dispatch iterate PR#12`。
 
+**推進模式**：預設 Closed Loop（階段間都停）。加 `auto` → `dispatch auto <描述>` 開 opt-in 自動連跑（核准計畫一次後連跑，危險 / 失敗 / P0 / 規格模糊仍硬停，見 `references/auto-mode.md`）。
+
 ### 2. 建 / 認領 loop.md
 
 slug 由描述或 issue 標題生 kebab-case（英文 / 數字 / 連字號）。建立 `.loops/<slug>/loop.md`，寫入：
 - **類型**（issue / design / fix）
 - **起點階段**
+- **推進模式**（closed / auto，預設 closed）
 - **停止條件雛形**（goal 階段會精煉）
-- **回環歷史**（空，iterate 每圈補一筆）
+- **Journal（append-only 事件日誌）**（空，每階段 append 一筆，見 `references/journaling.md`）
 
-若 `.loops/<slug>/loop.md` 已存在 → 認領它（讀現況、接續），不覆蓋。
+**Resume**：若 `.loops/<slug>/loop.md` 已存在 → 不覆蓋，走 resume 協定（讀 Journal 重建狀態 → 回報「停在哪個階段 / 哪個 gate、已完成 E1–En」→ 問使用者是否續跑，見 `references/journaling.md`）。
 
 ### 3. 交棒（停在起點 gate）
 
