@@ -1,15 +1,15 @@
 ---
 name: verify
-description: Fans out six independent reviewers (product/architecture/security/performance/code-quality/tests) then validates findings in a second pass, modeled on cto-pr-reviewer. Use when starting the verify stage of a loops-workflow run, or when built work needs merge-readiness review before iterate.
+description: Fans out six independent reviewers (product/architecture/security/performance/code-quality/tests) then validates findings in a second pass. Use when starting the verify stage of a loops-workflow run, or when built work needs merge-readiness review before iterate.
 ---
 
 # verify — 驗證（六 reviewer fan-out + validator 二輪）
 
 ## Overview
 
-`verify` 的引擎是 work-plugins 自己的 `cto-pr-reviewer`：主線**在同一回合一次發 6 個 reviewer**（並行、fresh context、不巢狀），各審一軸；再派 `finding-validator` 對每個 blocking finding 做二輪確認；最後 merge 成 **Ready / Not ready**。
+`verify` 的引擎是多 reviewer fan-out：主線**在同一回合一次發 6 個 reviewer**（並行、fresh context、不巢狀），各審一軸；再派 `finding-validator` 對每個 blocking finding 做二輪確認；最後 merge 成 **Ready / Not ready**。
 
-> 這是「work-plugins 為重心」的落實 —— verify 用的是你的六 reviewer 引擎，不是 agent-skills 的 persona。agent-skills 只在 security / readability / 反偏見上補螺絲。
+> 用多個 fresh-context reviewer 各審一軸，而非主線自己掃一遍 —— 寫 code 時的假設不會帶進 review，獨立性換來覆蓋廣度。
 
 ## When to Use
 
@@ -25,12 +25,12 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 | reviewer | 審什麼 | 補強 |
 |------|------|------|
-| `product-contract-reviewer` | issue 驗收 / 範圍 / 非目標 | review-from-issue 逐句驗收 |
+| `product-contract-reviewer` | issue 驗收 / 範圍 / 非目標 | 逐句對照完工定義驗收 |
 | `architecture-reviewer` | 分層邊界 / import 方向 / 契約 | — |
 | `security-reviewer` | auth/authz / 注入 / 敏感資料 | **補威脅建模 / STRIDE / OWASP+LLM Top 10**，讀 `references/security-checklist.md` |
 | `performance-reviewer` | query / N+1 / index / transaction | — |
 | `code-quality-reviewer` | 錯誤處理 / typing / **可讀性與簡潔** | code-simplification 反例當 readability checklist |
-| `tests-reviewer` | 測試覆蓋 / 邊界 / migration | **doubt-driven 反偏見：不給它「作者說已通過」的結論** |
+| `tests-reviewer` | 測試覆蓋 / 邊界 / migration | **反偏見：不給它「作者說已通過」的結論** |
 
 > 必須在**同一個 assistant 回合**一次發出 6 個 Agent call 才會真的並行。subagent 不能再派 subagent。
 

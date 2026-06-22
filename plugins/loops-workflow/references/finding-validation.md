@@ -1,6 +1,6 @@
 # Finding 驗證判準（finding-validator 用）
 
-> verify 的 `finding-validator` 對每個候選 blocking finding 做二輪確認時用。用語對齊 work-plugins 的 `cto-pr-reviewer`。
+> verify 的 `finding-validator` 對每個候選 blocking finding 做二輪確認時用。
 >
 > validator 是**獨立的第二輪檢查**：只驗一個特定 finding，**不做新的全面 review、不發明新 finding**，且**唯讀**。
 

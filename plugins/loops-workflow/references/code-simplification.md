@@ -1,8 +1,6 @@
-<!-- adapted from addyosmani/agent-skills (MIT) -->
-
 # 程式碼簡化（code-simplification）
 
-> build 的 Refactor step 與 code-quality-reviewer 的可讀性 checklist。改寫自 `addyosmani/agent-skills` 的 `code-simplification` skill（MIT，其本身改編自 Claude Code Simplifier plugin）。
+> build 的 Refactor step 與 code-quality-reviewer 的可讀性 checklist。核心：簡化的目標不是更少行，是更好讀。
 
 ## 核心原則
 

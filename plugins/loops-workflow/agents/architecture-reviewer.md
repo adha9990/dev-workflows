@@ -1,6 +1,6 @@
 ---
 name: architecture-reviewer
-description: Reviews layering boundaries, import direction, and contracts between modules. One of six loops-workflow verify reviewers, modeled on cto-pr-reviewer.
+description: Reviews layering boundaries, import direction, and contracts between modules. One of six loops-workflow verify reviewers.
 tools: Read, Grep, Glob
 ---
 

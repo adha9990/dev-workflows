@@ -21,7 +21,7 @@ description: Surveys internal codebase for reusable approaches then external sou
 
 ## Process（四步，依序）
 
-### 1. 先掃內部（reuse 優先）
+### 1. 先掃內部（重用優先）
 
 派內建 `Explore` agent（Haiku、read-only，天生適合摸 codebase）找：既有可重用的實作 / 模式 / 類似功能。**出入口稍異不等於要另造** —— 預設擴充或參數化既有方法。回精煉 digest 給主線（不是整檔貼回）。
 
@@ -33,15 +33,15 @@ description: Surveys internal codebase for reusable approaches then external sou
 
 只有當「需要看實作細節、便宜搜索答不了」時，才**建議升級 deep-research**，並**先問使用者同意**再跑（deep-research 又慢又貴）。
 
-### 4. 框架查證（source-driven）
+### 4. 框架 API 查證
 
-涉及第三方框架 / 函式庫 API 時，套 source-driven 流程 **DETECT → FETCH → IMPLEMENT → CITE**：用 context7 MCP 抓官方文件再下筆；查不到的標 `UNVERIFIED`，不要憑記憶硬寫 API。
+涉及第三方框架 / 函式庫 API 時，套查證流程 **DETECT → FETCH → IMPLEMENT → CITE**：用 context7 MCP 抓官方文件再下筆；查不到的標 `UNVERIFIED`，不要憑記憶硬寫 API。
 
 > **（可選）Fleet**：同一個研究難題若一條檢索路線不夠，可 opt-in 派多個 agent 各用不同策略查再投票 / 攤開（見 `references/fleet.md`）；多數情況上面的分工式四步已夠，不必編隊。
 
 ### 5. 攤開比較 + 推薦
 
-把內部可重用方案 vs 外部做法**並排**寫進 `01-explore.md`：各自優缺點、適配度、引用來源（source-driven 的 CITE）。給一個推薦 + 理由。**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」。停在 `explore → plan` 決策 gate（使用者選方法）。
+把內部可重用方案 vs 外部做法**並排**寫進 `01-explore.md`：各自優缺點、適配度、引用來源（CITE）。給一個推薦 + 理由。**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」。停在 `explore → plan` 決策 gate（使用者選方法）。
 
 ## Common Rationalizations
 
@@ -49,7 +49,7 @@ description: Surveys internal codebase for reusable approaches then external sou
 |------|------|
 | 「直接 deep-research 最完整」 | deep-research 又慢又貴。先便宜搜索打前哨，多數問題就答了；真要深入才 gate 升級。 |
 | 「外部做法看起來更潮，就用它」 | 先看內部有沒有可重用的；出入口稍異不是另造的理由。外部來源是多一票佐證，不是權威。 |
-| 「API 我記得大概長這樣」 | 記憶會錯。框架 API 一律 source-driven 查證，查不到標 UNVERIFIED。 |
+| 「API 我記得大概長這樣」 | 記憶會錯。框架 API 一律查官方文件查證，查不到標 UNVERIFIED。 |
 | 「比較表先省了，直接講結論」 | 沒有攤開比較，使用者沒法在 gate 做有依據的選擇。 |
 
 ## Red Flags

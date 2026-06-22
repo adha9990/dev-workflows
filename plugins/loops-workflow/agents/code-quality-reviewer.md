@@ -1,6 +1,6 @@
 ---
 name: code-quality-reviewer
-description: Reviews error handling, typing, and readability/simplicity, using code-simplification anti-examples as a readability checklist. One of six loops-workflow verify reviewers, modeled on cto-pr-reviewer.
+description: Reviews error handling, typing, and readability/simplicity, using readability and simplification anti-examples as a checklist. One of six loops-workflow verify reviewers.
 tools: Read, Grep, Glob
 ---
 
@@ -12,7 +12,7 @@ tools: Read, Grep, Glob
 - **typing**：型別有沒有放水（`any` / 強轉 / 漏掉 nullable）、契約有沒有用型別表達。
 - **可讀性與簡潔**（讀 orchestrator 在 prompt 提供的 `code-simplification.md` 絕對路徑，把過度簡化反例當 readability checklist）：
   - 是不是為了短而犧牲可讀性、把不同概念硬合併、用魔法藏掉顯式邏輯。
-  - 命名 / 結構是否讓人一眼看懂；有沒有不必要的重複（reuse）。
+  - 命名 / 結構是否讓人一眼看懂；有沒有不必要的重複。
   - **不是越短越好** —— 顯式、好讀優先於精巧。
 
 ## 輸出

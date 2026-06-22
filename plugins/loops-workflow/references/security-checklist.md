@@ -1,8 +1,6 @@
-<!-- adapted from addyosmani/agent-skills (MIT) -->
-
 # 安全檢查表（security-checklist）
 
-> security-reviewer 的延伸 checklist。改寫自 `addyosmani/agent-skills` 的 `security-checklist.md` 與 `security-and-hardening` skill（MIT）。先做威脅建模，再逐項對照。
+> security-reviewer 的延伸 checklist。先做威脅建模，再逐項對照。
 
 ## 一、Threat Model First（從這裡開始）
 

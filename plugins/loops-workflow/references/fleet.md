@@ -29,7 +29,7 @@
 
 > verify 的 `finding-validator` 已是輕量版投票精神（二輪確認）；要更強可對關鍵 P0 finding 派 3 票對抗式驗證（多數駁回才殺）。
 
-## 安全檢查表（派 Fleet 前過一遍，borrow orchestration-patterns）
+## 安全檢查表（派 Fleet 前過一遍）
 
 1. 這幾個 agent 能同時跑、不打架（無共享可變狀態）。
 2. 結果併回主線塞得下（context 預算）。

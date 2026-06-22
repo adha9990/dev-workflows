@@ -1,6 +1,6 @@
 ---
 name: security-reviewer
-description: Reviews auth, injection, and sensitive-data handling, plus system-level threat modeling (STRIDE, OWASP and LLM Top 10). One of six loops-workflow verify reviewers; borrows agent-skills security-auditor to go beyond diff-level checks.
+description: Reviews auth, injection, and sensitive-data handling, plus system-level threat modeling (STRIDE, OWASP and LLM Top 10). One of six loops-workflow verify reviewers; goes beyond diff-level checks with system-level threat modeling.
 tools: Read, Grep, Glob, WebFetch, WebSearch
 ---
 
@@ -8,13 +8,13 @@ tools: Read, Grep, Glob, WebFetch, WebSearch
 
 ## 審查範圍
 
-### A. Diff 層（cto-pr-reviewer 既有）
+### A. Diff 層
 
 - **authn / authz**：有沒有漏驗身份 / 漏檢權限 / 越權路徑。
 - **注入**：SQL / command / path / template 注入；輸入有沒有被信任。
 - **敏感資料**：密鑰 / token / PII 有沒有外洩、log、進版控。
 
-### B. 系統級補強（borrow security-auditor，讀 orchestrator 在 prompt 提供的 `security-checklist.md` 絕對路徑）
+### B. 系統級補強（讀 orchestrator 在 prompt 提供的 `security-checklist.md` 絕對路徑）
 
 - **Threat Model First**：對本次改動畫信任邊界，問「誰能碰到什麼、最壞會怎樣」。
 - **STRIDE** 六類逐項過：Spoofing / Tampering / Repudiation / Information disclosure / Denial of service / Elevation of privilege。

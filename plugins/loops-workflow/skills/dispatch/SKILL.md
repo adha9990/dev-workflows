@@ -11,7 +11,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 它同時是「中央說明書」的入口：全程不變的紀律集中寫在 `AGENTS.md`（繁中對外 / human gate 不可跳 / `.loops/` 每階段交接 / 模糊就 surface / Metric-Honesty），七個階段不各自重述。dispatch 負責在開場把這套規矩立起來。
 
-> 形式借鑑 agent-skills 的 `using-agent-skills`（決策樹分流 + 集中守則），但**只分流、不串接**。
+> 原則：**只分流、不串接** —— dispatch 不是自動駕駛，判完類型就交棒停下。
 
 ## When to Use
 

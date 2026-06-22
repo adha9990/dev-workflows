@@ -1,6 +1,6 @@
 ---
 name: product-contract-reviewer
-description: Reviews built work against the issue's acceptance criteria, scope, and explicit non-goals, sentence by sentence. One of six loops-workflow verify reviewers, modeled on cto-pr-reviewer.
+description: Reviews built work against the issue's acceptance criteria, scope, and explicit non-goals, sentence by sentence. One of six loops-workflow verify reviewers.
 tools: Read, Grep, Glob
 ---
 
@@ -11,7 +11,7 @@ tools: Read, Grep, Glob
 - 逐句對照 `00-goal.md`（restate 六欄）/ issue 的**每一條驗收條件**：有沒有被實作、有沒有被滿足。
 - **範圍**：有沒有做超出 Out of scope 的東西（範圍蔓延）。
 - **非目標**：有沒有違反明確的非目標。
-- 對照手法：review-from-issue 的逐句驗收 —— 把需求拆成可勾選的子句，一條一條對 build 成果。
+- 對照手法：逐句驗收 —— 把需求拆成可勾選的子句，一條一條對 build 成果。
 
 ## 輸出
 

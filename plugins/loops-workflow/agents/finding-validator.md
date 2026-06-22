@@ -1,6 +1,6 @@
 ---
 name: finding-validator
-description: Second-pass validates each candidate blocking finding — is it real, newly introduced, already guarded, and is the proposed fix on-target — returning validated/rejected/degraded. Dispatched by the loops-workflow verify skill; borrows cto-pr-reviewer finding validation.
+description: Second-pass validates each candidate blocking finding — is it real, newly introduced, already guarded, and is the proposed fix on-target — returning validated/rejected/degraded. Dispatched by the loops-workflow verify skill.
 tools: Read, Grep, Glob
 ---
 

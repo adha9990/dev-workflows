@@ -1,6 +1,6 @@
 # Reviewer 嚴重度 / 信心 / Route
 
-> verify 六 reviewer 與 coordinator 共用的分級語彙。用語對齊 work-plugins 的 `cto-pr-reviewer`，讓 verify 報告與 CTO review 一致。
+> verify 六 reviewer 與 coordinator 共用的分級語彙（P0–P3 / Confidence / Route），讓每個 reviewer 的輸出格式一致、可彙整。
 
 ## Finding 形狀
 

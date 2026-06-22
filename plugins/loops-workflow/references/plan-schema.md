@@ -1,6 +1,6 @@
 # 機器可驗證計畫檔（plan-schema）
 
-> 進階：讓 `02-plan.md` 除了給人看的任務敘述，再附一塊**機器可驗證**的結構，由 `scripts/validate-plan.mjs` 在進 build 前自動檢查（Anthropic 官方「plan → validate → execute」精神）。**選用** —— 不開時 plan 仍純 markdown 給人看。
+> 進階：讓 `02-plan.md` 除了給人看的任務敘述，再附一塊**機器可驗證**的結構，由 `scripts/validate-plan.mjs` 在進 build 前自動檢查（plan → validate → execute）。**選用** —— 不開時 plan 仍純 markdown 給人看。
 
 ## 在 02-plan.md 內嵌一塊 `loops-plan` JSON
 
@@ -32,7 +32,7 @@
 | 欄位 | 規則 |
 |------|------|
 | `id` | 唯一、非空（如 `T1`） |
-| `title` | 非空、不含 " and "（命中＝該再拆，見 [[task-template]]） |
+| `title` | 非空、不含 " and "（命中＝該再拆，見 `references/task-template.md`） |
 | `acceptance` | 非空陣列，**≤ 3 條**（超過＝該再拆） |
 | `verification` | **非空、可執行的指令**（不是「測一下」） |
 | `deps` | 陣列，每個值都要對應到存在的 `id`；**不可成環** |

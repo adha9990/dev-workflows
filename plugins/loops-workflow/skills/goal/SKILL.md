@@ -9,7 +9,7 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 
 `goal` 把一句模糊的需求 / 一張 issue，逼成「**明確的完工定義 + 可驗證的停止條件**」。方法是**一次只問一個問題**的適應性訪談，問完把理解 restate 成六欄，使用者明確點頭才往下。
 
-訪談法借鑑 work-plugins 的 `pm-feature-intake`（一次一問、四選項、推薦標記、只問 blocking 決策）；restate 六欄與信心機制借鑑 agent-skills 的 `interview-me`。本 skill 自包含，不依賴其他 plugin。
+訪談一次只問一個問題、用 `AskUserQuestion` 給選項並標推薦，只問會改變方向的 blocking 決策；每問記下信心，restate 成六欄完工定義後要使用者明確點頭才往下。
 
 ## When to Use
 

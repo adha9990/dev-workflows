@@ -31,10 +31,10 @@
 
 ## 與 auto 模式的關係
 
-auto 模式（[[auto-mode]]）暫停時，journal 記「auto 因 X 暫停於 E_n」；resume 時從該點接續，不重跑已完成的階段。
+auto 模式（見 `references/auto-mode.md`）暫停時，journal 記「auto 因 X 暫停於 E_n」；resume 時從該點接續，不重跑已完成的階段。
 
 ## 為什麼 append-only
 
 - 保留完整決策軌跡（誰在哪個 gate 選了什麼、為什麼回環）—— 事後可稽核、可回溯。
 - 不覆蓋 = 不會因為改寫遺失「為什麼走到這」。
-- 與 Anthropic 官方「plan → validate → execute」可被腳本檢查的計畫檔精神一致（見 [[plan-schema]]）。
+- 也可讓計畫檔額外帶一塊「可被腳本檢查」的結構，做到 plan → validate → execute（見 `references/plan-schema.md`）。

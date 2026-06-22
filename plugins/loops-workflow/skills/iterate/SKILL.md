@@ -9,7 +9,7 @@ description: Triages verify findings or PR feedback, decides which stage to loop
 
 `iterate` 把 verify 的缺口 / PR reviewer 的回饋做 triage，決定**回哪個階段重來**（最多 3 圈），或**完工收尾交 PR**。它是閉環的收口 —— 確保「錯的東西被修正、修正有回歸測試守住」，而不是無限繞圈。
 
-借鑑 agent-skills 的 `debugging-and-error-recovery`（Stop-the-Line + 六步 Triage + 根因修）與 `doubt-driven` RECONCILE 四分類；收尾用 Pre-Launch checklist 骨架。三來源回饋處理借鑑 work-plugins 的 `fix-from-pr`。
+做法：彙整三來源回饋 → 分四類 → 對真問題走 Stop-the-Line 修根因（每修加回歸測試）→ 決定回哪個階段或完工收尾。
 
 ## When to Use
 
@@ -27,7 +27,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 ### 2. RECONCILE 四分類
 
-每條回饋分類（borrow doubt-driven）：
+每條回饋分類：
 - **contract misread**：reviewer 誤讀了契約 → 婉拒，只陳述技術理由。
 - **actionable**：真問題 → 要修。
 - **trade-off**：取捨選擇 → 記 decision record，回覆說明選擇。

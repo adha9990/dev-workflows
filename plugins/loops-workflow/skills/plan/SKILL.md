@@ -9,7 +9,7 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 `plan` 在動任何 code 之前，把設計決策**拍板留痕**，並把工作拆成「每一個都能獨立 verify」的任務。產出 `02-plan.md` —— 一份施工圖：決策紀錄 + 機制圖 + 任務清單（每任務帶驗證指令）。
 
-主體借鑑 work-plugins 的 `plan-from-issue` + 設計計畫書 §0–§9；任務拆解的螺絲借鑑 agent-skills 的 `planning-and-task-breakdown`。
+做法：先把設計決策留痕、為每個關鍵機制畫圖、對新套件做選型評估，再把工作拆成每個都能獨立 verify 的任務。
 
 ## When to Use
 
@@ -35,8 +35,8 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 ### 4. 品質維度過一遍
 
-- **clean-architecture 六維度**（簡潔 / 可維護 / 可靠 / 可擴展 / 安全 / 高併發高流量效能）：in-scope 實作不以 MVP 設計，對可預見的規模退化預先用對演算法。
-- **reuse**：拆任務前先確認沒有重複造輪子（含跨入口 / 跨 session 的隱蔽重複）。
+- **設計品質六維度**（簡潔 / 可維護 / 可靠 / 可擴展 / 安全 / 高併發高流量效能）：in-scope 實作不以 MVP 設計，對可預見的規模退化預先用對演算法。
+- **重用檢查**：拆任務前先確認沒有重複造輪子（含跨入口 / 跨 session 的隱蔽重複）。
 
 ### 5. 拆成可驗證任務
 

@@ -9,7 +9,7 @@ description: Implements each planned task via red-green-refactor with separate t
 
 `build` 逐任務跑 **紅 → 綠 → 重構**，並用**兩個分離的 agent** 防止測試遷就實作：`test-author` 只看需求寫 failing test、看不到實作；`impl-author` 只負責轉綠、不准改 test。主線當編排者，不自己下海寫 test 或 impl，只接收紅綠結果。
 
-> 為何不偏：feedback（test）與被測對象（impl）分屬不同 context、由不同 agent 產出 —— 同 agent-skills `doubt-driven`「不給 reviewer 你的結論」的去偏邏輯。
+> 為何不偏：feedback（test）與被測對象（impl）由不同 agent、在不同 context 產出 —— 寫測試的沒看過實作，就不會把測試寫成遷就實作；寫實作的不能改測試，就不能讓測試將就自己。
 
 ## When to Use
 
