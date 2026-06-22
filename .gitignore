@@ -1,1 +1,8 @@
 .loops/
+
+# 一次性建置過程紀錄（branch-local，保留本地、不進版控）
+docs/DESIGN.md
+docs/RESEARCH-agent-skills.md
+docs/AGENT-SKILLS-採用評估.md
+docs/IMPLEMENTATION-PLAN.md
+docs/SMOKE.md

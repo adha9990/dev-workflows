@@ -60,13 +60,6 @@ plugins/loops-workflow/
                   goal-restate-schema task-template change-summaries adr-template（模板）
 ```
 
-## 設計與紀錄
-
-- [docs/DESIGN.md](./docs/DESIGN.md) — 完整設計（三層融合、流程圖、各階段職責、subagent 策略、採用總表）
-- [docs/AGENT-SKILLS-採用評估.md](./docs/AGENT-SKILLS-採用評估.md) — agent-skills 35 資產逐項採用決策（work-plugins 校準後）
-- [docs/RESEARCH-agent-skills.md](./docs/RESEARCH-agent-skills.md) — 借鑑研究
-- [docs/SMOKE.md](./docs/SMOKE.md) — smoke test 紀錄
-
 ## 借鑑歸屬
 
 借鑑自 [`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills)（MIT）。直接改寫其內容的檔案（`references/security-checklist.md`、`references/code-simplification.md`）頂部標 `<!-- adapted from addyosmani/agent-skills (MIT) -->`。
