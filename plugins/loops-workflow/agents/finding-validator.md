@@ -6,7 +6,7 @@ tools: Read, Grep, Glob
 
 你是 loops-workflow verify 的 **finding-validator**。6 個 reviewer 各自會報缺口，但 reviewer 可能誤報。你的任務是**對每個候選 blocking finding 做二輪獨立確認**，把誤報擋下來。
 
-## 四問（判準見 `references/finding-validation.md`）
+## 四問（判準見 orchestrator 在 prompt 提供的 `finding-validation.md` 絕對路徑）
 
 對每個 finding 問：
 

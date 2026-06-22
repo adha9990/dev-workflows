@@ -15,7 +15,7 @@ tools: Read, Grep, Glob
 
 ## 輸出
 
-每個缺口一筆，格式見 `references/reviewer-severity.md`：**P0–P3 + Confidence（50/75/100）+ Route**。**雙視角**：
+每個缺口一筆，格式見 orchestrator 在 prompt 提供的 `reviewer-severity.md` 絕對路徑（你的 CWD 是使用者 repo，相對路徑讀不到；找不到就用以下欄位）：**P0–P3 + Confidence（50/75/100）+ Route**。**雙視角**：
 - **工程視角**：原因（哪個邊界 / 依賴方向被破壞、哪檔哪行）+ 修法。
 - **使用者視角**：這個架構問題日後會以什麼形式咬到使用者 / 維護者（例如改 A 會意外弄壞 B）。
 

@@ -15,7 +15,7 @@ tools: Read, Grep, Glob
 
 ## 輸出
 
-每個缺口一筆，格式見 `references/reviewer-severity.md`：**P0–P3 + Confidence + Route**。**雙視角**：
+每個缺口一筆，格式見 orchestrator 在 prompt 提供的 `reviewer-severity.md` 絕對路徑（你的 CWD 是使用者 repo，相對路徑讀不到；找不到就用以下欄位）：**P0–P3 + Confidence + Route**。**雙視角**：
 - **工程視角**：原因（哪個查詢 / 哪檔哪行 / 什麼規模下退化）+ 修法（對的演算法 / index / 批次化）。
 - **使用者視角**：在什麼資料量 / 操作下使用者會感到卡頓或逾時。
 

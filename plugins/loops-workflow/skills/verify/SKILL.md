@@ -34,6 +34,8 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 > 必須在**同一個 assistant 回合**一次發出 6 個 Agent call 才會真的並行。subagent 不能再派 subagent。
 
+> **參考檔路徑（必做）**：subagent 的 CWD 是使用者 repo、且 `${CLAUDE_PLUGIN_ROOT}` 在 markdown 不展開，所以相對路徑 `references/xxx.md` 它們讀不到。派 reviewer 前，**從本 skill 的 base directory 推出 plugin root**（base 上兩層 = `…/plugins/loops-workflow/`），組出絕對路徑塞進各 reviewer 的 prompt：全部 reviewer ← `references/reviewer-severity.md`；`security-reviewer` 另加 `references/security-checklist.md`；`code-quality-reviewer` 另加 `references/code-simplification.md`；`finding-validator` ← `references/finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
+
 ### 2. coordinator（主線）
 
 去重、過濾純 style / 低信心雜訊。
