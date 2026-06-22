@@ -1,0 +1,15 @@
+{
+  "description": "loops-workflow SDD-CACHE：session 開始時浮出當前目錄 active 的 .loops/ 迴圈，輔助 resume",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}
