@@ -1,0 +1,17 @@
+{
+  "name": "loops-workflow",
+  "owner": {
+    "name": "陳駿騰",
+    "url": "https://github.com/adha9990"
+  },
+  "metadata": {
+    "description": "Loops Engineering 閉環開發工作流（測試性 plugin）"
+  },
+  "plugins": [
+    {
+      "name": "loops-workflow",
+      "source": "./plugins/loops-workflow",
+      "description": "7 階段閉環（dispatch→goal→explore→plan→build→verify→iterate），以 work-plugins/cto-review 為重心、融合 agent-skills + Loops Engineering"
+    }
+  ]
+}
