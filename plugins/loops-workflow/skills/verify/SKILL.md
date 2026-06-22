@@ -36,6 +36,15 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 > **參考檔路徑（必做）**：subagent 的 CWD 是使用者 repo、且 `${CLAUDE_PLUGIN_ROOT}` 在 markdown 不展開，所以相對路徑 `references/xxx.md` 它們讀不到。派 reviewer 前，**從本 skill 的 base directory 推出 plugin root**（base 上兩層 = `…/plugins/loops-workflow/`），組出絕對路徑塞進各 reviewer 的 prompt：全部 reviewer ← `references/reviewer-severity.md`；`security-reviewer` 另加 `references/security-checklist.md`；`code-quality-reviewer` 另加 `references/code-simplification.md`；`finding-validator` ← `references/finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
 
+### 1.5 條件式 reviewer（選用，視改動領域加派）
+
+看 build 的 Change Summaries + 改動檔案：碰到特定領域就把對應的領域 reviewer **加進同一回合的 fan-out**（並行）。沒碰到就不派，避免無關維度造成噪音。對照見 `references/optional-reviewers.md`：
+
+- 前端 / UI → `frontend-ui-reviewer`、`accessibility-reviewer`、`web-performance-reviewer`
+- 後端服務 / 關鍵流程 → `observability-reviewer`
+- CI/CD 設定 → `ci-cd-reviewer`
+- schema migration / 介面汰換 → `migration-reviewer`
+
 ### 2. coordinator（主線）
 
 去重、過濾純 style / 低信心雜訊。
