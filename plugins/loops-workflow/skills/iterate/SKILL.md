@@ -54,7 +54,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 ### 6. 完工收尾
 
-對照 `00-goal.md` 停止條件全部達成 → 跑 Pre-Launch checklist 骨架（砍掉 infra 項）→ 交 PR / 收尾。回覆 reviewer 去客套，只逐條記「改了什麼 `<file:line>` + 驗證證據」；婉拒項只陳述技術理由。
+對照 `00-goal.md` 停止條件全部達成 → 跑 Pre-Launch checklist 骨架（砍掉 infra 項）→ 交 PR / 收尾。收尾前過 `references/docs-policy.md`：該補的 `docs/<topic>.md` 補了（+ `docs/README.md` 索引）、慣例 / 規則若有變更同步 `AGENTS.md` / `CLAUDE.md`。回覆 reviewer 去客套，只逐條記「改了什麼 `<file:line>` + 驗證證據」；婉拒項只陳述技術理由。
 
 停在 `iterate` 決策 gate。
 

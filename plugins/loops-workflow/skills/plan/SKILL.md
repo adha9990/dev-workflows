@@ -36,7 +36,7 @@ description: Locks design decisions and breaks work into independently verifiabl
 ### 4. 品質維度過一遍
 
 - **設計品質六維度**（簡潔 / 可維護 / 可靠 / 可擴展 / 安全 / 高併發高流量效能）：in-scope 實作不以 MVP 設計，對可預見的規模退化預先用對演算法。
-- **重用檢查**：拆任務前先確認沒有重複造輪子（含跨入口 / 跨 session 的隱蔽重複）。
+- **重用檢查**（判準見 `references/reuse-check.md`）：拆任務前先確認沒有重複造輪子（含跨入口 / 跨 session 的隱蔽重複；稍異 ≠ 另造，優先參數化既有方法）。
 
 ### 5. 拆成可驗證任務
 

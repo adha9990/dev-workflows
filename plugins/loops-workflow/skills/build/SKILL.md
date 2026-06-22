@@ -55,4 +55,5 @@ description: Implements each planned task via red-green-refactor with separate t
 - [ ] Refactor 後測試行為未變（仍綠）。
 - [ ] 分段 commit（繁中）對應各 Save Point。
 - [ ] `03-build.md` 有 Change Summaries 三段式。
+- [ ] 依 `references/docs-policy.md` 判斷是否需補 `docs/<topic>.md`（+ `docs/README.md` 索引）；命中就寫。
 - [ ] 已停在 `build → verify` gate。

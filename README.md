@@ -62,8 +62,9 @@ plugins/loops-workflow/
 ├── commands/     loop resume status
 ├── hooks/        SessionStart：浮出 active .loops/ 迴圈
 ├── scripts/      validate-plan.mjs / run-eval.mjs
-└── references/   security-checklist code-simplification reviewer-severity
-                  finding-validation optional-reviewers auto-mode fleet
-                  journaling plan-schema eval-harness automations
-                  goal-restate-schema task-template change-summaries adr-template
+└── references/   security-checklist code-simplification reuse-check
+                  reviewer-severity finding-validation optional-reviewers
+                  docs-policy auto-mode fleet journaling plan-schema
+                  eval-harness automations goal-restate-schema
+                  task-template change-summaries adr-template
 ```

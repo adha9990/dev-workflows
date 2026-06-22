@@ -14,6 +14,7 @@ tools: Read, Grep, Glob
   - 是不是為了短而犧牲可讀性、把不同概念硬合併、用魔法藏掉顯式邏輯。
   - 命名 / 結構是否讓人一眼看懂；有沒有不必要的重複。
   - **不是越短越好** —— 顯式、好讀優先於精巧。
+- **重用 / 同義方法**（讀 orchestrator 在 prompt 提供的 `reuse-check.md`）：新增的方法是不是既有方法換個入口（同件事兩個入口）？同詞根系列（`showXDialog` / `getXById`…）有沒有該收斂成參數化的（`showDialog(type)`）。
 
 ## 輸出
 
