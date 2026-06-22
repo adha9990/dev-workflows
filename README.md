@@ -22,7 +22,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 | `loops-workflow:explore` | 選方法 | 內部找可重用 → 外部找做法 → 攤開比較推薦；deep-research 升級要 gate；框架 API 查官方文件 |
 | `loops-workflow:plan` | 拍板方案 | decision record + 機制圖 + ≥3 套件評估 + 拆成可獨立 verify 的任務 |
 | `loops-workflow:build` | 確認完成 | 逐任務**紅綠分離**（test-author 看不到 impl / impl-author 不准改 test）+ Refactor + 分段 commit |
-| `loops-workflow:verify` | 看驗收報告 | **同回合派 6 reviewer** fan-out + finding-validator 二輪 + P0–P3 分級 |
+| `loops-workflow:verify` | 看驗收報告 | **同回合派 6 reviewer** fan-out（+ 視領域加派條件式 reviewer）+ finding-validator 二輪 + P0–P3 分級 |
 | `loops-workflow:iterate` | 完工 or 回環 | 回饋四分類 + Stop-the-Line 根因修 + **3 圈上限** + 收尾 |
 
 ## 兩個引擎
@@ -56,12 +56,14 @@ dispatch → goal → explore → plan → build → verify → iterate
 plugins/loops-workflow/
 ├── skills/       dispatch goal explore plan build verify iterate（7）
 ├── agents/       test-author impl-author referee（build 3）
-│                 ＋ 6 reviewer ＋ finding-validator（verify 7）
+│                 ＋ 6 核心 reviewer ＋ finding-validator（verify 7）
+│                 ＋ 6 條件式領域 reviewer（frontend-ui / accessibility /
+│                   web-performance / observability / ci-cd / migration）
 ├── commands/     loop resume status
 ├── hooks/        SessionStart：浮出 active .loops/ 迴圈
 ├── scripts/      validate-plan.mjs / run-eval.mjs
 └── references/   security-checklist code-simplification reviewer-severity
-                  finding-validation auto-mode fleet journaling plan-schema
-                  eval-harness goal-restate-schema task-template
-                  change-summaries adr-template
+                  finding-validation optional-reviewers auto-mode fleet
+                  journaling plan-schema eval-harness automations
+                  goal-restate-schema task-template change-summaries adr-template
 ```
