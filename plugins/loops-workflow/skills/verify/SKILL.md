@@ -90,6 +90,7 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 - [ ] 6 個 reviewer 在同一回合並行派出，各一軸。
 - [ ] security-reviewer 有跑威脅建模 / OWASP 補強。
+- [ ] 已跑真 app（`/run`·`/verify`）+ 本機 `/code-review`，或純 lib 無 app 據實標 `not measured`。
 - [ ] 每個 blocking finding 有 finding-validator 的 `validated/rejected/degraded`。
 - [ ] 每條 finding 有 P0–P3 + Confidence + Route，且套 Metric-Honesty。
 - [ ] `04-verify.md` 結論是 Ready / Not ready，停在 `verify → iterate` gate。

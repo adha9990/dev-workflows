@@ -41,7 +41,7 @@ description: Surveys internal codebase for reusable approaches then external sou
 
 涉及第三方框架 / 函式庫 API 時，套查證流程 **DETECT → FETCH → IMPLEMENT → CITE**：用 context7 MCP 抓官方文件再下筆；查不到的標 `UNVERIFIED`，不要憑記憶硬寫 API。
 
-> **（可選）Fleet**：同一個研究難題若一條檢索路線不夠，可 opt-in 派多個 agent 各用不同策略查再投票 / 攤開（見 `references/fleet.md`）；多數情況上面的分工式四步已夠，不必編隊。
+> **（可選）Fleet**：同一個研究難題若一條檢索路線不夠，可 opt-in 派多個 agent 各用不同策略查再投票 / 攤開（見 `references/fleet.md`）；多數情況上面的分工式流程已夠，不必編隊。
 
 ### 5. 攤開比較 + 推薦
 
