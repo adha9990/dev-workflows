@@ -27,7 +27,7 @@ description: Implements each planned task via red-green-refactor with separate t
 4. **主線跑測試 → 確認 Green**。
 5. **Refactor**（綠燈後、test 保護下整理結構不改行為）：套 `code-simplification`（派 impl-author 時把 `references/code-simplification.md` 的**絕對路徑**寫進其 prompt —— subagent 用相對路徑讀不到，見 AGENTS.md〈參考檔路徑解析〉）—— Chesterton's Fence（改 / 刪前先答「為什麼當初這樣寫」）、過度簡化四陷阱、**紅旗「簡化若需要改 test 才能過 = 你改的是行為不是結構，停下」**。
 6. **衝突仲裁**：若 impl-author 主張 test 與需求不符 → 回報主線，主線依 `00-goal.md` 完工定義裁決；必要時派 `referee` 判是 test 錯還是 impl 錯。
-7. **Save Point**：測試綠 → 分段 commit（繁中、每個邏輯單位一筆）；測試紅且修不動 → revert 到上個 Save Point。寫 `03-build.md`（Change Summaries 三段式，見 `references/change-summaries.md`）。
+7. **Save Point**：測試綠 → 分段 commit（繁中、每個邏輯單位一筆，規範見 `references/commit-spec.md`）；測試紅且修不動 → revert 到上個 Save Point。寫 `03-build.md`（Change Summaries 三段式，見 `references/change-summaries.md`）。
 
 **內部紅綠不每單位停**；整個 build 做完才停 `build → verify` gate。
 

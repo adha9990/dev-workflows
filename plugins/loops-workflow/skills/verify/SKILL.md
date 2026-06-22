@@ -45,6 +45,15 @@ description: Fans out six independent reviewers (product/architecture/security/p
 - CI/CD 設定 → `ci-cd-reviewer`
 - schema migration / 介面汰換 → `migration-reviewer`
 
+### 1.8 跑真 app + 本機 /code-review（把 `not measured` 變實測）
+
+靜態 review 之外，**Claude 親自代跑**、不推託「需使用者 / 瀏覽器」：
+
+- **跑真 app 驗行為**：用環境的 run 能力（`/run` 起服務 / driver 打真 endpoint）+ `/verify` 逐條玩 `00-goal.md` 的需求，確認行為真的成立；效能 / 行為宣稱盡量從 `not measured` 變成實測證據。
+- **本機 `/code-review`**：跑本機版（**不跑 ultra 雲端計費變體**），把它的 findings 併進 coordinator 一起去重。
+
+> `/run` `/verify` `/code-review` 是環境內建能力，非外部 plugin。專案沒有可跑的 app（純 lib）時跳過實跑、據實標 `not measured`。
+
 ### 2. coordinator（主線）
 
 去重、過濾純 style / 低信心雜訊。

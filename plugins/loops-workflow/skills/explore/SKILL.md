@@ -19,7 +19,11 @@ description: Surveys internal codebase for reusable approaches then external sou
 - 已經知道用什麼方法、只差拆任務 —— 直接 plan。
 - 一上來就 deep-research —— 先用便宜搜索打前哨，貴的要 gate。
 
-## Process（四步，依序）
+## Process（依序）
+
+### 0. 先摸架構（文檔優先）
+
+動手探索前先建立架構認知：**文檔優先** —— 讀 `CLAUDE.md` / `AGENTS.md`（最高優先）、`README` / `docs/` / ADR；文檔已說明架構就以文檔為準，只在文檔有缺口才爬 code。輸出 2–4 行 project context 寫進 `01-explore.md` 開頭。詳見 `references/onboarding.md`。
 
 ### 1. 先掃內部（重用優先）
 
