@@ -50,6 +50,8 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 畫依賴圖；每 2–3 個任務插一個 checkpoint。
 
+**（可選）機器可驗證計畫塊**：要讓進 build 前能自動把關，可在 `02-plan.md` 內嵌一塊 `loops-plan` JSON（見 `references/plan-schema.md`），跑 `node scripts/validate-plan.mjs <02-plan.md>` 檢查（每任務有可執行 verification、acceptance ≤3、依賴無環）。預設不開。
+
 ### 5.5 （可選）Fleet 方案發想
 
 解法空間寬、單一方案難取捨時，可 opt-in **Fleet**：派 N 個 agent 各從不同角度（MVP-first / risk-first / user-first）出方案 → judge panel 評分 → 綜合最高分 + 嫁接次高的好點子（見 `references/fleet.md`）。預設不開，使用者說「這題用 Fleet 出幾個方案評審」才啟動。
