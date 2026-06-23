@@ -29,9 +29,11 @@
 ```
 dispatch → goal → explore → plan → build → verify → iterate
                                                         │
-                  回 goal / explore / plan / build ◀────┤（≤ 3 圈）
+                  回 goal / explore / plan / build ◀────┤（≤ 3 圈，修完一定再 verify）
                                                         └──▶ 完工（交 PR / 收尾）
 ```
+
+> **修完一定再過一輪 verify**（fix delta + 波及面派 fresh reviewer；「測試綠 / typecheck 0」不算數）。**完工只在 verify 乾淨那輪才可達** —— 交給其他 reviewer 前先在內部把問題解到最少。
 
 **只在真正要你做選擇的決策點停下用 `AskUserQuestion` 問**（explore 選方法 / plan 拍板 / iterate 完工或回環 / 真正的 scope 取捨 / 安全停：分類模糊·危險操作·P0·規格不清）。**routine 轉場（進入下一階段）不問、直接往下**，產出寫進 `.loops/` + 摘要，你隨時可插話喊停 / 改。需要時可開 opt-in `auto` 模式（連決策也用推薦選項自動帶過，只剩安全停）。
 
