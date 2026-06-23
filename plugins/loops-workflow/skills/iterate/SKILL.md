@@ -31,13 +31,13 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 每條回饋分類：
 - **contract misread**：reviewer 誤讀了契約 → 婉拒，只陳述技術理由。
-- **actionable**：真問題 → 要修。
+- **actionable**：真問題 → **一律自動修（全部，不論 P0–P3），不問使用者「修多少 / 要不要修」**。severity 只決定要不要停下 escalate（P0 停），**不決定修不修**。
 - **trade-off**：取捨選擇 → 記 decision record，回覆說明選擇。
 - **noise**：純風格 / 無關 → 過濾。
 
 ### 3. Stop-the-Line 修（針對 actionable）
 
-每個要修的問題走 **STOP → PRESERVE → DIAGNOSE → FIX → GUARD → RESUME**：
+**所有 actionable 都修，不挑、不問**（P2/P3 一樣修）—— 「交給其他 reviewer 前把問題在內部解到最少」就是把 actionable 全清掉，不是讓使用者挑幾條修。每個要修的問題走 **STOP → PRESERVE → DIAGNOSE → FIX → GUARD → RESUME**：
 - 修**根因**而非症狀。
 - 每修一個 bug **加一條回歸測試**守住（GUARD）。
 
@@ -72,7 +72,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 完工後把 `loop.md` 的「當前階段」設為「**完工**」（statusline 即不再顯示此 loop）。
 
-停在 `iterate` 決策 gate：**用 `AskUserQuestion` 問**完工交 PR / 回哪個階段重來（標推薦）。**但「修完要不要再 verify」不是 gate 選項 —— 修完一律再 verify**；完工選項只在「verify 已乾淨」時才出現。
+**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：用 `AskUserQuestion` 確認**交 PR**（outward action 要你點頭）/ 或還要再打磨。另外只有 **3 圈上限 escalate、真正的 trade-off（修法與 `00-goal.md` 衝突）、分類模糊** 才停下問。
 
 ## Common Rationalizations
 
@@ -84,6 +84,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 | 「修完不用加測試，這次很簡單」 | 沒有回歸測試守住，同一個 bug 會再回來。GUARD 不可省。 |
 | 「測試全綠 + typecheck 0，等於 verify 過了」 | 綠燈只證明沒打破現有測試，證不了修正對其他軸 / 既有 consumer 安全。verify 是 fresh reviewer 各審一軸，綠燈取代不了。 |
 | 「改一行而已，不用再 verify」 | 改到共用元件一行的 blast radius 可能比大改還大。波及面要 fresh-verify。 |
+| 「這些是 P2/P3 非 blocking，問使用者要不要修」 | actionable = 真問題，一律自動全修（交 reviewer 前把問題解到最少）。severity 只決定要不要停下 escalate（P0），不決定修不修。「修多少」不是使用者決策。 |
 
 ## Red Flags
 
@@ -95,6 +96,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **修完沒再跑 verify 就完工**（拿「測試綠 / typecheck 0」當 verify 替代品）。
 - 改到共用元件 / 跨切面，只看綠燈、沒對**波及面**派 fresh reviewer 再驗。
 - 把「再 verify」降級成 gate 選項讓使用者點掉。
+- **verify 出 actionable findings（含 P2/P3）還問使用者「修多少 / 要不要修」** —— actionable 一律自動全修，不是使用者決策。
 - 修正型（`type=fix`）收尾還產一堆草稿（PR body as-built / 另發 issue comment）—— 只該一份回覆 reviewer。
 - 把本可在當前 issue 解決的 follow-up 擅自另開新 issue。
 - issue-driven PR 的 body 沒放關閉關鍵字 `Closes #<issue>`（只寫標題 `(#issue)` / 內文提及 = 不連結、merge 不自動關 issue，見 `references/pr-spec.md`）。
@@ -102,6 +104,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 ## Verification
 
 - [ ] 每條回饋有 RECONCILE 分類。
+- [ ] verify 出的 actionable findings（不論 P2/P3）**全部自動修了**，沒問使用者「修多少 / 要不要修」。
 - [ ] 每個 actionable 修的是根因 + 有回歸測試（GUARD）。
 - [ ] 回環 ≤ 3 圈，超過已 escalate；`loop.md` 有回環歷史。
 - [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工。
