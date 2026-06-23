@@ -1,15 +1,15 @@
 ---
 name: explore
-description: Surveys internal codebase for reusable approaches then external sources for industry practice, laying both side by side with a recommendation. Use when starting the explore stage of a loops-workflow run, or when you need to research how to build something before planning it.
+description: Surveys the internal codebase for reusable approaches, and searches external sources only when internal evidence plus the requirement leave the approach uncertain, then lays the findings out with a recommendation. Use when starting the explore stage of a loops-workflow run, or when you need to research how to build something before planning it.
 ---
 
 # explore — 探索（內外一條龍）
 
 ## Overview
 
-`explore` 是一條龍的四步研究：**先掃內部 codebase 找可重用的東西，再搜外部看業界做法，把兩邊攤開並排比較、給推薦**，讓使用者在 `explore → plan` gate 選走哪條路。
+`explore` 的研究流程：**先摸架構 → 掃內部找可重用 → 判斷夠不夠 → 不夠才搜外部 → 攤開給推薦**，讓使用者在 `explore → plan` gate 選走哪條路。
 
-不是雙模式 —— 永遠先內後外、最後攤開比較。外部研究分層：便宜的 `WebSearch` 打前哨，需要看實作細節才升級昂貴的 deep-research（且要經使用者同意）。
+**外部搜索是條件式的**：內部 + 需求（issue / 完工定義）已經把「怎麼做」釘死，就**不搜外部**（省資源）；只有**不確定 / 內部證據不足**才搜，且分層 —— 便宜 `WebSearch` 打前哨，需要實作細節才升級 deep-research（經同意）。
 
 ## When to Use
 
@@ -29,13 +29,16 @@ description: Surveys internal codebase for reusable approaches then external sou
 
 派內建 `Explore` agent（Haiku、read-only，天生適合摸 codebase）找：既有可重用的實作 / 模式 / 類似功能。**出入口稍異不等於要另造** —— 預設擴充或參數化既有方法。回精煉 digest 給主線（不是整檔貼回）。
 
-### 2. 再搜外部
+### 2. 夠了沒？—— 內部 + 需求是否已足夠定案
 
-用便宜的 `WebSearch` / firecrawl 看業界怎麼做（例如「VS Code 怎麼用 command pattern」先搜一輪）。
+掃完內部先判斷：**內部可重用機制 + 需求（issue / 完工定義）有沒有已經把「怎麼做」釘死？**
+- **夠了**（行為明確、找到可重用做法、無開放問題）→ **跳過外部搜索**，直接到第 5 步寫內部結論 + 推薦。**不要為了「比較保險」去搜外部 —— 那是浪費資源。**
+- **不夠 / 有不確定**（內部沒可重用做法 / 做法有多種走向 / 某行為沒共識）→ 才進第 3 步。
 
-### 3. 不夠才深入（升級要 gate）
+### 3. 不夠才搜外部（分層、要 gate）
 
-只有當「需要看實作細節、便宜搜索答不了」時，才**建議升級 deep-research**，並**先問使用者同意**再跑（deep-research 又慢又貴）。
+- 先用便宜的 `WebSearch` / firecrawl 打前哨看業界怎麼做。
+- 需要看實作細節、便宜搜索答不了 → **建議升級 deep-research**，**先問使用者同意**再跑（又慢又貴）。
 
 ### 4. 框架 API 查證
 
@@ -45,13 +48,14 @@ description: Surveys internal codebase for reusable approaches then external sou
 
 ### 5. 攤開比較 + 推薦
 
-把內部可重用方案 vs 外部做法**並排**寫進 `01-explore.md`：各自優缺點、適配度、引用來源（CITE）。給一個推薦 + 理由。**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」。停在 `explore → plan` 決策 gate：**用 `AskUserQuestion` 把候選方法做成選項給使用者選**（每個標推薦 + 一句理由），不要用純文字要使用者打字。
+把候選方案寫進 `01-explore.md`：**有搜外部就內外並排**（各自優缺點、適配度、CITE）；內部 + 需求已足夠則列內部結論 + 一句「為什麼不必外部」。給一個推薦 + 理由。**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」。停在 `explore → plan` 決策 gate：**用 `AskUserQuestion` 把候選方法做成選項給使用者選**（每個標推薦 + 一句理由），不要用純文字要使用者打字。
 
 ## Common Rationalizations
 
 | 藉口 | 反駁 |
 |------|------|
 | 「直接 deep-research 最完整」 | deep-research 又慢又貴。先便宜搜索打前哨，多數問題就答了；真要深入才 gate 升級。 |
+| 「總之先搜一輪外部比較保險」 | 內部 + 需求已把行為 / 做法釘死時搜外部是浪費資源。外部只在不確定 / 內部不足才搜。 |
 | 「外部做法看起來更潮，就用它」 | 先看內部有沒有可重用的；出入口稍異不是另造的理由。外部來源是多一票佐證，不是權威。 |
 | 「API 我記得大概長這樣」 | 記憶會錯。框架 API 一律查官方文件查證，查不到標 UNVERIFIED。 |
 | 「比較表先省了，直接講結論」 | 沒有攤開比較，使用者沒法在 gate 做有依據的選擇。 |
@@ -59,13 +63,14 @@ description: Surveys internal codebase for reusable approaches then external sou
 ## Red Flags
 
 - 沒掃內部就直接搜外部 / 直接 deep-research。
+- 內部 + 需求已足夠定案，還去搜外部證據（浪費資源）。
 - 沒問同意就跑 deep-research。
 - 框架 API 沒查證就寫進 `01-explore.md`。
 - 把推薦寫成「已決定採用」越過使用者的選擇 gate。
 
 ## Verification
 
-- [ ] `01-explore.md` 有「內部可重用 vs 外部做法」並排比較。
+- [ ] `01-explore.md` 有方案 + 推薦；**有搜外部才內外並排**，內部 + 需求已足夠則註明為什麼不必外部。
 - [ ] 有明確推薦 + 理由，且措辭是「待你拍板」不是「已決定」。
 - [ ] 框架 API 來源已 CITE，查不到的標 UNVERIFIED。
 - [ ] deep-research（若用）有先經同意。
