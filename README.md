@@ -44,7 +44,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 | Skill | 停下問你？ | 做什麼 |
 |---|---|---|
 | `loops-workflow:dispatch` | 僅分類模糊才停 | 決策樹分流（issue→goal / 設計→explore / PR→iterate）+ 建 `loop.md` + 進起點階段 |
-| `loops-workflow:goal` | 有 scope 取捨才停 | 一次一問訪談 → restate 六欄完工定義 + 可驗證停止條件 |
+| `loops-workflow:goal` | 有 scope 取捨才停 | **逐句掃 issue 抽 requirement**（不只 AC 段）→ 一次一問訪談 → restate 六欄完工定義 + 可驗證停止條件 |
 | `loops-workflow:explore` | ✋ 選方法 | 內部找可重用 → **不夠才**搜外部（內部+需求已釘死就不搜、省資源）→ 攤開推薦；deep-research 升級要 gate；框架 API 查官方文件 |
 | `loops-workflow:plan` | ✋ 拍板方案 | decision record + 機制圖 + ≥3 套件評估 + 拆成可獨立 verify 的任務；**計畫草稿在 plan 階段就送出**（living plan，實作偏離回去改） |
 | `loops-workflow:build` | 危險 / 卡關才停 | 逐任務**紅綠分離**（test-author 看不到 impl / impl-author 不准改 test）+ Refactor + 分段 commit |

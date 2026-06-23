@@ -21,9 +21,11 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 
 ## Process
 
-### 1. 讀現有素材，先推再問
+### 1. 逐句掃 issue，抽出每個 requirement
 
-先讀 dispatch 建的 `loop.md` 與 issue / 描述。**能從素材推得的不要問** —— 只問會改變方向的 blocking 決策。
+先讀 dispatch 建的 `loop.md` 與 issue / 描述。**逐句掃過整張 issue** —— 描述、背景、舉例、邊界說明、留言、甚至順帶一句的補充 —— **把每個 requirement-bearing 句子抽成一條清單**，**不是只看「驗收標準 / Acceptance Criteria」那一段**：需求常散在 prose、舉例、非目標裡（例：一句「排序要 score ASC」藏在敘述中段，不在任何 AC 清單）。抽出的每一條後面都要落到第 3 步六欄某處。
+
+**能從素材推得的不要問** —— 只問會改變方向的 blocking 決策。
 
 ### 2. 一次一問
 
@@ -33,7 +35,7 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 
 ### 3. Restate 六欄（完工定義）
 
-訪談到信心足夠，把理解寫成 `00-goal.md`，固定六欄（schema 見 `references/goal-restate-schema.md`）：
+訪談到信心足夠，把理解寫成 `00-goal.md`，固定六欄（schema 見 `references/goal-restate-schema.md`）。**第 1 步逐句抽出的每條 requirement 都要在六欄裡有著落**（沒著落的，不是漏抽就是該回去問）：
 
 | 欄 | 內容 |
 |------|------|
@@ -63,12 +65,15 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 ## Red Flags
 
 - 一則訊息塞了好幾個問題。
+- **只讀「驗收標準」段就定完工定義**，沒逐句掃完整 issue（漏掉散在描述 / 舉例 / 非目標裡的隱含需求）。
+- 第 1 步抽的 requirement 有條沒落到六欄、就直接往下。
 - 六欄有欄位空著就產 `00-goal.md`。
 - 有真正的 scope 取捨卻沒用 `AskUserQuestion` 問就逕自決定。
 - 訪談超過必要、把非 blocking 的細節也逼問。
 
 ## Verification
 
+- [ ] 已**逐句掃過整張 issue**抽 requirement（不只 AC 段），每條都落到六欄某處。
 - [ ] `00-goal.md` 六欄齊全，每欄有實質內容。
 - [ ] Success 欄 = 可驗證的停止條件（不是「做得好」這種無法驗的話）。
 - [ ] 有具體 scope / 取捨決策的話已用 `AskUserQuestion` 問過；沒有真選擇就直接往 explore（沒用純文字問「要不要進 explore」）。
