@@ -1,6 +1,6 @@
 ---
 name: explain
-description: Produces an engineer understanding pack for a change — implementation walkthrough, ownership self-check questions, and a design-direction recap — to help someone grasp how built work, a PR, a branch, or a diff connects. Use when an engineer needs to understand an implementation, or before handing work to a human reviewer. Read-only, not part of the build loop.
+description: Produces an engineer understanding pack for a change — implementation walkthrough, ownership self-check questions, and a design-direction recap — to help an engineer grasp how built work, a PR, a branch, or a diff connects. Use when an engineer needs to understand an implementation, take over existing code, or confirm they truly understand what was built. For engineer understanding, not for reviewers. Read-only, not part of the build loop.
 ---
 
 # explain — 工程師理解包（側用，不在迴圈裡）
@@ -9,11 +9,11 @@ description: Produces an engineer understanding pack for a change — implementa
 
 `explain` 產生一份「工程師理解包」，幫人**快速看懂一份改動怎麼接起來**、並**自測是否真的懂**。它是 read-only 的**側用工具**，不在 7 階段迴圈裡、不改 code、沒有 gate —— 隨時可對「built work / PR / branch / diff」呼叫。
 
-> 用途：交給人類 reviewer 前先產一份導讀；接手別人的 code 想快速理解；自己確認真的懂自己做了什麼。
+> **對象是工程師，不是 reviewer。** 用途：接手 / 維護一段 code 想快速理解；看懂 Claude 剛建好的東西；自己確認真的懂自己做了什麼。（reviewer 要的是 verify 報告與 PR comment，不是這份。）
 
 ## When to Use
 
-**Use when**：要理解一份既有實作 / PR / diff、或交給人之前想附一份「怎麼接起來」的說明。
+**Use when**：工程師要理解一份既有實作 / PR / diff、接手別人的 code、或確認自己真的懂剛建好的東西。
 
 **NOT for**：
 - 跑開發（那走 `dispatch` / 各階段）。
