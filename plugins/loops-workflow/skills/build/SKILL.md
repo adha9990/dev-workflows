@@ -29,6 +29,8 @@ description: Implements each planned task via red-green-refactor with separate t
 6. **衝突仲裁**：若 impl-author 主張 test 與需求不符 → 回報主線，主線依 `00-goal.md` 完工定義裁決；必要時派 `referee` 判是 test 錯還是 impl 錯。
 7. **Save Point**：測試綠 → 分段 commit（繁中、每個邏輯單位一筆，規範見 `references/commit-spec.md`）；測試紅且修不動 → revert 到上個 Save Point。寫 `03-build.md`（Change Summaries 三段式，見 `references/change-summaries.md`）。
 
+**偏離 plan 就回去改**：實作若發現需偏離 `02-plan.md`（某決策要變、某任務要重拆）→ **先回去更新 `02-plan.md`（living plan）並同步已 post 的版本**，再續做；偏離大到動搖方案就回 `plan` gate 重新拍板。不要讓 code 與 plan 各走各的、留到最後才對。
+
 **內部紅綠不每單位停**；整個 build 做完才停 `build → verify` gate。
 
 ## Common Rationalizations
@@ -55,5 +57,6 @@ description: Implements each planned task via red-green-refactor with separate t
 - [ ] Refactor 後測試行為未變（仍綠）。
 - [ ] 分段 commit（繁中）對應各 Save Point。
 - [ ] `03-build.md` 有 Change Summaries 三段式。
+- [ ] 實作若偏離 plan，`02-plan.md` 已回去同步更新（as-built），未留到最後。
 - [ ] 依 `references/docs-policy.md` 判斷是否需補 `docs/<topic>.md`（+ `docs/README.md` 索引）；命中就寫。
 - [ ] 已停在 `build → verify` gate。

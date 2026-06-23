@@ -56,9 +56,11 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 解法空間寬、單一方案難取捨時，可 opt-in **Fleet**：派 N 個 agent 各從不同角度（MVP-first / risk-first / user-first）出方案 → judge panel 評分 → 綜合最高分 + 嫁接次高的好點子（見 `references/fleet.md`）。預設不開，使用者說「這題用 Fleet 出幾個方案評審」才啟動。
 
-### 6. 拍板 gate
+### 6. 送出計畫 + 拍板 gate
 
-`02-plan.md` 給使用者，停在 `plan → build` 拍板 gate（`AskUserQuestion` 確認方案 + 任務拆解）。
+**在 plan 階段就把計畫草稿送出**（不是等 loop 結束）：issue-driven → 依 `references/comment-policy.md` 寫 tmp 草稿校稿後 post 成 issue 對齊 comment（留 audit trail）；非 issue → 呈現給使用者。然後停在 `plan → build` 拍板 gate（`AskUserQuestion` 確認方案 + 任務拆解，每選項標推薦）。
+
+> **`02-plan.md` 是 living source of truth**：實作階段若偏離（決策變、任務拆法變），**回去更新它**（並同步已 post 的版本），保持 as-built —— 不是放到 loop 結束才補。完工時這份 as-built plan 提煉成 PR body（見 `references/pr-spec.md`）。
 
 ## Common Rationalizations
 
@@ -83,4 +85,5 @@ description: Locks design decisions and breaks work into independently verifiabl
 - [ ] 新套件（若有）附 ≥3 候選比較 + 拍板結論。
 - [ ] 每個任務有可執行的 Verification 指令。
 - [ ] 沒有任務命中「該再拆」四訊號還未拆。
+- [ ] 計畫草稿已在 **plan 階段送出**（issue→post 對齊 comment / 否則呈現），不是留到 loop 結束。
 - [ ] 使用者已拍板，停在 `plan → build` gate。
