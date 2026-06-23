@@ -6,6 +6,7 @@
 
 - **開 Draft PR**（先草稿，確認再轉 Ready）。
 - **標題**：`<type>: <繁中主旨> (#<issue>)`，例 `feat: 補上訂單關鍵字搜尋 (#122)`。
+- **指派給作者本人**：`gh pr create --assignee @me`（既有 PR 用 `gh pr edit <PR#> --add-assignee @me`）—— PR Assignee 標成作者自己。
 
 ## 連結 issue（關閉關鍵字，必做）
 
@@ -31,6 +32,6 @@ issue-driven PR 的 **body 開頭必須放關閉關鍵字** `Closes #<issue>`（
 
 ## 收尾
 
-- 與 master / 主幹 merge 同步、解衝突後再請求 review。
+- **開 / 改 PR 時自動與 master 同步**：`git fetch origin master` 後若 branch 落後 / 與 master 衝突 → **自動把 master 合進 branch**（`git merge origin/master`）並解衝突（謹慎解、不盲目取單邊；真的解不清才停下用 `AskUserQuestion` 問），解完 push —— **不留帶衝突 / 落後的 PR**，再請求 review。
 - 送出前對外內容（PR body / 回覆）先寫 tmp 草稿給使用者校稿（見 `references/comment-policy.md`），確認才 post。
 - **開 / 改 PR 後驗證 `gh pr view <PR#> --json closingIssuesReferences` 已含目標 issue**（body 的 `Closes #<issue>` 生效了），不是空陣列。
