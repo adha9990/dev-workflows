@@ -5,13 +5,18 @@
     "url": "https://github.com/adha9990"
   },
   "metadata": {
-    "description": "7 階段閉環開發工作流 plugin"
+    "description": "開發工作流 plugin marketplace：閉環開發（loops-workflow）+ greenfield 專案 scaffold（scaffold）"
   },
   "plugins": [
     {
       "name": "loops-workflow",
       "source": "./plugins/loops-workflow",
       "description": "7 階段閉環開發工作流（dispatch→goal→explore→plan→build→verify→iterate），階段間 human gate，build 紅綠分離，verify 多 reviewer fan-out"
+    },
+    {
+      "name": "scaffold",
+      "source": "./plugins/scaffold",
+      "description": "greenfield 全端 TS 專案 scaffold（分層 Fastify + React SPA、ESLint 強制分層、SQLite+Kysely、Vitest）—— 從零建專案；既有專案內開發用 loops-workflow"
     }
   ]
 }

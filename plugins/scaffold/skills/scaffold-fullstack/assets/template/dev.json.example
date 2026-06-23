@@ -1,0 +1,7 @@
+{
+  "database": "./data/app.db",
+  "host": "127.0.0.1",
+  "port": 51599,
+  "log_level": "debug",
+  "log_format": "pretty"
+}

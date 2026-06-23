@@ -1,0 +1,12 @@
+node_modules/
+dist/
+data/
+*.log
+.DS_Store
+
+# Per-developer config
+dev.json
+
+# Prevent non-pnpm lockfiles
+package-lock.json
+yarn.lock
