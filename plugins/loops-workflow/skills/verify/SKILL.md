@@ -64,7 +64,7 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 ### 4. 分級 + 輸出
 
-每個 finding 標 **P0–P3 + Confidence 50/75/100 + Route**（見 `references/reviewer-severity.md`）。所有 reviewer 套 **Metric-Honesty**（沒實跑就標 `not measured`）。主線 merge 成 **Ready / Not ready** 寫 `04-verify.md`，停 `verify → iterate` gate。
+每個 finding 標 **P0–P3 + Confidence 50/75/100 + Route**（見 `references/reviewer-severity.md`）。所有 reviewer 套 **Metric-Honesty**（沒實跑就標 `not measured`）。主線 merge 成 **Ready / Not ready** 寫 `04-verify.md`，停 `verify → iterate` gate：**用 `AskUserQuestion` 問下一步**（進 iterate 處理缺口 / 直接完工 / 先看某 finding 細節，標推薦）。
 
 ### 雙視角記錄
 

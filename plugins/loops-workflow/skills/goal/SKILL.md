@@ -47,7 +47,7 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 ### 4. 停止條件 + explicit-yes gate
 
 - **95% 信心**就停止訪談，不無止境追問。
-- restate 給使用者看，要**明確的 yes** 才往下。「whatever you think」「你決定就好」**不算 yes** —— 那代表還沒對齊，回去補問。
+- restate 給使用者看，**用 `AskUserQuestion`** 問「確認完工定義、進 explore？」（選項：確認往下 / 要改某欄 / 調整範圍，標推薦），**不要用純文字要使用者打 yes**。「whatever you think」「你決定就好」**不算明確選擇** —— 那代表還沒對齊，回去補問。
 - 停在 `goal → explore` 確認 gate。
 
 ## Common Rationalizations

@@ -51,7 +51,7 @@ slug 由描述或 issue 標題生 kebab-case（英文 / 數字 / 連字號）。
 
 ### 3. 交棒（停在起點 gate）
 
-宣告判定結果 + 起點 + loop.md 路徑，然後**停下**。不要自己接著跑 goal / explore / iterate —— 等使用者拍板才往下。
+宣告判定結果 + 起點 + loop.md 路徑，然後**用 `AskUserQuestion` 問使用者要不要進起點階段**（選項例：進 `<起點階段>` / 開 auto 連跑 / 先看 status / 改判定，標推薦），**不要用純文字「要我接著進 goal 嗎」要使用者打字**。不要自己接著跑 goal / explore / iterate —— 等使用者選了才往下。
 
 ## Common Rationalizations
 

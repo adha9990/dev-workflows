@@ -31,7 +31,7 @@ description: Implements each planned task via red-green-refactor with separate t
 
 **偏離 plan 就回去改**：實作若發現需偏離 `02-plan.md`（某決策要變、某任務要重拆）→ **先回去更新 `02-plan.md`（living plan）並同步已 post 的版本**，再續做；偏離大到動搖方案就回 `plan` gate 重新拍板。不要讓 code 與 plan 各走各的、留到最後才對。
 
-**內部紅綠不每單位停**；整個 build 做完才停 `build → verify` gate。
+**內部紅綠不每單位停**；整個 build 做完才停 `build → verify` gate（**用 `AskUserQuestion` 問是否進 verify**）。
 
 ## Common Rationalizations
 

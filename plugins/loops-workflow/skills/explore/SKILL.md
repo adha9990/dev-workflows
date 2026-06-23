@@ -45,7 +45,7 @@ description: Surveys internal codebase for reusable approaches then external sou
 
 ### 5. 攤開比較 + 推薦
 
-把內部可重用方案 vs 外部做法**並排**寫進 `01-explore.md`：各自優缺點、適配度、引用來源（CITE）。給一個推薦 + 理由。**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」。停在 `explore → plan` 決策 gate（使用者選方法）。
+把內部可重用方案 vs 外部做法**並排**寫進 `01-explore.md`：各自優缺點、適配度、引用來源（CITE）。給一個推薦 + 理由。**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」。停在 `explore → plan` 決策 gate：**用 `AskUserQuestion` 把候選方法做成選項給使用者選**（每個標推薦 + 一句理由），不要用純文字要使用者打字。
 
 ## Common Rationalizations
 

@@ -63,7 +63,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 > 這兩份**只在「完工交 PR」這條分支**產；回環途中不產。
 
-停在 `iterate` 決策 gate。
+停在 `iterate` 決策 gate：**用 `AskUserQuestion` 問**完工交 PR / 回哪個階段重來（標推薦）。
 
 ## Common Rationalizations
 
