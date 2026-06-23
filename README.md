@@ -39,6 +39,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 | 跨 session 接續 | `/loops-workflow:resume <slug>`，loop.md 事件日誌，見 `references/journaling.md` |
 | 機器可驗證計畫 + eval | `scripts/validate-plan.mjs` / `scripts/run-eval.mjs` |
 | 列出 active 迴圈 | `/loops-workflow:status`（SessionStart hook 也會自動浮出） |
+| 工程師理解包（實作導讀 + 自測題 + 設計方向） | `/loops-workflow:explain <target>`（唯讀側用，不在迴圈裡） |
 
 ## 安裝
 
@@ -54,12 +55,13 @@ dispatch → goal → explore → plan → build → verify → iterate
 
 ```
 plugins/loops-workflow/
-├── skills/       dispatch goal explore plan build verify iterate（7）
+├── skills/       dispatch goal explore plan build verify iterate（7 階段）
+│                 ＋ explain（側用：工程師理解包）
 ├── agents/       test-author impl-author referee（build 3）
 │                 ＋ 6 核心 reviewer ＋ finding-validator（verify 7）
 │                 ＋ 6 條件式領域 reviewer（frontend-ui / accessibility /
 │                   web-performance / observability / ci-cd / migration）
-├── commands/     loop resume status
+├── commands/     loop resume status explain
 ├── hooks/        SessionStart：浮出 active .loops/ 迴圈
 ├── scripts/      validate-plan.mjs / run-eval.mjs
 └── references/   security-checklist code-simplification reuse-check

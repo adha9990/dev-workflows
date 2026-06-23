@@ -48,6 +48,7 @@
 | 計畫已拍板、要逐任務實作 | 直接 `/loops-workflow:build` | build |
 | 改完了、要做 merge 前驗收 | 直接 `/loops-workflow:verify` | verify |
 | 不確定該從哪開始 | `/loops-workflow:dispatch <描述>`（會幫你判類型 + 建 loop.md） | dispatch 判斷 |
+| 想看懂一份改動 / 交給人前產導讀 | `/loops-workflow:explain <target>` | 側用（唯讀，不進迴圈） |
 
 > `dispatch` 很薄：只做「分類 + 建 `.loops/<slug>/loop.md` + 建議起點 + 交棒」，分完就停在起點 gate，不替你把後續階段跑掉。
 
