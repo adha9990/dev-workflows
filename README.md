@@ -45,7 +45,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 | `loops-workflow:plan` | 拍板方案 | decision record + 機制圖 + ≥3 套件評估 + 拆成可獨立 verify 的任務 |
 | `loops-workflow:build` | 確認完成 | 逐任務**紅綠分離**（test-author 看不到 impl / impl-author 不准改 test）+ Refactor + 分段 commit |
 | `loops-workflow:verify` | 看驗收報告 | **同回合派 6 reviewer** fan-out（+ 視領域加派條件式 reviewer）+ 跑真 app + 本機 /code-review + finding-validator 二輪 + P0–P3 分級 |
-| `loops-workflow:iterate` | 完工 or 回環 | 回饋四分類 + Stop-the-Line 根因修 + **3 圈上限** + 收尾 |
+| `loops-workflow:iterate` | 完工 or 回環 | 回饋四分類 + Stop-the-Line 根因修 + **3 圈上限**；完工交 PR 時產 PR 收尾 comment + explain 兩份**草稿**（確認才送） |
 
 另有側用 `loops-workflow:explain <target>` —— 產工程師理解包（實作導讀 + 自測題 + 設計方向），唯讀、不在迴圈裡。
 

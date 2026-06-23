@@ -54,7 +54,14 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 ### 6. 完工收尾
 
-對照 `00-goal.md` 停止條件全部達成 → 跑 Pre-Launch checklist 骨架（砍掉 infra 項）→ 交 PR（發 PR 規範見 `references/pr-spec.md`）/ 收尾。收尾前過 `references/docs-policy.md`：該補的 `docs/<topic>.md` 補了（+ `docs/README.md` 索引）、慣例 / 規則若有變更同步 `AGENTS.md` / `CLAUDE.md`。回覆 reviewer 依 `references/comment-policy.md`：去客套，只逐條記「改了什麼 `<file:line>` + 驗證證據」；婉拒項只陳述技術理由。
+對照 `00-goal.md` 停止條件全部達成 → 跑 Pre-Launch checklist 骨架（砍掉 infra 項）→ 收尾前過 `references/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
+
+接著產出**交 PR 的兩份交接物 —— 都先寫 tmp 草稿給使用者校稿、確認才送，不自動 post**：
+
+1. **PR 收尾 comment**（依 `references/pr-spec.md` + `references/comment-policy.md`）：總結這次做了什麼 + 驗證證據，並逐條回覆 reviewer 意見（去客套、雙視角、婉拒項只陳述技術理由）。寫 tmp 草稿 → 使用者確認 → `--body-file` post。
+2. **explain 理解包**（跑 `explain` skill）：實作導讀 + ownership 自測題 + 設計方向 recap，附給 reviewer / 交接用。
+
+> 這兩份**只在「完工交 PR」這條分支**產；回環途中不產。
 
 停在 `iterate` 決策 gate。
 
@@ -81,4 +88,5 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 每個 actionable 修的是根因 + 有回歸測試（GUARD）。
 - [ ] 回環 ≤ 3 圈，超過已 escalate；`loop.md` 有回環歷史。
 - [ ] 完工前對照 `00-goal.md` 停止條件全達成。
+- [ ] 完工交 PR 時，PR 收尾 comment + explain 兩份草稿都經使用者確認才送（未自動 post）；回環途中不產這兩份。
 - [ ] 停在 `iterate` 決策 gate。
