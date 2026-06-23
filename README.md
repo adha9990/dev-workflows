@@ -10,7 +10,7 @@
 ## 安裝
 
 ```
-/plugin marketplace add ~/.claude/plugins/marketplaces/dev-workflows
+/plugin marketplace add adha9990/dev-workflows  # 從 GitHub 加入 marketplace（owner/repo 簡寫）
 /plugin install loops-workflow@dev-workflows    # 閉環開發（既有專案）
 /plugin install scaffold@dev-workflows          # greenfield scaffold（空資料夾從零建）
 /reload-plugins
