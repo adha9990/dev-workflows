@@ -70,6 +70,23 @@ dispatch → goal → explore → plan → build → verify → iterate
 
 intent→command 對照與全程操作規則見 plugin 內的 `AGENTS.md`（marketplace 根）。
 
+## statusline 進度（HUD）安裝
+
+讓 session 底下的 statusline 顯示「目前跑到哪個 loop / 哪個階段」（`⟳ <slug> · <stage>`）。靠 [claude-hud](https://github.com/jarrodwatts/claude-hud) 的 `--extra-cmd` 接 `scripts/hud-status.mjs`，`scripts/statusline.sh` 把整段接線包好（沒裝 claude-hud 也能用，退化成只印 loops 進度）。
+
+在 `~/.claude/settings.json` 把 `statusLine` 指向 wrapper（用**絕對路徑**最穩 —— `~` / `$HOME` 視執行 shell 不一定展開）：
+
+```json
+"statusLine": {
+  "type": "command",
+  "command": "bash \"<你的 .claude>/plugins/marketplaces/dev-workflows/plugins/loops-workflow/scripts/statusline.sh\""
+}
+```
+
+Windows 例：`bash "C:/Users/<你>/.claude/plugins/marketplaces/dev-workflows/plugins/loops-workflow/scripts/statusline.sh"`。
+
+設好後 statusline 每次 render 自動讀當前目錄的 `.loops/`：有 active loop 就顯示階段、多個加 `+N`、無則不顯示額外東西。要回退成只用 claude-hud，把 `statusLine.command` 改回 claude-hud 原本的指令即可。
+
 ## 結構
 
 ```
