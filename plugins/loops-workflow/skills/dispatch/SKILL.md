@@ -42,7 +42,8 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 slug 由描述或 issue 標題生 kebab-case（英文 / 數字 / 連字號）。建立 `.loops/<slug>/loop.md`，寫入：
 - **類型**（issue / design / fix）
-- **起點階段**
+- **起點階段** + **當前階段**（當前階段初始＝起點階段，每進一個階段就更新；供 statusline 顯示）
+- **session**（用 Bash 讀 `$CLAUDE_CODE_SESSION_ID` 填；statusline 靠它**只顯示「本 session」正在跑的 loop**，不被別 session / 歷史 loop 干擾）
 - **推進模式**（closed / auto，預設 closed）
 - **停止條件雛形**（goal 階段會精煉）
 - **Journal（append-only 事件日誌）**（空，每階段 append 一筆，見 `references/journaling.md`）

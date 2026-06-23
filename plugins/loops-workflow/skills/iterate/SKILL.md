@@ -63,6 +63,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 > 這兩份**只在「完工交 PR」這條分支**產；回環途中不產。
 
+完工後把 `loop.md` 的「當前階段」設為「**完工**」（statusline 即不再顯示此 loop）。
+
 停在 `iterate` 決策 gate：**用 `AskUserQuestion` 問**完工交 PR / 回哪個階段重來（標推薦）。
 
 ## Common Rationalizations

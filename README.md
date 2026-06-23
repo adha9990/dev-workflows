@@ -85,7 +85,7 @@ intent→command 對照與全程操作規則見 plugin 內的 `AGENTS.md`（mark
 
 Windows 例：`bash "C:/Users/<你>/.claude/plugins/marketplaces/dev-workflows/plugins/loops-workflow/scripts/statusline.sh"`。
 
-設好後 statusline 每次 render 自動讀當前目錄的 `.loops/`：有 active loop 就顯示階段、多個加 `+N`、無則不顯示額外東西。要回退成只用 claude-hud，把 `statusLine.command` 改回 claude-hud 原本的指令即可。
+設好後 statusline 每次 render 自動讀當前目錄的 `.loops/`，**只顯示「當下 session 正在跑」的那一個 loop**（靠 `CLAUDE_CODE_SESSION_ID` 比對 loop.md 的 `session` 欄；已完工 / 別 session / 歷史的 loop 都不顯示，也不堆疊）。要回退成只用 claude-hud，把 `statusLine.command` 改回 claude-hud 原本的指令即可。
 
 ## 結構
 
