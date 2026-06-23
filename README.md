@@ -37,15 +37,17 @@ dispatch → goal → explore → plan → build → verify → iterate
 
 ## Skill 清單（7 階段，各自可獨立呼叫）
 
-| Skill | 起點 gate | 做什麼 |
+> 「停下問你？」欄：✋ = 真決策、一定停下用 `AskUserQuestion`；其餘只在列出的條件下才停，否則 routine 直接往下。
+
+| Skill | 停下問你？ | 做什麼 |
 |---|---|---|
-| `loops-workflow:dispatch` | 僅模糊時停 | 決策樹分流（issue→goal / 設計→explore / PR→iterate）+ 建 `loop.md` + 交棒 |
-| `loops-workflow:goal` | 確認完工定義 | 一次一問訪談 → restate 六欄完工定義 + 可驗證停止條件 |
-| `loops-workflow:explore` | 選方法 | 內部找可重用 → **不夠才**搜外部（內部+需求已釘死就不搜、省資源）→ 攤開推薦；deep-research 升級要 gate；框架 API 查官方文件 |
-| `loops-workflow:plan` | 拍板方案 | decision record + 機制圖 + ≥3 套件評估 + 拆成可獨立 verify 的任務；**計畫草稿在 plan 階段就送出**（living plan，實作偏離回去改） |
-| `loops-workflow:build` | 確認完成 | 逐任務**紅綠分離**（test-author 看不到 impl / impl-author 不准改 test）+ Refactor + 分段 commit |
-| `loops-workflow:verify` | 看驗收報告 | **同回合派 6 reviewer** fan-out（+ 視領域加派條件式 reviewer）+ 跑真 app + 本機 /code-review + finding-validator 二輪 + P0–P3 分級 |
-| `loops-workflow:iterate` | 完工 or 回環 | 回饋四分類 + Stop-the-Line 根因修 + **3 圈上限**；完工交 PR 時產 PR 收尾 comment + explain 兩份**草稿**（確認才送） |
+| `loops-workflow:dispatch` | 僅分類模糊才停 | 決策樹分流（issue→goal / 設計→explore / PR→iterate）+ 建 `loop.md` + 進起點階段 |
+| `loops-workflow:goal` | 有 scope 取捨才停 | 一次一問訪談 → restate 六欄完工定義 + 可驗證停止條件 |
+| `loops-workflow:explore` | ✋ 選方法 | 內部找可重用 → **不夠才**搜外部（內部+需求已釘死就不搜、省資源）→ 攤開推薦；deep-research 升級要 gate；框架 API 查官方文件 |
+| `loops-workflow:plan` | ✋ 拍板方案 | decision record + 機制圖 + ≥3 套件評估 + 拆成可獨立 verify 的任務；**計畫草稿在 plan 階段就送出**（living plan，實作偏離回去改） |
+| `loops-workflow:build` | 危險 / 卡關才停 | 逐任務**紅綠分離**（test-author 看不到 impl / impl-author 不准改 test）+ Refactor + 分段 commit |
+| `loops-workflow:verify` | 出 P0 才停 | **同回合派 6 reviewer** fan-out（+ 視領域加派條件式 reviewer）+ 跑真 app + 本機 /code-review + finding-validator 二輪 + P0–P3 分級 |
+| `loops-workflow:iterate` | ✋ 完工 or 回環 | 回饋四分類 + Stop-the-Line 根因修 + **3 圈上限**；完工交 PR 時產 PR 收尾 comment + explain 兩份**草稿**（確認才送） |
 
 另有側用 `loops-workflow:explain <target>` —— 產工程師理解包（實作導讀 + 自測題 + 設計方向），唯讀、不在迴圈裡。
 
@@ -67,6 +69,25 @@ dispatch → goal → explore → plan → build → verify → iterate
 | session statusline 顯示 loops 進度（`⟳ <slug> · <stage>`） | `scripts/statusline.sh`（包 claude-hud `--extra-cmd`）→ 設成 statusLine；無 claude-hud 則只印 loops 進度 |
 
 intent→command 對照與全程操作規則見 plugin 內的 `AGENTS.md`（marketplace 根）。
+
+## 結構
+
+```
+plugins/loops-workflow/
+├── skills/       7 階段 + explain（側用）
+├── agents/       build 紅綠分離 3（test-author / impl-author / referee）
+│                 + verify 6 核心 reviewer + finding-validator + 6 條件式領域 reviewer
+├── commands/     loop / resume / status / explain
+├── hooks/        SessionStart：浮出 active .loops/ 迴圈
+├── scripts/      validate-plan / run-eval / hud-status / statusline
+└── references/   各階段規範 + 模板（security-checklist / reuse-check / docs-policy /
+                  commit-spec / pr-spec / comment-policy / onboarding / reviewer-severity /
+                  finding-validation / optional-reviewers / auto-mode / fleet / journaling /
+                  plan-schema / eval-harness / automations / goal-restate-schema /
+                  task-template / change-summaries / adr-template）
+```
+
+> 全程操作規則（決策點停、繁中、重用優先、文件紀律、對外溝通、參考檔路徑解析）見 `AGENTS.md`。
 
 ---
 
