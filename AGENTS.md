@@ -51,6 +51,7 @@
 | 改完了、要做 merge 前驗收 | 直接 `/loops-workflow:verify` | verify |
 | 不確定該從哪開始 | `/loops-workflow:dispatch <描述>`（會幫你判類型 + 建 loop.md） | dispatch 判斷 |
 | 想看懂一份改動 / 交給人前產導讀 | `/loops-workflow:explain <target>` | 側用（唯讀，不進迴圈） |
+| 想裝 statusline（顯示當前 loop / 階段） | `/loops-workflow:install-statusline` | 側用（一次性設定，patch settings.json） |
 
 > `dispatch` 很薄：只做「分類 + 建 `.loops/<slug>/loop.md`（+ 對 issue/fix 開 worktree）+ 進起點階段」，routine 轉場不問，但不替你把整條 loop 自動跑完。
 

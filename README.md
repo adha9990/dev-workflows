@@ -77,6 +77,16 @@ intent→command 對照與全程操作規則見 plugin 內的 `AGENTS.md`（mark
 
 讓 session 底下的 statusline 顯示「目前跑到哪個 loop / 哪個階段」（`⟳ <slug> · <stage>`）。靠 [claude-hud](https://github.com/jarrodwatts/claude-hud) 的 `--extra-cmd` 接 `scripts/hud-status.mjs`，`scripts/statusline.sh` 把整段接線包好（沒裝 claude-hud 也能用，退化成只印 loops 進度）。
 
+### 一鍵安裝（建議）
+
+```
+/loops-workflow:install-statusline
+```
+
+自動解析 `statusline.sh` 的絕對路徑、寫進 `settings.json`（冪等；若已有別的 `statusLine` 會先印出來、徵得同意才覆寫）。裝完**新開一個 session** 即生效。
+
+### 手動安裝（fallback）
+
 在 `~/.claude/settings.json` 把 `statusLine` 指向 wrapper（用**絕對路徑**最穩 —— `~` / `$HOME` 視執行 shell 不一定展開）：
 
 ```json
@@ -97,7 +107,7 @@ plugins/loops-workflow/
 ├── skills/       7 階段 + explain（側用）
 ├── agents/       build 紅綠分離 3（test-author / impl-author / referee）
 │                 + verify 6 核心 reviewer + finding-validator + 6 條件式領域 reviewer
-├── commands/     loop / resume / status / explain
+├── commands/     loop / resume / status / explain / install-statusline
 ├── hooks/        SessionStart：浮出 active .loops/ 迴圈
 ├── scripts/      validate-plan / run-eval / hud-status / statusline
 └── references/   各階段規範 + 模板（security-checklist / reuse-check / docs-policy /
