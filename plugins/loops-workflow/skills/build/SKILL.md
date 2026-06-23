@@ -19,6 +19,8 @@ description: Implements each planned task via red-green-refactor with separate t
 - 計畫還沒拍板 —— 回 plan。
 - 改完要驗收 —— 去 verify。
 
+> **動 code 前先確認在 worktree 裡**：在獨立 git worktree（自帶 branch）寫，不在使用者主 checkout 直接改（dispatch 對 issue/fix 已開；純設計迴圈走到這裡才開 —— `git worktree add .claude/worktrees/<slug> -b <branch> <base>`）。見 `AGENTS.md` 規則 9。
+
 ## Process（每個任務跑一遍紅 → 綠 → 重構 7 步）
 
 1. **派 `test-author`**：只給它需求 / 契約 + TDD 品質判準，**它的 context 不含 implementation**。它回 failing test + 「這測哪條需求」。

@@ -69,6 +69,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 | 列出 active 迴圈 | `/loops-workflow:status`（SessionStart hook 也會自動浮出） |
 | 工程師理解包 | `/loops-workflow:explain <target>`（唯讀側用） |
 | session statusline 顯示 loops 進度（`⟳ <slug> · <stage>`） | `scripts/statusline.sh`（包 claude-hud `--extra-cmd`）→ 設成 statusLine；無 claude-hud 則只印 loops 進度 |
+| code 工作隔離 | 會動 code 的迴圈（issue / fix）在 **git worktree**（自帶 branch）裡做，不擾動主 checkout；`EnterWorktree` 或 `.claude/worktrees/<slug>` |
 
 intent→command 對照與全程操作規則見 plugin 內的 `AGENTS.md`（marketplace 根）。
 

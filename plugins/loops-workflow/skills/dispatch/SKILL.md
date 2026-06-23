@@ -48,6 +48,8 @@ slug 由描述或 issue 標題生 kebab-case（英文 / 數字 / 連字號）。
 - **停止條件雛形**（goal 階段會精煉）
 - **Journal（append-only 事件日誌）**（空，每階段 append 一筆，見 `references/journaling.md`）
 
+**Worktree（會動 code 的迴圈才開）**：type 是 issue / fix → loop 啟動時開**隔離 worktree（自帶 branch）**，整條 loop 在裡面跑、`.loops/<slug>/` 也放裡面，**主 checkout 不動**：用 `EnterWorktree`，或 `git worktree add .claude/worktrees/<slug> -b <branch> <base>`；fix 型把該 PR branch checkout 進 worktree。純設計 / 研究免開（走到 build 再開）。見 `AGENTS.md` 規則 9。
+
 **Resume**：若 `.loops/<slug>/loop.md` 已存在 → 不覆蓋，走 resume 協定（讀 Journal 重建狀態 → 回報「停在哪個階段 / 哪個 gate、已完成 E1–En」→ 問使用者是否續跑，見 `references/journaling.md`）。
 
 ### 3. 進起點階段（routine 轉場不問）
