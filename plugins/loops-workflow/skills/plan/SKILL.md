@@ -31,7 +31,7 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 ### 3. 機制圖（每機制：白話 + 兩張圖）
 
-對每個關鍵機制，寫「一段白話 + 兩張 mermaid」：一張**運作流程圖**、一張**注入 / 接線圖**（只有文字敘述不算數）。
+對每個關鍵機制，寫「一段白話 + 兩張 mermaid」：一張**運作流程圖**（資料 / 控制怎麼跑）、一張**注入 / 接線圖**（誰被注入到誰、怎麼接線）（只有文字敘述不算數）。寫進 `02-plan.md`，**而且第 6 步拍板 gate 一定要把這些圖直接渲染給使用者看** —— 圖是給使用者審「怎麼跑 + 怎麼接線」用的，不能只躺在 `02-plan.md`、也不能只塞進精煉版 alignment comment。
 
 ### 4. 品質維度過一遍
 
@@ -58,7 +58,11 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 ### 6. 送出計畫 + 拍板 gate
 
-**在 plan 階段就把計畫草稿送出**（不是等 loop 結束）：issue-driven → 依 `references/comment-policy.md` 寫暫存 tmp 草稿校稿後 post 成 issue 對齊 comment（留 audit trail，**post 後刪 tmp**）；非 issue → 呈現給使用者。然後停在 `plan → build` 拍板 gate（`AskUserQuestion` 確認方案 + 任務拆解，每選項標推薦）。
+**在 plan 階段就把計畫草稿送出**（不是等 loop 結束）：issue-driven → 依 `references/comment-policy.md` 寫暫存 tmp 草稿校稿後 post 成 issue 對齊 comment（留 audit trail，**post 後刪 tmp**）；非 issue → 呈現給使用者。
+
+**拍板前一定把第 3 步的機制圖直接渲染在 chat 給使用者看** —— 每機制貼出「一段白話 + 運作流程圖（mermaid）+ 注入 / 接線圖（mermaid）」，讓使用者看懂**怎麼跑 + 怎麼接線**再拍板。alignment comment 是 terse 對齊紀錄（套件 / 決策 / out-of-scope，刻意不含圖），**圖不在那裡** —— 所以**不能只丟精煉 comment 就要使用者拍板**；要看更細的指到 `02-plan.md`。
+
+然後停在 `plan → build` 拍板 gate（`AskUserQuestion` 確認方案 + 任務拆解，每選項標推薦）。
 
 > **`02-plan.md` 是 living source of truth**：實作階段若偏離（決策變、任務拆法變），**回去更新它**（並同步已 post 的版本），保持 as-built —— 不是放到 loop 結束才補。完工時這份 as-built plan 提煉成 PR body（見 `references/pr-spec.md`）。
 
@@ -77,11 +81,13 @@ description: Locks design decisions and breaks work into independently verifiabl
 - 引入新套件沒有 ≥3 候選比較表。
 - 任務的 Verification 欄不是可執行指令。
 - 任務命中「該再拆」訊號卻沒拆。
+- 拍板 gate 只給精煉 comment / 文字摘要，**沒把機制圖（運作流程 + 注入接線）渲染給使用者看** —— 等於要使用者盲拍設計。
 - 沒拍板就往 build 跑。
 
 ## Verification
 
 - [ ] `02-plan.md` 有 decision record（含 Consequences）+ 機制圖（白話 + 兩圖）。
+- [ ] 拍板 gate 已把每機制的**運作流程圖 + 注入 / 接線圖渲染在 chat 給使用者看**（不只躺在 `02-plan.md` / 不只給精煉 comment）。
 - [ ] 新套件（若有）附 ≥3 候選比較 + 拍板結論。
 - [ ] 每個任務有可執行的 Verification 指令。
 - [ ] 沒有任務命中「該再拆」四訊號還未拆。

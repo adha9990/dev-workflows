@@ -46,7 +46,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 | `loops-workflow:dispatch` | 僅分類模糊才停 | 決策樹分流（issue→goal / 設計→explore / PR→iterate）+ 建 `loop.md` + 進起點階段 |
 | `loops-workflow:goal` | 有 scope 取捨才停 | **逐句掃 issue 抽 requirement**（不只 AC 段）→ 一次一問訪談 → restate 六欄完工定義 + 可驗證停止條件 |
 | `loops-workflow:explore` | ✋ 選方法 | 內部找可重用 → **不夠才**搜外部（內部+需求已釘死就不搜、省資源）→ 攤開推薦；deep-research 升級要 gate；框架 API 查官方文件 |
-| `loops-workflow:plan` | ✋ 拍板方案 | decision record + 機制圖 + ≥3 套件評估 + 拆成可獨立 verify 的任務；**計畫草稿在 plan 階段就送出**（living plan，實作偏離回去改） |
+| `loops-workflow:plan` | ✋ 拍板方案 | decision record + 機制圖（**拍板 gate 渲染運作流程圖＋注入接線圖給你看**）+ ≥3 套件評估 + 拆成可獨立 verify 的任務；**計畫草稿在 plan 階段就送出**（living plan，實作偏離回去改） |
 | `loops-workflow:build` | 危險 / 卡關才停 | 逐任務**紅綠分離**（test-author 看不到 impl / impl-author 不准改 test）+ Refactor + 分段 commit |
 | `loops-workflow:verify` | 出 P0 才停 | **同回合派 6 reviewer** fan-out（+ 視領域加派條件式 reviewer）+ 跑真 app + 本機 /code-review + finding-validator 二輪 + P0–P3 分級 |
 | `loops-workflow:iterate` | ✋ 完工 or 回環 | 回饋四分類 + Stop-the-Line 根因修 + **3 圈上限**；收尾交接物**依類型**（修正型只一份回覆 reviewer／完整迴圈才產 PR 收尾 comment + explain），草稿確認才送；**follow-up 留當前 issue、不另開** |
