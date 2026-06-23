@@ -47,8 +47,9 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 ### 4. 停止條件 + explicit-yes gate
 
 - **95% 信心**就停止訪談，不無止境追問。
-- restate 給使用者看，**用 `AskUserQuestion`** 問「確認完工定義、進 explore？」（選項：確認往下 / 要改某欄 / 調整範圍，標推薦），**不要用純文字要使用者打 yes**。「whatever you think」「你決定就好」**不算明確選擇** —— 那代表還沒對齊，回去補問。
-- 停在 `goal → explore` 確認 gate。
+- restate 完工定義寫進 `00-goal.md` + chat 摘要給使用者看。
+- **有具體 scope / 取捨決策**（例如某行為要不要納入範圍）就**用 `AskUserQuestion` 問**（選項標推薦）；**沒有真選擇就直接往 explore**，不問「要不要進 explore」。
+- 訪談中若需求講不清（資訊不足以定義完工）→ 停下用 `AskUserQuestion` 問；但「whatever you think」不是把決定權丟回給你的藉口，能推得的就推。
 
 ## Common Rationalizations
 
@@ -63,12 +64,11 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 
 - 一則訊息塞了好幾個問題。
 - 六欄有欄位空著就產 `00-goal.md`。
-- 沒拿到明確 yes 就跳 explore。
+- 有真正的 scope 取捨卻沒用 `AskUserQuestion` 問就逕自決定。
 - 訪談超過必要、把非 blocking 的細節也逼問。
 
 ## Verification
 
 - [ ] `00-goal.md` 六欄齊全，每欄有實質內容。
 - [ ] Success 欄 = 可驗證的停止條件（不是「做得好」這種無法驗的話）。
-- [ ] 使用者給了明確 yes。
-- [ ] 已停在 `goal → explore` gate。
+- [ ] 有具體 scope / 取捨決策的話已用 `AskUserQuestion` 問過；沒有真選擇就直接往 explore（沒用純文字問「要不要進 explore」）。

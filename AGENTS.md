@@ -15,11 +15,11 @@
 ## 2. Operating Rules（全程不變的紀律）
 
 1. **對外敘述一律繁體中文**；code identifier、檔案路徑、指令、skill 名保留英文。
-2. **Closed Loop —— human gate 不可跳**。每個階段做完就停下等使用者拍板，禁止自己一路 paraphrase 串接把下一階段也跑掉。gate 分兩種性質：
-   - **確認 gate**：給使用者看產出對不對（goal / build / verify 後）。
-   - **決策 gate**：要使用者做選擇才能往下（explore 選方法 / plan 拍板方案 / iterate 決定回環或完工）。
-   - **怎麼問（必做）**：每個 gate **一律用 `AskUserQuestion`** 把「要不要往下 / 怎麼走」做成選項給使用者點選（選項標推薦，依 `references/comment-policy.md`），**不要用純文字「請回覆 yes / 要我接著進 X 嗎」要使用者打字確認**。
-   - **例外（opt-in）**：使用者明確開 `auto` 模式時，階段間 gate 收斂為「計畫拍板一次」，但危險 / 失敗 / P0 / 規格模糊仍硬停（見 `references/auto-mode.md`）。預設仍是 Closed Loop。
+2. **推進：階段間不問「要不要進下一階段」**。階段做完把產出寫進 `.loops/` + chat 摘要，**直接往下**，**不要**每進一個階段就停下問使用者「要不要繼續」。使用者隨時可插話喊停 / 改方向。
+   - **只在「真正要使用者選」時停 + 用 `AskUserQuestion`**（選項標推薦，依 `references/comment-policy.md`）：explore 選方法 / plan 拍板方案（含套件選型）/ iterate 完工 or 回哪階段；以及 goal / plan 冒出的**具體 scope / 取捨決策**（有真選擇才問，沒有就往下）。
+   - **安全停（一定停 + 問）**：dispatch 分類模糊 / 危險不可逆操作 / verify 出 P0 / 規格講不清。
+   - **絕不**用純文字「請回覆 yes / 要我接著進 X 嗎」要使用者打字 —— 要嘛 `AskUserQuestion`，要嘛直接往下。
+   - **auto 模式**：連上面的決策也用推薦選項自動帶過，只剩安全停（見 `references/auto-mode.md`）。
 3. **`.loops/<slug>/` 是階段間記憶體**。每階段把結論寫成對應 markdown（`00-goal.md` / `01-explore.md` … 每階段一個），下一階段只讀精煉版、不重讀原始素材。任一階段被獨立呼叫時，**先讀 `loop.md`** 認領狀態。每份檔保持 **< 2000 行**（context window ≠ attention budget）。
 4. **模糊就 surface，不要猜**。需求 / 分類 / 方案不清楚時停下來問，不自行假設往下做。
 5. **Metric-Honesty**：任何「效能 / 覆蓋率 / 通過」宣稱，沒有實際跑出來就標 `not measured`，不得憑感覺寫數字。

@@ -31,7 +31,7 @@ description: Implements each planned task via red-green-refactor with separate t
 
 **偏離 plan 就回去改**：實作若發現需偏離 `02-plan.md`（某決策要變、某任務要重拆）→ **先回去更新 `02-plan.md`（living plan）並同步已 post 的版本**，再續做；偏離大到動搖方案就回 `plan` gate 重新拍板。不要讓 code 與 plan 各走各的、留到最後才對。
 
-**內部紅綠不每單位停**；整個 build 做完才停 `build → verify` gate（**用 `AskUserQuestion` 問是否進 verify**）。
+**內部紅綠不每單位停**；整個 build 做完寫 `03-build.md` + 摘要，**直接進 verify**（routine 轉場不問）。只有碰到危險 / 不可逆操作、或測試怎樣都弄不綠時才停下用 `AskUserQuestion` 問。
 
 ## Common Rationalizations
 
@@ -59,4 +59,4 @@ description: Implements each planned task via red-green-refactor with separate t
 - [ ] `03-build.md` 有 Change Summaries 三段式。
 - [ ] 實作若偏離 plan，`02-plan.md` 已回去同步更新（as-built），未留到最後。
 - [ ] 依 `references/docs-policy.md` 判斷是否需補 `docs/<topic>.md`（+ `docs/README.md` 索引）；命中就寫。
-- [ ] 已停在 `build → verify` gate。
+- [ ] build 做完寫 `03-build.md` 並進 verify（無危險 / 卡關才停），沒用純文字問「要不要進 verify」。

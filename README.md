@@ -22,7 +22,7 @@
 
 # loops-workflow（plugin）
 
-7 階段閉環開發工作流，呼叫帶 `loops-workflow:` 前綴。把開發拆成 `dispatch → goal → explore → plan → build → verify → iterate`，**階段之間有 human gate**，`.loops/<slug>/` 的 markdown 當階段間記憶體。預設逐段停下等人，也支援 opt-in 自動連跑。
+7 階段閉環開發工作流，呼叫帶 `loops-workflow:` 前綴。把開發拆成 `dispatch → goal → explore → plan → build → verify → iterate`，`.loops/<slug>/` 的 markdown 當階段間記憶體。**只在真正要你選的決策點停（用 `AskUserQuestion`）**，routine 轉場直接往下；也支援 opt-in 自動連跑。
 
 ## 工作流程
 
@@ -33,7 +33,7 @@ dispatch → goal → explore → plan → build → verify → iterate
                                                         └──▶ 完工（交 PR / 收尾）
 ```
 
-**每兩階段之間都有 human gate（Closed Loop）** —— 階段做完就停下等使用者拍板，不自動串接。需要時可開 opt-in `auto` 模式（核准計畫一次後連跑，危險 / 失敗 / P0 / 規格模糊仍硬停）。
+**只在真正要你做選擇的決策點停下用 `AskUserQuestion` 問**（explore 選方法 / plan 拍板 / iterate 完工或回環 / 真正的 scope 取捨 / 安全停：分類模糊·危險操作·P0·規格不清）。**routine 轉場（進入下一階段）不問、直接往下**，產出寫進 `.loops/` + 摘要，你隨時可插話喊停 / 改。需要時可開 opt-in `auto` 模式（連決策也用推薦選項自動帶過，只剩安全停）。
 
 ## Skill 清單（7 階段，各自可獨立呼叫）
 

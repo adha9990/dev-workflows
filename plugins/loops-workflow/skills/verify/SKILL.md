@@ -64,7 +64,7 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 ### 4. 分級 + 輸出
 
-每個 finding 標 **P0–P3 + Confidence 50/75/100 + Route**（見 `references/reviewer-severity.md`）。所有 reviewer 套 **Metric-Honesty**（沒實跑就標 `not measured`）。主線 merge 成 **Ready / Not ready** 寫 `04-verify.md`，停 `verify → iterate` gate：**用 `AskUserQuestion` 問下一步**（進 iterate 處理缺口 / 直接完工 / 先看某 finding 細節，標推薦）。
+每個 finding 標 **P0–P3 + Confidence 50/75/100 + Route**（見 `references/reviewer-severity.md`）。所有 reviewer 套 **Metric-Honesty**（沒實跑就標 `not measured`）。主線 merge 成 **Ready / Not ready** 寫 `04-verify.md` + 摘要，**直接進 iterate**（routine 轉場不問）。**只有出 P0** 才停下用 `AskUserQuestion` 問怎麼處理（先修 / 接受風險 / 看細節）。
 
 ### 雙視角記錄
 
@@ -93,4 +93,4 @@ description: Fans out six independent reviewers (product/architecture/security/p
 - [ ] 已跑真 app（`/run`·`/verify`）+ 本機 `/code-review`，或純 lib 無 app 據實標 `not measured`。
 - [ ] 每個 blocking finding 有 finding-validator 的 `validated/rejected/degraded`。
 - [ ] 每條 finding 有 P0–P3 + Confidence + Route，且套 Metric-Honesty。
-- [ ] `04-verify.md` 結論是 Ready / Not ready，停在 `verify → iterate` gate。
+- [ ] `04-verify.md` 結論是 Ready / Not ready 並進 iterate（只有出 P0 才停下用 `AskUserQuestion` 問）。
