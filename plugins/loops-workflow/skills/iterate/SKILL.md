@@ -97,6 +97,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - 把「再 verify」降級成 gate 選項讓使用者點掉。
 - 修正型（`type=fix`）收尾還產一堆草稿（PR body as-built / 另發 issue comment）—— 只該一份回覆 reviewer。
 - 把本可在當前 issue 解決的 follow-up 擅自另開新 issue。
+- issue-driven PR 的 body 沒放關閉關鍵字 `Closes #<issue>`（只寫標題 `(#issue)` / 內文提及 = 不連結、merge 不自動關 issue，見 `references/pr-spec.md`）。
 
 ## Verification
 
