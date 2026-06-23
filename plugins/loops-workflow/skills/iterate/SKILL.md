@@ -58,7 +58,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 接著產出**交 PR 的兩份交接物 —— 都先寫 tmp 草稿給使用者校稿、確認才送，不自動 post**：
 
-1. **PR 收尾 comment**（依 `references/pr-spec.md` + `references/comment-policy.md`）：總結這次做了什麼 + 驗證證據，並逐條回覆 reviewer 意見（去客套、雙視角、婉拒項只陳述技術理由）。寫 tmp 草稿 → 使用者確認 → `--body-file` post。
+1. **PR 收尾 comment**（依 `references/pr-spec.md` + `references/comment-policy.md`）：總結這次做了什麼 + 驗證證據，並逐條回覆 reviewer 意見（去客套、雙視角、婉拒項只陳述技術理由）。寫暫存 tmp 草稿（不進專案）→ 使用者確認 → `--body-file` post → **刪 tmp**。
 2. **explain 理解包**（跑 `explain` skill）：實作導讀 + ownership 自測題 + 設計方向 recap，**給工程師理解這次做了什麼**（接手 / 維護 / 委派工作的人確認 Claude 做了什麼），不是給 reviewer。
 
 > 這兩份**只在「完工交 PR」這條分支**產；回環途中不產。

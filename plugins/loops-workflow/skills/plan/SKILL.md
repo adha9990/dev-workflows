@@ -58,7 +58,7 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 ### 6. 送出計畫 + 拍板 gate
 
-**在 plan 階段就把計畫草稿送出**（不是等 loop 結束）：issue-driven → 依 `references/comment-policy.md` 寫 tmp 草稿校稿後 post 成 issue 對齊 comment（留 audit trail）；非 issue → 呈現給使用者。然後停在 `plan → build` 拍板 gate（`AskUserQuestion` 確認方案 + 任務拆解，每選項標推薦）。
+**在 plan 階段就把計畫草稿送出**（不是等 loop 結束）：issue-driven → 依 `references/comment-policy.md` 寫暫存 tmp 草稿校稿後 post 成 issue 對齊 comment（留 audit trail，**post 後刪 tmp**）；非 issue → 呈現給使用者。然後停在 `plan → build` 拍板 gate（`AskUserQuestion` 確認方案 + 任務拆解，每選項標推薦）。
 
 > **`02-plan.md` 是 living source of truth**：實作階段若偏離（決策變、任務拆法變），**回去更新它**（並同步已 post 的版本），保持 as-built —— 不是放到 loop 結束才補。完工時這份 as-built plan 提煉成 PR body（見 `references/pr-spec.md`）。
 
