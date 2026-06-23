@@ -56,12 +56,14 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 對照 `00-goal.md` 停止條件全部達成 → 跑 Pre-Launch checklist 骨架（砍掉 infra 項）→ 收尾前過 `references/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
 
-接著產出**交 PR 的兩份交接物 —— 都先寫 tmp 草稿給使用者校稿、確認才送，不自動 post**：
+**交接物依迴圈類型而定 —— 都先寫暫存 tmp 草稿（不進專案）→ 使用者確認 → `--body-file` post → 刪 tmp，不自動 post**：
 
-1. **PR 收尾 comment**（依 `references/pr-spec.md` + `references/comment-policy.md`）：總結這次做了什麼 + 驗證證據，並逐條回覆 reviewer 意見（去客套、雙視角、婉拒項只陳述技術理由）。寫暫存 tmp 草稿（不進專案）→ 使用者確認 → `--body-file` post → **刪 tmp**。
-2. **explain 理解包**（跑 `explain` skill）：實作導讀 + ownership 自測題 + 設計方向 recap，**給工程師理解這次做了什麼**（接手 / 維護 / 委派工作的人確認 Claude 做了什麼），不是給 reviewer。
+- **修正型（`type=fix`，從 PR reviewer 回饋進來、PR 已存在）→ 只產一份：回覆 reviewer**（依 `references/comment-policy.md`：逐條記「改了什麼 `<file:line>` + 驗證證據」、雙視角、婉拒只講技術理由）。**不另寫 PR body as-built 條目、不另發 issue comment**（除非使用者明確要）。
+- **完整迴圈（`type=issue/design`，交新 PR）→ PR 收尾 comment**（`references/pr-spec.md` + `references/comment-policy.md`：成果 + 驗證證據 + 回覆）+ **explain 理解包**（跑 `explain` skill，給工程師理解）。修正型**不自動產 explain**；要的話用 `/loops-workflow:explain`（opt-in）。
 
-> 這兩份**只在「完工交 PR」這條分支**產；回環途中不產。
+**follow-up 在當前 issue 內處理、不另開 issue**：發現的後續項 / 既有非本次引入的退化，預設記在當前 issue / PR thread 並在本次或本 issue 內處理，**不 spin off 新 issue**（除非使用者明確要另開）。
+
+> 這些只在「完工」這條分支產；回環途中不產。
 
 完工後把 `loop.md` 的「當前階段」設為「**完工**」（statusline 即不再顯示此 loop）。
 
@@ -83,6 +85,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - 回環超過 3 圈還在繞、沒 escalate。
 - `loop.md` 沒記回環歷史。
 - 回覆 reviewer 堆客套 / 沒給驗證證據。
+- 修正型（`type=fix`）收尾還產一堆草稿（PR body as-built / 另發 issue comment）—— 只該一份回覆 reviewer。
+- 把本可在當前 issue 解決的 follow-up 擅自另開新 issue。
 
 ## Verification
 
@@ -90,5 +94,6 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 每個 actionable 修的是根因 + 有回歸測試（GUARD）。
 - [ ] 回環 ≤ 3 圈，超過已 escalate；`loop.md` 有回環歷史。
 - [ ] 完工前對照 `00-goal.md` 停止條件全達成。
-- [ ] 完工交 PR 時，PR 收尾 comment + explain 兩份草稿都經使用者確認才送（未自動 post）；回環途中不產這兩份。
+- [ ] 收尾交接物依迴圈類型：修正型只一份「回覆 reviewer」、完整迴圈才產 PR 收尾 comment（+ explain）；都經使用者確認才送、未自動 post、回環途中不產。
+- [ ] follow-up 在當前 issue 內處理，沒有擅自另開新 issue。
 - [ ] 停在 `iterate` 決策 gate。
