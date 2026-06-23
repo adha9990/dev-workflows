@@ -1,6 +1,28 @@
-# loops-workflow plugin
+# dev-workflows
 
-> 7 階段閉環開發工作流，呼叫帶 `loops-workflow:` 命名空間前綴。把開發拆成 `dispatch → goal → explore → plan → build → verify → iterate`，**階段之間有 human gate**，`.loops/<slug>/` 的 markdown 當階段間記憶體。預設逐段停下等人，也支援 opt-in 自動連跑。
+> 個人開發工作流 plugin marketplace（測試性）。目前 **2 個 plugin**：
+
+| Plugin | 用途 | 怎麼用 |
+|---|---|---|
+| **loops-workflow** | 7 階段閉環開發工作流（**既有專案**內加功能 / 設計 / 修問題） | `/loops-workflow:dispatch <一句話>` |
+| **scaffold** | greenfield 從零建全端 TS 專案骨架（分層 Fastify + React SPA + Kysely + Vitest） | `/scaffold:scaffold-fullstack` |
+
+## 安裝
+
+```
+/plugin marketplace add ~/.claude/plugins/marketplaces/dev-workflows
+/plugin install loops-workflow@dev-workflows    # 閉環開發（既有專案）
+/plugin install scaffold@dev-workflows          # greenfield scaffold（空資料夾從零建）
+/reload-plugins
+```
+
+**怎麼選**：既有專案內開發 → `loops-workflow`；空資料夾從零建乾淨架構 → `scaffold`。
+
+---
+
+# loops-workflow（plugin）
+
+7 階段閉環開發工作流，呼叫帶 `loops-workflow:` 前綴。把開發拆成 `dispatch → goal → explore → plan → build → verify → iterate`，**階段之間有 human gate**，`.loops/<slug>/` 的 markdown 當階段間記憶體。預設逐段停下等人，也支援 opt-in 自動連跑。
 
 ## 工作流程
 
@@ -11,7 +33,7 @@ dispatch → goal → explore → plan → build → verify → iterate
                                                         └──▶ 完工（交 PR / 收尾）
 ```
 
-**每兩階段之間都有 human gate（Closed Loop）** —— 階段做完就停下等使用者拍板，不自動串接。`.loops/<slug>/` 的 markdown 當階段間記憶體（已 `.gitignore`）。需要時可開 opt-in `auto` 模式（核准計畫一次後連跑，危險 / 失敗 / P0 / 規格模糊仍硬停）。
+**每兩階段之間都有 human gate（Closed Loop）** —— 階段做完就停下等使用者拍板，不自動串接。需要時可開 opt-in `auto` 模式（核准計畫一次後連跑，危險 / 失敗 / P0 / 規格模糊仍硬停）。
 
 ## Skill 清單（7 階段，各自可獨立呼叫）
 
@@ -22,13 +44,15 @@ dispatch → goal → explore → plan → build → verify → iterate
 | `loops-workflow:explore` | 選方法 | 內部找可重用 → 外部找做法 → 攤開比較推薦；deep-research 升級要 gate；框架 API 查官方文件 |
 | `loops-workflow:plan` | 拍板方案 | decision record + 機制圖 + ≥3 套件評估 + 拆成可獨立 verify 的任務 |
 | `loops-workflow:build` | 確認完成 | 逐任務**紅綠分離**（test-author 看不到 impl / impl-author 不准改 test）+ Refactor + 分段 commit |
-| `loops-workflow:verify` | 看驗收報告 | **同回合派 6 reviewer** fan-out（+ 視領域加派條件式 reviewer）+ finding-validator 二輪 + P0–P3 分級 |
+| `loops-workflow:verify` | 看驗收報告 | **同回合派 6 reviewer** fan-out（+ 視領域加派條件式 reviewer）+ 跑真 app + 本機 /code-review + finding-validator 二輪 + P0–P3 分級 |
 | `loops-workflow:iterate` | 完工 or 回環 | 回饋四分類 + Stop-the-Line 根因修 + **3 圈上限** + 收尾 |
+
+另有側用 `loops-workflow:explain <target>` —— 產工程師理解包（實作導讀 + 自測題 + 設計方向），唯讀、不在迴圈裡。
 
 ## 兩個引擎
 
-- **build 紅綠分離**（`agents/`）：`test-author`（只看需求、看不到 impl）→ `impl-author`（只轉綠、不准改 test）→ Refactor → 衝突派 `referee` 裁決。讓測試不會遷就實作。
-- **verify fan-out**（`agents/`）：主線同回合派 6 reviewer（`product-contract` / `architecture` / `security` / `performance` / `code-quality` / `tests`）各審一軸 + `finding-validator` 二輪確認，輸出 Ready / Not ready。
+- **build 紅綠分離**：`test-author`（只看需求、看不到 impl）→ `impl-author`（只轉綠、不准改 test）→ Refactor → 衝突派 `referee` 裁決。讓測試不會遷就實作。
+- **verify fan-out**：主線同回合派 6 reviewer（product-contract / architecture / security / performance / code-quality / tests）各審一軸 + 條件式領域 reviewer + `finding-validator` 二輪，輸出 Ready / Not ready。
 
 ## 進階（opt-in）
 
@@ -36,38 +60,17 @@ dispatch → goal → explore → plan → build → verify → iterate
 |---|---|
 | 自動連跑（核准一次、危險才停） | `dispatch auto <…>`，見 `references/auto-mode.md` |
 | 競賽 / 投票式編隊（N 方案→評審） | plan / explore 說「用 Fleet」，見 `references/fleet.md` |
-| 跨 session 接續 | `/loops-workflow:resume <slug>`，loop.md 事件日誌，見 `references/journaling.md` |
+| 跨 session 接續 | `/loops-workflow:resume <slug>`，見 `references/journaling.md` |
 | 機器可驗證計畫 + eval | `scripts/validate-plan.mjs` / `scripts/run-eval.mjs` |
 | 列出 active 迴圈 | `/loops-workflow:status`（SessionStart hook 也會自動浮出） |
-| 工程師理解包（實作導讀 + 自測題 + 設計方向） | `/loops-workflow:explain <target>`（唯讀側用，不在迴圈裡） |
+| 工程師理解包 | `/loops-workflow:explain <target>`（唯讀側用） |
 
-## 安裝
+intent→command 對照與全程操作規則見 plugin 內的 `AGENTS.md`（marketplace 根）。
 
-```
-/plugin marketplace add ~/.claude/plugins/marketplaces/loops-workflow
-/plugin install loops-workflow@loops-workflow
-/reload-plugins
-```
+---
 
-裝好後 `/loops-workflow:dispatch <一句話>` 或 `/loops-workflow:loop <一句話>` 開跑，也可直接喊任一階段。intent→command 對照見 [AGENTS.md](./AGENTS.md)。
+# scaffold（plugin）
 
-## 結構
+greenfield 從零建全端 TypeScript 專案骨架：分層 Fastify 後端（`domain ← ports ← adapters/services/repositories/http`）+ React 19 + TanStack SPA、ESLint 強制分層與前後端牆、SQLite + Kysely、Vitest（unit/e2e/benchmark），含一條貫穿各層的範例垂直切片。
 
-```
-plugins/loops-workflow/
-├── skills/       dispatch goal explore plan build verify iterate（7 階段）
-│                 ＋ explain（側用：工程師理解包）
-├── agents/       test-author impl-author referee（build 3）
-│                 ＋ 6 核心 reviewer ＋ finding-validator（verify 7）
-│                 ＋ 6 條件式領域 reviewer（frontend-ui / accessibility /
-│                   web-performance / observability / ci-cd / migration）
-├── commands/     loop resume status explain
-├── hooks/        SessionStart：浮出 active .loops/ 迴圈
-├── scripts/      validate-plan.mjs / run-eval.mjs
-└── references/   security-checklist code-simplification reuse-check
-                  reviewer-severity finding-validation optional-reviewers
-                  docs-policy commit-spec pr-spec comment-policy onboarding
-                  auto-mode fleet journaling plan-schema eval-harness
-                  automations goal-restate-schema task-template
-                  change-summaries adr-template
-```
+用 `/scaffold:scaffold-fullstack` —— 在空資料夾從模板生出整個分層專案骨架。**只建新專案、不改既有 code**（既有專案內開發走 loops-workflow）。
