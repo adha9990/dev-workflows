@@ -64,7 +64,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 **交接物依迴圈類型而定 —— 都先寫暫存 tmp 草稿（不進專案）→ 使用者確認 → `--body-file` post → 刪 tmp，不自動 post**：
 
 - **修正型（`type=fix`，從 PR reviewer 回饋進來、PR 已存在）→ 只產一份：回覆 reviewer**（依 `references/comment-policy.md`：逐條記「改了什麼 `<file:line>` + 驗證證據」、雙視角、婉拒只講技術理由）。**不另寫 PR body as-built 條目、不另發 issue comment**（除非使用者明確要）。
-- **完整迴圈（`type=issue/design`，交新 PR）→ PR 收尾 comment**（`references/pr-spec.md` + `references/comment-policy.md`：成果 + 驗證證據 + 回覆）+ **explain 理解包**（跑 `explain` skill，給工程師理解）。修正型**不自動產 explain**；要的話用 `/loops-workflow:explain`（opt-in）。
+- **完整迴圈（`type=issue/design`，交新 PR）→ PR 收尾 comment**（`references/pr-spec.md` + `references/comment-policy.md`：成果 + 驗證證據 + 回覆）+ **自動產 explain 理解包**（跑 `explain` skill，給工程師理解）。**完整迴圈完工一律自動產 explain，不問「要不要產」** —— 它是完整迴圈的標準交接物。修正型才**不自動產 explain**（opt-in，用 `/loops-workflow:explain`）。
 
 **follow-up 在當前 issue 內處理、不另開 issue**：發現的後續項 / 既有非本次引入的退化，預設記在當前 issue / PR thread 並在本次或本 issue 內處理，**不 spin off 新 issue**（除非使用者明確要另開）。
 
@@ -98,6 +98,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - 把「再 verify」降級成 gate 選項讓使用者點掉。
 - **verify 出 actionable findings（含 P2/P3）還問使用者「修多少 / 要不要修」** —— actionable 一律自動全修，不是使用者決策。
 - 修正型（`type=fix`）收尾還產一堆草稿（PR body as-built / 另發 issue comment）—— 只該一份回覆 reviewer。
+- **完整迴圈完工還問使用者「要不要產 explain」** —— 完整迴圈一律自動產（只有修正型才 opt-in）。
 - 把本可在當前 issue 解決的 follow-up 擅自另開新 issue。
 - issue-driven PR 的 body 沒放關閉關鍵字 `Closes #<issue>`（只寫標題 `(#issue)` / 內文提及 = 不連結、merge 不自動關 issue，見 `references/pr-spec.md`）。
 
@@ -110,6 +111,6 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工。
 - [ ] 完工前最近一輪 verify 無 actionable findings。
 - [ ] 完工前對照 `00-goal.md` 停止條件全達成。
-- [ ] 收尾交接物依迴圈類型：修正型只一份「回覆 reviewer」、完整迴圈才產 PR 收尾 comment（+ explain）；都經使用者確認才送、未自動 post、回環途中不產。
+- [ ] 收尾交接物依迴圈類型：修正型只一份「回覆 reviewer」、完整迴圈產 PR 收尾 comment + **自動產 explain（沒問「要不要產」）**；對外那份經使用者確認才送、未自動 post、回環途中不產。
 - [ ] follow-up 在當前 issue 內處理，沒有擅自另開新 issue。
 - [ ] 停在 `iterate` 決策 gate。

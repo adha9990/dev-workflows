@@ -48,7 +48,7 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 - **停止條件雛形**（goal 階段會精煉）
 - **Journal（append-only 事件日誌）**（空，每階段 append 一筆，見 `references/journaling.md`）
 
-**Worktree（會動 code 的迴圈才開）**：type 是 issue / fix → loop 啟動時開**隔離 worktree（自帶 branch）**，整條 loop 在裡面跑、`.loops/<slug>/` 也放裡面，**主 checkout 不動**：用 `EnterWorktree`，或 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`（**branch / worktree 名 = slug `<issue#>-<slug>`，例 `137-trash-delete-permanent`，不加 type 前綴**）；fix 型把該 PR branch checkout 進 worktree。純設計 / 研究免開（走到 build 再開）。見 `AGENTS.md` 規則 9。
+**Worktree（會動 code 的迴圈才開）**：type 是 issue / fix → loop 啟動時開**隔離 worktree（自帶 branch）做 code**，**主 checkout 不動**：用 `EnterWorktree`，或 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`（**branch / worktree 名 = slug `<issue#>-<slug>`，例 `137-trash-delete-permanent`，不加 type 前綴**）；fix 型把該 PR branch checkout 進 worktree。**但 `.loops/<slug>/` 建在主 repo（dispatch 當下的 cwd / `git worktree list` 第一筆）、不放進 worktree** —— worktree 只放 code；未追蹤的 `.loops/` 放 worktree 會在 clean/refresh/remove 時被一起刪掉。各階段即使 cd 在 worktree 裡，也把 `.loops/` 寫回主 repo（用絕對路徑）。純設計 / 研究免開（走到 build 再開）。見 `AGENTS.md` 規則 9。
 
 **Resume**：若 `.loops/<slug>/loop.md` 已存在 → 不覆蓋，走 resume 協定（讀 Journal 重建狀態 → 回報「停在哪個階段 / 哪個 gate、已完成 E1–En」→ 問使用者是否續跑，見 `references/journaling.md`）。
 
