@@ -40,7 +40,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 ### 2. 建 / 認領 loop.md
 
-slug 由描述或 issue 標題生 kebab-case（英文 / 數字 / 連字號）。建立 `.loops/<slug>/loop.md`，寫入：
+slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-delete-permanent`）、無 issue 號的設計 / 研究用 `<kebab 描述>`（英文 / 數字 / 連字號）。**不加 `fix/`/`feat/` 等 type 前綴** —— 這個 slug 同時是 loop 目錄、worktree、branch 的名字。建立 `.loops/<slug>/loop.md`，寫入：
 - **類型**（issue / design / fix）
 - **起點階段** + **當前階段**（當前階段初始＝起點階段，每進一個階段就更新；供 statusline 顯示）
 - **session**（用 Bash 讀 `$CLAUDE_CODE_SESSION_ID` 填；statusline 靠它**只顯示「本 session」正在跑的 loop**，不被別 session / 歷史 loop 干擾）
@@ -48,7 +48,7 @@ slug 由描述或 issue 標題生 kebab-case（英文 / 數字 / 連字號）。
 - **停止條件雛形**（goal 階段會精煉）
 - **Journal（append-only 事件日誌）**（空，每階段 append 一筆，見 `references/journaling.md`）
 
-**Worktree（會動 code 的迴圈才開）**：type 是 issue / fix → loop 啟動時開**隔離 worktree（自帶 branch）**，整條 loop 在裡面跑、`.loops/<slug>/` 也放裡面，**主 checkout 不動**：用 `EnterWorktree`，或 `git worktree add .claude/worktrees/<slug> -b <branch> <base>`；fix 型把該 PR branch checkout 進 worktree。純設計 / 研究免開（走到 build 再開）。見 `AGENTS.md` 規則 9。
+**Worktree（會動 code 的迴圈才開）**：type 是 issue / fix → loop 啟動時開**隔離 worktree（自帶 branch）**，整條 loop 在裡面跑、`.loops/<slug>/` 也放裡面，**主 checkout 不動**：用 `EnterWorktree`，或 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`（**branch / worktree 名 = slug `<issue#>-<slug>`，例 `137-trash-delete-permanent`，不加 type 前綴**）；fix 型把該 PR branch checkout 進 worktree。純設計 / 研究免開（走到 build 再開）。見 `AGENTS.md` 規則 9。
 
 **Resume**：若 `.loops/<slug>/loop.md` 已存在 → 不覆蓋，走 resume 協定（讀 Journal 重建狀態 → 回報「停在哪個階段 / 哪個 gate、已完成 E1–En」→ 問使用者是否續跑，見 `references/journaling.md`）。
 

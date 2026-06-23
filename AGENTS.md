@@ -26,7 +26,7 @@
 6. **重用優先、不以 MVP**：動手前先搜既有實作、避免重複造輪子（稍異 ≠ 另造，優先參數化既有方法，見 `references/reuse-check.md`）；in-scope 實作不以 MVP，照最高標準做（對可預見的規模退化預先用對演算法）。
 7. **文件紀律**：完工前依 `references/docs-policy.md` 判斷 —— 新子系統 / 跨切面 / 不直觀設計寫 `docs/<topic>.md`（+ 維護 `docs/README.md` 索引）；慣例 / 規則改變才更新 `AGENTS.md` · `CLAUDE.md`；小功能不塞 docs。
 8. **對外溝通**：所有面向人的書面（AskUserQuestion / issue · PR 回覆 / 驗收報告 / 端決策）依 `references/comment-policy.md` —— 繁中白話、雙視角紀錄、AskUserQuestion 標推薦、對外內容先寫**暫存 tmp 草稿**校稿（不進專案 / 不進版控）+ **送出後刪 tmp**、不寫客套。
-9. **code 變更在 git worktree 裡做**（隔離工作目錄、不擾動使用者主 checkout）：會動 code 的迴圈（issue / fix）在 loop 啟動時開一個**獨立 worktree（自帶 branch）**、整條 loop 在裡面跑 —— **不在主 checkout 直接 `checkout -b`**。用環境的 worktree 能力（`EnterWorktree`）或 `git worktree add .claude/worktrees/<slug> -b <branch> <base>`；修正型（PR 已存在）把該 PR branch checkout 進 worktree。純設計 / 研究（不動 code）免開、走到 build 再開。完工 merge 後 `git worktree remove` 清掉。
+9. **code 變更在 git worktree 裡做**（隔離工作目錄、不擾動使用者主 checkout）：會動 code 的迴圈（issue / fix）在 loop 啟動時開一個**獨立 worktree（自帶 branch）**、整條 loop 在裡面跑 —— **不在主 checkout 直接 `checkout -b`**。用環境的 worktree 能力（`EnterWorktree`）或 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`。**branch / worktree 名 = loop slug `<issue#>-<slug>`（例 `137-trash-delete-permanent`），不加 `fix/`/`feat/` 等 type 前綴**；修正型（PR 已存在）把該 PR branch checkout 進 worktree。純設計 / 研究（不動 code）免開、走到 build 再開。完工 merge 後 `git worktree remove` 清掉。
 
 ### 參考檔路徑解析（重要）
 
