@@ -23,6 +23,8 @@ description: Implements each planned task via red-green-refactor with separate t
 
 > **動 code 前先確認在 worktree 裡**：在獨立 git worktree（自帶 branch）寫，不在使用者主 checkout 直接改（dispatch 對 issue/fix 已開；純設計迴圈走到這裡才開 —— `git worktree add .claude/worktrees/<slug> -b <slug> <base>`，branch / worktree 名 = slug，不加 type 前綴）。見 `AGENTS.md` 規則 9。
 
+> **平行 build 一律 worktree 隔離**：build 預設**逐任務序列**跑紅綠（同一時間只有一個 writer，在 loop worktree 裡）。若為加速**平行派多個會寫檔的 agent**（跨獨立任務 / DAG 同層），**每個平行 writer 必須各自一個隔離 worktree**（`isolation: 'worktree'`）—— 共用同一工作目錄會競態，且各 agent 自報的「綠」是不同時間點的半成品態、**不可採信**（已踩過）。平行完成後合併回主 worktree，**由主線在合併態重跑 `pnpm typecheck && lint && test` 才算數**。見 `AGENTS.md` 規則 9。
+
 ## Process（每個任務跑一遍紅 → 綠 → 重構 7 步）
 
 1. **派 `test-author`**：只給它需求 / 契約 + TDD 品質判準，**它的 context 不含 implementation**；把 `references/test-rubric.md` 的**絕對路徑**寫進其 prompt（分層測試 unit/integration/smoke/e2e、real-not-mock、async 等真完成、data-layer 覆蓋清單；subagent 用相對路徑讀不到）。它回 failing test + 「這測哪條需求」。
@@ -53,12 +55,14 @@ description: Implements each planned task via red-green-refactor with separate t
 - impl-author 改了 test 來轉綠。
 - Refactor 階段測試行為被改動。
 - build 做到一半沒紅綠軌跡就 commit。
+- **平行派多個寫檔 agent 卻共用同一工作目錄**（競態）；或**採信 subagent 自報的綠**而沒在合併態重跑 gate。
 
 ## Verification
 
 - [ ] 每個任務都有「Red 確認 → Green 確認」軌跡記在 `03-build.md`。
 - [ ] impl-author 寫的 code 達到**合併標準**（clean code / clean architecture / 安全 / 重用），不是留給 verify 才抓（shift-left）。
 - [ ] test 由 test-author 在無 impl context 下產出；impl 由 impl-author 產出且未改 test。
+- [ ] 若有平行 fan-out 寫檔 agent：各自隔離 worktree，且合併後**主線在合併態重跑完整 gate**確認綠（沒採信各 agent 自報）。
 - [ ] Refactor 後測試行為未變（仍綠）。
 - [ ] 分段 commit（繁中）對應各 Save Point。
 - [ ] `03-build.md` 有 Change Summaries 三段式。

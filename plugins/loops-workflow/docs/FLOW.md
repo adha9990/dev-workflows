@@ -120,7 +120,7 @@ flowchart TD
 |---|---|
 | **skill** | `build`（1）｜**agent** **每任務 2 個**（`test-author` → `impl-author`）；衝突時 **+1**（`referee`） |
 | **處理什麼** | 逐任務把計畫變成 code，且測試不遷就實作、寫的當下就乾淨 |
-| **策略** | **紅綠分離**：寫測試的看不到實作 → 不會把測試寫成遷就實作；寫實作的不能改測試 → 不能讓測試將就自己 |
+| **策略** | **紅綠分離**：寫測試的看不到實作 → 不會把測試寫成遷就實作；寫實作的不能改測試 → 不能讓測試將就自己。**平行 build 各 writer 隔離 worktree**、合併後主線在合併態重驗（不採信 subagent 自報綠） |
 | **寫碼標準（shift-left）** | impl-author **綠燈當下就照 verify 會查的同一套合併標準寫**：clean code + clean architecture + **安全**（輸入驗證 / authn-authz / 不洩敏感資料 / SQL 參數化）+ **重用**（寫前先確認沒有既有的）—— 標準在 build 與 verify 是**同一份 reference、兩處套用**；Refactor 是精修，不是補救爛 code（見 AGENTS 規則 11） |
 
 ```mermaid
