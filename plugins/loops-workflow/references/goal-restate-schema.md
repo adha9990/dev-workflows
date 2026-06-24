@@ -34,4 +34,4 @@
 - **Success 必須可驗證**：寫「上傳 10MB 圖片 3 秒內出縮圖」，不寫「縮圖體驗變好」。
 - **Out of scope 不可空**：想不到要排除什麼，代表訪談還沒夠深。
 - HYPOTHESIS + CONFIDENCE 是訪談留痕：每問記下當時猜測與把握，優先打 confidence 最低、影響最大的點。
-- 95% 信心就停止訪談；restate 要拿到使用者**明確 yes**（「你決定」不算）。
+- 95% 信心就停止訪談；restate 給使用者看後**直接進 explore**（不停下要使用者確認 DoD —— 那是 routine 轉場、不是 gate；有錯他會插話改）。只有冒出**具體 scope 取捨選擇**才用 `AskUserQuestion` 停下問。
