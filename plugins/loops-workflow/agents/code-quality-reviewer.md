@@ -13,7 +13,7 @@ tools: Read, Grep, Glob
 - **變更規模**：單一邏輯改動的 diff 過大（**> ~300 行 unified、或 > 1000 行總量**）= 該拆成幾個 PR / commit（大改動沒人審得動、審了也淺）；被改的**檔本身超過 ~1000 行** = 加東西前先抽出，別繼續膨脹。
 - **錯誤處理**：有沒有 silent failure（吞例外 / 空 catch）、不當 fallback、錯誤被當成功、邊界沒處理。
 - **typing**：型別有沒有放水（`any` / 強轉 / 漏掉 nullable）、契約有沒有用型別表達。
-- **可讀性與簡潔**（讀 orchestrator 在 prompt 提供的 `code-simplification.md` 絕對路徑，把過度簡化反例當 readability checklist）：
+- **可讀性與簡潔**（讀 orchestrator 在 prompt 提供的 `clean-code.md`〔正向寫碼標準〕+ `code-simplification.md`〔過度簡化反例〕絕對路徑當 checklist）：
   - 是不是為了短而犧牲可讀性、把不同概念硬合併、用魔法藏掉顯式邏輯。
   - 命名 / 結構是否讓人一眼看懂；有沒有不必要的重複。
   - **不是越短越好** —— 顯式、好讀優先於精巧。

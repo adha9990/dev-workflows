@@ -25,7 +25,7 @@ description: Implements each planned task via red-green-refactor with separate t
 
 1. **派 `test-author`**：只給它需求 / 契約 + TDD 品質判準，**它的 context 不含 implementation**；把 `references/test-rubric.md` 的**絕對路徑**寫進其 prompt（分層測試 unit/integration/smoke/e2e、real-not-mock、async 等真完成、data-layer 覆蓋清單；subagent 用相對路徑讀不到）。它回 failing test + 「這測哪條需求」。
 2. **主線跑測試 → 確認 Red**（測試如預期失敗，且失敗原因正確）。
-3. **派 `impl-author`**：給它 test + plan，寫**最小實作**轉綠。**不准改 test**。
+3. **派 `impl-author`**：給它 test + plan，寫**最小範圍**實作轉綠、**不准改 test**；把 `references/clean-code.md` 與 `references/clean-architecture.md` 的**絕對路徑**寫進其 prompt —— 要求**綠燈當下就照 clean code（命名 / 小函式 / guard clause / 顯式錯誤 / 型別契約）+ clean architecture（依賴向內 / port + 注入 / 落點對齊）寫**，不是先寫爛再靠 Refactor 救。
 4. **主線跑測試 → 確認 Green**。
 5. **Refactor**（綠燈後、test 保護下整理結構不改行為）：套 `code-simplification`（派 impl-author 時把 `references/code-simplification.md` 的**絕對路徑**寫進其 prompt —— subagent 用相對路徑讀不到，見 AGENTS.md〈參考檔路徑解析〉）—— Chesterton's Fence（改 / 刪前先答「為什麼當初這樣寫」）、過度簡化四陷阱、**紅旗「簡化若需要改 test 才能過 = 你改的是行為不是結構，停下」**。
 6. **衝突仲裁**：若 impl-author 主張 test 與需求不符 → 回報主線，主線依 `00-goal.md` 完工定義裁決；必要時派 `referee` 判是 test 錯還是 impl 錯。
