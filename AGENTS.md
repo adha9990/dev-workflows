@@ -41,8 +41,7 @@
     - **fail-fast 不空轉**：停止條件**看收斂**（findings 沒變少 / 同條 finding 復現就 escalate）、回環 3 圈上限當檢查點、**不過早放棄也不無限繞**。
     省 token 不是吝嗇，是讓迴圈**能負擔得起地跑到完成**。
 11. **品質前置（shift-left）：build 寫的當下就達到合併標準，不留給 verify 才抓**。impl-author 寫 code 時就套 verify 會查的**同一套品質標準** —— clean code / clean architecture / **安全（`references/security-checklist.md`）/ 重用（`references/reuse-check.md`）/ 設計模式（`references/design-patterns.md`）**。標準是**同一份 reference、兩處套用**：build 主動寫到位、verify 獨立複查。如此 verify 是「**獨立確認 + 抓盲點**」的安全網，不是第一道品質關 —— **寫對的成本遠低於寫錯被退回重修**（呼應規則 10「不重複勞動」、且減少漏檢風險：寫的人套標準 + 獨立的人複查，比只靠事後查更不會漏）。
-
-### 參考檔路徑解析（重要）
+12. **每件要實作的工作都從一個 GitHub issue 起手**：要動手 `plan` / `build` 的工作，**若還沒有對應 issue，一律先 `define` 建一個新 issue 再進** —— 不從臨時想法、口頭描述、或某個父設計 issue 的子切片直接 plan/build。已有 issue（給了 issue# / 從 `define` 產生）才可用「直接 `plan` / 直接 `build`」捷徑跳階段。**例外**：`explore` 純研究本身就是「產生 issue」的來源（其 `explore → define` gate 會開 issue），不在此限。理由：可追溯（每段實作對得上一張 issue）、PR 有 `Closes #` 可結、避免無票施工。
 
 `references/*.md` 的讀取分兩種情境：
 
@@ -64,8 +63,8 @@
 | 從零開一個**全新空專案**（無 code / 空目錄） | `/loops-workflow:dispatch <描述>`（偵測乾淨 → 確認 → scaffold 骨架 → define → goal） | scaffold → define → goal |
 | 純設計 / 研究 / 技術評估（無 issue） | `/loops-workflow:dispatch <描述>` 或直接 `/loops-workflow:explore` | explore |
 | 收到 PR / reviewer 回饋要修正 | `/loops-workflow:dispatch <PR#>` 或直接 `/loops-workflow:iterate` | iterate |
-| 需求已清楚、只想把方法拆成可驗證任務 | 直接 `/loops-workflow:plan` | plan |
-| 計畫已拍板、要逐任務實作 | 直接 `/loops-workflow:build` | build |
+| 需求已清楚、只想把方法拆成可驗證任務（**前提：已有對應 issue**；沒有先 `define`，見規則 12） | 直接 `/loops-workflow:plan` | plan |
+| 計畫已拍板、要逐任務實作（**前提：已有對應 issue**） | 直接 `/loops-workflow:build` | build |
 | 改完了、要做 merge 前驗收 | 直接 `/loops-workflow:verify` | verify |
 | 不確定該從哪開始 | `/loops-workflow:dispatch <描述>`（會幫你判類型 + 建 loop.md） | dispatch 判斷 |
 | 想看懂一份改動 / 交給人前產導讀 | `/loops-workflow:explain <target>` | 側用（唯讀，不進迴圈） |

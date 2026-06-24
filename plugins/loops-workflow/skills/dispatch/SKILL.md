@@ -94,6 +94,7 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 - 你在 dispatch 裡開始讀 codebase / 寫 code / 訪談 —— 那是 explore / build / goal 的事，dispatch 只分流。
 - 你判完類型沒停、直接開始跑下一階段。
 - 沒建 loop.md 就交棒。
+- **要實作的工作沒有對應 issue 就直接進 plan / build** —— 一律先 `define` 建一個新 issue 再進（AGENTS 規則 12；研究 explore 例外）。
 
 ## Verification
 

@@ -89,7 +89,7 @@ flowchart TD
 | **skill** | `define`（1，可獨立呼叫 `/loops-workflow:define`）｜**agent** 0 |
 | **處理什麼** | 把點子 / 模糊問題變成工程師看得懂、能實作驗證的 **template-ready GitHub issue** |
 | **機制** | **Readiness Model**（分 Level 0–4、目標 Level 3）→ 用 repo 的 issue template → **一次一問 intake**（釐清問題定義 / 成功準則 / 替代方案）→ scope sizing（太大先拆票）→ 多步流程放 flowchart → 草稿校稿 → `gh issue create --assignee @me` → 進 goal |
-| **策略** | 先 inspect repo（template / 既有 issue）；寫作指示濾掉不寫進 ticket；含「審 / 重寫既有 ticket」模式 |
+| **策略** | 先 inspect repo（template / 既有 issue）；寫作指示濾掉不寫進 ticket；含「審 / 重寫既有 ticket」模式。**每件要實作的工作都從 issue 起手（AGENTS 規則 12）—— 沒對應 issue 不直接 plan/build，一律先來這建一個** |
 
 ---
 
