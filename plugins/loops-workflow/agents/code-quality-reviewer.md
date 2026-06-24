@@ -8,6 +8,9 @@ tools: Read, Grep, Glob
 
 ## 審查範圍
 
+> 審讀順序：**先讀 test 再讀實作** —— test 揭露意圖與覆蓋，框住整個 review。
+
+- **變更規模**：單一邏輯改動的 diff 過大（**> ~300 行 unified、或 > 1000 行總量**）= 該拆成幾個 PR / commit（大改動沒人審得動、審了也淺）；被改的**檔本身超過 ~1000 行** = 加東西前先抽出，別繼續膨脹。
 - **錯誤處理**：有沒有 silent failure（吞例外 / 空 catch）、不當 fallback、錯誤被當成功、邊界沒處理。
 - **typing**：型別有沒有放水（`any` / 強轉 / 漏掉 nullable）、契約有沒有用型別表達。
 - **可讀性與簡潔**（讀 orchestrator 在 prompt 提供的 `code-simplification.md` 絕對路徑，把過度簡化反例當 readability checklist）：

@@ -36,6 +36,8 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 > 必須在**同一個 assistant 回合**一次發出 6 個 Agent call 才會真的並行。subagent 不能再派 subagent。
 
+> **派 reviewer 只給 artifact + 契約**（issue / `02-plan.md` 契約 / diff），**不給作者的理由 / 辯護** —— `03-build.md` 的 POTENTIAL CONCERNS 是給人看的、**不轉發**給 reviewer。餵作者 rationale 會讓 reviewer 偏向同意（反偏見的正面規則，同 tests-reviewer「不告知作者說已過」）。
+
 > **參考檔路徑（必做）**：subagent 的 CWD 是使用者 repo、且 `${CLAUDE_PLUGIN_ROOT}` 在 markdown 不展開，所以相對路徑 `references/xxx.md` 它們讀不到。派 reviewer 前，**從本 skill 的 base directory 推出 plugin root**（base 上兩層 = `…/plugins/loops-workflow/`），組出絕對路徑塞進各 reviewer 的 prompt：全部 reviewer ← `references/reviewer-severity.md` + `references/preflight.md` §(c)「作者已留痕的決定不算 finding」硬規則原文；`security-reviewer` 另加 `references/security-checklist.md`；`code-quality-reviewer` 另加 `references/code-simplification.md` 與 `references/reuse-check.md`；`tests-reviewer` 另加 `references/test-rubric.md`；`finding-validator` ← `references/finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
 
 ### 1.5 條件式 reviewer（選用，視改動領域加派）
@@ -89,6 +91,8 @@ description: Fans out six independent reviewers (product/architecture/security/p
 - tests-reviewer 被餵了「作者說測試已過」。
 - blocking finding 沒過 finding-validator 就進報告。
 - 出現未實測的效能 / 覆蓋率數字。
+- 把作者的理由 / 辯護餵給 reviewer 當框架（只給 artifact + 契約）。
+- 連 2+ 輪 reviewer 都出 substantive finding 卻 **0 條被判 actionable** = 在背書不是審查（rubber-stamp / doubt theater），停下重看 validator 是不是把該修的都 rationalize 掉了。
 
 ## Verification
 

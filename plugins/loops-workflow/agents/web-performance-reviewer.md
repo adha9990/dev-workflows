@@ -8,7 +8,8 @@ tools: Read, Grep, Glob
 
 ## 審查範圍
 
-- **Core Web Vitals**：有無傷 LCP（大圖 / 阻塞資源）、CLS（無尺寸的圖 / 晚插入內容）、INP（重 handler / 主執行緒阻塞）的改動。
+- **Core Web Vitals**（good 門檻：**LCP ≤ 2.5s / INP ≤ 200ms / CLS ≤ 0.1**，超過 = 退化）：有無傷 LCP（大圖 / 阻塞資源）、CLS（無尺寸的圖 / 晚插入內容）、INP（重 handler / 主執行緒阻塞）的改動。
+- **效能預算**：初始 JS < 200KB（gz）、API p95 < 200ms、Lighthouse ≥ 90 —— 超出就標「超預算」（沒實量標 `not measured`，不憑感覺）。
 - **bundle**：有沒有引入大套件 / 沒 tree-shake / 沒 code-split；同功能有沒有更輕的選擇。
 - **圖片 / 資源**：尺寸 / 格式 / lazy load / 快取標頭。
 - **關鍵 render path**：首屏需要的東西有沒有被阻塞；非關鍵的有沒有延後。

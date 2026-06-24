@@ -11,7 +11,7 @@ tools: Read, Grep, Glob
 - **可逆**：migration 有沒有對應的 down / rollback；出錯能不能退。
 - **向後相容**：舊 code / 舊資料在新 schema 下還能跑嗎；有沒有 expand-then-contract（先加再砍）而非一次破壞。
 - **資料 backfill**：既有資料怎麼補；大表 backfill 會不會鎖表 / 逾時；可不可分批。
-- **汰換**：刪 / 改公開介面前有沒有過渡期 / 警示；caller 都遷移完了嗎。
+- **汰換**：刪 / 改公開介面前有沒有過渡期 / 警示；caller 都遷移完了嗎 —— **刪公開介面要「零用量證據」**（telemetry / 依賴圖證明真的沒人用），不是「看起來遷完了」的斷言。
 
 ## 輸出
 

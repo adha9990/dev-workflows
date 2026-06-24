@@ -15,6 +15,8 @@
 | **Smoke**（integration 子集） | 真實外部 IO + **小的真實 payload**，驗 download / upload / 解壓 一類 critical path 沒被改壞 | 用真實但極小的 fixture；**不能全 mock**（mock 掉整個 client 就只是測 mock 自己）；每次都跑、要快 |
 | **E2E** | 從**最外層 UI** 出發走完整 user story（一個 spec = 一條 story） | 不直接打內部 API（那是 integration 的事）；透過 fixture / chaos endpoint 觸發內部狀態 |
 
+**分佈（test pyramid）**：**unit ~80% / integration ~15% / e2e ~5%** —— 小而快的 unit 佔大宗才跑得快又穩；e2e 又慢又脆，只留關鍵 user flow。
+
 **判層試金石**：「這個 case 真的需要啟 server / 接外部才測得到嗎？」不是 → 不該落到 integration。Integration 慢是 trade-off，不該被濫用。
 
 **E2E 反例**：把 e2e 當 integration 寫（直接 `fetch /api/...` 不走 UE），違反「e2e = 從使用者視角驗收」的設計目的。
@@ -22,6 +24,8 @@
 ## 2. real-not-mock 紀律
 
 「我寫一個 fake DB client / fake storage」= 你只是在測那個 fake 對不對。真實 API 行為一變、test 還是綠的、prod 死。
+
+**替身信心階梯（高 → 低）：真實實作 > fake（in-memory 版）> stub（罐頭資料）> mock（驗呼叫，少用）。** 越上面越接近 prod 真相；能用上面的就別用下面的。mock 只在「慢 / 不確定 / 不可控」的邊界用，且驗的是狀態不是呼叫次數。
 
 - **Integration 用真實的**：真 DB、真 filesystem（用 pytest `tmp_path` 之類的真目錄、真 IO，不用 in-memory fs mock），外部資源開一個**測試專屬 path prefix / namespace**（不污染 prod）+ session 級 setup / teardown。
 - **E2E 用真實模組**，不用 fake 替身：要走完整真實路徑才叫端到端。
@@ -63,4 +67,7 @@ happy path 一條、error path 至少一條，是 data-layer 的最低門檻。
 - **測試要 Prove-It**：寫完想一下「如果功能根本沒做，這條會紅嗎？為什麼紅？」 測試必須**能因正確的原因失敗**，否則它只是裝飾。
 - **固定測試 port / 資源，不用 random**：random 看似避衝突，實際上 log 沒一致 port 難 debug、並行還是有撞的機率（flake 來源）。用專屬 test port（與 prod 不同），開 server 前先清乾淨殘留 process。並行 worker 用 `BASE_PORT + worker_id`。
 - **測完 repo 要乾淨**：fixture 要自己清（teardown wipe scratch / cache / 殘留檔）。跑完 `git status` 必須乾淨（除了預期的 ignored runtime 目錄）；不乾淨就是 fixture lifecycle 漏寫 cleanup。fixture 要**自我癒合**：每個 setup 先「探測現有狀態 → 收斂 → 再做事」，假設前次 session 可能 crash 殘留，不能用「先刪再建」這種只走樂觀路徑的寫法。
+- **DAMP > DRY（測試裡）**：測試重「描述清楚、自成一份規格」勝過「不重複」；為了讓單一 test 獨立看得懂，適度重複可接受 —— 別為了 DRY 把 setup 抽到看不懂測什麼。
+- **一個 test 一個概念**：一條測試驗一個行為；多個獨立行為拆成多條，壞了才知道是哪個行為壞。
+- **描述式測試名**：名字讀起來像規格 —— `任務完成時設定 completedAt`，不是 `works` / `test1` / `correctly`。
 - **重構改名用 LSP，不用 sed**：bulk text-substitution 在「local 變數名與 module / package 名同形」時會無聲爆掉（語法 valid、import 不報錯、只有真跑到那條路才 AttributeError）。優先用 IDE / LSP 的 rename refactor（它走 AST、分得清 symbol 與字串）；沒 LSP 時先把 local 變數改掉再改模組名、分兩段 commit，改完用 grep 人工掃一遍命中。**unit 跑綠不夠**，要跑一輪 smoke / integration 才驗得到 attribute access。

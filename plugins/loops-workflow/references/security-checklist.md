@@ -58,7 +58,7 @@
 
 ## 七、Dependency / 供應鏈
 
-- [ ] `npm audit`（含 `--audit-level=critical`）。
+- [ ] `npm audit`（含 `--audit-level=critical`）—— 結果**按「可達性」triage、不按原始 severity 一律擋**：先問「漏洞 code 在我們的部署裡真的會被呼叫到嗎？runtime 還是 dev 依賴？」。critical/high + runtime 可達 → 現在修；critical/high + 僅 dev → 盡快；moderate + 可達 → 下輪；不可達的標明但不擋（減少 finding 噪音）。
 - [ ] lockfile 進版控；CI 用 `npm ci` 不是 `npm install`。
 - [ ] 新依賴審維護狀況 / 下載量 / `postinstall` script；防 typosquat（`cross-env` vs `crossenv`）。
 
