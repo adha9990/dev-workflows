@@ -7,9 +7,9 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 
 ## Overview
 
-`goal` 把一句模糊的需求 / 一張 issue，逼成「**明確的完工定義 + 可驗證的停止條件**」。方法是**一次只問一個問題**的適應性訪談，問完把理解 restate 成六欄給使用者看，然後**直接進 explore**（restate 不是要使用者點頭的 gate —— 有錯他會插話改）。
+`goal` 把一句模糊的需求 / 一張 issue，逼成「**明確的完工定義 + 可驗證的停止條件**」。方法是**一次只問一個問題**的適應性訪談，問完把理解 restate 成六欄，做**一次明確確認**（對齊了再進 explore）—— 避免理解偏掉還一路做下去。
 
-訪談一次只問一個問題、用 `AskUserQuestion` 給選項並標推薦，只問會改變方向的 blocking 決策；每問記下信心，restate 成六欄完工定義後**直接往 explore**，不停下要使用者確認 DoD。
+訪談一次只問一個問題、用 `AskUserQuestion` 給選項並標推薦，只問會改變方向的 blocking 決策；每問記下信心，restate 成六欄完工定義後做**一次 DoD 確認**再往 explore。**確認是單次、不是反覆逐項逼問**（區分「對齊理解」與「過度訪談」）。
 
 ## When to Use
 
@@ -49,12 +49,12 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 | Constraint | 邊界 / 不可違反的限制 |
 | Out of scope | 明確不做什麼（防範圍蔓延） |
 
-### 4. 停止條件 + 直接進 explore（不問 DoD 確認）
+### 4. 停止條件 + 確認 DoD 後進 explore
 
 - **95% 信心**就停止訪談，不無止境追問。
-- restate 完工定義寫進 `00-goal.md` + chat 摘要給使用者看，然後**直接進 explore**。
-- **不要停下問「DoD 正確嗎 / 可以鎖定嗎 / 要不要進 explore」** —— restate 出來就是給使用者看的，有錯他會插話改；「鎖定 DoD + 進 explore」是 **routine 轉場、不是決策點**（連 closed 模式也一樣，routine 轉場不問）。
-- **唯一在 goal 停下用 `AskUserQuestion` 的情況**：有**具體的 scope 取捨選擇**（像「行為 X 要不要納入範圍」這種有明確選項、會改變方向的決策）才把它做成選項問。把「DoD 對不對」當成這種決策來問 = 誤用。
+- restate 完工定義寫進 `00-goal.md` + chat 摘要，然後用 `AskUserQuestion` 做**一次 DoD 確認**（選項：對齊、進 explore／要調整 + 說明）。對齊了再進 explore。
+- **單次確認、不是反覆逼問**：確認是「整份理解對不對」一次過，不是把六欄每一欄逐項再審一輪；使用者說對就直接往 explore，不要再追問細節。
+- 訪談中若另有**具體 scope 取捨選擇**（像「行為 X 要不要納入範圍」），在訪談階段就用 `AskUserQuestion` 問掉，不要積到最後。
 - 需求講不清（資訊不足以定義完工）→ 停下用 `AskUserQuestion` 問；但「whatever you think」不是把決定權丟回給你的藉口，能推得的就推。
 
 ## Common Rationalizations
@@ -65,7 +65,7 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 | 「一次把問題全部問完比較有效率」 | 一次多問會讓使用者跳著答、漏答；一次一問才能用前一答收斂後一問。 |
 | 「使用者說『你決定』，那就當 yes」 | 「你決定」是把判斷丟回給你，不是確認。重大且沒推薦的選項，要主動給意見再確認。 |
 | 「Out of scope 先空著」 | 不寫不做什麼，範圍就會在 build 階段悄悄膨脹。 |
-| 「closed 模式要先讓使用者鎖定 DoD 才能進 explore」 | 鎖定 DoD + 進 explore 是 routine 轉場，不是決策點。restate 給使用者看就往下、有錯他會插話；只有「具體 scope 取捨選擇」才停下問。 |
+| 「DoD 確認後還要逐欄再審一輪才安心」 | 確認是單次整份對齊，不是反覆逐項逼問。使用者說對就進 explore；把單次確認搞成沒完沒了的訪談 = 過度訪談。 |
 
 ## Red Flags
 
@@ -74,7 +74,7 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 - 第 1 步抽的 requirement 有條沒落到六欄、就直接往下。
 - 六欄有欄位空著就產 `00-goal.md`。
 - 有真正的 scope 取捨卻沒用 `AskUserQuestion` 問就逕自決定。
-- **把「DoD 正確嗎 / 可以鎖定進 explore 嗎」當 gate 停下問** —— 那是 routine 轉場，restate 給使用者看就直接進 explore（只有具體 scope 取捨選擇才問）。
+- restate 完六欄**沒做那次 DoD 確認就逕自進 explore**（理解偏掉沒被抓到）；或反過來**把單次確認搞成逐欄反覆逼問**（過度訪談）。
 - 訪談超過必要、把非 blocking 的細節也逼問。
 
 ## Verification
@@ -82,4 +82,4 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 - [ ] 已**逐句掃過整張 issue**抽 requirement（不只 AC 段），每條都落到六欄某處。
 - [ ] `00-goal.md` 六欄齊全，每欄有實質內容。
 - [ ] Success 欄 = 可驗證的停止條件（不是「做得好」這種無法驗的話）。
-- [ ] restate DoD 後**直接進 explore**，沒把「DoD 對嗎 / 可以鎖定嗎 / 要不要進 explore」當 gate 問；只有**具體 scope 取捨選擇**才用 `AskUserQuestion` 停下。
+- [ ] restate DoD 後做了**一次** DoD 確認（`AskUserQuestion`）才進 explore，且**沒有**把它變成逐欄反覆逼問。

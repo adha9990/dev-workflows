@@ -48,9 +48,9 @@ flowchart TD
 | 項目 | 內容 |
 |---|---|
 | **skill** | `dispatch`（1）｜**agent** 0 |
-| **處理什麼** | 判類型 → 建 `.loops/<slug>/loop.md` → 進起點階段 |
+| **處理什麼** | **先複述理解 + 一次確認** → 判類型 → 建 `.loops/<slug>/loop.md` → 進起點階段 |
 | **機制** | 決策樹：**完全乾淨空專案→先 scaffold 骨架→define**／issue#→goal／無 issue 待解決問題→**走 `define`**→goal／純研究→explore／PR#→iterate／模糊→停下問。建 loop.md（類型·session id·當前階段）。**會動 code 的迴圈開 git worktree**，但 `.loops/` 留主 repo（免被 worktree 清掉） |
-| **策略** | **只分流、不串接** —— routine 不問你，只有分類模糊 / scaffold 大動作才停 |
+| **策略** | **只分流、不串接** —— routine 不問你；動工前先複述需求 + 一次確認（避免理解偏掉往錯方向，尤其一句話 / greenfield），只有分類模糊 / scaffold 大動作才另外停 |
 
 ---
 
@@ -84,7 +84,7 @@ flowchart TD
 | **skill** | `goal`（1）｜**agent** 0（主線一次一問訪談） |
 | **處理什麼** | 把模糊需求逼成「明確完工定義 + 可驗證停止條件」 |
 | **機制** | **逐句掃整張 issue**抽每個 requirement（不只看驗收標準段）→ **一次一問**訪談（記 HYPOTHESIS+CONFIDENCE、should-want 偵測）→ restate **六欄 DoD**（Outcome / User / Why now / Success / Constraint / Out of scope）+ 停止條件 |
-| **策略** | 95% 信心就停；restate 給你看就**直接進 explore**（不問「DoD 對嗎」）。**issue 寫的實作做法 / 套件記成「建議」不是「需求」**，留給 explore 評估 |
+| **策略** | 95% 信心就停；restate 六欄後做**一次 DoD 確認**再進 explore（單次對齊、非反覆逐欄逼問）。**issue 寫的實作做法 / 套件記成「建議」不是「需求」**，留給 explore 評估 |
 
 ---
 
@@ -97,7 +97,7 @@ flowchart TD
 | **機制** | 摸架構（文檔優先）→ 掃內部找可重用 → **夠了沒判斷** → 不夠才外搜（便宜 WebSearch → gate deep-research）→ 框架 API 查證（DETECT→FETCH→**CITE**）→ **≥2 方法時多維評估 fan-out** → 比較矩陣 → 推薦 |
 | **8 評估維度** | 效能（複雜度 + 接近真實/極端規模 benchmark）· 記憶體/體積 · 可維護 · 可擴展 · 安全 · 複雜度 · 重用 · 適配 |
 | **策略** | **重用優先** · **外搜條件式**（省成本）· **方法不是「能用就用」**：① issue 的方法只是候選不是定案、贏家不同就換 ② 在接近真實/極端規模 benchmark 不憑感覺（能用 ≠ 好用，小樣本看不出、大規模才見真章）· 不只 MVP |
-| **gate** | ✋ **收斂式**→ 選哪個方法（進 plan）／**發散式**→ 確認 backlog 範圍 + 優先序（進 define 開 issue backlog） |
+| **gate** | ✋ **收斂式**→ 選哪個方法（進 plan）／**發散式**→ 確認 backlog 範圍 + **基礎/獨立分層** + MVP 起點（進 define 開 issue backlog；薄基礎→寬平行，不開相依鏈） |
 
 ---
 
