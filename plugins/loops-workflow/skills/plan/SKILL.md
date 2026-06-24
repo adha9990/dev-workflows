@@ -35,6 +35,10 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 對每個關鍵機制，寫「一段白話 + 兩張 mermaid」：一張**運作流程圖**（資料 / 控制怎麼跑）、一張**注入 / 接線圖**（誰被注入到誰、怎麼接線）（只有文字敘述不算數）。寫進 `02-plan.md`，**而且第 6 步拍板 gate 一定要把這些圖直接渲染給使用者看** —— 圖是給使用者審「怎麼跑 + 怎麼接線」用的，不能只躺在 `02-plan.md`、也不能只塞進精煉版 alignment comment。
 
+### 3.5 契約規格（跨介面才寫）
+
+feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用介面** → 在 `02-plan.md` 拉一段**契約規格**（依 `references/contract-spec.md`）：API request / response / 錯誤形狀、資料 schema + 約束 + migration 可逆性、事件 payload + 保證，以及**每條契約對到哪一層測試**（對齊 `references/test-rubric.md`）。契約是 **build 的輸入、verify 的驗收基準**。純內部重構（不動對外形狀）免寫。
+
 ### 4. 品質維度過一遍
 
 - **設計品質六維度**（簡潔 / 可維護 / 可靠 / 可擴展 / 安全 / 高併發高流量效能）：in-scope 實作不以 MVP 設計，對可預見的規模退化預先用對演算法。
