@@ -28,7 +28,9 @@ export default defineConfig({
     dedupe: ['react', 'react-dom'],
   },
   build: {
-    outDir: '../dist/client',
+    // 前端建置產物落在 frontend/dist;後端的 client_dir 預設指向 ../frontend/dist,
+    // 由 Fastify 在單一程序模式下一併提供 SPA。
+    outDir: 'dist',
     emptyOutDir: true,
   },
   server: {

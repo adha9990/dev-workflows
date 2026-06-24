@@ -3,5 +3,6 @@
   "host": "127.0.0.1",
   "port": 51599,
   "log_level": "debug",
-  "log_format": "pretty"
+  "log_format": "pretty",
+  "client_dir": "../frontend/dist"
 }

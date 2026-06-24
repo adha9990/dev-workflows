@@ -5,16 +5,21 @@
 
 ## 整體形狀
 
-一個 package 裡有兩半,被一道硬牆隔開:
+一個 pnpm workspace 裡有兩個 package,被一道硬牆隔開:
 
 ```
-src/      Fastify 後端(Node runtime)
-client/   React SPA(瀏覽器)
+backend/    Fastify 後端(Node runtime)— package @<project>/backend
+frontend/   React SPA(瀏覽器)        — package @<project>/frontend
 ```
 
-兩者**永遠不互相 import**。所有溝通都走 HTTP。ESLint 的 `import/no-restricted-paths` 會在任一側
-越界時讓 build 失敗。這正是讓 server 能 standalone、在容器裡、或嵌入 Electron host 運行,同時讓
-SPA 維持為純 client 的關鍵。
+兩者**永遠不互相 import**。所有溝通都走 HTTP。這道牆由 **workspace 的 package 邊界** 保證 ——
+`backend/` 與 `frontend/` 不在彼此的相對路徑內,根本沒有跨界 import 的途徑(不再需要 ESLint 的
+`no-restricted-paths` 去擋 server↔client)。這正是讓 server 能 standalone、在容器裡、或嵌入 Electron
+host 運行,同時讓 SPA 維持為純 client 的關鍵。
+
+以下談「後端分層」時,路徑都相對於 `backend/`(例如 `src/domain/` 指 `backend/src/domain/`);
+「前端結構」的路徑都相對於 `frontend/`。後端分層仍由 `backend/eslint.config.mjs` 的
+`import/no-restricted-paths` 強制執行。
 
 ## 後端分層
 
@@ -35,8 +40,8 @@ adapters ─────┘ (實作 ports;唯一接觸基礎設施的地方)
 | `adapters/` | `domain`、`ports` | `services`、`repositories`、`http` | 具體 I/O:SQLite+Kysely、pino。唯一允許用 `better-sqlite3`/`fs`/`path` 的地方。 |
 | `repositories/` | `domain`、`ports` | `adapters`*、`services`、`http` | 透過 `MetadataStore` port 存取資料。負責 row ↔ domain 的轉換。 |
 | `services/` | `domain`、`ports`、`repositories` | `adapters`*、`http` | 業務編排;持有不純的部分(clock、uuid)。 |
-| `http/` | 以下所有層 | `client` | Fastify adapter:routes、TypeBox schemas、錯誤外殼。 |
-| `bin/` | 全部 | `client` | composition root:讀設定、把 adapters 接到 services、啟動 server。 |
+| `http/` | 以下所有層 | (frontend 自然不可達) | Fastify adapter:routes、TypeBox schemas、錯誤外殼。 |
+| `bin/` | 全部 | (frontend 自然不可達) | composition root:讀設定、把 adapters 接到 services、啟動 server。 |
 
 \* 唯一允許的例外是 `src/adapters/db/types.generated.ts` —— 它只含 Kysely 的型別宣告(無 runtime),
 所以 import 它不會破壞接縫。
@@ -45,31 +50,33 @@ adapters ─────┘ (實作 ports;唯一接觸基礎設施的地方)
 
 內層依賴的是*介面*(`MetadataStore`、`Logger`),而非具體實作。要把 SQLite 換成 Postgres,只要寫
 一個新的 adapter —— repositories 與 services 都不用改。測試時則注入一個假的 store。composition root
-(`src/bin/server.ts`)是唯一知道真實接線方式的地方。
+(`backend/src/bin/server.ts`)是唯一知道真實接線方式的地方。
 
 ## 前端結構
 
+(路徑相對於 `frontend/`。)
+
 | 路徑 | 角色 |
 | --- | --- |
-| `client/src/routes/` | 檔案式路由(TanStack Router 產生 `routeTree.gen.ts`)。 |
-| `client/src/api/` | HTTP client(`http.ts`)+ 各資源的 fetcher。唯一知道 server 契約的地方。 |
-| `client/src/stores/` | Zustand stores —— 小而專一的 UI 狀態。Server 狀態放在 TanStack Query,不放這裡。 |
-| `client/src/lib/` | 與框架無關的工具(例如 `cn`)。 |
-| `client/src/components/` | UI,依功能組織。 |
+| `src/routes/` | 檔案式路由(TanStack Router 產生 `routeTree.gen.ts`)。 |
+| `src/api/` | HTTP client(`http.ts`)+ 各資源的 fetcher。唯一知道 server 契約的地方。 |
+| `src/stores/` | Zustand stores —— 小而專一的 UI 狀態。Server 狀態放在 TanStack Query,不放這裡。 |
+| `src/lib/` | 與框架無關的工具(例如 `cn`)。 |
+| `src/components/` | UI,依功能組織。 |
 
 ## 食譜:新增一個實體(例如 `tag`)
 
-照著 `Note` 切片在各層依樣畫葫蘆。讓 ESLint 抓出錯誤。
+照著 `Note` 切片在各層依樣畫葫蘆。讓 ESLint 抓出錯誤。(步驟 1–7 在 `backend/`,步驟 8 在 `frontend/`。)
 
-1. **Migration** —— 新增 `sql/migrations/00N_tags.sql`(`CREATE TABLE IF NOT EXISTS tag ...`)。
-2. **重新產生型別** —— `pnpm db:migrate:dev && pnpm db:codegen`(更新 `db/types.generated.ts`)。
-3. **Domain** —— `src/domain/tag/tag.ts`,含實體型別 + 強制不變式的 `createTag` 建構式。在 `__tests__/` 加單元測試。
-4. **Repository** —— `src/repositories/tag-repo.ts`:透過 `MetadataStore` 的 Kysely 查詢、row↔domain 轉換。
-5. **Service** —— `src/services/tag/tag-service.ts`:編排、產生 id/clock。
-6. **HTTP** —— `src/http/schemas/tag.ts`(TypeBox)+ `src/http/routes/tags.ts`;在 `create-server.ts` 註冊它。
-7. **接線** —— 在 `src/bin/server.ts` 建立該 service,並透過 `ServerDeps` 傳入。
-8. **前端** —— `client/src/api/tags.ts`(fetchers)+ 一個用 TanStack Query 的 route/component。
-9. **驗證** —— `pnpm typecheck && pnpm lint && pnpm test`。
+1. **Migration** —— 新增 `backend/sql/migrations/00N_tags.sql`(`CREATE TABLE IF NOT EXISTS tag ...`)。
+2. **重新產生型別** —— `pnpm --filter backend db:migrate:dev && pnpm --filter backend db:codegen`(更新 `db/types.generated.ts`)。
+3. **Domain** —— `backend/src/domain/tag/tag.ts`,含實體型別 + 強制不變式的 `createTag` 建構式。在 `__tests__/` 加單元測試。
+4. **Repository** —— `backend/src/repositories/tag-repo.ts`:透過 `MetadataStore` 的 Kysely 查詢、row↔domain 轉換。
+5. **Service** —— `backend/src/services/tag/tag-service.ts`:編排、產生 id/clock。
+6. **HTTP** —— `backend/src/http/schemas/tag.ts`(TypeBox)+ `backend/src/http/routes/tags.ts`;在 `create-server.ts` 註冊它。
+7. **接線** —— 在 `backend/src/bin/server.ts` 建立該 service,並透過 `ServerDeps` 傳入。
+8. **前端** —— `frontend/src/api/tags.ts`(fetchers)+ 一個用 TanStack Query 的 route/component。
+9. **驗證** —— `pnpm -r typecheck && pnpm -r lint && pnpm -r test`。
 
 ## 實戰補充:把這套架構用在「整合密集」的專案
 
@@ -106,14 +113,16 @@ adapters ─────┘ (實作 ports;唯一接觸基礎設施的地方)
 
 ## 指令
 
+(在 workspace 根執行。)
+
 | 指令 | 作用 |
 | --- | --- |
-| `pnpm dev` | 執行 Fastify API(tsx,免 build 步驟)。 |
-| `pnpm dev:client` | 執行 SPA 的 Vite dev server。 |
-| `pnpm build` | `tsc` server → `dist/server`,`vite` client → `dist/client`。 |
-| `pnpm typecheck` | 型別檢查 server 與 client 兩個專案。 |
-| `pnpm lint` | ESLint,包含分層 + 牆的強制檢查。 |
-| `pnpm test` | Vitest 單元套件(server 在 node、client 在 jsdom)。 |
-| `pnpm test:e2e` | 啟動真正的 app 並用 `app.inject()` 驅動它。 |
-| `pnpm db:migrate:dev` | 對 dev 資料庫套用 SQL migration。 |
-| `pnpm db:codegen` | 從 schema 重新產生 Kysely 型別。 |
+| `cd backend && pnpm dev` | 執行 Fastify API(tsx,免 build 步驟)。 |
+| `pnpm --filter frontend dev` | 執行 SPA 的 Vite dev server。 |
+| `pnpm -r build` | backend:`tsc` → `dist/server`;frontend:`vite` → `frontend/dist`。 |
+| `pnpm -r typecheck` | 型別檢查 backend 與 frontend 兩個 package。 |
+| `pnpm -r lint` | ESLint(backend 含分層強制;前後端牆由 package 邊界保證)。 |
+| `pnpm -r test` | Vitest 單元套件(backend 在 node、frontend 在 jsdom)。 |
+| `pnpm --filter backend test:e2e` | 啟動真正的 app 並用 `app.inject()` 驅動它。 |
+| `pnpm --filter backend db:migrate:dev` | 對 dev 資料庫套用 SQL migration。 |
+| `pnpm --filter backend db:codegen` | 從 schema 重新產生 Kysely 型別。 |

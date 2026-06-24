@@ -5,7 +5,8 @@
 
 ## 這是什麼專案
 
-- 前後端分離的全端 TypeScript 應用:Fastify 後端(`src/`)+ React SPA(`client/`),兩者**只透過 HTTP 溝通**。
+- 前後端分離的全端 TypeScript 應用,組成一個 pnpm workspace:Fastify 後端(`backend/`)+ React SPA
+  (`frontend/`),兩者是**獨立 package、只透過 HTTP 溝通**。
 - 後端採 clean-architecture 分層,結構由 ESLint 強制執行,不會隨成長而腐化。
 
 ## 最重要的慣例:邊建邊留「設計方向」文件
@@ -29,19 +30,23 @@
 ## 目錄結構
 
 ```
-src/        Fastify 後端(分層:domain / ports / adapters / repositories / services / http;bin 為 composition root)
-client/     React SPA(routes / api / stores / lib / components)
-sql/        schema 的單一真實來源(migrations)
+backend/    Fastify 後端 package(分層:domain / ports / adapters / repositories / services / http;bin 為 composition root)
+frontend/   React SPA package(routes / api / stores / lib / components)
 docs/       設計方向文件 —— 邊建邊寫(見上)
 AGENTS.md   本檔:給人與 agent 的工作指南
 ```
 
+`backend/` 與 `frontend/` 各自有 `package.json`、`tsconfig.json`、`eslint.config.mjs`、`vitest.config.ts`;
+根目錄的 `pnpm-workspace.yaml` 把兩者組成 workspace,根 `package.json` 提供 `pnpm -r` 的便利指令。
+
 ## 動手前的規則
 
-- **遵守分層依賴方向**(ESLint `no-restricted-paths` 會擋):`domain ← ports ← {services, repositories, http}`;
-  只有 `adapters` 與 `src/bin`(composition root)可以碰基礎設施(better-sqlite3、fs、path、pino)。
-- **`src/` 與 `client/` 不可互相 import**,只透過 HTTP 溝通。
-- **schema 的真實來源是 `sql/migrations/`**:改 schema → `pnpm db:migrate:dev` → `pnpm db:codegen` 重新產生型別。
+- **遵守分層依賴方向**(backend 的 ESLint `no-restricted-paths` 會擋):`domain ← ports ← {services, repositories, http}`;
+  只有 `adapters` 與 `backend/src/bin`(composition root)可以碰基礎設施(better-sqlite3、fs、path、pino)。
+- **`backend/` 與 `frontend/` 不可互相 import**,只透過 HTTP 溝通 —— 這道牆由 workspace 的 package
+  邊界保證(兩者不在彼此的相對路徑內)。
+- **schema 的真實來源是 `backend/sql/migrations/`**:改 schema → `pnpm --filter backend db:migrate:dev` →
+  `pnpm --filter backend db:codegen` 重新產生型別。
 - 依賴用工廠函數**注入**,不要在內層直接 `new` 基礎設施。
 - 新增功能時照著既有的 `Note` 垂直切片在各層依樣畫葫蘆,讓 ESLint 抓出跨層錯誤。
 
@@ -49,14 +54,15 @@ AGENTS.md   本檔:給人與 agent 的工作指南
 
 | 指令 | 作用 |
 | --- | --- |
-| `pnpm dev` / `pnpm dev:client` | 啟動後端 API / 前端 Vite dev server |
-| `pnpm typecheck` | 型別檢查 server 與 client |
-| `pnpm lint` | ESLint(含分層 + 前後端牆強制) |
-| `pnpm test` / `test:e2e` / `test:benchmark` | 單元 / e2e / benchmark 測試 |
-| `pnpm db:migrate:dev` / `db:codegen` | 套用 migration / 重新產生 Kysely 型別 |
+| `cd backend && pnpm dev` / `pnpm --filter frontend dev` | 啟動後端 API / 前端 Vite dev server |
+| `pnpm -r typecheck` | 型別檢查 backend 與 frontend 兩個 package |
+| `pnpm -r lint` | ESLint(backend 含分層強制;前後端牆由 package 邊界保證) |
+| `pnpm -r test` | 兩個 package 的單元測試(backend 在 node、frontend 在 jsdom) |
+| `pnpm --filter backend test:e2e` / `test:benchmark` | e2e / benchmark 測試 |
+| `pnpm --filter backend db:migrate:dev` / `db:codegen` | 套用 migration / 重新產生 Kysely 型別 |
 
 ## 完工定義(Definition of Done)
 
-- **程式碼**:`pnpm typecheck && pnpm lint && pnpm test` 全綠。
+- **程式碼**:`pnpm -r typecheck && pnpm -r lint && pnpm -r test` 全綠。
 - **文件**:若你建立或改變了一個環境/功能/概念,`docs/` 有對應的設計方向文件且已更新,`docs/README.md` 索引同步。
 - **回報**:說明改了哪些檔、行為有何變化、有哪些風險。

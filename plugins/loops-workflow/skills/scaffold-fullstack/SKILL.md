@@ -2,24 +2,25 @@
 name: scaffold-fullstack
 description: >-
   Scaffold a brand-new, front/back-separated full-stack TypeScript project skeleton with a clean
-  layered architecture: a single integrated pnpm package with a Fastify backend
-  (domain ← ports ← adapters/services/repositories/http) and a React 19 + TanStack SPA frontend, a
-  HTTP-only front/back wall enforced by ESLint, SQLite + Kysely persistence, and Vitest
-  (unit/e2e/benchmark). Use this whenever the user wants to start, bootstrap, generate, or scaffold a
-  NEW full-stack TypeScript app with enforced clean-architecture layering and a strict
-  frontend/backend separation — whether they describe the shape (Fastify backend + React SPA +
-  ports/adapters + Kysely + Vitest) or ask for a "layered Fastify + React starter". Do NOT use it for
-  working inside an existing project (adding a route, entity, migration, or feature; fixing a
-  layering/lint error), or for scaffolding a different stack (e.g. FastAPI, Next.js, or a
-  frontend-only SPA) — it creates a new project from a template, it does not edit existing code. The
-  template seeds an AGENTS.md + docs/ Definition-of-Done skeleton for the new project to carry on as
-  it grows.
+  layered architecture: a pnpm workspace with a separate Fastify backend package
+  (domain ← ports ← adapters/services/repositories/http) and a React 19 + TanStack SPA frontend
+  package, an HTTP-only front/back wall enforced by the workspace package boundary, ESLint-enforced
+  backend layering, SQLite + Kysely persistence, and Vitest (unit/e2e/benchmark). Use this whenever
+  the user wants to start, bootstrap, generate, or scaffold a NEW full-stack TypeScript app with
+  enforced clean-architecture layering and a strict frontend/backend separation — whether they
+  describe the shape (Fastify backend + React SPA + ports/adapters + Kysely + Vitest) or ask for a
+  "layered Fastify + React starter". Do NOT use it for working inside an existing project (adding a
+  route, entity, migration, or feature; fixing a layering/lint error), or for scaffolding a different
+  stack (e.g. FastAPI, Next.js, or a frontend-only SPA) — it creates a new project from a template,
+  it does not edit existing code. The template seeds an AGENTS.md + docs/ Definition-of-Done skeleton
+  for the new project to carry on as it grows.
 ---
 
 # Scaffold Layered Full-stack
 
-產生一個前後端分離、分層架構的全端 TypeScript 新專案:單一整合包、切分成 clean-architecture 各層的
-Fastify 後端、React + TanStack SPA,以及兩者之間只透過 HTTP 溝通的硬牆 —— 全部由 ESLint 強制執行,
+產生一個前後端分離、分層架構的全端 TypeScript 新專案:一個 pnpm workspace,內含切分成
+clean-architecture 各層的 Fastify 後端 package、React + TanStack SPA 前端 package,以及兩者之間
+只透過 HTTP 溝通的硬牆 —— 後端分層由 ESLint 強制執行,前後端牆由 workspace 的 package 邊界保證,
 讓結構不會悄悄腐化。
 
 ## 你會得到什麼
@@ -29,31 +30,35 @@ Fastify 後端、React + TanStack SPA,以及兩者之間只透過 HTTP 溝通的
 
 ```
 <project>/
-├── package.json            # 單一整合包(不是 workspace monorepo);使用 pnpm
-├── pnpm-workspace.yaml      # 為原生依賴(better-sqlite3)設定 allowBuilds
-├── tsconfig.json            # server(Node)編譯設定
-├── tsconfig.client.json     # client(DOM + JSX)設定;@/* → client/src/*
-├── vitest.config.ts         # 雙專案:{ name: server, node } + { name: client, jsdom }
-├── vitest.e2e.config.ts     # 序列化的 e2e 測試套件
-├── vitest.benchmark.config.ts
-├── eslint.config.mjs        # ★ 強制執行分層 + 前後端牆的 import 規則
-├── dev.json.example
+├── package.json            # workspace 根:packageManager、engines + pnpm -r 便利 scripts
+├── pnpm-workspace.yaml      # packages: [backend, frontend];為原生依賴(better-sqlite3)設 allowBuilds
 ├── AGENTS.md                # ★ 給人與 AI agent 的工作指南 + 文件慣例
 ├── docs/                    # ★ 設計方向文件(邊建邊寫):README 索引 + architecture + testing
-├── sql/migrations/          # SQL 是 schema 的單一真實來源
-├── scripts/                 # 以 tsx 執行的開發工具(db migrate / codegen)
-├── e2e/                     # 透過 app.inject() 啟動真正的 server
-├── benchmark/
-├── src/                     # Fastify 後端
-│   ├── bin/server.ts        # composition root + CLI 入口(`serve`)
-│   ├── domain/              # 純邏輯,零 I/O
-│   ├── ports/               # 介面(依賴反轉的接縫)
-│   ├── adapters/            # 具體 I/O:db(sqlite+kysely)、logging(pino)
-│   ├── repositories/        # 透過 MetadataStore port 存取資料
-│   ├── services/            # 業務邏輯,編排 repositories
-│   └── http/                # Fastify adapter:create-server、routes、schemas(TypeBox)
-└── client/                  # React 19 SPA
-    ├── vite.config.ts       # TanStack Router plugin + react + tailwind v4
+├── backend/                 # Fastify 後端 package(@<project>/backend)
+│   ├── package.json         # 後端 deps(fastify、better-sqlite3、kysely、typebox、pino…)
+│   ├── tsconfig.json        # server(Node)編譯設定;include src/scripts/e2e/benchmark
+│   ├── eslint.config.mjs    # ★ 強制執行後端分層的 import 規則
+│   ├── vitest.config.ts     # server 單元測試(node)
+│   ├── vitest.e2e.config.ts / vitest.benchmark.config.ts
+│   ├── dev.json.example     # client_dir 預設指向 ../frontend/dist
+│   ├── sql/migrations/      # SQL 是 schema 的單一真實來源
+│   ├── scripts/             # 以 tsx 執行的開發工具(db migrate / codegen)
+│   ├── e2e/  benchmark/      # 透過 app.inject() 啟動真正的 server
+│   └── src/
+│       ├── bin/server.ts    # composition root + CLI 入口(`serve`)
+│       ├── domain/          # 純邏輯,零 I/O
+│       ├── ports/           # 介面(依賴反轉的接縫)
+│       ├── adapters/        # 具體 I/O:db(sqlite+kysely)、logging(pino)
+│       ├── repositories/    # 透過 MetadataStore port 存取資料
+│       ├── services/        # 業務邏輯,編排 repositories
+│       └── http/            # Fastify adapter:create-server、routes、schemas(TypeBox)
+└── frontend/                # React 19 SPA package(@<project>/frontend)
+    ├── package.json         # 前端 deps(react、tanstack router/query、tailwind…)
+    ├── tsconfig.json        # client(DOM + JSX)設定;@/* → src/*
+    ├── eslint.config.mjs    # React 規則(前後端牆改由 package 邊界保證)
+    ├── vite.config.ts       # TanStack Router plugin + react + tailwind v4;build → dist;/api proxy
+    ├── vitest.config.ts     # client 單元測試(jsdom)
+    ├── index.html
     └── src/{routes,api,stores,lib,components}/
 ```
 
@@ -78,21 +83,26 @@ Fastify 後端、React + TanStack SPA,以及兩者之間只透過 HTTP 溝通的
    ```
 
    若 `pnpm` 不在 PATH 上但有 Node,改用 `corepack pnpm install`(corepack 隨 Node 附帶,會依
-   `packageManager` 欄位選版本)。`better-sqlite3` 是原生依賴 —— 它附帶預編譯的 binary,而
+   `packageManager` 欄位選版本)。`pnpm install` 在 workspace 根執行一次,就會把 backend 與 frontend
+   兩個 package 的依賴一起裝好。`better-sqlite3` 是原生依賴 —— 它附帶預編譯的 binary,而
    `pnpm-workspace.yaml` 的 `allowBuilds` 已預先核可它的 build script。
 
 4. **驗證可運行**(務必執行 —— 不要只是宣稱成功):
 
    ```bash
-   pnpm typecheck && pnpm lint && pnpm test
+   pnpm -r typecheck && pnpm -r lint && pnpm -r test
    ```
 
-5. **告訴使用者如何啟動。** 開發時開兩個終端:
-   - `cp dev.json.example dev.json` 後 `pnpm dev` —— 在 port 51599 啟動 Fastify API。
-   - `pnpm dev:client` —— 在 5173 啟動 Vite,並把 `/api` proxy 到 server。
+   (`-r` 會對 backend 與 frontend 兩個 package 各跑一次;根 `package.json` 也提供了
+   `pnpm typecheck` / `pnpm lint` / `pnpm test` 作為等價捷徑。)
 
-   若要單一程序的 production 模式:`pnpm build`,然後在 `dev.json` 設定 `client_dir`,讓 server
-   直接提供 `dist/client`。
+5. **告訴使用者如何啟動。** 開發時開兩個終端:
+   - 在 `backend/`:`cp dev.json.example dev.json` 後 `pnpm dev` —— 在 port 51599 啟動 Fastify API。
+   - `pnpm --filter frontend dev` —— 在 5173 啟動 Vite,並把 `/api` proxy 到 server。
+
+   若要單一程序的 production 模式:`pnpm -r build`,frontend 會建到 `frontend/dist`;backend 的
+   `dev.json` 之 `client_dir` 預設已指向 `../frontend/dist`,所以 `cd backend && pnpm dev` 就會由
+   Fastify 一併提供 SPA 與 API。
 
 ## 架構說明(讓你能正確地擴充)
 
@@ -103,13 +113,14 @@ Fastify 後端、React + TanStack SPA,以及兩者之間只透過 HTTP 溝通的
 - **依賴向內流動。** `domain` 是核心,不 import 其他層的任何東西。`ports` 定義介面;`services`、
   `repositories`、`http` 依賴 `ports`,絕不直接依賴 `adapters`(唯一允許的例外是自動產生的
   `db/types.generated.ts`)。`adapters` 是唯一接觸具體基礎設施(better-sqlite3、fs、path、pino)
-  的地方。
-- **前後端牆是絕對的。** `src/` 永遠不可 import `client/`,反之亦然 —— 兩者只透過 HTTP 溝通。
-  違反時 ESLint 會讓 build 失敗,這正是讓 SPA 與 server 能各自獨立部署的關鍵(也讓 server 能
-  standalone、在 Docker 裡、或在 Electron 下運行)。
-- **SQL migration 是真實來源。** 編輯 `sql/migrations/`,執行 `pnpm db:migrate:dev`,再
-  `pnpm db:codegen` 重新產生 `src/adapters/db/types.generated.ts`。Kysely 會依這份產生的 schema
-  提供型別安全的查詢。
+  的地方。這套後端分層由 `backend/eslint.config.mjs` 強制執行。
+- **前後端牆是絕對的。** `backend/` 與 `frontend/` 是兩個獨立 package,**不在彼此的相對路徑內** ——
+  根本沒有跨界 import 的途徑,只能透過 HTTP 溝通。這道牆由 workspace 的 package 邊界保證(不再需要
+  ESLint 的 `no-restricted-paths` 去擋),這正是讓 SPA 與 server 能各自獨立部署的關鍵(也讓 server
+  能 standalone、在 Docker 裡、或在 Electron 下運行)。
+- **SQL migration 是真實來源。** 編輯 `backend/sql/migrations/`,執行
+  `pnpm --filter backend db:migrate:dev`,再 `pnpm --filter backend db:codegen` 重新產生
+  `backend/src/adapters/db/types.generated.ts`。Kysely 會依這份產生的 schema 提供型別安全的查詢。
 
 當使用者要求新增功能(例如「加一個 tags 實體」),不要發明新結構 —— 照著 `Note` 的檔案在各層
 依樣畫葫蘆,讓 ESLint 抓出任何跨層錯誤。

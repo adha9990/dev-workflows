@@ -1,10 +1,9 @@
 // @ts-check
 import tseslint from 'typescript-eslint';
 import importPlugin from 'eslint-plugin-import';
-import reactHooks from 'eslint-plugin-react-hooks';
 
 // ────────────────────────────────────────────────────────────────────────────
-// 架構強制執行。
+// 架構強制執行(後端)。
 //
 // 這套技術棧的價值在於分層是「被檢查」的,而不只是「但願如此」。
 // `import/no-restricted-paths` 會在某一層 import 了不該 import 的東西時讓 lint 失敗,
@@ -20,6 +19,10 @@ import reactHooks from 'eslint-plugin-react-hooks';
 // - services / repositories / http 依賴 ports,絕不直接依賴 adapters
 //   (唯一例外:自動產生的 db/types.generated.ts,它只是型別)。
 // - composition root(src/bin)與 adapters 才是接線發生的地方。
+//
+// 註:前後端牆(server ↔ client 不可互相 import)現在改由 pnpm workspace 的 package
+// 邊界保證 —— backend 與 frontend 是兩個獨立套件,彼此不在對方的相對路徑內,只能
+// 透過 HTTP 溝通。因此這裡不再需要 server ↔ client 的 no-restricted-paths 規則。
 // ────────────────────────────────────────────────────────────────────────────
 const layerZones = [
   // domain 是最內層 —— 它不可向外伸手。
@@ -42,10 +45,6 @@ const layerZones = [
 
   // 除了 composition root(src/bin)以外,沒有東西可以伸進 http adapter。
   { target: './src/!(bin|http)/**/*', from: './src/http/**/*', message: 'Only the composition root may import from http/.' },
-
-  // ★ 前後端牆:src 與 client 只透過 HTTP 溝通。
-  { target: './src', from: './client', message: 'src/ (server) must not import from client/. They communicate over HTTP only.' },
-  { target: './client', from: './src', message: 'client/ (SPA) must not import from src/. They communicate over HTTP only.' },
 ];
 
 // 內層不可直接伸手拿基礎設施 —— 那是 ports 與 adapters 的職責。
@@ -65,20 +64,19 @@ export default tseslint.config(
     ignores: [
       'dist/**',
       'node_modules/**',
-      'client/src/routeTree.gen.ts',
       'src/adapters/db/types.generated.ts',
     ],
   },
 
   ...tseslint.configs.recommended,
 
-  // 對專案的兩半都套用分層 + 牆的強制檢查。
+  // 套用分層強制檢查。
   {
-    files: ['src/**/*.ts', 'client/**/*.{ts,tsx}'],
+    files: ['src/**/*.ts', 'scripts/**/*.ts', 'e2e/**/*.ts', 'benchmark/**/*.ts'],
     plugins: { import: importPlugin },
     settings: {
       'import/resolver': {
-        typescript: { project: ['tsconfig.json', 'tsconfig.client.json'] },
+        typescript: { project: ['tsconfig.json'] },
       },
     },
     rules: {
@@ -99,13 +97,14 @@ export default tseslint.config(
     },
   },
 
-  // client 的 React 規則。
+  // 整合測試(__tests__)可以接觸基礎設施與 adapters 來架設真資料庫 ——
+  // 與 e2e/ 相同的待遇(e2e 因不在受限 target zone 內而本就豁免)。它們驗證的是
+  //「真 SQLite + 真 migration」的行為,而非生產層該守的依賴方向。
   {
-    files: ['client/**/*.{ts,tsx}'],
-    plugins: { 'react-hooks': reactHooks },
+    files: ['src/**/__tests__/**/*.test.ts'],
     rules: {
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      'no-restricted-imports': 'off',
+      'import/no-restricted-paths': 'off',
     },
   },
 );

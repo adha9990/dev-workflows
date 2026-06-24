@@ -15,8 +15,8 @@
     "noEmit": true,
     "types": ["vite/client", "vitest/globals"],
     "paths": {
-      "@/*": ["./client/src/*"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["client/**/*"]
+  "include": ["src/**/*", "vitest.setup.ts"]
 }
