@@ -81,6 +81,6 @@ dispatch → goal → explore → plan → build → verify → iterate
                                                         └──▶ 完工（交 PR / 收尾）
 ```
 
-> 起跑前的前置（dispatch 內、不在迴圈圈內）：**完全乾淨的空專案** → 先 `scaffold` 建骨架（同 marketplace 的 `scaffold` plugin，確認後才跑、可降級）；**無 issue 的待解決問題** → 先 `define` 建 issue。兩者都收斂到 `goal` 進迴圈。
+> 起跑前的前置（dispatch 內、不在迴圈圈內）：**完全乾淨的空專案** → 先 `scaffold-fullstack` 建骨架（loops-workflow 內建 skill，確認後才跑）；**無 issue 的待解決問題** → 先 `define` 建 issue。兩者都收斂到 `goal` 進迴圈。
 
 只在真正要選的決策點停（見 §2 規則 2，routine 轉場不問）。`iterate` 最多回環 3 圈、且**修完一定再 verify**（完工只在 verify 乾淨那輪可達），超過就 escalate。每次回環在 `loop.md` 記一筆。

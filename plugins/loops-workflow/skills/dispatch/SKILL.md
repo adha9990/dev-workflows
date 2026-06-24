@@ -46,13 +46,13 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 判類型前**先看目標專案是不是「完全乾淨」**：空目錄 / 沒有原始碼 / 沒有 `package.json` / 沒有 git 歷史（`git log --oneline -1` 無 commit、目錄無 `src`·`package.json`）。是的話沒有架構承載 define 出來的 issue、也沒有 code 可改 —— **先把骨架立起來**：
 
-- **確認（一定停 —— scaffold 是大動作、且技術棧是定死的）**：用 `AskUserQuestion` 問要不要建骨架。同 marketplace 的 `scaffold` plugin 的 **`scaffold-fullstack`** 出的是 **Fastify + React 19 + TanStack + Kysely/SQLite + Vitest** 的分層全端 TS 專案。
+- **確認（一定停 —— scaffold 是大動作、且技術棧是定死的）**：用 `AskUserQuestion` 問要不要建骨架。loops-workflow **內建的 `scaffold-fullstack`** skill 出的是 **Fastify + React 19 + TanStack + Kysely/SQLite + Vitest** 的分層全端 TS 專案。
   - 要、且這個棧合用 → 交 `scaffold-fullstack`（它自己會問目錄 / 名稱、跑模板、`pnpm install` + `typecheck/lint/test` 驗收）。
   - 要、但要別的棧（FastAPI / Next.js / 純前端…）→ `scaffold-fullstack` 不適用，請使用者自行建好骨架再回來，dispatch 不硬塞。
   - 只想先把問題定義清楚 → 跳過，直接走 §1.5 define。
 - 骨架立好後 → **接著走 §1.5 define** 把第一個要解決的問題具體化成 issue → 再 goal。
 
-> `scaffold-fullstack` 屬 marketplace 的 `scaffold` plugin（與 loops-workflow **同 marketplace、各自獨立**）。沒裝那個 plugin → 提示使用者裝 / 自行建骨架後再回 dispatch；**loops-workflow 不裝它也照常跑，只是少這條「空專案一鍵起骨架」捷徑**。模稜兩可（已有少量檔案 / 半成品）→ 當既有專案、不 scaffold。
+> `scaffold-fullstack` 是 **loops-workflow 內建 skill**（`skills/scaffold-fullstack/`，自帶整棵模板樹 + scaffold 腳本）—— 無外部 plugin 依賴、永遠可用，直接 `/loops-workflow:scaffold-fullstack` 也能單獨跑。模稜兩可（已有少量檔案 / 半成品）→ 當既有專案、不 scaffold。
 
 
 

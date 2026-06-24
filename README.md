@@ -1,22 +1,22 @@
 # dev-workflows
 
-> 個人開發工作流 plugin marketplace（測試性）。目前 **2 個 plugin**：
+> 個人開發工作流 plugin marketplace（測試性）。目前 **1 個 plugin**：
 
 | Plugin | 用途 | 怎麼用 |
 |---|---|---|
-| **loops-workflow** | 7 階段閉環開發工作流（**既有專案**內加功能 / 設計 / 修問題） | `/loops-workflow:dispatch <一句話>` |
-| **scaffold** | greenfield 從零建全端 TS 專案骨架（分層 Fastify + React SPA + Kysely + Vitest） | `/scaffold:scaffold-fullstack` |
+| **loops-workflow** | 7 階段閉環開發工作流（**既有專案**內加功能 / 設計 / 修問題）+ 內建 greenfield 專案 scaffold | `/loops-workflow:dispatch <一句話>` |
+
+> **greenfield 從零建全端 TS 專案骨架**（分層 Fastify + React SPA + Kysely + Vitest）已是 loops-workflow 的**內建 skill `scaffold-fullstack`**：dispatch 偵測到乾淨空專案會引導你用，也可直接 `/loops-workflow:scaffold-fullstack`。
 
 ## 安裝
 
 ```
 /plugin marketplace add adha9990/dev-workflows  # 從 GitHub 加入 marketplace（owner/repo 簡寫）
-/plugin install loops-workflow@dev-workflows    # 閉環開發（既有專案）
-/plugin install scaffold@dev-workflows          # greenfield scaffold（空資料夾從零建）
+/plugin install loops-workflow@dev-workflows    # 閉環開發 + 內建 greenfield scaffold（單一 plugin）
 /reload-plugins
 ```
 
-**怎麼選**：既有專案內開發 → `loops-workflow`；空資料夾從零建乾淨架構 → `scaffold`。
+**怎麼選**：既有專案內開發 → `/loops-workflow:dispatch`；空資料夾從零建乾淨架構 → `/loops-workflow:scaffold-fullstack`（或 dispatch 偵測到乾淨專案會引導你用）。
 
 ---
 
@@ -108,6 +108,7 @@ Windows 例：`bash "C:/Users/<你>/.claude/plugins/marketplaces/dev-workflows/p
 ```
 plugins/loops-workflow/
 ├── skills/       define（前置：模糊問題→issue）+ 7 階段 + explain（側用）
+│                 + scaffold-fullstack（前置：greenfield 骨架，自帶整棵模板樹）
 ├── agents/       build 紅綠分離 3（test-author / impl-author / referee）
 │                 + verify 6 核心 reviewer + finding-validator + 7 條件式領域 reviewer
 ├── commands/     loop / resume / status / explain / install-statusline
@@ -125,8 +126,8 @@ plugins/loops-workflow/
 
 ---
 
-# scaffold（plugin）
+# scaffold-fullstack（loops-workflow 內建 skill：greenfield 骨架）
 
-greenfield 從零建全端 TypeScript 專案骨架：分層 Fastify 後端（`domain ← ports ← adapters/services/repositories/http`）+ React 19 + TanStack SPA、ESLint 強制分層與前後端牆、SQLite + Kysely、Vitest（unit/e2e/benchmark），含一條貫穿各層的範例垂直切片。
+greenfield 從零建全端 TypeScript 專案骨架：分層 Fastify 後端（`domain ← ports ← adapters/services/repositories/http`）+ React 19 + TanStack SPA、ESLint 強制分層與前後端牆、SQLite + Kysely、Vitest（unit/e2e/benchmark），含一條貫穿各層的範例垂直切片。自帶整棵模板樹 + scaffold 腳本，無外部依賴。
 
-用 `/scaffold:scaffold-fullstack` —— 在空資料夾從模板生出整個分層專案骨架。**只建新專案、不改既有 code**（既有專案內開發走 loops-workflow）。
+用 `/loops-workflow:scaffold-fullstack` —— 在空資料夾從模板生出整個分層專案骨架；或 `dispatch` 偵測到完全乾淨的空專案時會引導你用（確認後才跑）。**只建新專案、不改既有 code**（既有專案內開發走 loops 迴圈）。
