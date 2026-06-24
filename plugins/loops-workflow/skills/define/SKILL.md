@@ -20,6 +20,10 @@ description: Turns a vague idea / uncertain problem / rough requirement into a s
 - 純研究 / 探索、未必要落地 —— `explore`（不建 issue）。
 - 分不清「要實作 vs 只研究」→ 用 `AskUserQuestion` 問。
 
+**兩種進法**：
+- **單一問題**（dispatch 對「無 issue 待解決問題」路由進來）：跑下面完整 Process（Readiness Model + 一次一問 intake）。
+- **backlog 模式**（從 **發散式 explore** 的 `explore → define` gate 進來）：explore 已研究完一塊設計空間、`01-explore.md` 已有「開放問題清單 + 各自選項 / 傾向 / 相依」→ **不重跑單題 one-question intake**（研究已做完，重訪談是冗餘），直接把每條結論結構化成 issue（背景 + 開放問題 + 選項 / 傾向 + 驗收雛形 + 相依），草稿校稿後逐一 `gh issue create --assignee @me`。仍守 Input hygiene / 語言 / 品質 Red Flags。
+
 ## Process
 
 ### 1. Readiness Model（先分級再下筆）

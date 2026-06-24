@@ -28,7 +28,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 ### 1. 判類型（決策樹）
 
 ```
-├─ 完全乾淨的空專案（無原始碼 / 空目錄）─────────▶ 先 scaffold 建骨架 → 再 define → goal
+├─ 完全乾淨的空專案（無原始碼 / 空目錄）─────────▶ 先 scaffold 建骨架 → explore 發散式盤 backlog／define 單一問題（見 §1.4）→ goal
 ├─ issue 號 / 「做這個 issue」 ──────────────────▶ 從 goal 開始（完整迴圈）
 ├─ 無 issue 的「要解決 / 實作的問題」 ───────────▶ 走 `define`（建 template-ready issue）→ 再 goal
 ├─ 純「設計 / 研究 / 評估」（探索性、未必落地）──▶ 從 explore 開始（不建 issue）
@@ -50,7 +50,9 @@ description: Routes a one-line work request to the right loops-workflow stage an
   - 要、且這個棧合用 → 交 `scaffold-fullstack`（它自己會問目錄 / 名稱、跑模板、`pnpm install` + `typecheck/lint/test` 驗收）。
   - 要、但要別的棧（FastAPI / Next.js / 純前端…）→ `scaffold-fullstack` 不適用，請使用者自行建好骨架再回來，dispatch 不硬塞。
   - 只想先把問題定義清楚 → 跳過，直接走 §1.5 define。
-- 骨架立好後 → **接著走 §1.5 define** 把第一個要解決的問題具體化成 issue → 再 goal。
+- 骨架立好後，看使用者要哪種（routine 可不問，需求已明講就直接走；不清楚才用 `AskUserQuestion`）：
+  - **馬上實作某一件事** → 走 §1.5 `define` 把那個問題具體化成 issue → 再 goal。
+  - **先盤點要做哪些事**（greenfield 常見：先研究資料來源 / 選型 / 範圍，產出一批待解問題）→ 走 **`explore` 發散式**（研究設計空間）→ 由 explore 的 `explore → define` gate 把確認過的問題開成 **issue backlog** → 停下等後續逐步解決（不強制續進 goal）。
 
 > `scaffold-fullstack` 是 **loops-workflow 內建 skill**（`skills/scaffold-fullstack/`，自帶整棵模板樹 + scaffold 腳本）—— 無外部 plugin 依賴、永遠可用，直接 `/loops-workflow:scaffold-fullstack` 也能單獨跑。模稜兩可（已有少量檔案 / 半成品）→ 當既有專案、不 scaffold。
 
@@ -95,7 +97,7 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 ## Verification
 
 - [ ] 分流結果正確（類型 ↔ 起點階段對得上決策樹）。
-- [ ] 目標若是**完全乾淨的空專案**，已先用 `AskUserQuestion` 確認 + scaffold 骨架（或使用者選跳過 / 要別的棧）才進 define；既有 / 半成品專案不 scaffold。
+- [ ] 目標若是**完全乾淨的空專案**，已先用 `AskUserQuestion` 確認 + scaffold 骨架（或使用者選跳過 / 要別的棧）才進 define / explore（發散式盤 backlog）；既有 / 半成品專案不 scaffold。
 - [ ] 無 issue 的「待解決問題」有先建成 GitHub issue（草稿確認後 `gh issue create`）才進 goal；純研究 / 設計則直接 explore、不建 issue。
 - [ ] `.loops/<slug>/loop.md` 已建立（或既有的已認領），含類型 / 起點 / 停止條件雛形。
 - [ ] 已進起點階段開始做（分類模糊時才停下用 `AskUserQuestion` 問），沒有用純文字問「要不要進 X」。

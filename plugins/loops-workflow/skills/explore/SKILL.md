@@ -7,7 +7,13 @@ description: Surveys the internal codebase for reusable approaches, and searches
 
 ## Overview
 
-`explore` 的研究流程：**先摸架構 → 掃內部找可重用 → 判斷夠不夠 → 不夠才搜外部 → 多方法時派多 agent 做多維評估 → 攤開比較矩陣給推薦**，讓使用者在 `explore → plan` gate 選走哪條路。
+`explore` 的研究流程：**先摸架構 → 掃內部找可重用 → 判斷夠不夠 → 不夠才搜外部 → 多方法時派多 agent 做多維評估 → 攤開比較矩陣給推薦**，讓使用者在 explore 出口 gate 做選擇。
+
+**兩種模式（決定 gate 通往哪）**：
+- **收斂式**（既定目標、要從多個做法選一個去實作）：≥2 方法 → 多維評估矩陣 → 選一個 → 停在 `explore → plan`。本檔 Process 的主軸。
+- **發散式**（研究一塊設計空間、會盤出多個待解問題而非單一實作；常見於 greenfield 剛 scaffold 完）：把設計空間攤成「開放問題清單 + 各自選項 / 傾向 / 相依」→ 停在 `explore → define`（把確認過的問題逐一開成 issue backlog）。
+
+> 兩模式共用第 0–4 步（摸架構 / 掃內部 / 判夠不夠 / 搜外部 / API 查證）；差別只在第 4.5、第 5 步的收斂方式與 gate 去向。
 
 **核心：方法不是「能用就用」。** 一個問題常有多種解法，它們在效能 / 體積 / 維護成本上有實質差異 —— explore 的價值就是把這些差異**用證據攤開**，不是隨便挑一個跑得通的。
 
@@ -15,7 +21,9 @@ description: Surveys the internal codebase for reusable approaches, and searches
 
 ## When to Use
 
-**Use when**：dispatch 判為「設計 / 研究」、或 goal 完工定義已定、要研究「怎麼做」才能 plan。
+**Use when**：
+- **收斂式**：dispatch 判為「設計 / 研究」、或 goal 完工定義已定，要研究「怎麼做」才能 plan（收斂到單一方法）。
+- **發散式**：greenfield 剛 scaffold 完、或要先盤點一塊設計空間，產出一批待解問題（→ 之後 `define` 開 backlog）。
 
 **NOT for**：
 - 已經知道用什麼方法、只差拆任務 —— 直接 plan。
@@ -48,6 +56,8 @@ description: Surveys the internal codebase for reusable approaches, and searches
 
 ### 4.5 多方法多維評估（≥2 個可行方法 → 必做，不是挑能用的就用）
 
+> **此步為收斂式專用**：要從多個做法選一個去實作才做。發散式（盤 backlog）不在此收斂成單一方法 —— 跳到第 5 步把每個開放問題列成 backlog 條目。
+
 方法**有兩個以上走得通**時，**不能隨便挑一個能用的** —— 挑錯到 build 才發現貴。派**評估 fan-out**：**每個候選方法一個 read-only agent**（`Explore` / general-purpose），各自就下面維度做**有證據**的評估（能量就量、不憑感覺）：
 
 | 維度 | 看什麼 |
@@ -71,9 +81,13 @@ description: Surveys the internal codebase for reusable approaches, and searches
 
 > 上面是「**評估已知候選**」；若候選本身要先生出來（解法空間寬、沒有現成方向），用 **opt-in Fleet** 派多 agent 各從不同角度發想方案再評（見 `references/fleet.md`）。
 
-### 5. 攤開比較 + 推薦
+### 5. 攤開比較 + 推薦（依模式收斂）
 
-把候選方案 + **第 4.5 步的比較矩陣**整理進 `01-explore.md`：**有搜外部就內外並排**（各自優缺點、適配度、CITE）；內部 + 需求已足夠則列內部結論 + 一句「為什麼不必外部」。收斂時除了矩陣的維度分數，再看一眼使用者價值（解痛點 painkiller / nice-to-have vitamin）+ 「**這個方向賭的是什麼成立、什麼會讓它垮**」。給一個推薦 + 理由（**點明哪個維度是決定因素**）。**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」。停在 `explore → plan` 決策 gate：**用 `AskUserQuestion` 把候選方法做成選項給使用者選**（每個標推薦 + 一句理由），不要用純文字要使用者打字。
+共通：**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」；有搜外部就內外並排、附 CITE。停在 gate 時**一律用 `AskUserQuestion` 給選項**（每個標推薦 + 一句理由），不要用純文字要使用者打字。
+
+**收斂式 → `explore → plan`**：把候選方案 + 第 4.5 步比較矩陣整理進 `01-explore.md`（各自優缺點、適配度、CITE；內部已足夠則列內部結論 + 一句「為什麼不必外部」）。收斂時除維度分數，再看使用者價值（解痛點 painkiller / nice-to-have vitamin）+「**這方向賭什麼成立、什麼會讓它垮**」。給一個推薦 + 理由（**點明決定因素**）。gate 用 `AskUserQuestion` 把**候選方法**做成選項給使用者選 → 進 `plan`。
+
+**發散式 → `explore → define`**：把設計空間整理進 `01-explore.md` —— 每個開放問題列「選項 + 傾向（待拍板）+ 相依」，收束成一份 **issue backlog 清單**（不收斂成單一方法）。gate 用 `AskUserQuestion` 確認 **backlog 範圍 + 優先序**（不是選一個方法）→ 核可後進 `define`（**backlog 模式**：逐條從研究結論直接開 issue，跳過單題 one-question intake —— 研究已做完，重訪談是冗餘）。
 
 ## Common Rationalizations
 
@@ -102,4 +116,4 @@ description: Surveys the internal codebase for reusable approaches, and searches
 - [ ] 有明確推薦 + 理由，且措辭是「待你拍板」不是「已決定」。
 - [ ] 框架 API 來源已 CITE，查不到的標 UNVERIFIED。
 - [ ] deep-research（若用）有先經同意。
-- [ ] 已停在 `explore → plan` gate。
+- [ ] 已停在對應 gate：**收斂式** `explore → plan`（選方法）／**發散式** `explore → define`（確認 backlog 範圍 + 優先序）。

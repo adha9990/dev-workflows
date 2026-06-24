@@ -19,10 +19,12 @@ flowchart TD
     D -->|PR# / reviewer 回饋| IT
     D -->|模糊| ASK([停下問使用者])
     SC --> DEF
+    SC --> E
     DEF --> G
 
-    G[goal 目標<br/>完工定義 DoD] --> E[explore 探索<br/>多方法多維評估]
-    E -->|✋ 選方法| P[plan 規劃<br/>拍板 + 設計書]
+    G[goal 目標<br/>完工定義 DoD] --> E[explore 探索<br/>收斂式評估 / 發散式盤空間]
+    E -->|✋ 收斂式·選方法| P[plan 規劃<br/>拍板 + 設計書]
+    E -->|✋ 發散式·開 backlog| DEF
     P -->|✋ 拍板| B[build 執行<br/>紅綠分離]
     B --> V[verify 驗證<br/>多 reviewer fan-out]
     V --> IT[iterate 迭代<br/>triage + 收口]
@@ -35,7 +37,7 @@ flowchart TD
     class G,E,P,B,V,IT,DEF stage
 ```
 
-**讀法**：實線往下是 routine（不問你、直接走）；`✋` = **會停下用 `AskUserQuestion` 問你**的真決策點。`iterate` 把問題修完會**回環**（看收斂、預設 ≤3 圈）再驗，全乾淨才完工開 PR。
+**讀法**：實線往下是 routine（不問你、直接走）；`✋` = **會停下用 `AskUserQuestion` 問你**的真決策點。`iterate` 把問題修完會**回環**（看收斂、預設 ≤3 圈）再驗，全乾淨才完工開 PR。explore 有兩種出口：**收斂式**→plan（選一個方法）、**發散式**→define（把設計空間盤成 issue backlog，開完停下等後續逐步解，不強制續跑）。
 
 **階段間記憶體**：每階段把結論寫成 `.loops/<slug>/0N-*.md`（goal→`00-goal.md`、explore→`01-explore.md`…），下一階段只讀**精煉版**、不重讀原始素材。`loop.md` 是儀表板（當前階段 / session / Journal 事件日誌）。
 
@@ -59,7 +61,7 @@ flowchart TD
 | **skill** | `scaffold-fullstack`（**loops-workflow 內建 skill**，自帶整棵模板樹 + scaffold 腳本、無外部依賴）｜**agent** 0 |
 | **何時** | dispatch 偵測目標**完全乾淨**（空目錄 / 無原始碼 / 無 `package.json` / 無 git 歷史）才觸發；既有 / 半成品專案不 scaffold |
 | **處理什麼** | 沒架構承載 issue、也沒 code 可改 → 先立專案骨架（Fastify + React 19 + TanStack + Kysely/SQLite + Vitest 分層全端 TS） |
-| **機制** | **一定停**用 `AskUserQuestion` 確認（scaffold 是大動作 + 棧定死）→ 合用就跑模板 + `pnpm install` + typecheck/lint/test 驗收 → 接 §1.5 define。要別的棧 → 提示自建骨架。也可直接 `/loops-workflow:scaffold-fullstack` 單獨跑 |
+| **機制** | **一定停**用 `AskUserQuestion` 確認（scaffold 是大動作 + 棧定死）→ 合用就跑模板 + `pnpm install` + typecheck/lint/test 驗收 → 接後續（**發散式 explore** 盤 backlog／§1.5 **define** 單一問題）。要別的棧 → 提示自建骨架。也可直接 `/loops-workflow:scaffold-fullstack` 單獨跑 |
 | **策略** | **內建、永遠可用**（無跨-plugin 耦合）；棧定死、不合用不硬塞 |
 
 ---
@@ -86,16 +88,16 @@ flowchart TD
 
 ---
 
-## 3. explore — 探索（多方法多維評估）✋
+## 3. explore — 探索（收斂式評估 / 發散式盤 backlog）✋
 
 | 項目 | 內容 |
 |---|---|
 | **skill** | `explore`（1）｜**agent** **1 掃描**（`Explore` read-only 摸 codebase）**＋ N 評估**（≥2 個可行方法時、一候選一個 read-only agent）；發想新方案才 opt-in Fleet |
-| **處理什麼** | 先找內部可重用的，不夠才看外部；**方法有競爭時做多維評估**，攤開比較矩陣給推薦 |
+| **處理什麼** | 先找內部可重用的，不夠才看外部；**收斂式**：方法有競爭時做多維評估、攤開比較矩陣給推薦；**發散式**：把設計空間盤整成待解問題 backlog |
 | **機制** | 摸架構（文檔優先）→ 掃內部找可重用 → **夠了沒判斷** → 不夠才外搜（便宜 WebSearch → gate deep-research）→ 框架 API 查證（DETECT→FETCH→**CITE**）→ **≥2 方法時多維評估 fan-out** → 比較矩陣 → 推薦 |
 | **8 評估維度** | 效能（複雜度 + 接近真實/極端規模 benchmark）· 記憶體/體積 · 可維護 · 可擴展 · 安全 · 複雜度 · 重用 · 適配 |
 | **策略** | **重用優先** · **外搜條件式**（省成本）· **方法不是「能用就用」**：① issue 的方法只是候選不是定案、贏家不同就換 ② 在接近真實/極端規模 benchmark 不憑感覺（能用 ≠ 好用，小樣本看不出、大規模才見真章）· 不只 MVP |
-| **gate** | ✋ 選哪個方法 |
+| **gate** | ✋ **收斂式**→ 選哪個方法（進 plan）／**發散式**→ 確認 backlog 範圍 + 優先序（進 define 開 issue backlog） |
 
 ---
 
