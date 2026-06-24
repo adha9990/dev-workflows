@@ -41,9 +41,17 @@ if (!existsSync(templateDir)) {
 const targetDir = resolve(process.cwd(), targetArg);
 const projectName = (nameArg ?? basename(targetDir)).trim();
 
-if (existsSync(targetDir) && readdirSync(targetDir).length > 0) {
-  console.error(`拒絕 scaffold:${targetDir} 已存在且不是空的。`);
-  process.exit(1);
+// harness 會在專案根自動放這些 dotfile(session handoff / git / loop 狀態 / Claude 設定),
+// 它們不算「專案內容」—— 就地 scaffold 時忽略它們,只有真正的既有檔案才擋。
+const HARNESS_DOTFILES = new Set(['.remember', '.git', '.claude', '.loops', '.DS_Store']);
+if (existsSync(targetDir)) {
+  const blocking = readdirSync(targetDir).filter((e) => !HARNESS_DOTFILES.has(e));
+  if (blocking.length > 0) {
+    console.error(
+      `拒絕 scaffold:${targetDir} 已存在且不是空的(${blocking.join(', ')})。請先清空,或移除上述檔案後再就地 scaffold。`,
+    );
+    process.exit(1);
+  }
 }
 
 cpSync(templateDir, targetDir, { recursive: true });

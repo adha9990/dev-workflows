@@ -4,6 +4,10 @@ data/
 *.log
 .DS_Store
 
+# loops-workflow loop state (local-only) + session handoff buffer
+.loops/
+.remember/
+
 # Per-developer config
 dev.json
 
