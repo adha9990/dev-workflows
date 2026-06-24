@@ -5,23 +5,22 @@ description: >-
   layered architecture: a single integrated pnpm package with a Fastify backend
   (domain ← ports ← adapters/services/repositories/http) and a React 19 + TanStack SPA frontend, a
   HTTP-only front/back wall enforced by ESLint, SQLite + Kysely persistence, and Vitest
-  (unit/e2e/benchmark). (The architecture is modeled on eagle-app-core, but the skill is general —
-  eagle is just the reference.) Use this whenever the user wants to start, bootstrap, generate, or
-  scaffold a NEW full-stack TypeScript app with enforced clean-architecture layering and a strict
+  (unit/e2e/benchmark). Use this whenever the user wants to start, bootstrap, generate, or scaffold a
+  NEW full-stack TypeScript app with enforced clean-architecture layering and a strict
   frontend/backend separation — whether they describe the shape (Fastify backend + React SPA +
-  ports/adapters + Kysely + Vitest), ask for a "layered Fastify + React starter", or say "like eagle"
-  / "the eagle stack" / "with the same structure". Do NOT use it for working inside an existing
-  project (adding a route, entity, migration, or feature; fixing a layering/lint error), for debugging
-  eagle itself, or for scaffolding a different stack (e.g. FastAPI, Next.js, or a frontend-only SPA) —
-  it creates a new project from a template, it does not edit existing code. The template seeds an
-  AGENTS.md + docs/ Definition-of-Done skeleton for the new project to carry on as it grows.
+  ports/adapters + Kysely + Vitest) or ask for a "layered Fastify + React starter". Do NOT use it for
+  working inside an existing project (adding a route, entity, migration, or feature; fixing a
+  layering/lint error), or for scaffolding a different stack (e.g. FastAPI, Next.js, or a
+  frontend-only SPA) — it creates a new project from a template, it does not edit existing code. The
+  template seeds an AGENTS.md + docs/ Definition-of-Done skeleton for the new project to carry on as
+  it grows.
 ---
 
 # Scaffold Layered Full-stack
 
 產生一個前後端分離、分層架構的全端 TypeScript 新專案:單一整合包、切分成 clean-architecture 各層的
 Fastify 後端、React + TanStack SPA,以及兩者之間只透過 HTTP 溝通的硬牆 —— 全部由 ESLint 強制執行,
-讓結構不會悄悄腐化。(這套架構參考自 `eagle-app-core`,但本技能是通用的 —— eagle 只是參考來源。)
+讓結構不會悄悄腐化。
 
 ## 你會得到什麼
 
@@ -139,10 +138,10 @@ Fastify 後端、React + TanStack SPA,以及兩者之間只透過 HTTP 溝通的
 > feature 往裡面補的 `docs/<topic>.md` 是**教學手冊**(只教學、怎麼用),而「為什麼這樣設計、取捨、邊界」
 > 這類**決策紀錄**改放 PR body / 設計文件,不混進手冊。
 
-## 關於忠實度的說明
+## 範圍:刻意保持精簡
 
-這是架構骨架,不是 eagle 完整功能的複製品。為了讓新專案保持精簡,刻意省略了:原生模組系統
-(HEIF/RAW/PSD/EPS、binding.gyp/node-gyp)、format registry、authentication、SSE change feed,
-以及龐大的依賴面。而分層、build pipeline(`tsc` server + `vite` client + `tsx` scripts)、測試
-設定與 ESLint 強制規則都被忠實重現,讓專案能以和 eagle 相同的方式成長。若使用者日後想要原生
-addon 或 format registry,那些都是在這個基底上的加法。
+這是一個**精簡的架構骨架**,不是功能完整的應用。為了讓新專案保持輕量、好上手,刻意不含:
+authentication、原生模組 / node-gyp addon、即時推送(SSE / WebSocket)、以及龐大的依賴面。**真正
+被鋪好的是骨幹** —— 分層結構、build pipeline(`tsc` server + `vite` client + `tsx` scripts)、測試
+設定(unit / e2e / benchmark)、以及 ESLint 強制的分層與前後端牆。任何重量級功能(auth、原生 addon、
+背景任務、即時推送…)日後都是在這個穩固基底上的**加法**,不需要動到骨架。

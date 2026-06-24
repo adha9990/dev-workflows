@@ -7,7 +7,6 @@
 
 - 前後端分離的全端 TypeScript 應用:Fastify 後端(`src/`)+ React SPA(`client/`),兩者**只透過 HTTP 溝通**。
 - 後端採 clean-architecture 分層,結構由 ESLint 強制執行,不會隨成長而腐化。
-- 架構參考自 `eagle-app-core`。
 
 ## 最重要的慣例:邊建邊留「設計方向」文件
 

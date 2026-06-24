@@ -1,7 +1,7 @@
 # 分層全端架構參考(layered full-stack)
 
 擴充 scaffold 出來的專案前請先讀這份文件。它說明每一層存在的理由,並給出在不破壞被強制執行的
-結構下新增功能的精確步驟。(本架構參考自 `eagle-app-core`。)
+結構下新增功能的精確步驟。
 
 ## 整體形狀
 
@@ -73,11 +73,10 @@ adapters ─────┘ (實作 ports;唯一接觸基礎設施的地方)
 
 ## 實戰補充:把這套架構用在「整合密集」的專案
 
-下列模式在一個以本 scaffold 理念重構的真實專案(`auto-scoring-system` —— 一個 API 自動評分器,
-會連考生 DB、用 Newman 打考生 API)中驗證過,可直接沿用:
+當專案需要大量對外整合(連多個外部資料庫、呼叫外部 API、驅動外部工具)時,下列模式很實用,可直接沿用:
 
 1. **Ports 不只用於持久化 —— 任何「會碰外部世界」的能力都值得一個 port。**
-   除了 `MetadataStore` 這類儲存 port,凡是外部能力都可定義成 port:例如「重置考生資料庫」
+   除了 `MetadataStore` 這類儲存 port,凡是外部能力都可定義成 port:例如「重置外部資料庫」
    `DbResetter { reset(): Promise<void> }`、「對外部 API 跑一組測試」
    `CollectionRunner { run(cases, vars): Promise<CaseResult[]> }`。services 只認 port,完全不知道
    底層用的是 mysql2 還是 Newman。要換實作(換 DB 引擎、換測試執行器)只動 adapter,services/http 不變。

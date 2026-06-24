@@ -2,7 +2,6 @@
 
 一個前後端分離、分層架構的全端 TypeScript 應用:單一整合包,內含 Fastify 後端與
 React 19 + TanStack SPA 前端,後端嚴格分層,兩半之間只透過 HTTP 溝通 —— 全部由 ESLint 強制執行。
-(架構參考自 `eagle-app-core`。)
 
 ## 先決條件
 

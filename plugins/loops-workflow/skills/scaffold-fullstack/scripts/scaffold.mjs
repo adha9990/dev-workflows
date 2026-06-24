@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 從打包的模板 scaffold 出一個新的 eagle-stack 專案。
+// 從打包的模板 scaffold 出一個新的分層全端 TypeScript 專案。
 //
 //   node scaffold.mjs <target-dir> [project-name]
 //
