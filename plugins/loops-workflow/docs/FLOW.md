@@ -35,7 +35,7 @@ flowchart TD
     class G,E,P,B,V,IT,DEF stage
 ```
 
-**讀法**：實線往下是 routine（不問你、直接走）；`✋` = **會停下用 `AskUserQuestion` 問你**的真決策點。`iterate` 把問題修完會**回環**（最多 3 圈）再驗，全乾淨才完工開 PR。
+**讀法**：實線往下是 routine（不問你、直接走）；`✋` = **會停下用 `AskUserQuestion` 問你**的真決策點。`iterate` 把問題修完會**回環**（看收斂、預設 ≤3 圈）再驗，全乾淨才完工開 PR。
 
 **階段間記憶體**：每階段把結論寫成 `.loops/<slug>/0N-*.md`（goal→`00-goal.md`、explore→`01-explore.md`…），下一階段只讀**精煉版**、不重讀原始素材。`loop.md` 是儀表板（當前階段 / session / Journal 事件日誌）。
 
@@ -169,9 +169,9 @@ flowchart TD
 |---|---|
 | **skill** | `iterate`（1）｜**agent** 0（修正回 build 用其 subagent）；卡關時 **opt-in cross-model**（換別的模型當對手 reviewer） |
 | **處理什麼** | 把 verify 缺口 / PR reviewer 回饋分類、修根因、決定回環或完工 |
-| **機制** | 收集回饋（`type=fix` 走 `pr-feedback-sources.md`：inline comment 要 `gh api`）→ **RECONCILE 四分類** → **Stop-the-Line 修**（DIAGNOSE 先定位失敗層 + `git bisect` → 修根因 → 每修加回歸測試）→ **修完一定再 verify** → 完工 or 回環（≤3 圈） |
+| **機制** | 收集回饋（`type=fix` 走 `pr-feedback-sources.md`：inline comment 要 `gh api`）→ **RECONCILE 四分類** → **Stop-the-Line 修**（DIAGNOSE 先定位失敗層 + `git bisect` → 修根因 → 每修加回歸測試）→ **修完一定再 verify** → 完工 or 回環（看收斂·≤3 圈·不收斂即 escalate） |
 | **完工交接物（依類型）** | **修正型**＝一份回覆 reviewer；**完整迴圈**＝PR 收尾 comment + **自動產 explain**。follow-up 留當前 issue 不另開。PR body 放 `Closes #issue`、指派 `@me`、與 master 衝突自動合併 |
-| **策略** | **交 reviewer 前把問題解到最少**（actionable 一律自動全修、不問「修多少」）· severity 只決定停不停、不決定修不修 · **3 圈上限**超過 escalate |
+| **策略** | **交 reviewer 前把問題解到最少**（actionable 一律自動全修、不問「修多少」）· severity 只決定停不停、不決定修不修 · **回環看收斂**（findings 沒變少 / 同條復現就 escalate，不等第 3 圈）· **3 圈上限 = 檢查點非硬牆**（停下問你：回頭重想 / 換跨模型 / 授權再繞重置計數） |
 | **gate** | ✋ 完工 or 回哪階段（修完再 verify 不是選項，一律再驗） |
 
 ---

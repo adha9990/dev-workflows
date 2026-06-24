@@ -56,9 +56,15 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 **完工只在「最近一輪 verify 已無 actionable findings」時才可達** —— 即「跑完 verify → iterate 這輪沒東西要修」。修完直接跳完工 = 抄捷徑。
 
-### 5. 3 圈上限
+### 5. 回環上限：3 圈 + 收斂感知（escalate 是檢查點，不是放棄）
 
-回環**最多 3 圈**。超過就 **escalate 給使用者**（別無限繞）。**escalate 時可提「換一個模型做跨模型二審」當選項**（opt-in，抓同模型的結構性盲點，見 `references/cross-model-review.md`）。每次回環在 `loop.md` 記一筆（第幾圈、回哪、為什麼）。
+回環**預設上限 3 圈**，但停止條件**看收斂、不只看次數**：
+
+- **收斂中才值得再繞**：每輪 verify 的 actionable findings 要**比上輪嚴格變少**、或是**不同的新問題**（代表在推進）。
+- **沒收斂就當下 escalate、不等第 3 圈**：若這輪 findings **沒比上輪少**、或**同一條 finding 又冒出來**（修了又破 / 根因沒搆到）→ 立刻停下 escalate，別把剩下的圈數浪費在原地打轉。
+- **碰到 3 圈上限 = 檢查點、不是硬牆**：停下用 `AskUserQuestion` 問怎麼走 —— **回頭重想**（方向有更深問題：DoD 模糊 / 方法選錯 / 設計缺陷 → 回 goal / explore / plan）/ **換跨模型二審**（opt-in，抓同模型結構盲點，見 `references/cross-model-review.md`）/ **授權再繞**（使用者帶新判斷說繼續 → **計數重置**、再走幾圈）。3 不是放棄點，是「這沒在收斂，你要鑽下去還是換路」的人類檢查點。
+
+每次回環在 `loop.md` 記一筆（第幾圈、回哪、為什麼、**這輪 findings 數 vs 上輪**）—— 收斂軌跡是判斷「該不該再繞」的依據。
 
 ### 6. 完工收尾
 
@@ -75,7 +81,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 完工後把 `loop.md` 的「當前階段」設為「**完工**」（statusline 即不再顯示此 loop）。
 
-**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：用 `AskUserQuestion` 確認**交 PR**（outward action 要你點頭）/ 或還要再打磨。另外只有 **3 圈上限 escalate、真正的 trade-off（修法與 `00-goal.md` 衝突）、分類模糊** 才停下問。
+**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：用 `AskUserQuestion` 確認**交 PR**（outward action 要你點頭）/ 或還要再打磨。另外只有 **回環沒收斂 / 碰 3 圈上限 escalate（檢查點，見 §5）、真正的 trade-off（修法與 `00-goal.md` 衝突）、分類模糊** 才停下問。
 
 ## Common Rationalizations
 
@@ -83,7 +89,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 |------|------|
 | 「症狀壓掉就好，根因之後再說」 | 症狀修會復發。debugging 的鐵律是修根因，且每修加回歸測試。 |
 | 「reviewer 講的我覺得不對，直接忽略」 | 不對的也要分類成 contract misread 並陳述理由婉拒，不是默默忽略。 |
-| 「再繞一圈應該就好了」（已第 4 圈） | 超過 3 圈代表方向有更深的問題，要 escalate，不是再賭一圈。 |
+| 「再繞一圈應該就好了」 | 看**收斂**不看感覺：findings 沒比上輪少 / 同條 finding 復現 = 原地打轉，當下就 escalate，不是再賭一圈。 |
+| 「還沒到 3 圈，繼續繞」（但 findings 沒變少） | 上限是看收斂、不是用滿次數。沒收斂就 escalate 當檢查點、不必等第 3 圈；碰 3 圈也是停下問你（回頭重想 / 換跨模型 / 授權再繞重置計數），不是放棄。 |
 | 「修完不用加測試，這次很簡單」 | 沒有回歸測試守住，同一個 bug 會再回來。GUARD 不可省。 |
 | 「測試全綠 + typecheck 0，等於 verify 過了」 | 綠燈只證明沒打破現有測試，證不了修正對其他軸 / 既有 consumer 安全。verify 是 fresh reviewer 各審一軸，綠燈取代不了。 |
 | 「改一行而已，不用再 verify」 | 改到共用元件一行的 blast radius 可能比大改還大。波及面要 fresh-verify。 |
@@ -93,7 +100,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 - 修症狀沒修根因。
 - 修了 bug 沒加回歸測試。
-- 回環超過 3 圈還在繞、沒 escalate。
+- 回環**沒在收斂**（findings 沒變少 / 同條復現）卻硬繞、沒 escalate；或繞滿 3 圈沒當檢查點停下問使用者。
 - `loop.md` 沒記回環歷史。
 - 回覆 reviewer 堆客套 / 沒給驗證證據。
 - **修完沒再跑 verify 就完工**（拿「測試綠 / typecheck 0」當 verify 替代品）。
@@ -110,7 +117,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 每條回饋有 RECONCILE 分類。
 - [ ] verify 出的 actionable findings（不論 P2/P3）**全部自動修了**，沒問使用者「修多少 / 要不要修」。
 - [ ] 每個 actionable 修的是根因 + 有回歸測試（GUARD）。
-- [ ] 回環 ≤ 3 圈，超過已 escalate；`loop.md` 有回環歷史。
+- [ ] 回環**看收斂**（findings 嚴格變少才續繞）；沒收斂 / 碰 3 圈上限已 escalate 當**檢查點**（讓使用者選回頭重想 / 換跨模型 / 授權再繞〔計數重置〕）；`loop.md` 有回環歷史 + 每輪 findings 數。
 - [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工。
 - [ ] 完工前最近一輪 verify 無 actionable findings。
 - [ ] 完工前對照 `00-goal.md` 停止條件全達成。
