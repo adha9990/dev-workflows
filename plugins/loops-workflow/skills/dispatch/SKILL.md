@@ -7,11 +7,11 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 ## Overview
 
-`dispatch` 是 loops-workflow 的分流台，**很薄**：只做三件事 —— 判類型、建 `.loops/<slug>/loop.md`、進起點階段。routine 轉場不問你；只有分類模糊才停下用 `AskUserQuestion` 問。
+`dispatch` 是 loops-workflow 的分流台，**很薄**：判類型、（**無 issue 的待解決問題先幫使用者建成 GitHub issue**）、建 `.loops/<slug>/loop.md`、進起點階段。routine 轉場不問你；只有分類模糊、或建 issue 這種 outward action 才停下確認。
 
 它同時是「中央說明書」的入口：全程不變的紀律集中寫在 `AGENTS.md`（繁中對外 / human gate 不可跳 / `.loops/` 每階段交接 / 模糊就 surface / Metric-Honesty），七個階段不各自重述。dispatch 負責在開場把這套規矩立起來。
 
-> 原則：**只分流、不串接** —— dispatch 不是自動駕駛，判完類型就交棒停下。
+> 原則：**只分流、不串接** —— dispatch 不是自動駕駛，判完直接進起點階段（routine 不問），但不替你把整條 loop 自動跑完。
 
 ## When to Use
 
@@ -28,15 +28,25 @@ description: Routes a one-line work request to the right loops-workflow stage an
 ### 1. 判類型（決策樹）
 
 ```
-├─ issue 號 / 「做這個 issue」 ─────────▶ 從 goal 開始（完整迴圈）
-├─ 「設計 / 研究 / 評估」+ 無 issue ────▶ 從 explore 開始（開放式）
-├─ PR 號 / 「reviewer / 修正回饋」 ─────▶ 從 iterate 開始
-└─ 模糊 / 多重 / 衝突 ──────────────────▶ 停下來問使用者（唯一的釐清 gate）
+├─ issue 號 / 「做這個 issue」 ──────────────────▶ 從 goal 開始（完整迴圈）
+├─ 無 issue 的「要解決 / 實作的問題」 ───────────▶ 先建 GitHub issue（草稿→確認→create）→ 再 goal
+├─ 純「設計 / 研究 / 評估」（探索性、未必落地）──▶ 從 explore 開始（不建 issue）
+├─ PR 號 / 「reviewer / 修正回饋」 ──────────────▶ 從 iterate 開始
+└─ 模糊 / 多重 / 衝突 ───────────────────────────▶ 停下來問使用者（唯一的釐清 gate）
 ```
 
 顯式語法可跳過判斷：`dispatch <type> <ref>`，例如 `dispatch issue #5`、`dispatch explore "command pattern 怎麼設計"`、`dispatch iterate PR#12`。
 
 **推進模式**：預設只在決策點停（routine 轉場不問）。加 `auto` → `dispatch auto <描述>` 開 opt-in 自動連跑（核准計畫一次後連決策也用推薦自動帶過，危險 / 失敗 / P0 / 規格模糊仍硬停，見 `references/auto-mode.md`）。
+
+### 1.5 建 GitHub issue（無 issue 的待解決問題）—— 走 feature-intake
+
+使用者丟來一個**想解決 / 實作、但還沒有 GitHub issue** 的問題 / 點子 → **先依 `references/feature-intake.md` 做結構化 intake、建成 template-ready issue，再進 goal**（讓問題被追蹤、plan 對齊 comment 有地方 post）：
+
+- 依 feature-intake：**Readiness Model** 分級（預設 Level 3）→ 用 repo 的 issue template（`.github/ISSUE_TEMPLATE/`，沒有才 generic fallback）→ **一次一問**釐清 blocking 決策（問題定義 / 成功準則 / 替代方案）→ 太大先**拆票**（vertical / foundation-first）→ 多步流程放 **flowchart**。
+- 草稿寫**暫存 tmp** 給使用者校稿（依 `comment-policy.md`）→ 確認後 `gh issue create --title "<繁中標題>" --body-file <tmp> --assignee @me`（**outward action，確認才建**）→ 拿到新 issue#、**送出後刪 tmp**。
+- slug 用 `<新 issue#>-<kebab>`、loop.md 類型 = issue，進 goal —— **intake 已釐清，goal 多半直接抽 DoD、不重複訪談**；plan 再把對齊 comment post 回這個 issue。
+- **分不清「要實作 vs 只是研究」**→ 用 `AskUserQuestion` 問：要解決就 feature-intake 建 issue 走 goal / 只想探索就 explore（不建 issue）。
 
 ### 2. 建 / 認領 loop.md
 
@@ -73,5 +83,6 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 ## Verification
 
 - [ ] 分流結果正確（類型 ↔ 起點階段對得上決策樹）。
+- [ ] 無 issue 的「待解決問題」有先建成 GitHub issue（草稿確認後 `gh issue create`）才進 goal；純研究 / 設計則直接 explore、不建 issue。
 - [ ] `.loops/<slug>/loop.md` 已建立（或既有的已認領），含類型 / 起點 / 停止條件雛形。
 - [ ] 已進起點階段開始做（分類模糊時才停下用 `AskUserQuestion` 問），沒有用純文字問「要不要進 X」。
