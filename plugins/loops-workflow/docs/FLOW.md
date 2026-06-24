@@ -1,0 +1,231 @@
+# loops-workflow 完整流程
+
+> 一份「從一句話 / 一張 issue，到開出 PR」的全貌：每個階段用幾個 **skill / agent**、在處理什麼、用什麼**機制**、背後什麼**策略**。
+>
+> 設計源頭是 **Loops Engineering** 框架：把開發當成一個**閉環**，系統自己「探索→規劃→執行→驗證→迭代」直到達成目標；人類只在**真正要選的決策點**把關（Closed Loop）。核心洞見：迴圈很貴，難在**負擔得起** —— 全程靠高上下文效率、便宜的先·貴的 gate、不重複勞動撐住。
+
+---
+
+## 0. 總流程圖
+
+```mermaid
+flowchart TD
+    START([一句話 / issue# / PR#]) --> D{dispatch<br/>決策樹分流}
+
+    D -->|完全乾淨空專案| SC[scaffold-fullstack·建專案骨架<br/>loops-workflow 內建 skill]
+    D -->|有 issue#| G
+    D -->|無 issue 的待解決問題| DEF[define<br/>模糊問題→結構化 issue]
+    D -->|純設計 / 研究| E
+    D -->|PR# / reviewer 回饋| IT
+    D -->|模糊| ASK([停下問使用者])
+    SC --> DEF
+    DEF --> G
+
+    G[goal 目標<br/>完工定義 DoD] --> E[explore 探索<br/>多方法多維評估]
+    E -->|✋ 選方法| P[plan 規劃<br/>拍板 + 設計書]
+    P -->|✋ 拍板| B[build 執行<br/>紅綠分離]
+    B --> V[verify 驗證<br/>多 reviewer fan-out]
+    V --> IT[iterate 迭代<br/>triage + 收口]
+
+    IT -->|有 actionable→自動全修| B
+    IT -->|需求/方法/設計錯| P
+    IT -->|✋ verify 乾淨→完工| SHIP([開 Draft PR<br/>Closes #issue + @me])
+
+    classDef stage fill:#def,stroke:#36c
+    class G,E,P,B,V,IT,DEF stage
+```
+
+**讀法**：實線往下是 routine（不問你、直接走）；`✋` = **會停下用 `AskUserQuestion` 問你**的真決策點。`iterate` 把問題修完會**回環**（最多 3 圈）再驗，全乾淨才完工開 PR。
+
+**階段間記憶體**：每階段把結論寫成 `.loops/<slug>/0N-*.md`（goal→`00-goal.md`、explore→`01-explore.md`…），下一階段只讀**精煉版**、不重讀原始素材。`loop.md` 是儀表板（當前階段 / session / Journal 事件日誌）。
+
+---
+
+## 1. dispatch — 決策樹分流（很薄）
+
+| 項目 | 內容 |
+|---|---|
+| **skill** | `dispatch`（1）｜**agent** 0 |
+| **處理什麼** | 判類型 → 建 `.loops/<slug>/loop.md` → 進起點階段 |
+| **機制** | 決策樹：**完全乾淨空專案→先 scaffold 骨架→define**／issue#→goal／無 issue 待解決問題→**走 `define`**→goal／純研究→explore／PR#→iterate／模糊→停下問。建 loop.md（類型·session id·當前階段）。**會動 code 的迴圈開 git worktree**，但 `.loops/` 留主 repo（免被 worktree 清掉） |
+| **策略** | **只分流、不串接** —— routine 不問你，只有分類模糊 / scaffold 大動作才停 |
+
+---
+
+## 1.4 scaffold-fullstack — 完全乾淨空專案先建骨架（前置，內建 skill）
+
+| 項目 | 內容 |
+|---|---|
+| **skill** | `scaffold-fullstack`（**loops-workflow 內建 skill**，自帶整棵模板樹 + scaffold 腳本、無外部依賴）｜**agent** 0 |
+| **何時** | dispatch 偵測目標**完全乾淨**（空目錄 / 無原始碼 / 無 `package.json` / 無 git 歷史）才觸發；既有 / 半成品專案不 scaffold |
+| **處理什麼** | 沒架構承載 issue、也沒 code 可改 → 先立專案骨架（Fastify + React 19 + TanStack + Kysely/SQLite + Vitest 分層全端 TS） |
+| **機制** | **一定停**用 `AskUserQuestion` 確認（scaffold 是大動作 + 棧定死）→ 合用就跑模板 + `pnpm install` + typecheck/lint/test 驗收 → 接 §1.5 define。要別的棧 → 提示自建骨架。也可直接 `/loops-workflow:scaffold-fullstack` 單獨跑 |
+| **策略** | **內建、永遠可用**（無跨-plugin 耦合）；棧定死、不合用不硬塞 |
+
+---
+
+## 1.5 define — 把模糊問題具體化成 issue（DEFINE 前置）
+
+| 項目 | 內容 |
+|---|---|
+| **skill** | `define`（1，可獨立呼叫 `/loops-workflow:define`）｜**agent** 0 |
+| **處理什麼** | 把點子 / 模糊問題變成工程師看得懂、能實作驗證的 **template-ready GitHub issue** |
+| **機制** | **Readiness Model**（分 Level 0–4、目標 Level 3）→ 用 repo 的 issue template → **一次一問 intake**（釐清問題定義 / 成功準則 / 替代方案）→ scope sizing（太大先拆票）→ 多步流程放 flowchart → 草稿校稿 → `gh issue create --assignee @me` → 進 goal |
+| **策略** | 先 inspect repo（template / 既有 issue）；寫作指示濾掉不寫進 ticket；含「審 / 重寫既有 ticket」模式 |
+
+---
+
+## 2. goal — 設定目標（完工定義）= VISION
+
+| 項目 | 內容 |
+|---|---|
+| **skill** | `goal`（1）｜**agent** 0（主線一次一問訪談） |
+| **處理什麼** | 把模糊需求逼成「明確完工定義 + 可驗證停止條件」 |
+| **機制** | **逐句掃整張 issue**抽每個 requirement（不只看驗收標準段）→ **一次一問**訪談（記 HYPOTHESIS+CONFIDENCE、should-want 偵測）→ restate **六欄 DoD**（Outcome / User / Why now / Success / Constraint / Out of scope）+ 停止條件 |
+| **策略** | 95% 信心就停；restate 給你看就**直接進 explore**（不問「DoD 對嗎」）。**issue 寫的實作做法 / 套件記成「建議」不是「需求」**，留給 explore 評估 |
+
+---
+
+## 3. explore — 探索（多方法多維評估）✋
+
+| 項目 | 內容 |
+|---|---|
+| **skill** | `explore`（1）｜**agent** **1 掃描**（`Explore` read-only 摸 codebase）**＋ N 評估**（≥2 個可行方法時、一候選一個 read-only agent）；發想新方案才 opt-in Fleet |
+| **處理什麼** | 先找內部可重用的，不夠才看外部；**方法有競爭時做多維評估**，攤開比較矩陣給推薦 |
+| **機制** | 摸架構（文檔優先）→ 掃內部找可重用 → **夠了沒判斷** → 不夠才外搜（便宜 WebSearch → gate deep-research）→ 框架 API 查證（DETECT→FETCH→**CITE**）→ **≥2 方法時多維評估 fan-out** → 比較矩陣 → 推薦 |
+| **8 評估維度** | 效能（複雜度 + 接近真實/極端規模 benchmark）· 記憶體/體積 · 可維護 · 可擴展 · 安全 · 複雜度 · 重用 · 適配 |
+| **策略** | **重用優先** · **外搜條件式**（省成本）· **方法不是「能用就用」**：① issue 的方法只是候選不是定案、贏家不同就換 ② 在接近真實/極端規模 benchmark 不憑感覺（能用 ≠ 好用，小樣本看不出、大規模才見真章）· 不只 MVP |
+| **gate** | ✋ 選哪個方法 |
+
+---
+
+## 4. plan — 規劃（拍板 + 設計書）✋ = ARCHITECTURE
+
+| 項目 | 內容 |
+|---|---|
+| **skill** | `plan`（1）｜**agent** 0；**風險大的設計可派 read-only 設計品質審查 agent**；發想多方案 opt-in Fleet |
+| **處理什麼** | 動 code 前把設計拍板留痕、拆成可獨立 verify 的任務 |
+| **機制** | 決策留痕（**ADR 五欄**）→ 套件評估（**≥3 候選**）→ **機制圖**（每機制：白話 + 運作流程圖 + 注入接線圖）→ **契約規格**（跨 API/資料/事件介面才寫，含 Hyrum's Law）→ 品質六維度 + 重用 →（風險大才）派設計品質審查 → **拆可驗證任務**（垂直切片 / risk-first / XS–XL 尺寸）→ 送對齊 comment + 拍板 gate |
+| **產出** | `02-plan.md` —— **§0–§9 完整施工圖**（系統全貌 + 檔案職責表 + 機制圖 + 名詞 + 決策含具名背書 + 三角驗證 + 成果展示） |
+| **策略** | **最高標準不以 MVP** · **living plan**（偏離回來改）· 拍板前**渲染機制圖 + 攤「我的假設」清單**給你看，不准盲拍 |
+| **gate** | ✋ 拍板方案 |
+
+---
+
+## 5. build — 執行（紅綠分離）
+
+| 項目 | 內容 |
+|---|---|
+| **skill** | `build`（1）｜**agent** **每任務 2 個**（`test-author` → `impl-author`）；衝突時 **+1**（`referee`） |
+| **處理什麼** | 逐任務把計畫變成 code，且測試不遷就實作、寫的當下就乾淨 |
+| **策略** | **紅綠分離**：寫測試的看不到實作 → 不會把測試寫成遷就實作；寫實作的不能改測試 → 不能讓測試將就自己 |
+| **寫碼標準** | impl-author **綠燈當下就照 clean code + clean architecture 寫**（命名揭意圖 / 小函式單一職責 / guard clause / 顯式錯誤 / 型別契約；依賴向內 / port + 注入 / 落點對齊）—— **Refactor 是精修，不是補救一開始就寫爛的 code** |
+
+```mermaid
+flowchart LR
+    T[test-author<br/>只看需求·無 impl context<br/>讀 test-rubric] -->|failing test| R{主線跑測試<br/>確認 Red}
+    R --> I[impl-author<br/>照 clean-code/arch 寫<br/>只轉綠·不准改 test]
+    I -->|最小範圍·乾淨| GG{主線跑測試<br/>確認 Green}
+    GG --> RF[Refactor<br/>code-simplification 保護下]
+    RF -->|衝突| REF[referee<br/>依 DoD 裁決]
+    RF --> SP[Save Point<br/>分段 commit + 03-build.md]
+    REF --> SP
+```
+
+> test-author 帶 `test-rubric.md`（四層測試 / Real>Fake>Stub>Mock / pyramid 80/15/5）；**impl-author 帶 `clean-code.md` + `clean-architecture.md`（綠燈當下就照標準寫、非先寫爛再救）**；Refactor 套 `code-simplification.md`（精修非補救）；偏離 plan 就回去更新 `02-plan.md`。做完直接進 verify。
+
+---
+
+## 6. verify — 驗證（多 reviewer fan-out）= 回饋
+
+| 項目 | 內容 |
+|---|---|
+| **skill** | `verify`（1）｜**agent** **6 核心 + 0～7 條件式 + N 個 finding-validator**（同一回合並行） |
+| **處理什麼** | 合併前把關：多個獨立視角各審一軸，再二輪驗證 findings |
+| **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`）· **作者已留痕的決定不算 finding** |
+
+```mermaid
+flowchart TD
+    BUILD[build 成果 + 契約] --> FAN{同一回合 fan-out}
+    FAN --> C1[product-contract]
+    FAN --> C2[architecture]
+    FAN --> C3[security]
+    FAN --> C4[performance]
+    FAN --> C5[code-quality]
+    FAN --> C6[tests]
+    FAN -.觸及領域才加派.-> COND[條件式 7 選:<br/>frontend-ui·accessibility·web-performance·<br/>observability·ci-cd·migration·processing-reliability]
+    C1 & C2 & C3 & C4 & C5 & C6 & COND --> CO[coordinator 主線<br/>去重 + 跑真 app + 本機 /code-review]
+    CO -->|每個 blocking finding| FV[finding-validator 二輪<br/>真實?本次?已防護?對症?]
+    FV --> OUT[P0–P3 + Confidence + Route<br/>→ Ready / Not ready → 04-verify.md]
+```
+
+> 核心 6 軸每次都派；條件式 7 個只在改動觸及該領域才加派（省成本）。每個 blocking finding 過 `finding-validator` 四問二輪才算數。出 P0 才停下問你，否則直接進 iterate。
+
+---
+
+## 7. iterate — 迭代（triage + 收口）✋
+
+| 項目 | 內容 |
+|---|---|
+| **skill** | `iterate`（1）｜**agent** 0（修正回 build 用其 subagent）；卡關時 **opt-in cross-model**（換別的模型當對手 reviewer） |
+| **處理什麼** | 把 verify 缺口 / PR reviewer 回饋分類、修根因、決定回環或完工 |
+| **機制** | 收集回饋（`type=fix` 走 `pr-feedback-sources.md`：inline comment 要 `gh api`）→ **RECONCILE 四分類** → **Stop-the-Line 修**（DIAGNOSE 先定位失敗層 + `git bisect` → 修根因 → 每修加回歸測試）→ **修完一定再 verify** → 完工 or 回環（≤3 圈） |
+| **完工交接物（依類型）** | **修正型**＝一份回覆 reviewer；**完整迴圈**＝PR 收尾 comment + **自動產 explain**。follow-up 留當前 issue 不另開。PR body 放 `Closes #issue`、指派 `@me`、與 master 衝突自動合併 |
+| **策略** | **交 reviewer 前把問題解到最少**（actionable 一律自動全修、不問「修多少」）· severity 只決定停不停、不決定修不修 · **3 圈上限**超過 escalate |
+| **gate** | ✋ 完工 or 回哪階段（修完再 verify 不是選項，一律再驗） |
+
+---
+
+## 8. explain — 工程師理解包（側用，不在迴圈裡）
+
+| 項目 | 內容 |
+|---|---|
+| **skill** | `explain`（1，read-only）｜**agent** 0 |
+| **處理什麼** | 幫人**看懂一份改動**怎麼接起來 + 自測是否真懂 |
+| **機制** | 實作導讀（進入點→責任盒→介面邊→payload 流動 + mermaid + `file:line`）+ **5 題 ownership 自測** + 設計方向 recap |
+| **策略** | 給**工程師**理解用（接手 / 維護 / 確認 Claude 做了什麼），不是給 reviewer。完整迴圈完工時自動產 |
+
+---
+
+## 9. 橫切面（貫穿所有階段的根基）
+
+| 根基 | 在 plugin 裡是 | 對應 Loops Engineering 6 根基 |
+|---|---|---|
+| **記憶體** | `.loops/<slug>/`：`loop.md`（儀表板 + Journal）+ `0N-*.md`（各階段精煉產出） | Memory |
+| **隔離工作樹** | 會動 code 的迴圈在 `git worktree`（`<issue#>-<slug>` 同名 branch） | Worktrees |
+| **子代理** | build 紅綠 3 + verify 6 核心 + 7 條件式 + validator | Subagents |
+| **技能** | 9 個 skill（SKILL.md 統一骨架） | Skills |
+| **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
+| **自動化** | `dispatch auto`、`/loop`·`/schedule`、statusline HUD | Automations |
+
+**兩座標 + 一總綱**（見 `AGENTS.md`）：
+- **類型**：Closed Loop（預設，人類框架內把關）/ opt-in Open（`auto` 連跑）。
+- **規模**：單一迴圈（預設）/ opt-in **Fleet** 編隊。
+- **★ 成本意識（規則 10）**：迴圈很貴 → 全程**高上下文效率**、**便宜的先·貴的 gate**、**不重複勞動**、**fail-fast**。
+
+---
+
+## 10. 數字總結
+
+| | |
+|---|---|
+| **skill** | 10（define / dispatch / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架） |
+| **agent** | 17 = build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + 7 條件式（explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose） |
+| **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 7 條件式）+ N validator |
+| **reference** | 29 份（含 clean-code / clean-architecture / code-simplification 寫碼三標準）｜**command** loop / resume / status / explain / install-statusline｜**hook** SessionStart |
+
+---
+
+## 各階段「用幾個 agent」速查
+
+| 階段 | skill | agent | 何時 |
+|---|---|---|---|
+| dispatch | 1 | 0 | 只分流 |
+| define | 1 | 0 | 無 issue 時 |
+| goal | 1 | 0 | 主線訪談 |
+| explore | 1 | **1 掃描 + N 評估** | 方法競爭時一候選一 agent |
+| plan | 1 | 0（+設計審查 / Fleet 選用） | 風險大才派 |
+| build | 1 | **2 / 任務**（test+impl）+ referee | 衝突時 referee |
+| verify | 1 | **6 + 0–7 + N** | 同回合並行 |
+| iterate | 1 | 0（+cross-model 選用） | 卡關時 |
+| explain（側） | 1 | 0 | 唯讀 |
