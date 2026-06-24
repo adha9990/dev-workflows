@@ -23,8 +23,9 @@ tools: Read, Write, Edit, Grep, Glob, Bash
 
 ## Refactor（綠燈後，測試保護下）
 
-轉綠後做一輪整理結構、不改行為的重構，套 `code-simplification`：
+轉綠後做一輪整理結構、不改行為的重構，依 `refactoring` + `code-simplification`（主線會提供絕對路徑）：
 
+- **先有異味才動**（`refactoring.md`）：對到一個具名 **code smell**（Long Method / Feature Envy / Duplicated Code / Primitive Obsession…）才重構，用具名手法（Extract Function / Replace Conditional with Polymorphism…）**小步改、每步跑測試**；設計模式只在反覆異味對症時引入，**不為套而套**。
 - **Chesterton's Fence**：改 / 刪任何既有東西前，先答得出「當初為什麼這樣寫」。答不出就先別動。
 - **過度簡化四陷阱**：別為了短而犧牲可讀性 / 把不同概念硬合併 / 刪掉看似多餘其實有用的防護 / 把顯式邏輯藏進魔法。
 - **紅旗**：若「簡化」需要改 test 才能過 → 你改的是**行為**不是結構，**立刻停**，這要走衝突仲裁或回 plan。

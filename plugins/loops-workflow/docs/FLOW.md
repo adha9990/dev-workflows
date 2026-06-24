@@ -126,13 +126,13 @@ flowchart LR
     T[test-author<br/>只看需求·無 impl context<br/>讀 test-rubric] -->|failing test| R{主線跑測試<br/>確認 Red}
     R --> I[impl-author<br/>照 clean-code/arch 寫<br/>只轉綠·不准改 test]
     I -->|最小範圍·乾淨| GG{主線跑測試<br/>確認 Green}
-    GG --> RF[Refactor<br/>code-simplification 保護下]
+    GG --> RF[Refactor<br/>refactoring + code-simplification]
     RF -->|衝突| REF[referee<br/>依 DoD 裁決]
     RF --> SP[Save Point<br/>分段 commit + 03-build.md]
     REF --> SP
 ```
 
-> test-author 帶 `test-rubric.md`（四層測試 / Real>Fake>Stub>Mock / pyramid 80/15/5）；**impl-author 帶 `clean-code.md` + `clean-architecture.md`（綠燈當下就照標準寫、非先寫爛再救）**；Refactor 套 `code-simplification.md`（精修非補救）；偏離 plan 就回去更新 `02-plan.md`。做完直接進 verify。
+> test-author 帶 `test-rubric.md`（四層測試 / Real>Fake>Stub>Mock / pyramid 80/15/5）；**impl-author 帶 `clean-code.md` + `clean-architecture.md`（綠燈當下就照標準寫、非先寫爛再救）**；Refactor 依 `refactoring.md`（異味 → 具名手法 → 設計模式時機）+ `code-simplification.md`（安全簡化紀律、精修非補救）；偏離 plan 就回去更新 `02-plan.md`。做完直接進 verify。
 
 ---
 
@@ -212,7 +212,7 @@ flowchart TD
 | **skill** | 10（define / dispatch / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架） |
 | **agent** | 17 = build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + 7 條件式（explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose） |
 | **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 7 條件式）+ N validator |
-| **reference** | 29 份（含 clean-code / clean-architecture / code-simplification 寫碼三標準）｜**command** loop / resume / status / explain / install-statusline｜**hook** SessionStart |
+| **reference** | 30 份（含 clean-code / clean-architecture / refactoring / code-simplification 寫碼四標準）｜**command** loop / resume / status / explain / install-statusline｜**hook** SessionStart |
 
 ---
 
@@ -229,3 +229,7 @@ flowchart TD
 | verify | 1 | **6 + 0–7 + N** | 同回合並行 |
 | iterate | 1 | 0（+cross-model 選用） | 卡關時 |
 | explain（側） | 1 | 0 | 唯讀 |
+
+---
+
+> **維護**：本檔同步自 plugin 各 `SKILL.md` / `agents/` / `references/` —— **改了流程（階段行為、agent 分工、機制、策略）就一併更新這份**，讓它跟著 SKILL 走、不 drift。這份是給人讀的全貌總覽，**正本機制仍以各 `SKILL.md` 為準**。
