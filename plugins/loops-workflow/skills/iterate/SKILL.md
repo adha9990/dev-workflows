@@ -81,10 +81,12 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 完工後把 `loop.md` 的「當前階段」設為「**完工**」（statusline 即不再顯示此 loop）。
 
-**收尾清理（PR 合併後做 —— loop 結束的標準環節，不是選項）**：
-- **刪掉已合併的 PR 分支**：合併時帶 `gh pr merge --delete-branch`（或事後 `git push origin --delete <slug>` + `git branch -D <slug>`）。遠端 / 本機**只留 `main`（預設分支）+ 仍在處理中的 loop 分支**，不囤積已合併分支。
-- **移除該 loop 的 worktree**：`git worktree remove --force .claude/worktrees/<slug>` → `git worktree prune`（若被鎖刪不掉，至少 prune；確保它有被 `.gitignore` 涵蓋）。
-- **loop 暫存不入庫**：草稿 tmp（應已 post 後刪）、screenshot / gif、worktree、`.loops/`、`data/`、`dev.json` 等本機產物**都不該被 commit / push**。repo `.gitignore` 要涵蓋 `.loops/`、`.claude/worktrees/`、`data/`、`dev.json`（缺就補）；用 `git ls-files` 掃一遍確認沒有 tmp / 草稿 / 截圖 / worktree 被追蹤。
+**收尾清理 —— loop 結束的標準環節，不是選項。分兩個時機：**
+
+1. **iterate 結束本 loop 時（完工或中止，不論有沒有交 PR）→ 清掉 loop 期間產生的所有暫存**：移除該 loop 的 worktree（`git worktree remove --force .claude/worktrees/<slug>` → `git worktree prune`；被鎖刪不掉至少 prune）、刪掉草稿 tmp（應已 post 後刪）、screenshot / gif、scratch 檔等**本機產物**。**這步在 loop 收尾就做，不等 PR**。
+2. **PR 合併後 → 清掉分支**：正常流程是 reviewer 審核後才由 reviewer 合併；**本專案是 solo（作者自己合併）→ 合併後也由你自己刪分支 + 清 worktree**（`gh pr merge --delete-branch`，或事後 `git push origin --delete <slug>` + `git branch -D <slug>`）。遠端 / 本機**只留 `main` + 仍在處理中的 loop 分支**，不囤積已合併分支。
+
+**loop 暫存一律不入庫**：worktree、草稿、截圖、`.loops/`、`data/`、`dev.json` 等都不該被 commit / push。repo `.gitignore` 要涵蓋 `.loops/`、`.claude/worktrees/`、`data/`、`dev.json`、截圖（缺就補）；`git ls-files` 掃一遍確認沒有暫存被追蹤。
 
 **有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：用 `AskUserQuestion` 確認**交 PR**（outward action 要你點頭）/ 或還要再打磨。另外只有 **回環沒收斂 / 碰 3 圈上限 escalate（檢查點，見 §5）、真正的 trade-off（修法與 `00-goal.md` 衝突）、分類模糊** 才停下問。
 
@@ -129,5 +131,5 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 完工前對照 `00-goal.md` 停止條件全達成。
 - [ ] 收尾交接物依迴圈類型：修正型只一份「回覆 reviewer」、完整迴圈產 PR 收尾 comment + **自動產 explain（沒問「要不要產」）**；對外那份經使用者確認才送、未自動 post、回環途中不產。
 - [ ] follow-up 在當前 issue 內處理，沒有擅自另開新 issue。
-- [ ] **PR 合併後已收尾清理**：刪掉已合併分支（遠端 / 本機只留 `main` + 進行中）、移除 worktree、且 loop 暫存（草稿 / 截圖 / worktree / `.loops` / `data`）沒被推上去（`.gitignore` 有涵蓋）。
+- [ ] **收尾清理兩時機都做了**：① loop 結束時清掉 loop 期間所有暫存（worktree / 草稿 / 截圖 / scratch，不等 PR）；② PR 合併後刪分支（solo 自己合併自己清，只留 `main` + 進行中）。loop 暫存沒被推上去（`.gitignore` 有涵蓋）。
 - [ ] 停在 `iterate` 決策 gate。
