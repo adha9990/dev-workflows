@@ -119,7 +119,7 @@ flowchart TD
 | **skill** | `build`（1）｜**agent** **每任務 2 個**（`test-author` → `impl-author`）；衝突時 **+1**（`referee`） |
 | **處理什麼** | 逐任務把計畫變成 code，且測試不遷就實作、寫的當下就乾淨 |
 | **策略** | **紅綠分離**：寫測試的看不到實作 → 不會把測試寫成遷就實作；寫實作的不能改測試 → 不能讓測試將就自己 |
-| **寫碼標準** | impl-author **綠燈當下就照 clean code + clean architecture 寫**（命名揭意圖 / 小函式單一職責 / guard clause / 顯式錯誤 / 型別契約；依賴向內 / port + 注入 / 落點對齊）—— **Refactor 是精修，不是補救一開始就寫爛的 code** |
+| **寫碼標準（shift-left）** | impl-author **綠燈當下就照 verify 會查的同一套合併標準寫**：clean code + clean architecture + **安全**（輸入驗證 / authn-authz / 不洩敏感資料 / SQL 參數化）+ **重用**（寫前先確認沒有既有的）—— 標準在 build 與 verify 是**同一份 reference、兩處套用**；Refactor 是精修，不是補救爛 code（見 AGENTS 規則 11） |
 
 ```mermaid
 flowchart LR
@@ -132,7 +132,7 @@ flowchart LR
     REF --> SP
 ```
 
-> test-author 帶 `test-rubric.md`（四層測試 / Real>Fake>Stub>Mock / pyramid 80/15/5）；**impl-author 帶 `clean-code.md` + `clean-architecture.md`（綠燈當下就照標準寫、非先寫爛再救）**；Refactor 依 `refactoring.md`（異味 → 具名手法 → 設計模式時機）+ `code-simplification.md`（安全簡化紀律、精修非補救）；偏離 plan 就回去更新 `02-plan.md`。做完直接進 verify。
+> test-author 帶 `test-rubric.md`（四層測試 / Real>Fake>Stub>Mock / pyramid 80/15/5）；**impl-author 帶 `clean-code.md` + `clean-architecture.md` + `security-checklist.md` + `reuse-check.md`（綠燈當下就照合併標準寫、非先寫爛再救）**；Refactor 依 `refactoring.md`（異味 → 具名手法 → 設計模式時機）+ `code-simplification.md`（安全簡化紀律、精修非補救）；偏離 plan 就回去更新 `02-plan.md`。做完直接進 verify。
 
 ---
 
@@ -142,7 +142,7 @@ flowchart LR
 |---|---|
 | **skill** | `verify`（1）｜**agent** **6 核心 + 0～7 條件式 + N 個 finding-validator**（同一回合並行） |
 | **處理什麼** | 合併前把關：多個獨立視角各審一軸，再二輪驗證 findings |
-| **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`）· **作者已留痕的決定不算 finding** |
+| **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`）· **作者已留痕的決定不算 finding** · **獨立安全網非第一道品質關**（標準已在 build shift-left 套用，verify 複查 + 抓盲點） |
 
 ```mermaid
 flowchart TD

@@ -11,6 +11,8 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 > 用多個 fresh-context reviewer 各審一軸，而非主線自己掃一遍 —— 寫 code 時的假設不會帶進 review，獨立性換來覆蓋廣度。
 
+> **verify 是獨立安全網、不是第一道品質關**：品質標準在 build 寫的當下就該套用（shift-left，見 `AGENTS.md` 規則 11）；verify 用 fresh-context 獨立**複查同一套標準 + 抓 build 的盲點**。build 寫到位 → verify 找到的少、跑得快；但這**不代表能省略 verify** —— 寫的人有盲點，獨立複查才補得到。
+
 > **回環再驗（delta re-verify）**：iterate 修完回來時，verify 聚焦「這輪改了什麼 + 它的**波及面**（誰用到被改的程式碼）」派 fresh reviewer 再驗 —— 不是只重跑 diff、更不是只看測試綠；共用元件 / 跨切面改動要把 consumer 一起納入。修完一律再驗一輪，這是 closed-loop 的預設，不是選項。
 
 ## When to Use

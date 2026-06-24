@@ -14,12 +14,14 @@ tools: Read, Write, Edit, Grep, Glob, Bash
 
 ## 寫 code 的標準（綠燈當下就照著寫）
 
-主線會把這兩份的**絕對路徑**塞進你的 prompt（subagent 用相對路徑讀不到）：
+主線會把這幾份的**絕對路徑**塞進你的 prompt（subagent 用相對路徑讀不到）。這是 **verify 會查的同一套標準**，你寫的當下就套到位，別留給 verify 抓：
 
 - **clean code**（`clean-code.md`）：命名揭示意圖、函式小而單一職責、**guard clause 先擋邊界 / 錯誤**、不吞例外、型別表達契約、無裸魔法值、註解講 why。
 - **clean architecture**（`clean-architecture.md`）：依賴向內、副作用推到邊界、外部能力走 **port + 注入**（不在內層 `new` 基礎設施）、**落點對齊既有分層**、不憑空開頂層資料夾。
+- **安全**（`security-checklist.md`）：寫的當下就避開漏洞類別 —— 輸入在邊界驗證（allowlist）、authn/authz + ownership 檢查、SQL 參數化、敏感資料不進回應 / log、不藏密鑰。（完整威脅建模是 verify 的事；你負責**不寫出漏洞**。）
+- **重用**（`reuse-check.md`）：寫一個方法前先確認沒有既有的（稍異 ≠ 另造，優先參數化既有方法）。
 
-照標準寫，是讓**綠燈當下的 code 就乾淨**；下一步 Refactor 是精修，**不是用來補救一開始就寫爛的 code**。
+照標準寫，是讓**綠燈當下的 code 就乾淨、安全、不重造**；下一步 Refactor 是精修，**不是用來補救一開始就寫爛的 code**。
 
 ## Refactor（綠燈後，測試保護下）
 

@@ -11,6 +11,8 @@ description: Implements each planned task via red-green-refactor with separate t
 
 > 為何不偏：feedback（test）與被測對象（impl）由不同 agent、在不同 context 產出 —— 寫測試的沒看過實作，就不會把測試寫成遷就實作；寫實作的不能改測試，就不能讓測試將就自己。
 
+> **寫到合併標準（shift-left）**：impl-author 寫的當下就照 verify 會查的同一套品質標準寫（clean code / clean architecture / 安全 / 重用 / 設計模式）—— 標準在 build 與 verify 是**同一份 reference、兩處套用**，build 主動寫到位、verify 獨立複查抓盲點（見 `AGENTS.md` 規則 11）。寫對的成本遠低於寫錯被 verify 退回重修。
+
 ## When to Use
 
 **Use when**：`02-plan.md` 已拍板、要逐任務實作。
@@ -25,7 +27,7 @@ description: Implements each planned task via red-green-refactor with separate t
 
 1. **派 `test-author`**：只給它需求 / 契約 + TDD 品質判準，**它的 context 不含 implementation**；把 `references/test-rubric.md` 的**絕對路徑**寫進其 prompt（分層測試 unit/integration/smoke/e2e、real-not-mock、async 等真完成、data-layer 覆蓋清單；subagent 用相對路徑讀不到）。它回 failing test + 「這測哪條需求」。
 2. **主線跑測試 → 確認 Red**（測試如預期失敗，且失敗原因正確）。
-3. **派 `impl-author`**：給它 test + plan，寫**最小範圍**實作轉綠、**不准改 test**；把 `references/clean-code.md` 與 `references/clean-architecture.md` 的**絕對路徑**寫進其 prompt —— 要求**綠燈當下就照 clean code（命名 / 小函式 / guard clause / 顯式錯誤 / 型別契約）+ clean architecture（依賴向內 / port + 注入 / 落點對齊）寫**，不是先寫爛再靠 Refactor 救。
+3. **派 `impl-author`**：給它 test + plan，寫**最小範圍**實作轉綠、**不准改 test**；把 `references/clean-code.md`、`references/clean-architecture.md`、`references/security-checklist.md`、`references/reuse-check.md` 的**絕對路徑**寫進其 prompt —— 要求**綠燈當下就照合併標準寫**：clean code（命名 / 小函式 / guard clause / 顯式錯誤 / 型別契約）+ clean architecture（依賴向內 / port + 注入 / 落點對齊）+ **安全**（輸入邊界驗證 / authn-authz + ownership / SQL 參數化 / 敏感資料不進回應·log / 不藏密鑰）+ **重用**（寫前先確認沒有既有的）—— 不是先寫爛 / 寫不安全再靠 verify 抓（shift-left，見 AGENTS.md 規則 11）。
 4. **主線跑測試 → 確認 Green**。
 5. **Refactor**（綠燈後、test 保護下整理結構不改行為）：派 impl-author 時把 `references/refactoring.md` 與 `references/code-simplification.md` 的**絕對路徑**寫進其 prompt（subagent 用相對路徑讀不到，見 AGENTS.md〈參考檔路徑解析〉）—— **`refactoring`：先對到一個具名 code smell 才動、用具名手法（Extract Function / Replace Conditional with Polymorphism…）小步改、設計模式對症才引入**；**`code-simplification`：Chesterton's Fence、過度簡化四陷阱、紅旗「簡化若需要改 test 才能過 = 你改的是行為不是結構，停下」**。
 6. **衝突仲裁**：若 impl-author 主張 test 與需求不符 → 回報主線，主線依 `00-goal.md` 完工定義裁決；必要時派 `referee` 判是 test 錯還是 impl 錯。
@@ -55,6 +57,7 @@ description: Implements each planned task via red-green-refactor with separate t
 ## Verification
 
 - [ ] 每個任務都有「Red 確認 → Green 確認」軌跡記在 `03-build.md`。
+- [ ] impl-author 寫的 code 達到**合併標準**（clean code / clean architecture / 安全 / 重用），不是留給 verify 才抓（shift-left）。
 - [ ] test 由 test-author 在無 impl context 下產出；impl 由 impl-author 產出且未改 test。
 - [ ] Refactor 後測試行為未變（仍綠）。
 - [ ] 分段 commit（繁中）對應各 Save Point。
