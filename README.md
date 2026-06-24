@@ -116,7 +116,7 @@ plugins/loops-workflow/
 ├── commands/     loop / resume / status / explain / install-statusline
 ├── hooks/        SessionStart：浮出 active .loops/ 迴圈
 ├── scripts/      validate-plan / run-eval / hud-status / statusline
-└── references/   各階段規範 + 模板（clean-code / clean-architecture / refactoring / code-simplification /
+└── references/   各階段規範 + 模板（clean-code / clean-architecture / design-patterns / refactoring / code-simplification /
                   security-checklist / reuse-check / docs-policy /
                   commit-spec / pr-spec / comment-policy / onboarding / reviewer-severity /
                   finding-validation / preflight / cross-model-review / optional-reviewers / auto-mode / fleet /

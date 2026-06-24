@@ -29,11 +29,9 @@
 
 每個手法：**小步、一次一個、每步跑測試**（安全紀律見 `code-simplification.md`：逐步改、Rule of 500、重構與功能分開 commit）。
 
-## 三、設計模式：解決反覆出現的設計問題，但不為套而套
+## 三、重構時引入設計模式（目錄見 `design-patterns.md`）
 
-- **時機**：某種異味**反覆出現**、且某個模式正好對症時才引入；**不是先選模式再硬塞**（投機 over-engineering 是反例）。
-- 常見對應：多型取代條件分支 → **Strategy / State**；建構複雜物件 / 多變體 → **Factory / Builder**；一對多通知 → **Observer**；包裝既有介面 / 加行為 → **Adapter / Decorator**；跨子系統統一入口 → **Facade**。
-- **反面**：pattern 上癮（每個問題都套模式）、把簡單 if/else 換成五個類 —— 模式要讓設計**更好懂 / 好改**才用（呼應 `clean-architecture.md` 的 SOLID「夠用即可、不教條」）。
+某種異味**反覆出現**、且某個模式正好對症時，引入模式消除它（例：條件分支選演算法 → Strategy；流程骨架重複 → Template Method）。**完整模式目錄、各自對症時機與反面（pattern 上癮 / 過度設計）見 `references/design-patterns.md`** —— 紀律一致：**對症才用、不為套而套**。
 
 ## 紅旗
 

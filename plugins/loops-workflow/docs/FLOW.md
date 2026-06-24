@@ -105,7 +105,7 @@ flowchart TD
 |---|---|
 | **skill** | `plan`（1）｜**agent** 0；**風險大的設計可派 read-only 設計品質審查 agent**；發想多方案 opt-in Fleet |
 | **處理什麼** | 動 code 前把設計拍板留痕、拆成可獨立 verify 的任務 |
-| **機制** | 決策留痕（**ADR 五欄**）→ 套件評估（**≥3 候選**）→ **機制圖**（每機制：白話 + 運作流程圖 + 注入接線圖）→ **契約規格**（跨 API/資料/事件介面才寫，含 Hyrum's Law）→ 品質六維度 + 重用 →（風險大才）派設計品質審查 → **拆可驗證任務**（垂直切片 / risk-first / XS–XL 尺寸）→ 送對齊 comment + 拍板 gate |
+| **機制** | 決策留痕（**ADR 五欄**）→ 套件評估（**≥3 候選**）→ **機制圖**（每機制：白話 + 運作流程圖 + 注入接線圖）→ **契約規格**（跨 API/資料/事件介面才寫，含 Hyrum's Law）→ 品質六維度 + 重用 + 設計模式對症 →（風險大才）派設計品質審查 → **拆可驗證任務**（垂直切片 / risk-first / XS–XL 尺寸）→ 送對齊 comment + 拍板 gate |
 | **產出** | `02-plan.md` —— **§0–§9 完整施工圖**（系統全貌 + 檔案職責表 + 機制圖 + 名詞 + 決策含具名背書 + 三角驗證 + 成果展示） |
 | **策略** | **最高標準不以 MVP** · **living plan**（偏離回來改）· 拍板前**渲染機制圖 + 攤「我的假設」清單**給你看，不准盲拍 |
 | **gate** | ✋ 拍板方案 |
@@ -212,7 +212,7 @@ flowchart TD
 | **skill** | 10（define / dispatch / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架） |
 | **agent** | 17 = build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + 7 條件式（explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose） |
 | **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 7 條件式）+ N validator |
-| **reference** | 30 份（含 clean-code / clean-architecture / refactoring / code-simplification 寫碼四標準）｜**command** loop / resume / status / explain / install-statusline｜**hook** SessionStart |
+| **reference** | 31 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準）｜**command** loop / resume / status / explain / install-statusline｜**hook** SessionStart |
 
 ---
 
