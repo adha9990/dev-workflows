@@ -41,7 +41,7 @@
     - **fail-fast 不空轉**：停止條件**看收斂**（findings 沒變少 / 同條 finding 復現就 escalate）、回環 3 圈上限當檢查點、**不過早放棄也不無限繞**。
     省 token 不是吝嗇，是讓迴圈**能負擔得起地跑到完成**。
 11. **品質前置（shift-left）：build 寫的當下就達到合併標準，不留給 verify 才抓**。impl-author 寫 code 時就套 verify 會查的**同一套品質標準** —— clean code / clean architecture / **安全（`references/security-checklist.md`）/ 重用（`references/reuse-check.md`）/ 設計模式（`references/design-patterns.md`）**。標準是**同一份 reference、兩處套用**：build 主動寫到位、verify 獨立複查。如此 verify 是「**獨立確認 + 抓盲點**」的安全網，不是第一道品質關 —— **寫對的成本遠低於寫錯被退回重修**（呼應規則 10「不重複勞動」、且減少漏檢風險：寫的人套標準 + 獨立的人複查，比只靠事後查更不會漏）。
-12. **每件要實作的工作都從一個 GitHub issue 起手**：要動手 `plan` / `build` 的工作，**若還沒有對應 issue，一律先 `define` 建一個新 issue 再進** —— 不從臨時想法、口頭描述、或某個父設計 issue 的子切片直接 plan/build。已有 issue（給了 issue# / 從 `define` 產生）才可用「直接 `plan` / 直接 `build`」捷徑跳階段。**例外**：`explore` 純研究本身就是「產生 issue」的來源（其 `explore → define` gate 會開 issue），不在此限。理由：可追溯（每段實作對得上一張 issue）、PR 有 `Closes #` 可結、避免無票施工。
+12. **每件工作都從一個 `define` 建立的 GitHub issue 起手（含研究）**：要動手 `plan` / `build` / **`explore` 研究** 的工作，**若還沒有對應 issue，一律先 `define` 建一個再進** —— 不從臨時想法、口頭描述、父 issue 子切片、或 **ad-hoc `gh issue create`** 直接動工。**issue 一律用 repo template 寫**。**沒有獨立的「研究 issue」** —— 研究永遠服務某功能：要嘛是某張**功能 issue 的 `explore` 階段**（功能 issue 標「實作待研究」，動工前先 explore 研究怎麼做），要嘛**先研究 / 討論定案再 `define` 開功能 issue**。已有 issue（issue# / 從 `define` 產生）才可用「直接 `plan` / `build` / `explore`」捷徑。發散式 `explore` 盤出的 backlog **也是逐條經 `define` 開功能 issue**（issue 一律由 define 建、非繞過）。理由：每段工作對得上一張 issue、可追溯、PR 有 `Closes #`、避免無票施工。`define` 是建 issue 的唯一入口。
 
 `references/*.md` 的讀取分兩種情境：
 

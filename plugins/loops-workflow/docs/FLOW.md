@@ -17,7 +17,7 @@ flowchart TD
     D -->|PR#（明確）| IT
     D -->|模糊想法| CL[clarify<br/>釐清+確認+判方向]
     D -->|已釐清待解決| DEF[define<br/>→結構化 issue]
-    D -->|純研究| E
+    D -->|想先探索一塊空間| E
     SC --> CL
     CL --> DEF
     CL --> E
@@ -53,7 +53,7 @@ flowchart TD
 |---|---|
 | **skill** | `dispatch`（1）｜**agent** 0 |
 | **處理什麼** | 判**意圖清晰度** → 建 `.loops/<slug>/loop.md` → 進起點階段（模糊先路由給 clarify） |
-| **機制** | 決策樹：**乾淨空專案→scaffold**／issue#（明確）→goal／PR#（明確）→iterate／**模糊想法→`clarify`**（釐清+判方向）／已釐清待解決→`define`→goal／純研究→explore。建 loop.md（類型·session id·當前階段）。**會動 code 的迴圈開 git worktree**，但 `.loops/` 留主 repo（免被 worktree 清掉） |
+| **機制** | 決策樹：**乾淨空專案→scaffold**／issue#（明確）→goal／PR#（明確）→iterate／**模糊想法→`clarify`**（釐清+判方向）／已釐清待解決→`define`→goal／**想先探索一塊空間→explore→產出經 `define` 開功能 issue**。建 loop.md（類型·session id·當前階段）。**所有 issue 一律經 define + repo template 建、不 ad-hoc；無獨立研究 issue**（規則 12）。**會動 code 的迴圈開 git worktree**，但 `.loops/` 留主 repo（免被 worktree 清掉） |
 | **策略** | **只分流、不串接** —— routine 不問你；**dispatch 自己不做訪談 / 複述確認**（模糊路由給 `clarify`），只有分類衝突 / scaffold 大動作才停 |
 
 ---
@@ -82,12 +82,12 @@ flowchart TD
 
 ---
 
-## 1.5 define — 把模糊問題具體化成 issue（DEFINE 前置）
+## 1.5 define — 所有 issue 的唯一入口（一律 repo template；研究服務功能，DEFINE 前置）
 
 | 項目 | 內容 |
 |---|---|
 | **skill** | `define`（1，可獨立呼叫 `/loops-workflow:define`）｜**agent** 0 |
-| **處理什麼** | 把點子 / 模糊問題變成工程師看得懂、能實作驗證的 **template-ready GitHub issue** |
+| **處理什麼** | 把**任何無 issue 的工作**變成 repo template-ready issue —— **建 issue 的唯一入口**。**無獨立研究 issue**：研究是功能 issue 的 explore 階段，或先研究再 define 開功能 issue |
 | **機制** | **Readiness Model**（分 Level 0–4、目標 Level 3）→ 用 repo 的 issue template → **一次一問 intake**（釐清問題定義 / 成功準則 / 替代方案）→ scope sizing（太大先拆票）→ 多步流程放 flowchart → 草稿校稿 → `gh issue create --assignee @me` → 進 goal |
 | **策略** | 先 inspect repo（template / 既有 issue）；寫作指示濾掉不寫進 ticket；含「審 / 重寫既有 ticket」模式。**每件要實作的工作都從 issue 起手（AGENTS 規則 12）—— 沒對應 issue 不直接 plan/build，一律先來這建一個** |
 

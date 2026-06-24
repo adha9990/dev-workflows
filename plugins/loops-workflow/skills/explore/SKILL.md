@@ -22,7 +22,7 @@ description: Surveys the internal codebase for reusable approaches, and searches
 ## When to Use
 
 **Use when**：
-- **收斂式**：dispatch 判為「設計 / 研究」、或 goal 完工定義已定，要研究「怎麼做」才能 plan（收斂到單一方法）。
+- **收斂式**：研究「怎麼做」才能 plan（收斂到單一方法）。情境：**某功能 issue 不知怎麼做最好** → 其迴圈 goal 後接 explore 研究（研究是這張功能 issue 的階段）；或 goal 完工定義已定後接著研究。**不另開「研究 issue」**。
 - **發散式**：greenfield 剛 scaffold 完、或要先盤點一塊設計空間，產出一批待解問題（→ 之後 `define` 開 backlog）。
 
 **NOT for**：

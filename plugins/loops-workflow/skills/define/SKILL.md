@@ -1,6 +1,6 @@
 ---
 name: define
-description: Turns a vague idea / uncertain problem / rough requirement into a structured, template-ready GitHub issue before the goal stage — using a Readiness Model, the repo's issue template, one-question-at-a-time intake, scope sizing, and a flow-diagram policy. Use when the user raises a to-solve problem or idea that has no GitHub issue yet, or wants to define / scope / rewrite a feature into a concrete ticket. Routed to by dispatch for no-issue to-solve work. NOT for an existing issue (→ goal) or pure research with no intent to ship (→ explore).
+description: Turns any new work without a GitHub issue into a structured, template-ready feature issue — the single entry for creating ANY issue (never ad-hoc gh create), using a Readiness Model, the repo's issue template, one-question-at-a-time intake, scope sizing, and a flow-diagram policy. There is no standalone research issue: when how-to is unclear, the feature issue flags it and explore researches it during the issue's loop; or research precedes define. Routed to by dispatch for all no-issue work. NOT for an existing issue (→ goal/iterate).
 ---
 
 # define — 把模糊問題具體化成 issue（再進 goal）
@@ -13,16 +13,18 @@ description: Turns a vague idea / uncertain problem / rough requirement into a s
 
 ## When to Use
 
-**Use when**：使用者**想解決 / 實作、但還沒有 GitHub issue** 的問題 / 點子（dispatch 對「無 issue 的待解決問題」會路由到這）。也可獨立呼叫：把一個想法變成結構化 ticket、或審 / 重寫既有 ticket。
+**Use when**：要開始**任何還沒有 GitHub issue 的工作**（功能 / 修正）。define 是**所有 issue card 的唯一入口：一律經 define + repo template，不 ad-hoc 直接 `gh issue create`**（AGENTS 規則 12）。也可獨立呼叫：把想法變成 ticket、或審 / 重寫既有 ticket。**研究不是獨立 issue**：見下——研究是某功能 issue 的 explore 階段、或先研究再來 define 開功能 issue。
 
 **NOT for**：
-- 已有 GitHub issue —— 直接 `goal`（define 是「建 issue」，不是「精煉既有 issue」）。
-- 純研究 / 探索、未必要落地 —— `explore`（不建 issue）。
-- 分不清「要實作 vs 只研究」→ 用 `AskUserQuestion` 問。
+- 已有 GitHub issue —— 直接 `goal` / `iterate`（define 是「建 issue」，不是精煉既有）。
+- 分不清「要實作 vs 只研究」→ 交給 `clarify` 釐清（它判方向後再回到 define / explore）。
 
-**兩種進法**：
-- **單一問題**：把一個待解決問題格式化成 issue。**若從 `clarify` 進來、需求已釐清**（`00-clarify.md` 有確認過的理解 + 方向）→ **不重新訪談**、直接套 template 把它寫成文（只在仍有 issue-specific 缺口才補問）；**若直接呼叫、需求還毛** → 跑下面完整 Process（Readiness Model + 一次一問 intake）先釐清。
-- **backlog 模式**（從 **發散式 explore** 的 `explore → define` gate 進來）：explore 已研究完一塊設計空間、`01-explore.md` 已有「開放問題清單 + 各自選項 / 傾向 / 相依 + 基礎/獨立分層」→ **不重跑單題 one-question intake**（研究已做完，重訪談是冗餘），直接把每條結論結構化成 issue（背景 + 開放問題 + 選項 / 傾向 + 驗收雛形 + 相依），草稿校稿後逐一 `gh issue create --assignee @me`。**依 explore 標的基礎層 / 獨立層設 issue 的相依與優先**（基礎層先序列、獨立層標可平行），別開成一長串相依鏈。仍守 Input hygiene / 語言 / 品質 Red Flags。
+**ticket 一律用 repo `.github/ISSUE_TEMPLATE` 寫**（功能名稱與概述 / 介面設計 / 功能點 / 詳細說明 / 驗收標準 / 注意事項）。**沒有獨立的「研究 issue」** —— 研究永遠服務某個功能，兩種情形最後都是一張**功能 issue**：
+
+- **要做某功能、但不知怎麼做最好** → `define` 一張**功能 issue**，在「詳細說明 / 注意事項」標明**實作方式待研究**；該 issue 的迴圈在 plan 前先跑 `explore` 研究怎麼做（研究是這張功能 issue 的 explore 階段，不另開 issue）。
+- **已先研究 / 討論定案** → 直接 `define` 功能 issue，把定案做法寫進去（research 在 define 之前發生）。
+- **intake 深度自適應**：需求毛 → 完整 Readiness + 一次一問 intake；已釐清（從 `clarify` 進來、`00-clarify.md` 有確認過理解+方向）→ 不重訪談、直接套 template（只在 issue-specific 缺口才補問）。
+- **backlog 模式**（發散式 `explore` 的 `explore → define` gate）：explore 盤出的開放問題逐條經 define 成**功能 issue**（依基礎/獨立分層設相依、別開長相依鏈），仍用 template、不重跑單題 intake。仍守 Input hygiene / 語言 / 品質 Red Flags。
 
 ## Process
 

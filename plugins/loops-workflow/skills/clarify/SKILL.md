@@ -35,8 +35,8 @@ description: Turns an engineer's vague / ambiguous one-liner into a clear, confi
 
 ### 3. 判方向 + 交棒（routine 不問）
 依釐清結果決定方向，寫進 `00-clarify.md`（含確認後的理解 + 選定方向），然後直接進下一階段：
-- 要**落地實作** → `define`（把清楚的 intent 格式化成 template-ready issue，**不重新訪談**）→ goal。
-- 要**只研究 / 評估**（未必落地）→ `explore`（不建 issue）。
+- 要**落地實作某功能** → `define`（把清楚的 intent 格式化成 template-ready 功能 issue，**不重新訪談**）→ goal。**做法不確定**就在 issue 標「實作待研究」，其迴圈 goal 後 explore 研究。
+- 想**先探索一塊空間**再決定要做什麼 → `explore` 研究 → 產出經 `define` 開功能 issue（**不另開「研究 issue」**）。
 - 是**修既有 PR / reviewer 回饋** → `iterate`。
 - 是**完全乾淨空專案**要先有骨架 → 回 dispatch 的 scaffold 前置，骨架好再續。
 

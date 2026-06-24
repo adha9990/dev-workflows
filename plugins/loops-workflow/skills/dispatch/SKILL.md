@@ -33,7 +33,8 @@ description: Routes a one-line work request to the right loops-workflow stage an
 ├─ PR 號 / 「reviewer / 修正回饋」（意圖明確）────▶ 從 iterate 開始（跳過 clarify）
 ├─ 模糊想法 / 含糊一句話 / 不確定要落地還是研究 ─▶ 從 `clarify` 開始（一次一問釐清 + 確認 → 再判方向：define/goal/explore/iterate）
 ├─ 已釐清、要追蹤成 issue ────────────────────────▶ `define`（建 template-ready issue）→ goal
-└─ 已知是純研究 / 評估（不落地）──────────────────▶ explore（不建 issue）
+├─ 想做功能、但不知怎麼做最好 ────────────────────▶ `define` 功能 issue（標「實作待研究」）→ goal → explore 研究怎麼做 → plan
+└─ 想先探索一塊空間再決定要做什麼 ────────────────▶ explore 研究 → 產出經 `define` 開功能 issue（**不建獨立「研究 issue」**）
 ```
 
 > 順序：**先看專案乾不乾淨**（沒架構先 scaffold），**再判意圖清晰度** —— 明確（issue#/PR#/具體到能動工）直進 goal/iterate；**模糊（一句話想法、範圍不清、不確定落地還是研究）先進 `clarify` 釐清再分流**。dispatch 自己不做訪談確認，那是 clarify 的事。
@@ -101,6 +102,6 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 - [ ] 分流結果正確（類型 ↔ 起點階段對得上決策樹）。
 - [ ] **意圖明確**（issue#/PR#）跳過 clarify 直進 goal/iterate；**模糊想法**先進 `clarify` 釐清再分流（dispatch 自己沒做訪談 / 複述確認）。
 - [ ] 目標若是**完全乾淨的空專案**，已先用 `AskUserQuestion` 確認 + scaffold 骨架（或使用者選跳過 / 要別的棧）才進 clarify / define / explore；既有 / 半成品專案不 scaffold。
-- [ ] 無 issue 的「待解決問題」有先建成 GitHub issue（草稿確認後 `gh issue create`）才進 goal；純研究 / 設計則直接 explore、不建 issue。
+- [ ] **所有無 issue 的工作都先經 `define` 用 repo template 建 issue**——不 ad-hoc `gh issue create`、不無票直接 plan/build/explore（規則 12）。**研究不另開 issue**：是功能 issue 的 `explore` 階段、或先研究再 define 開功能 issue。
 - [ ] `.loops/<slug>/loop.md` 已建立（或既有的已認領），含類型 / 起點 / 停止條件雛形。
 - [ ] 已進起點階段開始做（分類模糊時才停下用 `AskUserQuestion` 問），沒有用純文字問「要不要進 X」。
