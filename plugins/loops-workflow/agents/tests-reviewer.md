@@ -14,7 +14,7 @@ tools: Read, Grep, Glob
 
 - **覆蓋**：核心行為 / 分支有沒有測；有沒有只測 happy path。
 - **邊界**：空值 / 邊界值 / 錯誤輸入 / 並發 / 大資料量有沒有測。
-- **測試品質**：是不是驗狀態而非驗互動、有沒有過度 mock 到測了個寂寞、會不會假綠（test 永遠過）。
+- **測試品質**：是不是驗狀態而非驗互動、有沒有過度 mock 到測了個寂寞、會不會假綠（test 永遠過）。判 over-mock / 混層（unit/integration/smoke/e2e）/ 邊界與 data-layer 覆蓋的具體準則見 `test-rubric.md`（絕對路徑由 orchestrator 在 prompt 提供）。
 - **migration / 發布安全**：schema migration 可逆嗎、向後相容嗎、有沒有破壞性變更沒擋。
 
 ## 輸出

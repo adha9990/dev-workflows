@@ -9,6 +9,8 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 `plan` 在動任何 code 之前，把設計決策**拍板留痕**，並把工作拆成「每一個都能獨立 verify」的任務。產出 `02-plan.md` —— 一份施工圖：決策紀錄 + 機制圖 + 任務清單（每任務帶驗證指令）。
 
+> `02-plan.md` 文件本體的**完整 §0–§9 施工圖骨架**（系統全貌 + **檔案落點與職責表** + 機制圖 + 名詞說明 + 決策含**具名 OSS 背書** + 三角驗證附錄 + 成果展示）見 `references/design-plan-schema.md` —— 下面 Process 各步驟的產出即歸位到該骨架（決策留痕→§6、機制圖→§2、品質維度→§4）。
+
 做法：先把設計決策留痕、為每個關鍵機制畫圖、對新套件做選型評估，再把工作拆成每個都能獨立 verify 的任務。
 
 ## When to Use

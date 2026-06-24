@@ -23,7 +23,7 @@ description: Implements each planned task via red-green-refactor with separate t
 
 ## Process（每個任務跑一遍紅 → 綠 → 重構 7 步）
 
-1. **派 `test-author`**：只給它需求 / 契約 + TDD 品質判準，**它的 context 不含 implementation**。它回 failing test + 「這測哪條需求」。
+1. **派 `test-author`**：只給它需求 / 契約 + TDD 品質判準，**它的 context 不含 implementation**；把 `references/test-rubric.md` 的**絕對路徑**寫進其 prompt（分層測試 unit/integration/smoke/e2e、real-not-mock、async 等真完成、data-layer 覆蓋清單；subagent 用相對路徑讀不到）。它回 failing test + 「這測哪條需求」。
 2. **主線跑測試 → 確認 Red**（測試如預期失敗，且失敗原因正確）。
 3. **派 `impl-author`**：給它 test + plan，寫**最小實作**轉綠。**不准改 test**。
 4. **主線跑測試 → 確認 Green**。

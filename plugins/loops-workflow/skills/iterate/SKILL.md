@@ -27,6 +27,8 @@ description: Triages verify findings or PR feedback, decides which stage to loop
 
 verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
+**`type=fix`（PR reviewer 回饋）時**，依 `references/pr-feedback-sources.md` 蒐齊 PR 上**所有**回饋來源（總評 / **inline 行內** / 討論串 / CI）—— inline comment 必走 `gh api repos/{owner}/{repo}/pulls/<N>/comments`（`--json reviews` **拿不到**，最常見的 silent miss），再用 GraphQL `reviewThreads` 過濾 resolved / outdated 後去重。
+
 ### 2. RECONCILE 四分類
 
 每條回饋分類：

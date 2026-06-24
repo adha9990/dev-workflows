@@ -36,7 +36,7 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 > 必須在**同一個 assistant 回合**一次發出 6 個 Agent call 才會真的並行。subagent 不能再派 subagent。
 
-> **參考檔路徑（必做）**：subagent 的 CWD 是使用者 repo、且 `${CLAUDE_PLUGIN_ROOT}` 在 markdown 不展開，所以相對路徑 `references/xxx.md` 它們讀不到。派 reviewer 前，**從本 skill 的 base directory 推出 plugin root**（base 上兩層 = `…/plugins/loops-workflow/`），組出絕對路徑塞進各 reviewer 的 prompt：全部 reviewer ← `references/reviewer-severity.md`；`security-reviewer` 另加 `references/security-checklist.md`；`code-quality-reviewer` 另加 `references/code-simplification.md` 與 `references/reuse-check.md`；`finding-validator` ← `references/finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
+> **參考檔路徑（必做）**：subagent 的 CWD 是使用者 repo、且 `${CLAUDE_PLUGIN_ROOT}` 在 markdown 不展開，所以相對路徑 `references/xxx.md` 它們讀不到。派 reviewer 前，**從本 skill 的 base directory 推出 plugin root**（base 上兩層 = `…/plugins/loops-workflow/`），組出絕對路徑塞進各 reviewer 的 prompt：全部 reviewer ← `references/reviewer-severity.md` + `references/preflight.md` §(c)「作者已留痕的決定不算 finding」硬規則原文；`security-reviewer` 另加 `references/security-checklist.md`；`code-quality-reviewer` 另加 `references/code-simplification.md` 與 `references/reuse-check.md`；`tests-reviewer` 另加 `references/test-rubric.md`；`finding-validator` ← `references/finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
 
 ### 1.5 條件式 reviewer（選用，視改動領域加派）
 
@@ -67,6 +67,8 @@ description: Fans out six independent reviewers (product/architecture/security/p
 ### 4. 分級 + 輸出
 
 每個 finding 標 **P0–P3 + Confidence 50/75/100 + Route**（見 `references/reviewer-severity.md`）。所有 reviewer 套 **Metric-Honesty**（沒實跑就標 `not measured`）。主線 merge 成 **Ready / Not ready** 寫 `04-verify.md` + 摘要，**直接進 iterate**（routine 轉場不問）。**只有出 P0** 才停下用 `AskUserQuestion` 問怎麼處理（先修 / 接受風險 / 看細節）。
+
+> **送審前自檢（作者視角）**：把 verify 的合併安全結論 + explain 的方向 recap 收成**單一送審判定**（`可送審` / `建議先修` / `資訊不足`）、跨關去重、以及硬規則「**作者已留痕的決定（alignment comment / `02-plan.md` / PR body）不算 finding**，除非它本身也是獨立 bug」—— 見 `references/preflight.md`。派 reviewer 時把這條硬規則原文也塞進每個 reviewer 的 prompt。
 
 ### 雙視角記錄
 

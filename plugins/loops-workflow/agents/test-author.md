@@ -15,7 +15,7 @@ tools: Read, Write, Edit, Grep, Glob
 ## TDD 品質判準
 
 1. **Test State, not Interactions**：驗最終狀態 / 輸出，不是驗「呼叫了哪個內部方法幾次」。
-2. **Real over mocks**：能用真實物件就別 mock；mock 只留給昂貴 / 不可控的外部邊界。
+2. **Real over mocks**：能用真實物件就別 mock；mock 只留給昂貴 / 不可控的外部邊界。**分層歸屬（unit / integration / smoke / e2e）、real-not-mock red flags、async 等真完成不要睡、新 repo / data-layer 覆蓋清單** 見 `test-rubric.md`（絕對路徑由 orchestrator 在 prompt 提供，CWD 是使用者 repo 相對路徑讀不到）。
 3. **AAA 結構**：Arrange → Act → Assert，一個測試一個行為。
 4. **Prove-It**：測試必須**能因正確的原因而失敗**。寫完想一下「如果功能沒做，這條會紅嗎？為什麼紅？」
 
