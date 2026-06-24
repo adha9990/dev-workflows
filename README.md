@@ -65,7 +65,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 | 自動連跑（核准一次、危險才停） | `dispatch auto <…>`，見 `references/auto-mode.md` |
 | 競賽 / 投票式編隊（N 方案→評審） | plan / explore 說「用 Fleet」，見 `references/fleet.md` |
 | 跨 session 接續 | `/loops-workflow:resume <slug>`，見 `references/journaling.md` |
-| 機器可驗證計畫 + eval | `scripts/validate-plan.mjs` / `scripts/run-eval.mjs` |
+| 機器可驗證計畫 + eval | 計畫塊 `scripts/validate-plan.mjs`（見 `references/plan-schema.md`）/ dispatch 場景評測 `scripts/run-eval.mjs`（見 `references/eval-harness.md`） |
 | 列出 active 迴圈 | `/loops-workflow:status`（SessionStart hook 也會自動浮出） |
 | 工程師理解包 | `/loops-workflow:explain <target>`（唯讀側用） |
 | session statusline 顯示 loops 進度（`⟳ <slug> · <stage>`） | `scripts/statusline.sh`（包 claude-hud `--extra-cmd`）→ 設成 statusLine；無 claude-hud 則只印 loops 進度 |
@@ -106,14 +106,15 @@ Windows 例：`bash "C:/Users/<你>/.claude/plugins/marketplaces/dev-workflows/p
 plugins/loops-workflow/
 ├── skills/       7 階段 + explain（側用）
 ├── agents/       build 紅綠分離 3（test-author / impl-author / referee）
-│                 + verify 6 核心 reviewer + finding-validator + 6 條件式領域 reviewer
+│                 + verify 6 核心 reviewer + finding-validator + 7 條件式領域 reviewer
 ├── commands/     loop / resume / status / explain / install-statusline
 ├── hooks/        SessionStart：浮出 active .loops/ 迴圈
 ├── scripts/      validate-plan / run-eval / hud-status / statusline
 └── references/   各階段規範 + 模板（security-checklist / reuse-check / docs-policy /
                   commit-spec / pr-spec / comment-policy / onboarding / reviewer-severity /
-                  finding-validation / optional-reviewers / auto-mode / fleet / journaling /
-                  plan-schema / eval-harness / automations / goal-restate-schema /
+                  finding-validation / preflight / optional-reviewers / auto-mode / fleet /
+                  journaling / plan-schema / design-plan-schema / eval-harness / automations /
+                  feature-intake / test-rubric / pr-feedback-sources / goal-restate-schema /
                   task-template / change-summaries / adr-template）
 ```
 

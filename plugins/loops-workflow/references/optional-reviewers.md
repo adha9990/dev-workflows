@@ -12,6 +12,9 @@
 | 後端服務 / 關鍵流程 | `observability-reviewer` | log / metric / trace / 可診斷性 |
 | CI/CD 設定 / build script | `ci-cd-reviewer` | pipeline / deploy 安全 / secret / cache |
 | schema migration / 介面汰換 | `migration-reviewer` | 可逆 / 向後相容 / backfill |
+| queue / 背景 job / 長流程 / 非同步處理 | `processing-reliability-reviewer` | retry / cancel / idempotency / 部分失敗 / 去重排序 |
+
+> **「先前 comment 是否處理」不另設 reviewer** —— 那由 iterate 蒐齊回饋（`pr-feedback-sources.md`：總評 / inline / reviewThreads）+ 修完強制再 verify 結構性覆蓋。
 
 ## 怎麼判斷要不要派
 
