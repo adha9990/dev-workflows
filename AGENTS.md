@@ -1,6 +1,6 @@
 # loops-workflow — 操作規則與指令對照
 
-> 7 階段閉環開發工作流：`dispatch → goal → explore → plan → build → verify → iterate`，階段間 human gate，`.loops/<slug>/` markdown 當階段記憶體。
+> 7 階段閉環開發工作流：`dispatch → goal → explore → plan → build → verify → iterate`（dispatch 視情況先走前置 `clarify` 釐清 / `scaffold` 骨架 / `define` 開 issue），階段間 human gate，`.loops/<slug>/` markdown 當階段記憶體。
 >
 > 這份檔案是 plugin 的「憲法層」：以下 Operating Rules 是**全程不變的共用紀律**，七個階段 skill 預設遵守、不各自重述。任一 skill 與這裡衝突時，以這裡為準。
 
@@ -78,6 +78,8 @@
 ## 4. 階段順序與回環
 
 ```
+前置（dispatch 視情況路由）：clarify 釐清模糊需求｜scaffold 建骨架｜define 開 issue
+        │
 dispatch → goal → explore → plan → build → verify → iterate
                                                         │
                   回 goal / explore / plan / build ◀────┤（看收斂·≤3 圈）

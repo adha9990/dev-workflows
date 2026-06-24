@@ -22,7 +22,7 @@
 
 # loops-workflow（plugin）
 
-7 階段閉環開發工作流，呼叫帶 `loops-workflow:` 前綴。把開發拆成 `dispatch → goal → explore → plan → build → verify → iterate`，`.loops/<slug>/` 的 markdown 當階段間記憶體。**只在真正要你選的決策點停（用 `AskUserQuestion`）**，routine 轉場直接往下；也支援 opt-in 自動連跑。
+7 階段閉環開發工作流，呼叫帶 `loops-workflow:` 前綴。把開發拆成 `dispatch → goal → explore → plan → build → verify → iterate`（dispatch 視情況先走前置：`clarify` 釐清模糊需求 / `scaffold` 建骨架 / `define` 開 issue），`.loops/<slug>/` 的 markdown 當階段間記憶體。**只在真正要你選的決策點停（用 `AskUserQuestion`）**，routine 轉場直接往下；也支援 opt-in 自動連跑。
 
 > 📊 **完整流程圖**（每階段用幾個 skill / agent、在處理什麼、機制、策略 + mermaid 全貌）見 **[`docs/FLOW.md`](plugins/loops-workflow/docs/FLOW.md)**；**31 份共用規範的分類目錄**見 **[`docs/REFERENCES.md`](plugins/loops-workflow/docs/REFERENCES.md)**。下面是快速參考。
 
@@ -31,6 +31,8 @@
 ## 工作流程
 
 ```
+前置（dispatch 視情況路由）：clarify 釐清模糊需求｜scaffold 建骨架｜define 開 issue
+        │
 dispatch → goal → explore → plan → build → verify → iterate
                                                         │
                   回 goal / explore / plan / build ◀────┤（≤ 3 圈，修完一定再 verify）
