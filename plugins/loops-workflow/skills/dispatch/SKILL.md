@@ -29,7 +29,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 ```
 ├─ issue 號 / 「做這個 issue」 ──────────────────▶ 從 goal 開始（完整迴圈）
-├─ 無 issue 的「要解決 / 實作的問題」 ───────────▶ 先建 GitHub issue（草稿→確認→create）→ 再 goal
+├─ 無 issue 的「要解決 / 實作的問題」 ───────────▶ 走 `define`（建 template-ready issue）→ 再 goal
 ├─ 純「設計 / 研究 / 評估」（探索性、未必落地）──▶ 從 explore 開始（不建 issue）
 ├─ PR 號 / 「reviewer / 修正回饋」 ──────────────▶ 從 iterate 開始
 └─ 模糊 / 多重 / 衝突 ───────────────────────────▶ 停下來問使用者（唯一的釐清 gate）
@@ -39,14 +39,11 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 **推進模式**：預設只在決策點停（routine 轉場不問）。加 `auto` → `dispatch auto <描述>` 開 opt-in 自動連跑（核准計畫一次後連決策也用推薦自動帶過，危險 / 失敗 / P0 / 規格模糊仍硬停，見 `references/auto-mode.md`）。
 
-### 1.5 建 GitHub issue（無 issue 的待解決問題）—— 走 feature-intake
+### 1.5 走 `define`（無 issue 的待解決問題 → 建 issue）
 
-使用者丟來一個**想解決 / 實作、但還沒有 GitHub issue** 的問題 / 點子 → **先依 `references/feature-intake.md` 做結構化 intake、建成 template-ready issue，再進 goal**（讓問題被追蹤、plan 對齊 comment 有地方 post）：
+使用者丟來一個**想解決 / 實作、但還沒有 GitHub issue** 的問題 / 點子 → **進 `define` skill**：用 Readiness Model + repo 的 issue template + 一次一問 intake + scope sizing + flowchart，把它具體化成 template-ready issue（草稿校稿 → `gh issue create --assignee @me` → 刪 tmp），slug 用 `<新 issue#>-<kebab>`、loop.md 類型 = issue，**再進 `goal`**（define 已釐清，goal 多半直接抽 DoD）。讓問題被追蹤、plan 對齊 comment 有地方 post。
 
-- 依 feature-intake：**Readiness Model** 分級（預設 Level 3）→ 用 repo 的 issue template（`.github/ISSUE_TEMPLATE/`，沒有才 generic fallback）→ **一次一問**釐清 blocking 決策（問題定義 / 成功準則 / 替代方案）→ 太大先**拆票**（vertical / foundation-first）→ 多步流程放 **flowchart**。
-- 草稿寫**暫存 tmp** 給使用者校稿（依 `comment-policy.md`）→ 確認後 `gh issue create --title "<繁中標題>" --body-file <tmp> --assignee @me`（**outward action，確認才建**）→ 拿到新 issue#、**送出後刪 tmp**。
-- slug 用 `<新 issue#>-<kebab>`、loop.md 類型 = issue，進 goal —— **intake 已釐清，goal 多半直接抽 DoD、不重複訪談**；plan 再把對齊 comment post 回這個 issue。
-- **分不清「要實作 vs 只是研究」**→ 用 `AskUserQuestion` 問：要解決就 feature-intake 建 issue 走 goal / 只想探索就 explore（不建 issue）。
+**分不清「要實作 vs 只是研究」**→ 用 `AskUserQuestion` 問：要解決就走 `define` → goal / 只想探索就 `explore`（不建 issue）。
 
 ### 2. 建 / 認領 loop.md
 

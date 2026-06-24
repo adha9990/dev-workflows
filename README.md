@@ -45,7 +45,8 @@ dispatch → goal → explore → plan → build → verify → iterate
 
 | Skill | 停下問你？ | 做什麼 |
 |---|---|---|
-| `loops-workflow:dispatch` | 僅分類模糊才停 | 決策樹分流（issue→goal / 設計→explore / PR→iterate）+ 建 `loop.md` + 進起點階段 |
+| `loops-workflow:dispatch` | 僅分類模糊才停 | 決策樹分流（issue→goal / **無 issue 待解決→define** / 設計→explore / PR→iterate）+ 建 `loop.md` + 進起點階段 |
+| `loops-workflow:define` | 有 blocking 決策才停 | **前置**：模糊問題 / 點子 → Readiness Model + repo issue template + **一次一問 intake** + scope sizing + flowchart → 建 template-ready issue（草稿確認 → `gh issue create --assignee @me`）→ 再 goal |
 | `loops-workflow:goal` | 有 scope 取捨才停 | **逐句掃 issue 抽 requirement**（不只 AC 段）→ 一次一問訪談 → restate 六欄完工定義 + 可驗證停止條件 |
 | `loops-workflow:explore` | ✋ 選方法 | 內部找可重用 → **不夠才**搜外部（內部+需求已釘死就不搜、省資源）→ 攤開推薦；deep-research 升級要 gate；框架 API 查官方文件 |
 | `loops-workflow:plan` | ✋ 拍板方案 | decision record + 機制圖（**拍板 gate 渲染運作流程圖＋注入接線圖給你看**）+ ≥3 套件評估 + 拆成可獨立 verify 的任務；**計畫草稿在 plan 階段就送出**（living plan，實作偏離回去改） |
@@ -106,7 +107,7 @@ Windows 例：`bash "C:/Users/<你>/.claude/plugins/marketplaces/dev-workflows/p
 
 ```
 plugins/loops-workflow/
-├── skills/       7 階段 + explain（側用）
+├── skills/       define（前置：模糊問題→issue）+ 7 階段 + explain（側用）
 ├── agents/       build 紅綠分離 3（test-author / impl-author / referee）
 │                 + verify 6 核心 reviewer + finding-validator + 7 條件式領域 reviewer
 ├── commands/     loop / resume / status / explain / install-statusline
@@ -116,7 +117,7 @@ plugins/loops-workflow/
                   commit-spec / pr-spec / comment-policy / onboarding / reviewer-severity /
                   finding-validation / preflight / cross-model-review / optional-reviewers / auto-mode / fleet /
                   journaling / plan-schema / design-plan-schema / contract-spec / eval-harness /
-                  automations / feature-intake / test-rubric / pr-feedback-sources / goal-restate-schema /
+                  automations / test-rubric / pr-feedback-sources / goal-restate-schema /
                   task-template / change-summaries / adr-template）
 ```
 

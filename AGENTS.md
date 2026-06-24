@@ -56,7 +56,8 @@
 | 你想做的事 | 進入點 | 起點階段 |
 |------|------|------|
 | 有 issue 號 / 「做這個 issue」（完整迴圈） | `/loops-workflow:dispatch <描述>` 或直接 `/loops-workflow:goal` | goal |
-| 想解決 / 實作一個**還沒開 issue** 的問題 | `/loops-workflow:dispatch <描述>`（先幫你建 GitHub issue → 再 goal） | 建 issue → goal |
+| 想解決 / 實作一個**還沒開 issue** 的問題 | `/loops-workflow:dispatch <描述>`（走 `define` 建 issue → 再 goal）或直接 `/loops-workflow:define` | define → goal |
+| 把一個點子 / 模糊問題寫成結構化 issue / ticket | `/loops-workflow:define <描述>` | define（前置，可獨立用） |
 | 純設計 / 研究 / 技術評估（無 issue） | `/loops-workflow:dispatch <描述>` 或直接 `/loops-workflow:explore` | explore |
 | 收到 PR / reviewer 回饋要修正 | `/loops-workflow:dispatch <PR#>` 或直接 `/loops-workflow:iterate` | iterate |
 | 需求已清楚、只想把方法拆成可驗證任務 | 直接 `/loops-workflow:plan` | plan |
