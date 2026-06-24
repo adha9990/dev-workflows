@@ -7,7 +7,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 ## Overview
 
-`dispatch` 是 loops-workflow 的分流台，**很薄**：判類型、（**無 issue 的待解決問題先幫使用者建成 GitHub issue**）、建 `.loops/<slug>/loop.md`、進起點階段。routine 轉場不問你；只有分類模糊、或建 issue 這種 outward action 才停下確認。
+`dispatch` 是 loops-workflow 的分流台，**很薄**：判類型、（**完全乾淨的空專案先 scaffold 骨架**、**無 issue 的待解決問題先 define 成 GitHub issue**）、建 `.loops/<slug>/loop.md`、進起點階段。routine 轉場不問你；只有分類模糊、或 scaffold / 建 issue 這種大動作 / outward action 才停下確認。
 
 它同時是「中央說明書」的入口：全程不變的紀律集中寫在 `AGENTS.md`（繁中對外 / human gate 不可跳 / `.loops/` 每階段交接 / 模糊就 surface / Metric-Honesty），七個階段不各自重述。dispatch 負責在開場把這套規矩立起來。
 
@@ -28,6 +28,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 ### 1. 判類型（決策樹）
 
 ```
+├─ 完全乾淨的空專案（無原始碼 / 空目錄）─────────▶ 先 scaffold 建骨架 → 再 define → goal
 ├─ issue 號 / 「做這個 issue」 ──────────────────▶ 從 goal 開始（完整迴圈）
 ├─ 無 issue 的「要解決 / 實作的問題」 ───────────▶ 走 `define`（建 template-ready issue）→ 再 goal
 ├─ 純「設計 / 研究 / 評估」（探索性、未必落地）──▶ 從 explore 開始（不建 issue）
@@ -35,11 +36,25 @@ description: Routes a one-line work request to the right loops-workflow stage an
 └─ 模糊 / 多重 / 衝突 ───────────────────────────▶ 停下來問使用者（唯一的釐清 gate）
 ```
 
+> 順序：**先看專案乾不乾淨**（沒架構先 scaffold），再判這次請求屬於哪一類。scaffold 只發生在「從零起新專案」，既有專案永遠走下面四類。
+
 顯式語法可跳過判斷：`dispatch <type> <ref>`，例如 `dispatch issue #5`、`dispatch explore "command pattern 怎麼設計"`、`dispatch iterate PR#12`。
 
 **推進模式**：預設只在決策點停（routine 轉場不問）。加 `auto` → `dispatch auto <描述>` 開 opt-in 自動連跑（核准計畫一次後連決策也用推薦自動帶過，危險 / 失敗 / P0 / 規格模糊仍硬停，見 `references/auto-mode.md`）。
 
-### 1.5 走 `define`（無 issue 的待解決問題 → 建 issue）
+### 1.4 完全乾淨的空專案 → 先 scaffold 骨架，再 define
+
+判類型前**先看目標專案是不是「完全乾淨」**：空目錄 / 沒有原始碼 / 沒有 `package.json` / 沒有 git 歷史（`git log --oneline -1` 無 commit、目錄無 `src`·`package.json`）。是的話沒有架構承載 define 出來的 issue、也沒有 code 可改 —— **先把骨架立起來**：
+
+- **確認（一定停 —— scaffold 是大動作、且技術棧是定死的）**：用 `AskUserQuestion` 問要不要建骨架。同 marketplace 的 `scaffold` plugin 的 **`scaffold-fullstack`** 出的是 **Fastify + React 19 + TanStack + Kysely/SQLite + Vitest** 的分層全端 TS 專案。
+  - 要、且這個棧合用 → 交 `scaffold-fullstack`（它自己會問目錄 / 名稱、跑模板、`pnpm install` + `typecheck/lint/test` 驗收）。
+  - 要、但要別的棧（FastAPI / Next.js / 純前端…）→ `scaffold-fullstack` 不適用，請使用者自行建好骨架再回來，dispatch 不硬塞。
+  - 只想先把問題定義清楚 → 跳過，直接走 §1.5 define。
+- 骨架立好後 → **接著走 §1.5 define** 把第一個要解決的問題具體化成 issue → 再 goal。
+
+> `scaffold-fullstack` 屬 marketplace 的 `scaffold` plugin（與 loops-workflow **同 marketplace、各自獨立**）。沒裝那個 plugin → 提示使用者裝 / 自行建骨架後再回 dispatch；**loops-workflow 不裝它也照常跑，只是少這條「空專案一鍵起骨架」捷徑**。模稜兩可（已有少量檔案 / 半成品）→ 當既有專案、不 scaffold。
+
+
 
 使用者丟來一個**想解決 / 實作、但還沒有 GitHub issue** 的問題 / 點子 → **進 `define` skill**：用 Readiness Model + repo 的 issue template + 一次一問 intake + scope sizing + flowchart，把它具體化成 template-ready issue（草稿校稿 → `gh issue create --assignee @me` → 刪 tmp），slug 用 `<新 issue#>-<kebab>`、loop.md 類型 = issue，**再進 `goal`**（define 已釐清，goal 多半直接抽 DoD）。讓問題被追蹤、plan 對齊 comment 有地方 post。
 
@@ -80,6 +95,7 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 ## Verification
 
 - [ ] 分流結果正確（類型 ↔ 起點階段對得上決策樹）。
+- [ ] 目標若是**完全乾淨的空專案**，已先用 `AskUserQuestion` 確認 + scaffold 骨架（或使用者選跳過 / 要別的棧）才進 define；既有 / 半成品專案不 scaffold。
 - [ ] 無 issue 的「待解決問題」有先建成 GitHub issue（草稿確認後 `gh issue create`）才進 goal；純研究 / 設計則直接 explore、不建 issue。
 - [ ] `.loops/<slug>/loop.md` 已建立（或既有的已認領），含類型 / 起點 / 停止條件雛形。
 - [ ] 已進起點階段開始做（分類模糊時才停下用 `AskUserQuestion` 問），沒有用純文字問「要不要進 X」。

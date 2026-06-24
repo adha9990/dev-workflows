@@ -1,6 +1,6 @@
 {
   "name": "loops-workflow",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "description": "7 階段閉環開發工作流：dispatch 決策樹分流 → goal/explore/plan/build/verify/iterate，階段間 human gate，.loops/ markdown 記憶體，build 紅綠分離，verify 多 reviewer fan-out + validator 二輪。",
   "author": {
     "name": "陳駿騰",

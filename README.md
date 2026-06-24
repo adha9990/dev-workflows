@@ -45,7 +45,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 
 | Skill | 停下問你？ | 做什麼 |
 |---|---|---|
-| `loops-workflow:dispatch` | 僅分類模糊才停 | 決策樹分流（issue→goal / **無 issue 待解決→define** / 設計→explore / PR→iterate）+ 建 `loop.md` + 進起點階段 |
+| `loops-workflow:dispatch` | 僅分類模糊 / scaffold 才停 | 決策樹分流（**乾淨空專案→scaffold 骨架** / issue→goal / 無 issue 待解決→define / 設計→explore / PR→iterate）+ 建 `loop.md` + 進起點階段 |
 | `loops-workflow:define` | 有 blocking 決策才停 | **前置**：模糊問題 / 點子 → Readiness Model + repo issue template + **一次一問 intake** + scope sizing + flowchart → 建 template-ready issue（草稿確認 → `gh issue create --assignee @me`）→ 再 goal |
 | `loops-workflow:goal` | 有 scope 取捨才停 | **逐句掃 issue 抽 requirement**（不只 AC 段）→ 一次一問訪談 → restate 六欄完工定義 + 可驗證停止條件 |
 | `loops-workflow:explore` | ✋ 選方法 | 內部找可重用 → **不夠才**搜外部（內部+需求已釘死就不搜、省資源）→ 攤開推薦；deep-research 升級要 gate；框架 API 查官方文件 |

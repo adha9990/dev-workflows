@@ -58,6 +58,7 @@
 | 有 issue 號 / 「做這個 issue」（完整迴圈） | `/loops-workflow:dispatch <描述>` 或直接 `/loops-workflow:goal` | goal |
 | 想解決 / 實作一個**還沒開 issue** 的問題 | `/loops-workflow:dispatch <描述>`（走 `define` 建 issue → 再 goal）或直接 `/loops-workflow:define` | define → goal |
 | 把一個點子 / 模糊問題寫成結構化 issue / ticket | `/loops-workflow:define <描述>` | define（前置，可獨立用） |
+| 從零開一個**全新空專案**（無 code / 空目錄） | `/loops-workflow:dispatch <描述>`（偵測乾淨 → 確認 → scaffold 骨架 → define → goal） | scaffold → define → goal |
 | 純設計 / 研究 / 技術評估（無 issue） | `/loops-workflow:dispatch <描述>` 或直接 `/loops-workflow:explore` | explore |
 | 收到 PR / reviewer 回饋要修正 | `/loops-workflow:dispatch <PR#>` 或直接 `/loops-workflow:iterate` | iterate |
 | 需求已清楚、只想把方法拆成可驗證任務 | 直接 `/loops-workflow:plan` | plan |
@@ -79,5 +80,7 @@ dispatch → goal → explore → plan → build → verify → iterate
                   回 goal / explore / plan / build ◀────┤（≤ 3 圈）
                                                         └──▶ 完工（交 PR / 收尾）
 ```
+
+> 起跑前的前置（dispatch 內、不在迴圈圈內）：**完全乾淨的空專案** → 先 `scaffold` 建骨架（同 marketplace 的 `scaffold` plugin，確認後才跑、可降級）；**無 issue 的待解決問題** → 先 `define` 建 issue。兩者都收斂到 `goal` 進迴圈。
 
 只在真正要選的決策點停（見 §2 規則 2，routine 轉場不問）。`iterate` 最多回環 3 圈、且**修完一定再 verify**（完工只在 verify 乾淨那輪可達），超過就 escalate。每次回環在 `loop.md` 記一筆。
