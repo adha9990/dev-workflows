@@ -48,7 +48,7 @@ description: Surveys the internal codebase for reusable approaches, and searches
 
 ### 5. 攤開比較 + 推薦
 
-把候選方案寫進 `01-explore.md`：**有搜外部就內外並排**（各自優缺點、適配度、CITE）；內部 + 需求已足夠則列內部結論 + 一句「為什麼不必外部」。給一個推薦 + 理由。**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」。停在 `explore → plan` 決策 gate：**用 `AskUserQuestion` 把候選方法做成選項給使用者選**（每個標推薦 + 一句理由），不要用純文字要使用者打字。
+把候選方案寫進 `01-explore.md`：**有搜外部就內外並排**（各自優缺點、適配度、CITE）；內部 + 需求已足夠則列內部結論 + 一句「為什麼不必外部」。**收斂前把候選聚成 2–3 個不同方向、各打分**：使用者價值（解痛點 painkiller / 還是 nice-to-have vitamin）、可行性、差異化，並寫一句「**這個方向賭的是什麼成立、什麼會讓它垮**」。再給一個推薦 + 理由。**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」。停在 `explore → plan` 決策 gate：**用 `AskUserQuestion` 把候選方法做成選項給使用者選**（每個標推薦 + 一句理由），不要用純文字要使用者打字。
 
 ## Common Rationalizations
 

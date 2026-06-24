@@ -40,6 +40,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 ### 3. Stop-the-Line 修（針對 actionable）
 
 **所有 actionable 都修，不挑、不問**（P2/P3 一樣修）—— 「交給其他 reviewer 前把問題在內部解到最少」就是把 actionable 全清掉，不是讓使用者挑幾條修。每個要修的問題走 **STOP → PRESERVE → DIAGNOSE → FIX → GUARD → RESUME**：
+- **DIAGNOSE 先定位失敗層**（UI / API / DB / build / 外部 / 或 test 本身），有回歸就用 `git bisect` 釘出引入的 commit —— 不盲目追症狀。
 - 修**根因**而非症狀。
 - 每修一個 bug **加一條回歸測試**守住（GUARD）。
 
@@ -57,7 +58,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 ### 5. 3 圈上限
 
-回環**最多 3 圈**。超過就 **escalate 給使用者**（別無限繞）。每次回環在 `loop.md` 記一筆（第幾圈、回哪、為什麼）。
+回環**最多 3 圈**。超過就 **escalate 給使用者**（別無限繞）。**escalate 時可提「換一個模型做跨模型二審」當選項**（opt-in，抓同模型的結構性盲點，見 `references/cross-model-review.md`）。每次回環在 `loop.md` 記一筆（第幾圈、回哪、為什麼）。
 
 ### 6. 完工收尾
 

@@ -52,3 +52,4 @@
 - **契約是 build 的輸入、verify 的驗收基準**：build 照契約實作、test-author 照契約寫 failing test、product-contract-reviewer 逐條對契約驗收。
 - **契約變更要回寫**（living）：實作期若契約改了，回來更新本段並同步已 post 的對齊 comment —— 不讓 code 與契約各走各的。
 - **外部承諾不可單方面破壞**：改既有契約要標「破壞性與否」、誰會受影響（對齊 `migration-reviewer` / 向後相容）。
+- **Hyrum's Law —— 什麼算破壞性**：介面一旦有 consumer，**所有可觀察行為**（錯誤訊息 / 排序 / 時序 / 未文件化的 quirk）都變成 de-facto 契約。判破壞性看的是「**可觀察行為有沒有變**」，不是「文件有沒有寫」。預設走**加法演進**（加新的 optional 欄，**絕不**改既有欄型別 / 刪欄 / 改錯誤語意）；非破壞不可就標明、對齊 migration-reviewer 的相容檢查。

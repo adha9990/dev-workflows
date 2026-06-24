@@ -53,3 +53,4 @@ Evidence checked:
 - validator 理由保留在報告的 `Validation coverage`。
 - rejected 直接丟（除非透露出有用的 non-blocking note）。
 - degraded 放「未驗證區域」或 Non-blocking notes，不放 Blocking findings，除非 coordinator 直接證明影響是 P0。
+- **rubber-stamp 自查**：若 reviewer 出了 substantive findings，卻**整批被 reject / 0 條 validated**（尤其連 2+ 輪），停下重看 —— 很可能是 validator 把該修的都 rationalize 成「已防護 / 非本次」掉了，這是「在背書不是在審查」的失敗訊號。

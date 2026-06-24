@@ -32,6 +32,7 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 - 一則訊息只問一個問題；用 `AskUserQuestion` 給 2–4 個選項。
 - 每個選項標**推薦**並一句話講為什麼（端決策一定要明確推薦）。
 - 每問在內部記一條 **HYPOTHESIS + CONFIDENCE**（0–100）：你目前猜答案是什麼、多有把握。優先打 confidence 最低、影響最大的點。
+- **should-want 偵測**：使用者用「我**應該**…」「好的工程**會**…」這種**對誰交代 / 顯得專業**的措辭作答時，追問一次「**如果不用對任何人交代，你真正想要的是什麼？**」—— 區分表演式答案與真意圖，免得六欄填滿卻做錯東西。
 
 ### 3. Restate 六欄（完工定義）
 

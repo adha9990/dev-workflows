@@ -68,6 +68,8 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 
 **拍板前一定把第 3 步的機制圖直接渲染在 chat 給使用者看** —— 每機制貼出「一段白話 + 運作流程圖（mermaid）+ 注入 / 接線圖（mermaid）」，讓使用者看懂**怎麼跑 + 怎麼接線**再拍板。alignment comment 是 terse 對齊紀錄（套件 / 決策 / out-of-scope，刻意不含圖），**圖不在那裡** —— 所以**不能只丟精煉 comment 就要使用者拍板**；要看更細的指到 `02-plan.md`。
 
+**同時攤一份「我做的假設 → 現在糾正我」清單**：把技術 / 架構 / 範圍 / 平台層面那些**沒問、但默默假設**的事編號列出給使用者看。這跟內部的 HYPOTHESIS+CONFIDENCE 不同 —— 是把藏在決策底下的假設**顯式**攤出來，趁拍板前糾正；比 build 到一半才發現假設錯便宜得多（對齊規則 10 成本意識）。
+
 然後停在 `plan → build` 拍板 gate（`AskUserQuestion` 確認方案 + 任務拆解，每選項標推薦）。
 
 > **`02-plan.md` 是 living source of truth**：實作階段若偏離（決策變、任務拆法變），**回去更新它**（並同步已 post 的版本），保持 as-built —— 不是放到 loop 結束才補。完工時這份 as-built plan 提煉成 PR body（見 `references/pr-spec.md`）。

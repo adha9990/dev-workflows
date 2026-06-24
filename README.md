@@ -114,7 +114,7 @@ plugins/loops-workflow/
 ├── scripts/      validate-plan / run-eval / hud-status / statusline
 └── references/   各階段規範 + 模板（security-checklist / reuse-check / docs-policy /
                   commit-spec / pr-spec / comment-policy / onboarding / reviewer-severity /
-                  finding-validation / preflight / optional-reviewers / auto-mode / fleet /
+                  finding-validation / preflight / cross-model-review / optional-reviewers / auto-mode / fleet /
                   journaling / plan-schema / design-plan-schema / contract-spec / eval-harness /
                   automations / feature-intake / test-rubric / pr-feedback-sources / goal-restate-schema /
                   task-template / change-summaries / adr-template）
