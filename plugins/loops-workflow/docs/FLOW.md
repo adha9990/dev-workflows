@@ -12,14 +12,16 @@
 flowchart TD
     START([一句話 / issue# / PR#]) --> D{dispatch<br/>決策樹分流}
 
-    D -->|完全乾淨空專案| SC[scaffold-fullstack·建專案骨架<br/>loops-workflow 內建 skill]
-    D -->|有 issue#| G
-    D -->|無 issue 的待解決問題| DEF[define<br/>模糊問題→結構化 issue]
-    D -->|純設計 / 研究| E
-    D -->|PR# / reviewer 回饋| IT
-    D -->|模糊| ASK([停下問使用者])
-    SC --> DEF
-    SC --> E
+    D -->|乾淨空專案| SC[scaffold-fullstack·建骨架<br/>內建 skill]
+    D -->|issue#（明確）| G
+    D -->|PR#（明確）| IT
+    D -->|模糊想法| CL[clarify<br/>釐清+確認+判方向]
+    D -->|已釐清待解決| DEF[define<br/>→結構化 issue]
+    D -->|純研究| E
+    SC --> CL
+    CL --> DEF
+    CL --> E
+    CL --> IT
     DEF --> G
 
     G[goal 目標<br/>完工定義 DoD] --> E[explore 探索<br/>收斂式評估 / 發散式盤空間]
@@ -34,10 +36,12 @@ flowchart TD
     IT -->|✋ verify 乾淨→完工| SHIP([開 Draft PR<br/>Closes #issue + @me])
 
     classDef stage fill:#def,stroke:#36c
-    class G,E,P,B,V,IT,DEF stage
+    class G,E,P,B,V,IT,DEF,CL stage
 ```
 
 **讀法**：實線往下是 routine（不問你、直接走）；`✋` = **會停下用 `AskUserQuestion` 問你**的真決策點。`iterate` 把問題修完會**回環**（看收斂、預設 ≤3 圈）再驗，全乾淨才完工開 PR。explore 有兩種出口：**收斂式**→plan（選一個方法）、**發散式**→define（把設計空間盤成 issue backlog，開完停下等後續逐步解，不強制續跑）。
+
+**dispatch 依意圖清晰度分流**：明確（issue# / PR#）直進 goal / iterate；**模糊想法先進 `clarify`** —— 一次一問把模糊收斂成「經確認的理解 + 方向」，再分流到 define / explore / iterate（dispatch 自己不做訪談確認）。clarify 與 scaffold / define 同為 dispatch 路由的**前置階段**、不在 goal→…→iterate 迴圈圈內。
 
 **階段間記憶體**：每階段把結論寫成 `.loops/<slug>/0N-*.md`（goal→`00-goal.md`、explore→`01-explore.md`…），下一階段只讀**精煉版**、不重讀原始素材。`loop.md` 是儀表板（當前階段 / session / Journal 事件日誌）。
 
@@ -48,9 +52,21 @@ flowchart TD
 | 項目 | 內容 |
 |---|---|
 | **skill** | `dispatch`（1）｜**agent** 0 |
-| **處理什麼** | **先複述理解 + 一次確認** → 判類型 → 建 `.loops/<slug>/loop.md` → 進起點階段 |
-| **機制** | 決策樹：**完全乾淨空專案→先 scaffold 骨架→define**／issue#→goal／無 issue 待解決問題→**走 `define`**→goal／純研究→explore／PR#→iterate／模糊→停下問。建 loop.md（類型·session id·當前階段）。**會動 code 的迴圈開 git worktree**，但 `.loops/` 留主 repo（免被 worktree 清掉） |
-| **策略** | **只分流、不串接** —— routine 不問你；動工前先複述需求 + 一次確認（避免理解偏掉往錯方向，尤其一句話 / greenfield），只有分類模糊 / scaffold 大動作才另外停 |
+| **處理什麼** | 判**意圖清晰度** → 建 `.loops/<slug>/loop.md` → 進起點階段（模糊先路由給 clarify） |
+| **機制** | 決策樹：**乾淨空專案→scaffold**／issue#（明確）→goal／PR#（明確）→iterate／**模糊想法→`clarify`**（釐清+判方向）／已釐清待解決→`define`→goal／純研究→explore。建 loop.md（類型·session id·當前階段）。**會動 code 的迴圈開 git worktree**，但 `.loops/` 留主 repo（免被 worktree 清掉） |
+| **策略** | **只分流、不串接** —— routine 不問你；**dispatch 自己不做訪談 / 複述確認**（模糊路由給 `clarify`），只有分類衝突 / scaffold 大動作才停 |
+
+---
+
+## 1.3 clarify — 釐清模糊需求（前置，模糊才進）
+
+| 項目 | 內容 |
+|---|---|
+| **skill** | `clarify`（1，可獨立呼叫 `/loops-workflow:clarify`）｜**agent** 0（主線一次一問） |
+| **何時** | dispatch 判請求是**模糊想法 / 含糊一句話**（非具體 issue#/PR#）才進；明確意圖跳過 |
+| **處理什麼** | 把模糊的話收斂成「**經確認的理解 + 方向**」—— 問題 / 為何 / 範圍 / 不做 / 關鍵假設，再判落地→define/goal · 研究→explore · 修既有→iterate |
+| **機制** | 一次一問（`AskUserQuestion` 標推薦、記 HYPOTHESIS+CONFIDENCE、should-want 偵測）→ restate + **一次確認** → 寫 `00-clarify.md` → 交棒。**不建 issue / 不釘 DoD / 不動 code** |
+| **策略** | 釐清是**收斂**不是審問（信心夠就停、單次確認非逐項逼問）；只處理模糊，明確需求不加 ceremony；訪談**集中在這做一次**，define/goal 拿到的是已釐清的、不重問 |
 
 ---
 
@@ -196,7 +212,7 @@ flowchart TD
 | **記憶體** | `.loops/<slug>/`：`loop.md`（儀表板 + Journal）+ `0N-*.md`（各階段精煉產出） | Memory |
 | **隔離工作樹** | 會動 code 的迴圈在 `git worktree`（`<issue#>-<slug>` 同名 branch） | Worktrees |
 | **子代理** | build 紅綠 3 + verify 6 核心 + 7 條件式 + validator | Subagents |
-| **技能** | 9 個 skill（SKILL.md 統一骨架） | Skills |
+| **技能** | 11 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
 | **自動化** | `dispatch auto`、`/loop`·`/schedule`、statusline HUD | Automations |
 
@@ -211,7 +227,7 @@ flowchart TD
 
 | | |
 |---|---|
-| **skill** | 10（define / dispatch / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架） |
+| **skill** | 11（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架） |
 | **agent** | 17 = build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + 7 條件式（explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose） |
 | **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 7 條件式）+ N validator |
 | **reference** | 31 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準）｜**command** loop / resume / status / explain / install-statusline｜**hook** SessionStart |
@@ -223,6 +239,7 @@ flowchart TD
 | 階段 | skill | agent | 何時 |
 |---|---|---|---|
 | dispatch | 1 | 0 | 只分流 |
+| clarify | 1 | 0 | 模糊想法時（前置） |
 | define | 1 | 0 | 無 issue 時 |
 | goal | 1 | 0 | 主線訪談 |
 | explore | 1 | **1 掃描 + N 評估** | 方法競爭時一候選一 agent |

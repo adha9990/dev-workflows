@@ -21,7 +21,7 @@ description: Turns a vague idea / uncertain problem / rough requirement into a s
 - 分不清「要實作 vs 只研究」→ 用 `AskUserQuestion` 問。
 
 **兩種進法**：
-- **單一問題**（dispatch 對「無 issue 待解決問題」路由進來）：跑下面完整 Process（Readiness Model + 一次一問 intake）。
+- **單一問題**：把一個待解決問題格式化成 issue。**若從 `clarify` 進來、需求已釐清**（`00-clarify.md` 有確認過的理解 + 方向）→ **不重新訪談**、直接套 template 把它寫成文（只在仍有 issue-specific 缺口才補問）；**若直接呼叫、需求還毛** → 跑下面完整 Process（Readiness Model + 一次一問 intake）先釐清。
 - **backlog 模式**（從 **發散式 explore** 的 `explore → define` gate 進來）：explore 已研究完一塊設計空間、`01-explore.md` 已有「開放問題清單 + 各自選項 / 傾向 / 相依 + 基礎/獨立分層」→ **不重跑單題 one-question intake**（研究已做完，重訪談是冗餘），直接把每條結論結構化成 issue（背景 + 開放問題 + 選項 / 傾向 + 驗收雛形 + 相依），草稿校稿後逐一 `gh issue create --assignee @me`。**依 explore 標的基礎層 / 獨立層設 issue 的相依與優先**（基礎層先序列、獨立層標可平行），別開成一長串相依鏈。仍守 Input hygiene / 語言 / 品質 Red Flags。
 
 ## Process

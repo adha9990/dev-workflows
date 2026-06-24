@@ -57,7 +57,8 @@
 
 | 你想做的事 | 進入點 | 起點階段 |
 |------|------|------|
-| 有 issue 號 / 「做這個 issue」（完整迴圈） | `/loops-workflow:dispatch <描述>` 或直接 `/loops-workflow:goal` | goal |
+| 有 issue 號 / 「做這個 issue」（意圖明確，完整迴圈） | `/loops-workflow:dispatch <描述>` 或直接 `/loops-workflow:goal` | goal |
+| 丟一個**模糊想法 / 含糊一句話**（還不確定要實作還是研究、範圍不清） | `/loops-workflow:dispatch <描述>`（判模糊 → `clarify` 釐清 → 再分流）或直接 `/loops-workflow:clarify` | clarify → define/goal · explore · iterate |
 | 想解決 / 實作一個**還沒開 issue** 的問題 | `/loops-workflow:dispatch <描述>`（走 `define` 建 issue → 再 goal）或直接 `/loops-workflow:define` | define → goal |
 | 把一個點子 / 模糊問題寫成結構化 issue / ticket | `/loops-workflow:define <描述>` | define（前置，可獨立用） |
 | 從零開一個**全新空專案**（無 code / 空目錄） | `/loops-workflow:dispatch <描述>`（偵測乾淨 → 確認 → scaffold 骨架 → define → goal） | scaffold → define → goal |
@@ -83,6 +84,6 @@ dispatch → goal → explore → plan → build → verify → iterate
                                                         └──▶ 完工（交 PR / 收尾）
 ```
 
-> 起跑前的前置（dispatch 內、不在迴圈圈內）：**完全乾淨的空專案** → 先 `scaffold-fullstack` 建骨架（loops-workflow 內建 skill，確認後才跑）；**無 issue 的待解決問題** → 先 `define` 建 issue。兩者都收斂到 `goal` 進迴圈。
+> 起跑前的前置（dispatch 內、不在迴圈圈內）：**模糊想法 / 含糊一句話** → 先 `clarify` 釐清 + 確認理解 + 判方向（不確定要實作還是研究就在這裡定）；**完全乾淨的空專案** → 先 `scaffold-fullstack` 建骨架（loops-workflow 內建 skill，確認後才跑）；**已釐清的待解決問題** → 先 `define` 建 issue。都收斂到 `goal`（或 explore）進迴圈。dispatch 自己只分流、不做需求訪談。
 
 只在真正要選的決策點停（見 §2 規則 2，routine 轉場不問）。`iterate` 回環**看收斂**（findings 嚴格變少才值得再繞）、預設 3 圈上限、且**修完一定再 verify**（完工只在 verify 乾淨那輪可達）；**沒收斂或碰上限就 escalate 當檢查點**（讓使用者選回頭重想 / 換跨模型 / 授權再繞〔計數重置〕，不是放棄）。每次回環在 `loop.md` 記一筆（含這輪 findings 數）。
