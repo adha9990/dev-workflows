@@ -28,7 +28,7 @@
 |---|---|---|
 | `goal-restate-schema` | 完工定義六欄格式（Outcome / User / Why now / Success / Constraint / Out of scope） | goal（`00-goal.md`） |
 | `design-plan-schema` | §0–§9 設計書骨架：系統全貌 / 檔案職責表 / 機制圖 / 具名背書 / 三角驗證 / 成果展示 | plan（`02-plan.md`）· iterate（提煉 PR body） |
-| `plan-schema` | 機器可驗證的 `loops-plan` JSON 塊格式（每任務可執行 verification、acceptance ≤3、依賴無環） | plan（可選）+ `validate-plan.mjs` |
+| `machine-plan-schema` | 機器可驗證的 `loops-plan` JSON 塊格式（每任務可執行 verification、acceptance ≤3、依賴無環） | plan（可選）+ `validate-plan.mjs` |
 | `change-summaries` | build 產出的 Change Summaries 三段式格式 | build（`03-build.md`） |
 
 ## 3. 驗證與審查機制

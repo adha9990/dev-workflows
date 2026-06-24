@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// validate-plan.mjs —— 檢查 02-plan.md 內嵌的 ```loops-plan JSON 區塊是否符合 plan-schema。
+// validate-plan.mjs —— 檢查 02-plan.md 內嵌的 ```loops-plan JSON 區塊是否符合 machine-plan-schema。
 // 用法：node validate-plan.mjs <path-to-02-plan.md>
 // 通過 → exit 0；任一問題 → 列出後 exit 1。依賴：無（純 Node）。
 

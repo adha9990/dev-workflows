@@ -58,7 +58,7 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 
 畫依賴圖；每 2–3 個任務插一個 checkpoint。
 
-**（可選）機器可驗證計畫塊**：要讓進 build 前能自動把關，可在 `02-plan.md` 內嵌一塊 `loops-plan` JSON（見 `references/plan-schema.md`），跑 `node scripts/validate-plan.mjs <02-plan.md>` 檢查（每任務有可執行 verification、acceptance ≤3、依賴無環）。預設不開。
+**（可選）機器可驗證計畫塊**：要讓進 build 前能自動把關，可在 `02-plan.md` 內嵌一塊 `loops-plan` JSON（見 `references/machine-plan-schema.md`），跑 `node scripts/validate-plan.mjs <02-plan.md>` 檢查（每任務有可執行 verification、acceptance ≤3、依賴無環）。預設不開。
 
 ### 5.5 （可選）Fleet 方案發想
 

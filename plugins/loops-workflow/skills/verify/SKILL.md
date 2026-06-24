@@ -48,6 +48,7 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 - 前端 / UI → `frontend-ui-reviewer`、`accessibility-reviewer`、`web-performance-reviewer`
 - 後端服務 / 關鍵流程 → `observability-reviewer`
+- 非同步處理 / queue / 背景 job / 長流程 → `processing-reliability-reviewer`
 - CI/CD 設定 → `ci-cd-reviewer`
 - schema migration / 介面汰換 → `migration-reviewer`
 

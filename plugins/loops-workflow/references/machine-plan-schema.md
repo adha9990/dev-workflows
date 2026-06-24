@@ -1,4 +1,4 @@
-# 機器可驗證計畫檔（plan-schema）
+# 機器可驗證計畫檔（machine-plan-schema）
 
 > 進階：讓 `02-plan.md` 除了給人看的任務敘述，再附一塊**機器可驗證**的結構，由 `scripts/validate-plan.mjs` 在進 build 前自動檢查（plan → validate → execute）。**選用** —— 不開時 plan 仍純 markdown 給人看。
 
