@@ -47,9 +47,17 @@ description: Produces an engineer understanding pack for a change — implementa
 
 > 答不出來的題，就是還沒真懂的地方 —— 指出該回去看哪段。
 
-### 3. 設計方向 recap
+### 3. 設計方向 recap（可選升級為設計閘）
 
 一句話講這份改動的**工程方向**，並指出**有沒有偏離原始需求 / issue 契約**（方向錯比細節錯更該先抓）。
+
+**Opt-in 設計閘**：要「先判一份既有 diff / PR 的方向對不對、還不想跑完整 verify」時，把 recap 升級成三態判定（**不是預設、明確要求才做**）：
+
+- `方向可行`：設計方向對得上需求、無重大結構疑慮。
+- `要修`：方向或結構有該先解決的問題 —— 逐點列「哪個視角（issue-fit / 系統一致 / 邊界 / 契約 / 失敗回復 / 工作量 / 可維護）+ 為什麼 + 建議方向」。
+- `資訊不足`：缺關鍵脈絡無法判定（列出要補什麼）。
+
+這是輕量設計篩，**不取代** verify 的 reviewer fan-out；只幫在動更多 code / 跑完整審查前先攔住方向問題。
 
 ## Red Flags
 
@@ -59,6 +67,6 @@ description: Produces an engineer understanding pack for a change — implementa
 
 ## Verification
 
-- [ ] 三段齊全：實作導讀（含圖 + 證據錨點 + 閱讀順序）、5 題自測（含參考解答）、設計方向 recap。
+- [ ] 三段齊全：實作導讀（含圖 + 證據錨點 + 閱讀順序）、5 題自測（含參考解答）、設計方向 recap（若被要求設計閘則出三態判定）。
 - [ ] 全程未改任何檔案。
 - [ ] 證據錨點 `file:line` 對得上實際 code。

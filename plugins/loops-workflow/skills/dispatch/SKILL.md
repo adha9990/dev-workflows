@@ -22,6 +22,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 **NOT for**：
 - 你已經知道要哪個階段 —— 直接喊那個階段（`/loops-workflow:goal` 等），別繞 dispatch 多花一圈 token。
 - 把所有階段一路自動跑完 —— 那違反 Closed Loop，dispatch 只送你到起點。
+- **側用工具不歸 dispatch 路由** —— `explain`（看懂改動）、`agents-md-maintainer`（維護 repo `AGENTS.md`，documentation-only）是閉環外側用，直接喊、不進決策樹。
 
 ## Process
 
