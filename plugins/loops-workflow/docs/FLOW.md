@@ -158,7 +158,7 @@ flowchart LR
 
 | 項目 | 內容 |
 |---|---|
-| **skill** | `verify`（1）｜**agent** **6 核心 + 0～7 條件式 + N 個 finding-validator**（同一回合並行） |
+| **skill** | `verify`（1）｜**agent** **6 核心 + 0～9 條件式 + N 個 finding-validator**（同一回合並行） |
 | **處理什麼** | 合併前把關：多個獨立視角各審一軸，再二輪驗證 findings |
 | **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`）· **作者已留痕的決定不算 finding** · **獨立安全網非第一道品質關**（標準已在 build shift-left 套用，verify 複查 + 抓盲點） |
 
@@ -171,13 +171,13 @@ flowchart TD
     FAN --> C4[performance]
     FAN --> C5[code-quality]
     FAN --> C6[tests]
-    FAN -.觸及領域才加派.-> COND[條件式 7 選:<br/>frontend-ui·accessibility·web-performance·<br/>observability·ci-cd·migration·processing-reliability]
+    FAN -.觸及領域才加派.-> COND[條件式 9 選:<br/>frontend-ui·accessibility·web-performance·observability·<br/>ci-cd·migration·processing-reliability·root-cause·docs-devex]
     C1 & C2 & C3 & C4 & C5 & C6 & COND --> CO[coordinator 主線<br/>去重 + 跑真 app + 本機 /code-review]
     CO -->|每個 blocking finding| FV[finding-validator 二輪<br/>真實?本次?已防護?對症?]
     FV --> OUT[P0–P3 + Confidence + Route<br/>→ Ready / Not ready → 04-verify.md]
 ```
 
-> 核心 6 軸每次都派；條件式 7 個只在改動觸及該領域才加派（省成本）。每個 blocking finding 過 `finding-validator` 四問二輪才算數。出 P0 才停下問你，否則直接進 iterate。
+> 核心 6 軸每次都派；條件式 9 個只在改動觸及該領域才加派（省成本，含 bug-fix→root-cause、docs/契約→docs-devex）。每個 blocking finding 過 `finding-validator` 四問二輪才算數。出 P0 才停下問你，否則直接進 iterate。
 
 ---
 
@@ -206,14 +206,25 @@ flowchart TD
 
 ---
 
+## 8.5 agents-md-maintainer — AGENTS.md 文檔維運（側用，不在迴圈裡）
+
+| 項目 | 內容 |
+|---|---|
+| **skill** | `agents-md-maintainer`（1，documentation-only）｜**agent** 0 |
+| **處理什麼** | 漸進建 / 維護 repo 的 agent-facing 文檔（根 `AGENTS.md` + `docs/agent-doc-coverage.md` 追蹤表 + 各模組 `AGENTS.md`） |
+| **機制** | 決策樹：缺根檔→建+停／缺追蹤表→建+停／都在→挑一個未覆蓋 / 過期模組掃描+建檔+更新追蹤表+停。**每次一個 scope**、檔名嚴格 `AGENTS.md`、最小有用文檔原則 |
+| **策略** | **橫切文檔治理、不屬 feature 迴圈** —— 與 `explain` 同屬側用，**不被 `dispatch` 路由**；只動文檔不碰 runtime code |
+
+---
+
 ## 9. 橫切面（貫穿所有階段的根基）
 
 | 根基 | 在 plugin 裡是 | 對應 Loops Engineering 6 根基 |
 |---|---|---|
 | **記憶體** | `.loops/<slug>/`：`loop.md`（儀表板 + Journal）+ `0N-*.md`（各階段精煉產出） | Memory |
 | **隔離工作樹** | 會動 code 的迴圈在 `git worktree`（`<issue#>-<slug>` 同名 branch） | Worktrees |
-| **子代理** | build 紅綠 3 + verify 6 核心 + 7 條件式 + validator | Subagents |
-| **技能** | 11 個 skill（SKILL.md 統一骨架） | Skills |
+| **子代理** | build 紅綠 3 + verify 6 核心 + 9 條件式 + validator | Subagents |
+| **技能** | 12 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
 | **自動化** | `dispatch auto`、`/loop`·`/schedule`、statusline HUD | Automations |
 
@@ -228,10 +239,10 @@ flowchart TD
 
 | | |
 |---|---|
-| **skill** | 11（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架） |
-| **agent** | 17 = build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + 7 條件式（explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose） |
-| **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 7 條件式）+ N validator |
-| **reference** | 31 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準）｜**command** loop / resume / status / explain / install-statusline｜**hook** SessionStart |
+| **skill** | 12（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **agents-md-maintainer** 側用文檔維運） |
+| **agent** | 19 = build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + 9 條件式（explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose） |
+| **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 9 條件式）+ N validator |
+| **reference** | 39 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + 8 份 per-axis 審查判準）｜**command** loop / resume / status / explain / install-statusline｜**hook** SessionStart |
 
 ---
 
@@ -246,9 +257,10 @@ flowchart TD
 | explore | 1 | **1 掃描 + N 評估** | 方法競爭時一候選一 agent |
 | plan | 1 | 0（+設計審查 / Fleet 選用） | 風險大才派 |
 | build | 1 | **2 / 任務**（test+impl）+ referee | 衝突時 referee |
-| verify | 1 | **6 + 0–7 + N** | 同回合並行 |
+| verify | 1 | **6 + 0–9 + N** | 同回合並行 |
 | iterate | 1 | 0（+cross-model 選用） | 卡關時 |
 | explain（側） | 1 | 0 | 唯讀 |
+| agents-md-maintainer（側） | 1 | 0 | 維護 AGENTS.md（不入迴圈） |
 
 ---
 

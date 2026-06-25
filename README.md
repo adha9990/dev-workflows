@@ -24,7 +24,7 @@
 
 7 階段閉環開發工作流，呼叫帶 `loops-workflow:` 前綴。把開發拆成 `dispatch → goal → explore → plan → build → verify → iterate`（dispatch 視情況先走前置：`clarify` 釐清模糊需求 / `scaffold` 建骨架 / `define` 開 issue），`.loops/<slug>/` 的 markdown 當階段間記憶體。**只在真正要你選的決策點停（用 `AskUserQuestion`）**，routine 轉場直接往下；也支援 opt-in 自動連跑。
 
-> 📊 **完整流程圖**（每階段用幾個 skill / agent、在處理什麼、機制、策略 + mermaid 全貌）見 **[`docs/FLOW.md`](plugins/loops-workflow/docs/FLOW.md)**；**31 份共用規範的分類目錄**見 **[`docs/REFERENCES.md`](plugins/loops-workflow/docs/REFERENCES.md)**。下面是快速參考。
+> 📊 **完整流程圖**（每階段用幾個 skill / agent、在處理什麼、機制、策略 + mermaid 全貌）見 **[`docs/FLOW.md`](plugins/loops-workflow/docs/FLOW.md)**；**39 份共用規範的分類目錄**見 **[`docs/REFERENCES.md`](plugins/loops-workflow/docs/REFERENCES.md)**。下面是快速參考。
 
 > **設計座標**：**Closed Loop**（人類在框架內把關）· **單一迴圈**預設、opt-in **Fleet** 編隊 · 目標脈絡＝**VISION**（goal）/ **ARCHITECTURE**（設計書 §0–§9）/ **RULES**（AGENTS）· **成本意識**（迴圈很貴 → 高上下文效率、便宜的先·貴的 gate、不重複勞動、fail-fast；**只砍非必要貴動作 + 浪費，不砍 define/gate/verify**；見 `AGENTS.md` 規則 10）。
 
@@ -58,7 +58,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 | `loops-workflow:verify` | 出 P0 才停 | **同回合派 6 reviewer** fan-out（+ 視領域加派條件式 reviewer）+ 跑真 app + 本機 /code-review + finding-validator 二輪 + P0–P3 分級 |
 | `loops-workflow:iterate` | ✋ 完工（回環自動） | 回饋四分類 + **actionable 一律自動全修（不論 P2/P3、不問「修多少」）** + Stop-the-Line 根因修 + **3 圈上限**；收尾交接物**依類型**（修正型只一份回覆 reviewer／完整迴圈才產 PR 收尾 comment + explain），草稿確認才送；**follow-up 留當前 issue、不另開** |
 
-另有側用 `loops-workflow:explain <target>` —— 產工程師理解包（實作導讀 + 自測題 + 設計方向），唯讀、不在迴圈裡。
+另有兩個側用 skill（唯讀 / 不在迴圈裡）：`loops-workflow:explain <target>` 產工程師理解包（實作導讀 + 自測題 + 設計方向）；`loops-workflow:agents-md-maintainer` 漸進維護 repo 的 agent-facing 文檔（`AGENTS.md` + 覆蓋率追蹤表 + 各模組 `AGENTS.md`，documentation-only、不被 dispatch 路由）。
 
 ## 兩個引擎
 
@@ -113,15 +113,19 @@ Windows 例：`bash "C:/Users/<你>/.claude/plugins/marketplaces/dev-workflows/p
 plugins/loops-workflow/
 ├── skills/       define（前置：模糊問題→issue）+ 7 階段 + explain（側用）
 │                 + scaffold-fullstack（前置：greenfield 骨架，自帶整棵模板樹）
+│                 + agents-md-maintainer（側用：AGENTS.md 文檔維運）
 ├── agents/       build 紅綠分離 3（test-author / impl-author / referee）
-│                 + verify 6 核心 reviewer + finding-validator + 7 條件式領域 reviewer
+│                 + verify 6 核心 reviewer + finding-validator + 9 條件式領域 reviewer（含 root-cause / docs-devex）
 ├── commands/     loop / resume / status / explain / install-statusline
 ├── hooks/        SessionStart：浮出 active .loops/ 迴圈
 ├── scripts/      validate-plan / run-eval / hud-status / statusline
 └── references/   各階段規範 + 模板（clean-code / clean-architecture / design-patterns / refactoring / code-simplification /
                   security-checklist / reuse-check / docs-policy /
                   commit-spec / pr-spec / comment-policy / onboarding / reviewer-severity /
-                  finding-validation / preflight / cross-model-review / optional-reviewers / auto-mode / fleet /
+                  finding-validation / preflight / cross-model-review / optional-reviewers /
+                  〔per-axis 審查判準〕review-dispositions / acceptance-review / correctness-review / architecture-review /
+                  performance-review / ui-interaction-review / root-cause-review / docs-devex-review /
+                  auto-mode / fleet /
                   journaling / plan-schema / design-plan-schema / contract-spec / eval-harness /
                   automations / test-rubric / pr-feedback-sources / goal-restate-schema /
                   task-template / change-summaries / adr-template）
