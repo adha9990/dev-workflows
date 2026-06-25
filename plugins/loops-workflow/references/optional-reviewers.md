@@ -6,13 +6,15 @@
 
 | 改動觸及 | 加派 reviewer | 看什麼 |
 |------|------|------|
-| 前端 / UI 元件 | `frontend-ui-reviewer` | 元件結構 / state / render / 樣式一致 |
+| 前端 / UI 元件 | `frontend-ui-reviewer` | 元件結構 / state / 樣式 + **交互閉環**（真實寫入 / 假成功 / 快取同步 / 亂序 / 編輯 flush） |
 | 使用者介面（任何可見 UI） | `accessibility-reviewer` | 語意 HTML / ARIA / 鍵盤 / 對比 |
 | 前端 render / 資源載入 | `web-performance-reviewer` | Core Web Vitals / bundle / 圖片 |
 | 後端服務 / 關鍵流程 | `observability-reviewer` | log / metric / trace / 可診斷性 |
 | CI/CD 設定 / build script | `ci-cd-reviewer` | pipeline / deploy 安全 / secret / cache |
 | schema migration / 介面汰換 | `migration-reviewer` | 可逆 / 向後相容 / backfill |
 | queue / 背景 job / 長流程 / 非同步處理 | `processing-reliability-reviewer` | retry / cancel / idempotency / 部分失敗 / 去重排序 |
+| **bug fix**（issue 標 bug / 標題含 fix·修·regression） | `root-cause-reviewer` | 症狀 vs 病根 / 因果鏈 / 同類入口 / 回歸測試撤 fix 必紅 |
+| **docs / README / 對外契約 / CLI / setup / migration / config 改動，或 PR body 聲稱免改文件** | `docs-devex-reviewer` | 既有文件是否變誤導 / PR body 驗證證據品質 |
 
 > **「先前 comment 是否處理」不另設 reviewer** —— 那由 iterate 蒐齊回饋（`pr-feedback-sources.md`：總評 / inline / reviewThreads）+ 修完強制再 verify 結構性覆蓋。
 

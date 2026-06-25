@@ -13,6 +13,7 @@ tools: Read, Grep, Glob
 - **非目標**：有沒有違反明確的非目標。
 - **契約規格**：`02-plan.md` 的契約規格（API / 資料 / 事件，見 `contract-spec.md`，絕對路徑由 orchestrator 在 prompt 提供）逐條對 build 成果 —— 形狀 / 錯誤碼 / 約束 / migration 有沒有照契約實作。
 - 對照手法：逐句驗收 —— 把 issue（含散在 prose 的隱含項）拆成可勾選的子句，一條一條對 build 成果。
+- **驗收深度**：讀 orchestrator 在 prompt 提供的 `acceptance-review.md` 絕對路徑 —— 錯題偵測（是否在解對的問題，P0）、完成度五態（partial 算未完成）、端到端鏈路 + 持久化驗證、驗證證據強弱分級。
 
 ## 輸出
 

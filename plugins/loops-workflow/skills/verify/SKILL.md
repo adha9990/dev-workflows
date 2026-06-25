@@ -33,14 +33,14 @@ description: Fans out six independent reviewers (product/architecture/security/p
 | `architecture-reviewer` | 分層邊界 / import 方向 / 契約 / 內聚 / 設計模式適切性 | clean-architecture + design-patterns 標準 |
 | `security-reviewer` | auth/authz / 注入 / 敏感資料 | **補威脅建模 / STRIDE / OWASP+LLM Top 10**，讀 `references/security-checklist.md` |
 | `performance-reviewer` | query / N+1 / index / transaction | — |
-| `code-quality-reviewer` | 錯誤處理 / typing / **可讀性與簡潔 / code smells / 重用** | clean-code 標準 + refactoring（異味→手法）+ code-simplification 反例 + reuse-check |
+| `code-quality-reviewer` | **正確性與狀態流（先於風格）** / 錯誤處理 / typing / 可讀性與簡潔 / code smells / 重用 | correctness-review（狀態流 / 部分失敗 / 冪等 / txn）+ clean-code + refactoring + code-simplification + reuse-check |
 | `tests-reviewer` | 測試覆蓋 / 邊界 / migration | **反偏見：不給它「作者說已通過」的結論** |
 
 > 必須在**同一個 assistant 回合**一次發出 6 個 Agent call 才會真的並行。subagent 不能再派 subagent。
 
 > **派 reviewer 只給 artifact + 契約**（issue / `02-plan.md` 契約 / diff），**不給作者的理由 / 辯護** —— `03-build.md` 的 POTENTIAL CONCERNS 是給人看的、**不轉發**給 reviewer。餵作者 rationale 會讓 reviewer 偏向同意（反偏見的正面規則，同 tests-reviewer「不告知作者說已過」）。
 
-> **參考檔路徑（必做）**：subagent 的 CWD 是使用者 repo、且 `${CLAUDE_PLUGIN_ROOT}` 在 markdown 不展開，所以相對路徑 `references/xxx.md` 它們讀不到。派 reviewer 前，**從本 skill 的 base directory 推出 plugin root**（base 上兩層 = `…/plugins/loops-workflow/`），組出絕對路徑塞進各 reviewer 的 prompt：全部 reviewer ← `references/reviewer-severity.md` + `references/preflight.md` §(c)「作者已留痕的決定不算 finding」硬規則原文；`security-reviewer` 另加 `references/security-checklist.md`；`architecture-reviewer` 另加 `references/clean-architecture.md` 與 `references/design-patterns.md`；`code-quality-reviewer` 另加 `references/clean-code.md`、`references/refactoring.md`、`references/code-simplification.md` 與 `references/reuse-check.md`；`tests-reviewer` 另加 `references/test-rubric.md`；`finding-validator` ← `references/finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
+> **參考檔路徑（必做）**：subagent 的 CWD 是使用者 repo、且 `${CLAUDE_PLUGIN_ROOT}` 在 markdown 不展開，所以相對路徑 `references/xxx.md` 它們讀不到。派 reviewer 前，**從本 skill 的 base directory 推出 plugin root**（base 上兩層 = `…/plugins/loops-workflow/`），組出絕對路徑塞進各 reviewer 的 prompt：全部 reviewer ← `references/reviewer-severity.md` + `references/review-dispositions.md`（每軸盯點 + 出手前共用誤報底線）+ `references/preflight.md` §(c)「作者已留痕的決定不算 finding」硬規則原文；`product-contract-reviewer` 另加 `references/acceptance-review.md`；`code-quality-reviewer` 另加 `references/correctness-review.md`、`references/clean-code.md`、`references/refactoring.md`、`references/code-simplification.md` 與 `references/reuse-check.md`；`architecture-reviewer` 另加 `references/architecture-review.md`、`references/clean-architecture.md` 與 `references/design-patterns.md`；`security-reviewer` 另加 `references/security-checklist.md`；`performance-reviewer` 另加 `references/performance-review.md`；`tests-reviewer` 另加 `references/test-rubric.md`；條件式 `frontend-ui-reviewer` ← `references/ui-interaction-review.md`、`root-cause-reviewer` ← `references/root-cause-review.md`、`docs-devex-reviewer` ← `references/docs-devex-review.md`；`finding-validator` ← `references/finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
 
 ### 1.5 條件式 reviewer（選用，視改動領域加派）
 
@@ -51,6 +51,8 @@ description: Fans out six independent reviewers (product/architecture/security/p
 - 非同步處理 / queue / 背景 job / 長流程 → `processing-reliability-reviewer`
 - CI/CD 設定 → `ci-cd-reviewer`
 - schema migration / 介面汰換 → `migration-reviewer`
+- **bug fix**（issue 標 bug / 標題含 fix·修·regression）→ `root-cause-reviewer`
+- **docs / README / 對外契約 / CLI / setup / migration / config 改動，或 PR body 聲稱免改文件** → `docs-devex-reviewer`
 
 ### 1.8 跑真 app + 本機 /code-review（把 `not measured` 變實測）
 

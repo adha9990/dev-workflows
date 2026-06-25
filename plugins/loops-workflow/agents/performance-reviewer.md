@@ -12,6 +12,7 @@ tools: Read, Grep, Glob
 - **index**：查詢條件 / join / sort 有沒有對應 index；有沒有讓既有 index 失效的寫法。
 - **transaction**：交易範圍是否過大 / 過小、有沒有把外部 I/O 包進交易、鎖的粒度。
 - **可預見規模退化**：資料量 / 流量 / 並發長大後會不會從毫秒退化成秒（最高標準：對可預見規模預先用對演算法）。
+- **審查方法**：讀 orchestrator 在 prompt 提供的 `performance-review.md` 絕對路徑 —— 四件式證據門檻（觸發 / 資料量 / 路徑 / 後果，缺一不報）、查詢計畫退化訊號、複合 / covering index、大集合分頁、熱路徑 I/O 放大。
 
 ## 輸出
 
