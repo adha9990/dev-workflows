@@ -36,17 +36,19 @@
 
 ## 三、Pre-Commit secret 掃描
 
-- [ ] code 裡沒有密鑰：`git diff --cached | grep -i "password\|secret\|api_key\|token"`
+- [ ] code 裡沒有密鑰。`git diff --cached | grep -i "password\|secret\|api_key\|token"` 只是**快篩** —— 高熵但無關鍵字命名的密鑰（PEM body / 隨機 token）抓不到，`passwordInput` / `tokenize` 又會誤中；正式應走 entropy / 規則型工具（gitleaks / detect-secrets / secret scanning），grep 命中當線索、不當定論。
 - [ ] `.gitignore` 蓋掉 `.env` / `.env.local` / `*.pem` / `*.key`
 - [ ] `.env.example` 用 placeholder，不是真值
 
 ## 四、Auth / Authz 重點
 
 **Authentication**
-- [ ] 密碼用 bcrypt（≥12 rounds）/ scrypt / argon2 雜湊。
-- [ ] session cookie：`httpOnly` / `secure` / `sameSite: 'lax'`、有過期。
+- [ ] 密碼用 bcrypt / scrypt / argon2 雜湊，**cost 依硬體調到目標耗時**（bcrypt 現代下限約 10–12，重點是有刻意調校、非死守某數字）。
+- [ ] session cookie：`httpOnly` / `secure` / 明確設定 `sameSite`（預設 `'lax'`；跨站 OAuth 回跳 / 嵌入等需求才放寬到 `'none'` 並強制 `secure`，純第一方最嚴可 `'strict'`）、有過期。
 - [ ] 登入端點有 rate limit（≤10 次 / 15 分）。
 - [ ] 重設密碼 token：時限（≤1 小時）、單次使用。
+- [ ] **改變狀態的請求有 CSRF 防護**（CSRF token / double-submit）—— `sameSite` 不是完整防線（舊瀏覽器 / `'none'` 情境會破）。
+- [ ] token / reset token / API key 的比對用 **constant-time**（防 timing attack），不用普通字串相等。
 - [ ] **權限狀態變更後（提權 / 換帳號 / 角色變動）舊 session / token 失效或 rotate**。
 
 **Authorization（登入 ≠ 有權限）**
@@ -80,7 +82,7 @@
 
 ## 七、Dependency / 供應鏈
 
-- [ ] `npm audit`（含 `--audit-level=critical`）—— 結果**按「可達性」triage、不按原始 severity 一律擋**：先問「漏洞 code 在我們的部署裡真的會被呼叫到嗎？runtime 還是 dev 依賴？」。critical/high + runtime 可達 → 現在修；critical/high + 僅 dev → 盡快；moderate + 可達 → 下輪；不可達的標明但不擋（減少 finding 噪音）。
+- [ ] 跑 `npm audit` **全量檢視**（要可程式處理用 `--json`）——⚠️ `--audit-level=<x>` 不是「只顯示某級以上」，它只決定 **CI 在什麼 severity 以上回傳非 0 exit（紅燈門檻）**；別拿它當顯示過濾、也別設成 `critical` 而漏看 high/moderate。結果**按「可達性」triage、不按原始 severity 一律擋**：先問「漏洞 code 在我們的部署裡真的會被呼叫到嗎？runtime 還是 dev 依賴？」。critical/high + runtime 可達 → 現在修；critical/high + 僅 dev → 盡快；moderate + 可達 → 下輪；不可達的標明但不擋（減少 finding 噪音）。
 - [ ] lockfile 進版控；CI 用 `npm ci` 不是 `npm install`。
 - [ ] 新依賴審維護狀況 / 下載量 / `postinstall` script；防 typosquat（`cross-env` vs `crossenv`）。
 
