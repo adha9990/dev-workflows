@@ -11,6 +11,15 @@
 - 先講「**會出什麼包 / 怎麼修 / 怎麼驗**」，再帶 identifier 當錨點 —— 不要一開頭就堆 `stale stat` / `race` / `lock scope` 這種行話。
 - 有清楚中文講法就用中文（正確性 / 效能 / 安全 / 競態 / 邊界狀況…），identifier 只在白話解釋之後、且幫得上定位時才提。
 - 學對方講話的風格，直白但**不省略證據**。
+- **適用範圍含 reviewer / preflight 的主體輸出**，不只 GitHub comment —— 驗收報告、reviewer finding、送審判定的本文都套白話，沒有「內部 brief 可以保持技術腔」的豁免。
+- **輸出前逐句自檢**：一句裡出現 2 個以上「非 identifier 的英文行話」就重寫成白話（identifier / 路徑 / 指令不算）。
+
+| 術語湯（重寫前） | 白話（重寫後） |
+|------|------|
+| 「這裡有 race condition 導致 state 不一致」 | 「兩個操作同時跑時，資料會對不起來」 |
+| 「missing invalidation 造成 stale cache」 | 「改完沒通知畫面更新，使用者看到舊資料」 |
+| 「unbounded query 在 scale 下會 degrade」 | 「資料變多時這個查詢會愈來愈慢」 |
+| 「optimistic update 沒 rollback」 | 「畫面先顯示成功，但失敗時沒退回，使用者以為存好了」 |
 
 ## 3. 雙視角問題紀錄（所有「找出 / 修正問題」的紀錄點固定這樣寫）
 

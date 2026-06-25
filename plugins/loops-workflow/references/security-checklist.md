@@ -2,6 +2,18 @@
 
 > security-reviewer 的延伸 checklist。先做威脅建模，再逐項對照。
 
+## 〇、候選 finding 追蹤五步（每條都要追到底）
+
+報任何安全 finding 前，把它**系統性追一條到底**，否則不報（降 Non-blocking）：
+
+1. **入口**：資料從哪進來（route / 上傳 / 參數 / 訊息 / 第三方 / 模型輸出）。
+2. **受控值**：哪個值是攻擊者可控的。
+3. **驗證**：路上有沒有驗證 / 過濾，夠不夠。
+4. **授權決策點**：在哪裡決定「這個身份能不能做這件事」。
+5. **敏感 sink**：受控值最後流到哪（DB / 檔案 / shell / 渲染 / 對外請求）。
+
+寫得出完整 **exploit path（入口→…→sink，攻擊者實際怎麼利用）**才報；**鏈不完整 = 不報**。
+
 ## 一、Threat Model First（從這裡開始）
 
 伸手抓控制項之前，先花五分鐘像攻擊者一樣想：
@@ -35,25 +47,35 @@
 - [ ] session cookie：`httpOnly` / `secure` / `sameSite: 'lax'`、有過期。
 - [ ] 登入端點有 rate limit（≤10 次 / 15 分）。
 - [ ] 重設密碼 token：時限（≤1 小時）、單次使用。
+- [ ] **權限狀態變更後（提權 / 換帳號 / 角色變動）舊 session / token 失效或 rotate**。
 
-**Authorization**
+**Authorization（登入 ≠ 有權限）**
 - [ ] 每個受保護端點都檢查身份。
-- [ ] 每次存取資源都檢查 ownership / role（防 IDOR）。
+- [ ] 每次存取資源都檢查 ownership / role（**object-level authz / 防 IDOR**）—— 驗的是「這個身份能不能操作**這個具體資源**」，不只是「有沒有登入」。
 - [ ] admin 端點驗 admin role；API key 最小權限。
 - [ ] JWT 驗簽章 / 過期 / issuer。
+
+> **IDOR 高風險訊號**：端點只做「檢查有沒有登入」就放行；service 直接信任 client 傳入的 resourceId 沒驗歸屬；同類 API 一條有檢查、另一條沒有；client 只用 UI 藏起入口但 server 沒對應檢查。
 
 ## 五、Input Validation
 
 - [ ] 所有使用者輸入在邊界（API route / form handler）驗證，用 **allowlist** 不是 denylist。
 - [ ] 長度 / 數值範圍 / email / URL / 日期格式都驗。
-- [ ] 上傳：限類型、限大小、驗內容。
-- [ ] SQL 一律參數化（不字串拼接）；HTML 輸出靠框架自動 escape。
+- [ ] SQL **值**一律參數化（不字串拼接）；**結構性片段（table / column / sort key / 排序方向 / limit）若受 user 控制，必須 allowlist 不可拼接** —— 參數綁定擋不了動態 `ORDER BY <userInput>`。HTML **文字插值**靠框架自動 escape，但 `dangerouslySetInnerHTML` / `v-html` / `href` 等 DOM sink 框架**不擋**，要另行 sanitize。
 - [ ] redirect 前驗 URL（防 open redirect）；server 端對外抓取 allowlist + 擋私有 IP（防 SSRF）。
+- [ ] **路徑遍歷**：user 控制的路徑要 **canonical resolve 後在最終實際路徑驗 containment**；`path.join` / normalize / 黑名單 `../` / 前綴檢查都**不算夠**；注意 symlink 與「先檢查後存取」的 TOCTOU race。
+
+**不可信檔案 / 壓縮處理**（凡接受上傳 / 匯入 / 預覽 / 解析外來檔）
+- [ ] 副檔名 / MIME / client 提供的檔名**都不可信** → 用 magic-number 交叉驗實際型別、server 端重寫檔名。
+- [ ] 限大小 / 數量 / 解壓後總大小上限。
+- [ ] 壓縮檔：查 **zip-slip（path traversal）/ 解壓炸彈（壓縮比） / 巢狀 archive**。
+- [ ] 預覽 / 縮圖 / metadata 萃取也是**不可信輸入口**，比照處理。
 
 ## 六、Data Protection
 
 - [ ] 敏感欄位（`passwordHash` / `resetToken`…）排除在 API 回應外。
 - [ ] 敏感資料不進 log（密碼 / token / 完整卡號）。
+- [ ] **error / validation 回應不外洩內部結構** —— stack trace / SQL / 內部路徑 / schema / token 不送回 response。
 - [ ] 對外通訊一律 HTTPS；備份加密。
 
 ## 七、Dependency / 供應鏈

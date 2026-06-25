@@ -71,3 +71,38 @@ happy path 一條、error path 至少一條，是 data-layer 的最低門檻。
 - **一個 test 一個概念**：一條測試驗一個行為；多個獨立行為拆成多條，壞了才知道是哪個行為壞。
 - **描述式測試名**：名字讀起來像規格 —— `任務完成時設定 completedAt`，不是 `works` / `test1` / `correctly`。
 - **重構改名用 LSP，不用 sed**：bulk text-substitution 在「local 變數名與 module / package 名同形」時會無聲爆掉（語法 valid、import 不報錯、只有真跑到那條路才 AttributeError）。優先用 IDE / LSP 的 rename refactor（它走 AST、分得清 symbol 與字串）；沒 LSP 時先把 local 變數改掉再改模組名、分兩段 commit，改完用 grep 人工掃一遍命中。**unit 跑綠不夠**，要跑一輪 smoke / integration 才驗得到 attribute access。
+
+## 6. 選對測試層級（別預設 E2E）
+
+不要一開口就要求 E2E。對某個改動，選**能抓到 regression 的最低層級**：
+
+| 改動類型 | 最低有效層級 |
+|------|------|
+| 純邏輯 / 計算 / 轉換 | unit |
+| 跨邊界行為（DB / FS / HTTP / queue 真接） | integration |
+| critical path 沒被改壞（download / upload / 解壓…） | smoke |
+| 完整 user story / 跨多畫面流程 | e2e |
+| 視覺 / 拖放 / 平台差異，難自動化 | manual（見 §8） |
+
+低層測得到就別升到高層（高層又慢又脆）。tests-reviewer 別亂要 E2E、也別接受「只有過弱的 unit」就放行核心行為。
+
+## 7. Regression test 合格標準（bug fix 專屬四問）
+
+bug fix 的回歸測試要過四問（缺 regression guard ≥P2，核心 / 高復發升 P1）：
+
+- 有沒有**精確重現原 bug**（不是測個近似情境）？
+- 哪裡證明**已覆蓋**到那條路徑？
+- **撤掉這次 fix，測試會不會紅**？（不會紅 = 沒守住）
+- 用「接近但錯誤的實作」會不會紅？（防只測到表象）
+
+## 8. 手動驗證可接受性
+
+- **可接受 manual**：視覺 / 拖放 / 動畫 / 平台差異 / 探索性。
+- **不可只靠 manual**（必須有自動化）：可重現的 bug fix、對外契約改動、權限 / 授權、migration、檔案 / 路徑安全、佇列狀態、rollback 一致性等 **deterministic 高風險**改動。
+- 可接受的手動證據要可重現：**環境 / 分支 / 步驟 / 預期 / 實際 / 前後對照**齊全；只有「本地測過」沒步驟 = 弱證據，不算數。
+
+## 9. UI 測試與 finding 寫法
+
+- **UI 測試驗使用者可觀察的結果**：rendered 內容 / disabled / loading / error / empty / retry / 可見的回滾；**不**驗元件內部 state / 不可見的 hook 值 / 子元件名 / shallow 結構 / 非契約的 CSS class。
+- **樂觀更新失敗回滾必驗**：任何先更新 UI 再確認的互動，要驗失敗時可恢復先前狀態 / 失敗可見，不能只驗成功路徑。
+- **tests-reviewer finding 句型**：不要寫「加測試 / 提高覆蓋」這種空話；要寫「改了什麼行為 → 缺哪個**可觀察結果**沒被驗 → 最小有效測試的 setup / action / assert → 為何現有證據不夠 → 嚴重度理由」。
