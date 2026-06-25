@@ -73,6 +73,8 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 每個 finding 標 **P0–P3 + Confidence 50/75/100 + Route**（見 `references/reviewer-severity.md`）。所有 reviewer 套 **Metric-Honesty**（沒實跑就標 `not measured`）。主線 merge 成 **Ready / Not ready** 寫 `04-verify.md` + 摘要，**直接進 iterate**（routine 轉場不問）。**只有出 P0** 才停下用 `AskUserQuestion` 問怎麼處理（先修 / 接受風險 / 看細節）。
 
+> **若把驗收結論 post 成 issue / PR comment**（給人審 / 留 audit）：固定套 `references/comment-policy.md` §7「驗收報告 comment 版型」——方向總評 → 按維度分組 → 每點「會發生什麼情境 / 為什麼是問題 / 建議怎麼修 / 建議補測試」→ 結尾 merge 風險。先寫 tmp 草稿、送出後刪（§5）。
+
 > **送審前自檢（作者視角）**：把 verify 的合併安全結論 + explain 的方向 recap 收成**單一送審判定**（`可送審` / `建議先修` / `資訊不足`）、跨關去重、以及硬規則「**作者已留痕的決定（alignment comment / `02-plan.md` / PR body）不算 finding**，除非它本身也是獨立 bug」—— 見 `references/preflight.md`。派 reviewer 時把這條硬規則原文也塞進每個 reviewer 的 prompt。
 
 ### 雙視角記錄

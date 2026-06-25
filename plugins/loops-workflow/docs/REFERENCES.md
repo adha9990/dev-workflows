@@ -45,7 +45,7 @@
 
 | reference | 處理什麼 | 主要用在 |
 |---|---|---|
-| `comment-policy` | 對外書面總綱：繁中白話、雙視角紀錄、AskUserQuestion 標推薦、tmp 草稿送出後刪、去客套 | 所有面向人的書面 |
+| `comment-policy` | 對外書面總綱：繁中白話、雙視角紀錄、AskUserQuestion 標推薦、tmp 草稿送出後刪、去客套；**§7 驗收報告版型 / §8 修正回覆版型（不@reviewer）** | 所有面向人的書面（verify post 驗收 → §7、iterate 修正回覆 → §8） |
 | `commit-spec` | commit 規範：繁中 title / body、主動分段、type / scope / footer 留英文 | build · iterate（commit） |
 | `pr-spec` | PR body 規範：as-built 設計書、`Closes #issue`、指派 `@me`、自動 merge master、edit-first | iterate（開 / 改 PR） |
 | `pr-feedback-sources` | 收 PR reviewer 回饋的來源：inline comment 要 `gh api`、reviewThreads resolution filter | iterate（type=fix） |
