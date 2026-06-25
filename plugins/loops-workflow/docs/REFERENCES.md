@@ -49,7 +49,7 @@
 | `commit-spec` | commit 規範：繁中 title / body、主動分段、type / scope / footer 留英文 | build · iterate（commit） |
 | `pr-spec` | PR body 規範：as-built 設計書、`Closes #issue`、指派 `@me`、自動 merge master、edit-first | iterate（開 / 改 PR） |
 | `pr-feedback-sources` | 收 PR reviewer 回饋的來源：inline comment 要 `gh api`、reviewThreads resolution filter | iterate（type=fix） |
-| `docs-policy` | 何時寫 `docs/<topic>.md` + 維護索引 + 何時更新 AGENTS / CLAUDE（docs = 教學非決策） | build · iterate（收尾） |
+| `docs-policy` | 何時寫 `docs/<topic>.md` + 維護索引 + 何時更新 AGENTS / CLAUDE（docs = 教學非決策）+ Diátaxis 四型格式範本（家規＝減 Explanation、單一 feature 一份檔顯性分節） | build · iterate（收尾） |
 
 ## 5. 編排與進階模式（opt-in）
 
