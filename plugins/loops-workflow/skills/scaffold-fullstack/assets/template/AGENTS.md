@@ -31,7 +31,7 @@
 
 ```
 backend/    Fastify 後端 package(分層:domain / ports / adapters / repositories / services / http;bin 為 composition root)
-frontend/   React SPA package(routes / api / stores / lib / components)
+frontend/   React SPA package(MVVM:model ← viewmodels ← View(routes + components);lib 為跨層工具)
 docs/       設計方向文件 —— 邊建邊寫(見上)
 AGENTS.md   本檔:給人與 agent 的工作指南
 ```
@@ -41,8 +41,10 @@ AGENTS.md   本檔:給人與 agent 的工作指南
 
 ## 動手前的規則
 
-- **遵守分層依賴方向**(backend 的 ESLint `no-restricted-paths` 會擋):`domain ← ports ← {services, repositories, http}`;
+- **遵守後端分層依賴方向**(backend 的 ESLint `no-restricted-paths` 會擋):`domain ← ports ← {services, repositories, http}`;
   只有 `adapters` 與 `backend/src/bin`(composition root)可以碰基礎設施(better-sqlite3、fs、path、pino)。
+- **遵守前端 MVVM 層界**(frontend 的 ESLint `no-restricted-imports` 會擋):`model ← viewmodels ← View(routes + components)`;
+  View 不可直接 import `model/`(含 api)—— 一律經 viewmodel;viewmodel 不可 import 任何 JSX。
 - **`backend/` 與 `frontend/` 不可互相 import**,只透過 HTTP 溝通 —— 這道牆由 workspace 的 package
   邊界保證(兩者不在彼此的相對路徑內)。
 - **schema 的真實來源是 `backend/sql/migrations/`**:改 schema → `pnpm --filter backend db:migrate:dev` →
@@ -56,7 +58,7 @@ AGENTS.md   本檔:給人與 agent 的工作指南
 | --- | --- |
 | `cd backend && pnpm dev` / `pnpm --filter frontend dev` | 啟動後端 API / 前端 Vite dev server |
 | `pnpm -r typecheck` | 型別檢查 backend 與 frontend 兩個 package |
-| `pnpm -r lint` | ESLint(backend 含分層強制;前後端牆由 package 邊界保證) |
+| `pnpm -r lint` | ESLint(backend 含分層強制、frontend 含 MVVM 層界強制;前後端牆由 package 邊界保證) |
 | `pnpm -r test` | 兩個 package 的單元測試(backend 在 node、frontend 在 jsdom) |
 | `pnpm --filter backend test:e2e` / `test:benchmark` | e2e / benchmark 測試 |
 | `pnpm --filter backend db:migrate:dev` / `db:codegen` | 套用 migration / 重新產生 Kysely 型別 |

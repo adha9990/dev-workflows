@@ -1,19 +1,14 @@
 import { apiFetch } from './http';
+import type { CreateNoteInput, Note } from '../types';
 
-export interface Note {
-  id: string;
-  title: string;
-  body: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
+// GET /api/v1/notes → { items: Note[] }
 export async function fetchNotes(): Promise<Note[]> {
   const data = await apiFetch<{ items: Note[] }>('/api/v1/notes');
   return data.items;
 }
 
-export function createNote(input: { title: string; body: string }): Promise<Note> {
+// POST /api/v1/notes → Note
+export function createNote(input: CreateNoteInput): Promise<Note> {
   return apiFetch<Note>('/api/v1/notes', {
     method: 'POST',
     body: JSON.stringify(input),

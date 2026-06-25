@@ -52,17 +52,33 @@ adapters ─────┘ (實作 ports;唯一接觸基礎設施的地方)
 一個新的 adapter —— repositories 與 services 都不用改。測試時則注入一個假的 store。composition root
 (`backend/src/bin/server.ts`)是唯一知道真實接線方式的地方。
 
-## 前端結構
+## 前端分層(MVVM)
+
+前端與後端對稱:結構是**被強制執行的,而非僅供參考**。三層,依賴向內流動(箭頭 `A → B` =
+「A 可以 import B」):
+
+```
+View(routes + components) ──→ viewmodels ──→ model
+```
 
 (路徑相對於 `frontend/`。)
 
-| 路徑 | 角色 |
-| --- | --- |
-| `src/routes/` | 檔案式路由(TanStack Router 產生 `routeTree.gen.ts`)。 |
-| `src/api/` | HTTP client(`http.ts`)+ 各資源的 fetcher。唯一知道 server 契約的地方。 |
-| `src/stores/` | Zustand stores —— 小而專一的 UI 狀態。Server 狀態放在 TanStack Query,不放這裡。 |
-| `src/lib/` | 與框架無關的工具(例如 `cn`)。 |
-| `src/components/` | UI,依功能組織。 |
+| 層 / 路徑 | 可 import | 不可 import | 角色 |
+| --- | --- | --- | --- |
+| `src/model/` | (不 import 任何外層) | `viewmodels`、`routes`、`components` | 最內層:`api/`(`http.ts` + 各資源 fetcher,唯一知道 server 契約的地方)、`types.ts`(DTO)、純前端邏輯。 |
+| `src/viewmodels/` | `model`、`lib` | 任何 JSX:`routes`、`components` | 每畫面一個自訂 hook:持狀態 + 呈現邏輯 + 編排 TanStack Query,對外回 `{ data, status, actions }`。 |
+| `src/routes/` | `viewmodels`、`components`、`lib` | `model`(含 api) | View:檔案式路由(TanStack Router 產生 `routeTree.gen.ts`),薄;吃 viewmodel hook 渲染、接事件。 |
+| `src/components/` | `viewmodels`、`components`、`lib` | `model`(含 api) | View:純呈現元件,只吃 props / 回呼。 |
+| `src/lib/` | (跨層工具) | —— | 與框架無關的無狀態工具(例如 `cn`)。任何層都可 import。 |
+
+這套 MVVM 層界由 `frontend/eslint.config.mjs` 的 `no-restricted-imports` 強制執行 —— patterns 同時擋
+`@/model` 別名與相對 `../model` 兩種寫法,測試檔豁免。zone 清單集中在 config 頂部常數,改 layer 命名
+或新增層時只動常數。**驗證方式:在某個 view(routes/components)故意加一條 `import … from '@/model'`,
+跑 `pnpm --filter frontend lint`,確認它會報錯** —— 別只相信「lint 通過」就以為層被鎖住了。
+
+**為什麼**:View 只認得 viewmodel 暴露的 `{ data, status, actions }`,碰不到 fetch / DTO 細節;
+要換資料來源或調整呈現邏輯只動 viewmodel,View 不動。這與後端 ports/adapters 是同一種精神 ——
+把「不穩定的細節」關在內層,外層只依賴穩定的契約。
 
 ## 食譜:新增一個實體(例如 `tag`)
 
@@ -75,7 +91,10 @@ adapters ─────┘ (實作 ports;唯一接觸基礎設施的地方)
 5. **Service** —— `backend/src/services/tag/tag-service.ts`:編排、產生 id/clock。
 6. **HTTP** —— `backend/src/http/schemas/tag.ts`(TypeBox)+ `backend/src/http/routes/tags.ts`;在 `create-server.ts` 註冊它。
 7. **接線** —— 在 `backend/src/bin/server.ts` 建立該 service,並透過 `ServerDeps` 傳入。
-8. **前端** —— `frontend/src/api/tags.ts`(fetchers)+ 一個用 TanStack Query 的 route/component。
+8. **前端(MVVM 三層)** —— 照 `Note` 切片在前端各層依樣畫葫蘆,讓 ESLint 抓出跨層錯誤:
+   - **model** —— `frontend/src/model/api/tags.ts`(端點函式,用 `http.ts`)+ 在 `model/types.ts` 加 `Tag` DTO;更新 `model/api/index.ts` 與 `model/index.ts` 兩個 barrel。
+   - **viewmodel** —— `frontend/src/viewmodels/useTags.ts`:自訂 hook,持列表 / 表單狀態 + 編排 `useQuery`/`useMutation`,回 `{ data, status, actions }`。可 import `@/model`,不可 import 任何 JSX。
+   - **View** —— `frontend/src/routes/` 加薄頁(吃 `useTags` 渲染)+ `frontend/src/components/`(如 `TagList`/`TagForm`)放純呈現元件,經 `components/index.ts` 出口。View **不可直接 import `model/`** —— 一律經 viewmodel。
 9. **驗證** —— `pnpm -r typecheck && pnpm -r lint && pnpm -r test`。
 
 ## 實戰補充:把這套架構用在「整合密集」的專案

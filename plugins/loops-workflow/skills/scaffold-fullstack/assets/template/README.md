@@ -44,12 +44,17 @@ cd backend && pnpm dev         # server 在同一個 port 同時提供 SPA 與 A
 | `backend/src/http/` | Fastify adapter:server、routes、TypeBox schemas |
 | `backend/src/bin/server.ts` | composition root + CLI 入口 |
 | `backend/sql/migrations/` | schema 的真實來源 |
-| `frontend/` | React SPA package(`@__PROJECT_NAME__/frontend`;TanStack Router/Query、Zustand、Tailwind v4) |
+| `frontend/` | React SPA package(`@__PROJECT_NAME__/frontend`;MVVM:model ← viewmodels ← View;TanStack Router/Query、Tailwind v4) |
+| `frontend/src/model/` | 最內層:api(http + 端點)、DTO 型別、純前端邏輯 |
+| `frontend/src/viewmodels/` | 每畫面一個 hook:持狀態 + 編排 TanStack Query,回 `{ data, status, actions }` |
+| `frontend/src/routes/` + `src/components/` | View:薄路由 + 純呈現元件(吃 viewmodel,不直接碰 model) |
 
 ## 架構規則
 
-- 依賴向內流動(由 `backend` 的 `pnpm lint` 強制):`domain ← ports ← {services, repositories, http}`;
+- 後端依賴向內流動(由 `backend` 的 `pnpm lint` 強制):`domain ← ports ← {services, repositories, http}`;
   只有 `adapters` 與 composition root 接觸基礎設施(better-sqlite3、fs、path、pino)。
+- 前端 MVVM 層界(由 `frontend` 的 `pnpm lint` 強制):`model ← viewmodels ← View(routes + components)`;
+  View 不直接 import `model/`,一律經 viewmodel。
 - `backend/` 與 `frontend/` 是兩個獨立 package,**不在彼此的相對路徑內**,只透過 HTTP 溝通 ——
   這道前後端牆由 workspace 的 package 邊界保證。
 

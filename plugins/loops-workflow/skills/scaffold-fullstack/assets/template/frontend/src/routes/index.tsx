@@ -1,56 +1,42 @@
-import { useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createNote, fetchNotes } from '@/api/notes';
+import { useNotes } from '@/viewmodels/useNotes';
+import { NoteForm, NoteList } from '@/components';
 
 export const Route = createFileRoute('/')({
   component: HomePage,
 });
 
+// View(薄):吃 useNotes viewmodel 渲染,把事件接回 actions。不直接碰 model/api
+//(由 ESLint zone 強制)—— 資料與行為一律經 viewmodel。
 function HomePage() {
-  const queryClient = useQueryClient();
-  const [title, setTitle] = useState('');
-
-  const { data, isLoading } = useQuery({ queryKey: ['notes'], queryFn: fetchNotes });
-  const mutation = useMutation({
-    mutationFn: createNote,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
-  });
+  const { data, status, actions } = useNotes();
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">Notes</h1>
 
-      <form
-        className="flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!title.trim()) return;
-          mutation.mutate({ title, body: '' });
-          setTitle('');
-        }}
-      >
-        <input
-          className="rounded border border-gray-300 px-2 py-1"
-          value={title}
-          placeholder="New note title"
-          onChange={(event) => setTitle(event.target.value)}
-        />
-        <button className="rounded bg-blue-600 px-3 py-1 text-white" type="submit">
-          Add
-        </button>
-      </form>
+      <NoteForm
+        title={data.title}
+        disabled={status.creating}
+        onTitleChange={actions.setTitle}
+        onSubmit={actions.submit}
+      />
 
-      {isLoading ? (
+      {status.loading ? (
         <p>Loading…</p>
+      ) : status.error ? (
+        <div className="flex items-center gap-2">
+          <p className="text-red-600">Failed to load notes.</p>
+          <button
+            className="rounded border border-gray-300 px-2 py-1"
+            type="button"
+            onClick={actions.retry}
+          >
+            Retry
+          </button>
+        </div>
       ) : (
-        <ul className="flex flex-col gap-1">
-          {data?.map((note) => (
-            <li key={note.id} className="rounded border border-gray-200 p-2">
-              {note.title}
-            </li>
-          ))}
-        </ul>
+        <NoteList notes={data.notes} />
       )}
     </div>
   );

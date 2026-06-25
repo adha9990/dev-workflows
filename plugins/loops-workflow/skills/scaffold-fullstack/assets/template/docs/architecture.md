@@ -45,6 +45,28 @@ adapters ─────┘ (實作 ports;唯一接觸基礎設施的地方)
 adapter,repositories 與 services 完全不動;測試時注入假的 store。唯一知道真實接線的地方是
 `backend/src/bin/server.ts`。
 
+## 前端分層:MVVM(與後端對稱)
+
+前端同樣分層,依賴向內流動。箭頭 `A → B` = 「A 可以 import B」。
+
+```
+View(routes + components) ──→ viewmodels ──→ model
+```
+
+| 層 | 職責 | 不該做 |
+| --- | --- | --- |
+| `frontend/src/model/` | 最內層:`api/`(`http.ts` + 端點)、`types.ts`(DTO)、純前端邏輯 | import 任何外層(viewmodels / routes / components) |
+| `frontend/src/viewmodels/` | 每畫面一個 hook:持狀態 + 編排 TanStack Query,回 `{ data, status, actions }` | import 任何 JSX(routes / components) |
+| `frontend/src/routes/` | View:檔案式路由,薄;吃 viewmodel 渲染 | 直接 import `model/`(含 api) |
+| `frontend/src/components/` | View:純呈現元件,只吃 props / 回呼 | 直接 import `model/`(含 api) |
+| `frontend/src/lib/` | 跨層無狀態工具(`cn`…) | —— |
+
+這套 MVVM 層界由 `frontend/eslint.config.mjs` 的 `no-restricted-imports` 強制執行(同時擋 `@/model`
+別名與相對 `../model`),任一 view 直接 import `model/` 就讓 `pnpm lint` 失敗。
+
+**為什麼**:View 只認得 viewmodel 暴露的 `{ data, status, actions }`,碰不到 fetch / DTO 細節 ——
+換資料來源或調呈現邏輯只動 viewmodel。這與後端 ports/adapters 是同一種精神:把不穩定的細節關在內層。
+
 ## schema 是真實來源
 
 `backend/sql/migrations/` 是 schema 的唯一真實來源,且**只增不改**(修正用新的 migration 檔)。
@@ -60,7 +82,8 @@ adapter,repositories 與 services 完全不動;測試時注入假的 store。唯
 
 `backend/sql/migrations/` → `backend/src/domain/note/` → `backend/src/repositories/note-repo.ts` →
 `backend/src/services/note/` → `backend/src/http/schemas/note.ts` + `backend/src/http/routes/notes.ts` →
-在 `backend/src/bin/server.ts` 接線 → `frontend/src/api/notes.ts` + route。
+在 `backend/src/bin/server.ts` 接線 → 前端 MVVM 三層:`frontend/src/model/api/notes.ts` + `model/types.ts`
+→ `frontend/src/viewmodels/useNotes.ts` → View(`frontend/src/routes/index.tsx` + `frontend/src/components/`)。
 
 ## 延伸閱讀
 
