@@ -39,6 +39,11 @@
     - **便宜的先、貴的後且要 gate**：explore 內部夠就不外搜、外搜先便宜 `WebSearch` 再 gate 升級 deep-research；verify 條件式 reviewer 只在觸及領域才加派；Fleet / deep-research / 真機驗證這些貴動作預設不開、要才開。
     - **不重複勞動**：reuse 優先（不重造輪子）、living plan（偏離回去改、不留到最後重做）、修完一定再 verify（一次驗到位、不靠人來回）。
     - **fail-fast 不空轉**：停止條件**看收斂**（findings 沒變少 / 同條 finding 復現就 escalate）、回環 3 圈上限當檢查點、**不過早放棄也不無限繞**。
+    - **砍的是「非必要的貴動作 + 浪費」，不是 mandatory 流程**（carve-out，邊界明寫免被理性化為跳流程）：
+        - **不可省的 gate**：`define` 建 issue / issue-first（規則 12）/ human 決策 gate（規則 2）/ `verify` 獨立複查（規則 11）—— **不因成本而省**。
+        - **可省的貴動作**（預設不開、需要才開）：deep-research（便宜 `WebSearch` 先試）/ Fleet 編隊（單一實作優先）/ 額外 reviewer（條件式按領域加派）/ 真機驗證（simulate 優先）。
+        - **理由**：砍流程 → rework → 最貴 —— 高成本的不是「跑完整流程」，是「偷工減料後發現問題得重做」（規則 11「寫對遠比被退回重修便宜」）。
+
     省 token 不是吝嗇，是讓迴圈**能負擔得起地跑到完成**。
 11. **品質前置（shift-left）：build 寫的當下就達到合併標準，不留給 verify 才抓**。impl-author 寫 code 時就套 verify 會查的**同一套品質標準** —— clean code / clean architecture / **安全（`references/security-checklist.md`）/ 重用（`references/reuse-check.md`）/ 設計模式（`references/design-patterns.md`）**。標準是**同一份 reference、兩處套用**：build 主動寫到位、verify 獨立複查。如此 verify 是「**獨立確認 + 抓盲點**」的安全網，不是第一道品質關 —— **寫對的成本遠低於寫錯被退回重修**（呼應規則 10「不重複勞動」、且減少漏檢風險：寫的人套標準 + 獨立的人複查，比只靠事後查更不會漏）。
 12. **每件工作都從一個 `define` 建立的 GitHub issue 起手（含研究）**：要動手 `plan` / `build` / **`explore` 研究** 的工作，**若還沒有對應 issue，一律先 `define` 建一個再進** —— 不從臨時想法、口頭描述、父 issue 子切片、或 **ad-hoc `gh issue create`** 直接動工。**issue 一律用 repo template 寫**。**沒有獨立的「研究 issue」** —— 研究永遠服務某功能：要嘛是某張**功能 issue 的 `explore` 階段**（功能 issue 標「實作待研究」，動工前先 explore 研究怎麼做），要嘛**先研究 / 討論定案再 `define` 開功能 issue**。已有 issue（issue# / 從 `define` 產生）才可用「直接 `plan` / `build` / `explore`」捷徑。發散式 `explore` 盤出的 backlog **也是逐條經 `define` 開功能 issue**（issue 一律由 define 建、非繞過）。理由：每段工作對得上一張 issue、可追溯、PR 有 `Closes #`、避免無票施工。`define` 是建 issue 的唯一入口。

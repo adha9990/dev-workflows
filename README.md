@@ -26,7 +26,7 @@
 
 > 📊 **完整流程圖**（每階段用幾個 skill / agent、在處理什麼、機制、策略 + mermaid 全貌）見 **[`docs/FLOW.md`](plugins/loops-workflow/docs/FLOW.md)**；**31 份共用規範的分類目錄**見 **[`docs/REFERENCES.md`](plugins/loops-workflow/docs/REFERENCES.md)**。下面是快速參考。
 
-> **設計座標**：**Closed Loop**（人類在框架內把關）· **單一迴圈**預設、opt-in **Fleet** 編隊 · 目標脈絡＝**VISION**（goal）/ **ARCHITECTURE**（設計書 §0–§9）/ **RULES**（AGENTS）· **成本意識**（迴圈很貴 → 高上下文效率、便宜的先·貴的 gate、不重複勞動、fail-fast；見 `AGENTS.md` 規則 10）。
+> **設計座標**：**Closed Loop**（人類在框架內把關）· **單一迴圈**預設、opt-in **Fleet** 編隊 · 目標脈絡＝**VISION**（goal）/ **ARCHITECTURE**（設計書 §0–§9）/ **RULES**（AGENTS）· **成本意識**（迴圈很貴 → 高上下文效率、便宜的先·貴的 gate、不重複勞動、fail-fast；**只砍非必要貴動作 + 浪費，不砍 define/gate/verify**；見 `AGENTS.md` 規則 10）。
 
 ## 工作流程
 
