@@ -1,4 +1,6 @@
 .loops/
+# 例外：quality-gate per-repo 覆寫設定要版控共享（見 references/quality-gate-schema.md）
+!.loops/gate.config.json
 
 # 一次性建置過程紀錄（branch-local，保留本地、不進版控）
 docs/DESIGN.md
