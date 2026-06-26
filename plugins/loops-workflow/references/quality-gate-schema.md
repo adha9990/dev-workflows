@@ -18,6 +18,7 @@
 ```
 
 > **判「是否通過」一律用 `ok`，勿用 `failures.length` / `counts.total`**：warning（severity=1）也會計入 `failures`/`counts`，但不影響 `ok`/`status`（只看 error 級）。
+> **但 `ok=true` 不代表「該跑的 gate 都跑了」**：某 gate 被 graceful skip（`gates.*="not-run"`、`status="partial"`）時 `ok` 仍可為 `true`。#3 整合應額外確認**預期跑的 gate 真的是 `passed`**（而非被漏偵測成 `not-run`）—— 別只看 `ok`/exit code。
 > **`errored`**：gate 工具實際跑了、但**非 0 退出卻解不出任何 failure**（如 tsc 設定錯、測試框架收集期崩潰）→ 標 `errored` 且 `ok=false`，**不會誤報綠**。
 
 ## Failure
@@ -57,7 +58,7 @@ node scripts/loops-quality-gate.mjs [--cwd <dir>] [--gates test,lint,type] [--js
 ```
 
 > ⚠ **覆寫指令須輸出對應 parser 期望的格式**，否則該 gate 會解不出 failures → 靜默假綠：
-> - `test`：vitest / jest（會被自動附加 `--reporter=json --output-file`，底層 runner 須相容該旗標）。
+> - `test`：**目前僅支援 vitest**（會被自動附加 `--reporter=json --outputFile=<暫存>`，這是 vitest 專屬 invocation）。輸出格式雖承襲 jest，但 jest 的 invocation 不同 → 用 jest 需自行讓 config 指令把 vitest 相容的 JSON 寫到該 `--outputFile`，否則該 gate 會 `errored`（不會假綠，但跑不通）。
 > - `lint`：須輸出 **ESLint JSON**（指令要含 `-f json`，例 `eslint . -f json`）。
 > - `type`：`tsc --noEmit`（文字診斷，regex 解析）。
 
@@ -70,6 +71,6 @@ node scripts/loops-quality-gate.mjs [--cwd <dir>] [--gates test,lint,type] [--js
 
 ## reporter 解析
 
-- **test**：`vitest --reporter=json`（jest 相容）→ 走訪 `testResults[].assertionResults[]` 取 `status==="failed"`。
+- **test**：`vitest --reporter=json`（JSON 結構承襲 jest，但 invocation 為 vitest 專屬）→ 走訪 `testResults[].assertionResults[]` 取 `status==="failed"`。
 - **lint**：`eslint -f json` → 每個 `messages[]` 一筆，`severity` 2→error / 1→warning。
 - **type**：`tsc --noEmit` → regex 解析 `file(line,col): error TSxxxx: message`，過濾 preamble / 摘要行。
