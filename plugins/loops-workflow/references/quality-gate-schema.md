@@ -8,14 +8,17 @@
 
 ```jsonc
 {
-  "ok": true,                       // 無 error 級 failure
+  "ok": true,                       // 無 error 級 failure 且無 gate 為 failed/errored
   "status": "passed",               // "passed" | "failed" | "partial"(部分 gate not-run 但其餘 ok)
-  "counts": { "test": 0, "lint": 0, "type": 0, "total": 0 },
-  "gates":  { "test": "ok", "lint": "ok", "type": "ok" }, // "ok" | "failed" | "not-run"
+  "counts": { "test": 0, "lint": 0, "type": 0, "total": 0 }, // 含 warning
+  "gates":  { "test": "passed", "lint": "passed", "type": "passed" }, // "passed" | "failed" | "not-run" | "errored"
   "failures": [ /* Failure[]，見下 */ ],
   "truncated": false                // failures 是否因 cap 被截
 }
 ```
+
+> **判「是否通過」一律用 `ok`，勿用 `failures.length` / `counts.total`**：warning（severity=1）也會計入 `failures`/`counts`，但不影響 `ok`/`status`（只看 error 級）。
+> **`errored`**：gate 工具實際跑了、但**非 0 退出卻解不出任何 failure**（如 tsc 設定錯、測試框架收集期崩潰）→ 標 `errored` 且 `ok=false`，**不會誤報綠**。
 
 ## Failure
 
@@ -50,13 +53,18 @@ node scripts/loops-quality-gate.mjs [--cwd <dir>] [--gates test,lint,type] [--js
 各 repo 可在 `<repo>/.loops/gate.config.json` 覆寫實際指令；缺檔或缺鍵則自動偵測（`package.json` 的 `scripts.test`/`scripts.lint`、`tsconfig.json`）：
 
 ```json
-{ "test": "npm test", "lint": "eslint .", "type": "tsc --noEmit" }
+{ "test": "vitest run", "lint": "eslint . -f json", "type": "tsc --noEmit" }
 ```
 
-⚠ `.loops/` 通常被 `.gitignore` 忽略 → 若要讓這份覆寫**版控共享**，在該 repo 的 `.gitignore` 加例外：
+> ⚠ **覆寫指令須輸出對應 parser 期望的格式**，否則該 gate 會解不出 failures → 靜默假綠：
+> - `test`：vitest / jest（會被自動附加 `--reporter=json --output-file`，底層 runner 須相容該旗標）。
+> - `lint`：須輸出 **ESLint JSON**（指令要含 `-f json`，例 `eslint . -f json`）。
+> - `type`：`tsc --noEmit`（文字診斷，regex 解析）。
+
+⚠ `.loops/` 通常被 `.gitignore` 忽略 → 若要讓這份覆寫**版控共享**，在該 repo 的 `.gitignore` 加例外。**注意必須排除「目錄內容」`.loops/*` 而非目錄 `.loops/`** —— git 無法 re-include 被排除目錄底下的檔：
 
 ```gitignore
-.loops/
+.loops/*
 !.loops/gate.config.json
 ```
 
