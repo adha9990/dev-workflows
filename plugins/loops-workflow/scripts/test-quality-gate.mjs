@@ -19,6 +19,8 @@ import {
   dedupeFailures,
   formatSummary,
   runCommand,
+  classifyGate,
+  buildResult,
 } from './loops-quality-gate.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -82,36 +84,47 @@ function assert(cond, msg) {
   );
 }
 
-// ── T3 parseEslint：eslint -f json，severity 2 → error ────────────────────────
+// ── T3/C10 parseEslint：error+warning 分流、乾淨檔（messages:[]）不入列 ─────────
 {
   const out = parseEslint(readFileSync(join(FIX, 'eslint.json'), 'utf8'));
-  assert(Array.isArray(out) && out.length === 1, 'parseEslint：回 1 筆 [T3]');
-  const f = out[0] || {};
-  assert(f.kind === 'lint', 'parseEslint：kind=lint [T3]');
-  assert(f.severity === 'error', 'parseEslint：severity 2 → error [T3]');
-  assert(f.file === 'C:/repo/src/util.ts', 'parseEslint：file=filePath [T3]');
-  assert(f.ruleId === 'no-unused-vars', 'parseEslint：ruleId 對 [T3]');
-  assert(f.line === 12 && f.column === 7, 'parseEslint：line/column 對 [T3]');
+  // util.ts 有 1 error + 1 warning 入列；clean.ts（messages:[]）不貢獻 → 共 2
   assert(
-    typeof f.message === 'string' && f.message.includes("'foo' is defined but never used."),
-    'parseEslint：message 對 [T3]',
+    Array.isArray(out) && out.length === 2,
+    'parseEslint：error+warning 各一、乾淨檔不入列（共 2）[T3/C10]',
   );
+  const err = out.find((f) => f.severity === 'error') || {};
+  assert(err.kind === 'lint', 'parseEslint：error kind=lint [T3]');
+  assert(err.file === 'C:/repo/src/util.ts', 'parseEslint：error file=filePath [T3]');
+  assert(err.ruleId === 'no-unused-vars', 'parseEslint：error ruleId 對 [T3]');
+  assert(err.line === 12 && err.column === 7, 'parseEslint：error line/column 對 [T3]');
+  assert(
+    typeof err.message === 'string' && err.message.includes("'foo' is defined but never used."),
+    'parseEslint：error message 對 [T3]',
+  );
+  const warn = out.find((f) => f.severity === 'warning') || {};
+  assert(warn.severity === 'warning', 'parseEslint：severity 1 → warning [T3/C10]');
+  assert(warn.ruleId === 'eqeqeq', 'parseEslint：warning ruleId 對 [T3/C10]');
 }
 
-// ── T4 parseTsc：tsc 診斷文字，只抓 error TS 行 ───────────────────────────────
+// ── T4/C10 parseTsc：多筆 error + warning 分流，noise 行濾掉 ──────────────────
 {
   const out = parseTsc(readFileSync(join(FIX, 'tsc.txt'), 'utf8'));
-  assert(Array.isArray(out) && out.length === 1, 'parseTsc：只回 1 筆（noise 行被濾掉）[T4]');
-  const f = out[0] || {};
-  assert(f.kind === 'type', 'parseTsc：kind=type [T4]');
-  assert(f.severity === 'error', 'parseTsc：severity=error [T4]');
-  assert(f.file === 'src/app.ts', 'parseTsc：file 對 [T4]');
-  assert(f.code === 'TS2322', 'parseTsc：code=TSxxxx [T4]');
-  assert(f.line === 23 && f.column === 9, 'parseTsc：line/column 對 [T4]');
+  // 2 個 error TS + 1 個 warning TS；preamble / "Found 2 errors." 等 noise 被濾掉 → 共 3
   assert(
-    typeof f.message === 'string' && f.message.includes('not assignable'),
+    Array.isArray(out) && out.length === 3,
+    'parseTsc：2 error + 1 warning（noise 濾掉、共 3）[T4/C10]',
+  );
+  const e = out.find((f) => f.code === 'TS2322') || {};
+  assert(e.kind === 'type', 'parseTsc：kind=type [T4]');
+  assert(e.severity === 'error', 'parseTsc：error severity=error [T4]');
+  assert(e.file === 'src/app.ts', 'parseTsc：file 對 [T4]');
+  assert(e.line === 23 && e.column === 9, 'parseTsc：line/column 對 [T4]');
+  assert(
+    typeof e.message === 'string' && e.message.includes('not assignable'),
     'parseTsc：message 對 [T4]',
   );
+  const w = out.find((f) => f.code === 'TS6133') || {};
+  assert(w.severity === 'warning', 'parseTsc：warning TS → severity=warning [T4/C10]');
 }
 
 // ── T5 dedupeFailures：去重 + cap 截斷 ────────────────────────────────────────
@@ -177,6 +190,164 @@ function assert(cond, msg) {
     typeof s === 'string' &&
       (s.includes('src/math.test.ts:9') || s.includes('src/util.ts:12') || s.includes('src/app.ts:23')),
     'formatSummary：含 file:line 樣式清單行 [T6②]',
+  );
+}
+
+// ── C2 classifyGate：gate 狀態判定（工具掛了不可報綠）──────────────────────────
+{
+  const errFail = { kind: 'test', severity: 'error', file: 'a', line: 1, message: 'boom' };
+  const warnOnly = { kind: 'lint', severity: 'warning', file: 'b', line: 2, message: 'meh' };
+  assert(
+    classifyGate({ ran: false, code: 0, failures: [] }) === 'not-run',
+    'classifyGate：ran=false → not-run [C2]',
+  );
+  assert(
+    classifyGate({ ran: true, code: 1, failures: [errFail] }) === 'failed',
+    'classifyGate：ran + error failure → failed [C2]',
+  );
+  assert(
+    classifyGate({ ran: true, code: 1, failures: [] }) === 'errored',
+    'classifyGate：ran + code=1 + 空 failures → errored（工具掛了不報綠）[C2]',
+  );
+  assert(
+    classifyGate({ ran: true, code: 0, failures: [] }) === 'passed',
+    'classifyGate：ran + code=0 → passed [C2]',
+  );
+  assert(
+    classifyGate({ ran: true, code: 1, failures: [warnOnly] }) === 'errored',
+    'classifyGate：ran + code=1 + 只有 warning → errored（非0就不綠）[C2]',
+  );
+  assert(
+    classifyGate({ ran: true, code: 0, failures: [warnOnly] }) === 'passed',
+    'classifyGate：ran + code=0 + 只有 warning → passed [C2]',
+  );
+}
+
+// ── C1 buildResult：結果組裝（gates.* 吐狀態值，不得漂回 "ok"）─────────────────
+{
+  const VALID = new Set(['passed', 'failed', 'not-run', 'errored']);
+  const gatesValid = (r) =>
+    VALID.has(r.gates.test) && VALID.has(r.gates.lint) && VALID.has(r.gates.type);
+
+  // 三 gate 全 passed
+  {
+    const r = buildResult({
+      test: { status: 'passed', failures: [] },
+      lint: { status: 'passed', failures: [] },
+      type: { status: 'passed', failures: [] },
+    });
+    assert(r.status === 'passed' && r.ok === true, 'buildResult：全 passed → status=passed/ok=true [C1]');
+    assert(
+      r.gates.test === 'passed' && r.gates.lint === 'passed' && r.gates.type === 'passed',
+      'buildResult：全 passed → gates 值皆 "passed" [C1]',
+    );
+    assert(
+      r.counts.test === 0 && r.counts.lint === 0 && r.counts.type === 0 && r.counts.total === 0,
+      'buildResult：全 passed → counts 全 0 [C1]',
+    );
+    assert(gatesValid(r), 'buildResult：gates.* ∈ {passed,failed,not-run,errored}（不得出現 "ok"）[C1]');
+  }
+  // 一 gate failed → status=failed/ok=false
+  {
+    const r = buildResult({
+      test: { status: 'failed', failures: [{ kind: 'test', severity: 'error', file: 'a', line: 1, message: 'm' }] },
+      lint: { status: 'passed', failures: [] },
+      type: { status: 'passed', failures: [] },
+    });
+    assert(r.status === 'failed' && r.ok === false, 'buildResult：一 gate failed → status=failed/ok=false [C1]');
+    assert(r.gates.test === 'failed', 'buildResult：failed gate → gates.test="failed" [C1]');
+    assert(r.counts.test === 1, 'buildResult：failed gate → counts.test=1 [C1]');
+    assert(gatesValid(r), 'buildResult：gates.* 值合法（failed 情境）[C1]');
+  }
+  // 一 gate not-run 其餘 passed → status=partial 但仍 ok
+  {
+    const r = buildResult({
+      test: { status: 'not-run', failures: [] },
+      lint: { status: 'passed', failures: [] },
+      type: { status: 'passed', failures: [] },
+    });
+    assert(r.status === 'partial' && r.ok === true, 'buildResult：一 not-run 其餘 passed → status=partial/ok=true [C1]');
+    assert(r.gates.test === 'not-run', 'buildResult：not-run gate → gates.test="not-run" [C1]');
+    assert(gatesValid(r), 'buildResult：gates.* 值合法（not-run 情境）[C1]');
+  }
+  // 一 gate errored → ok=false/status=failed
+  {
+    const r = buildResult({
+      test: { status: 'passed', failures: [] },
+      lint: { status: 'errored', failures: [] },
+      type: { status: 'passed', failures: [] },
+    });
+    assert(r.ok === false && r.status === 'failed', 'buildResult：一 gate errored → ok=false/status=failed [C1]');
+    assert(r.gates.lint === 'errored', 'buildResult：errored gate → gates.lint="errored" [C1]');
+    assert(gatesValid(r), 'buildResult：gates.* 值合法（errored 情境）[C1]');
+  }
+}
+
+// ── C11 dedupeFailures 反向：同 file:line 但不同 message 不可被去重 ────────────
+{
+  const x = { kind: 'test', severity: 'error', file: 'src/a.test.ts', line: 5, message: 'expected 1 to be 2' };
+  const y = { kind: 'test', severity: 'error', file: 'src/a.test.ts', line: 5, message: 'expected 3 to be 4' };
+  const r = dedupeFailures([x, y]);
+  assert(
+    r && Array.isArray(r.failures) && r.failures.length === 2,
+    'dedupeFailures：同 file:line、無 code/ruleId、不同 message → 保留 2（identity 須含 message/column）[C11]',
+  );
+}
+
+// ── C12 parser 邊界：空/非法輸入 graceful、severity 分流、全 pass → [] ──────────
+{
+  // 刻意 graceful：空字串 / 非 JSON 不丟例外，回 []
+  assert(
+    Array.isArray(parseEslint('')) && parseEslint('').length === 0,
+    'parseEslint("") → []（刻意 graceful）[C12]',
+  );
+  assert(
+    Array.isArray(parseEslint('not json {{{')) && parseEslint('not json {{{').length === 0,
+    'parseEslint(非JSON) → []（刻意 graceful）[C12]',
+  );
+  // severity:1 → warning（自成一份規格，不靠 fixture）
+  const oneWarn = JSON.stringify([
+    { filePath: 'w.ts', messages: [{ ruleId: 'eqeqeq', severity: 1, message: 'use ===', line: 1, column: 1 }] },
+  ]);
+  const w = parseEslint(oneWarn);
+  assert(w.length === 1 && w[0].severity === 'warning', 'parseEslint：severity 1 → warning [C12]');
+
+  // tsc 空字串 → []；含 warning TS 行 → severity=warning
+  assert(
+    Array.isArray(parseTsc('')) && parseTsc('').length === 0,
+    'parseTsc("") → []（刻意 graceful）[C12]',
+  );
+  const tw = parseTsc("foo.ts(2,2): warning TS6133: 'x' is declared but its value is never read.");
+  assert(
+    tw.length === 1 && tw[0].severity === 'warning',
+    'parseTsc：warning TS 行 → severity=warning [C12]',
+  );
+
+  // vitest 全 pass → []
+  const green = parseVitest(readFileSync(join(FIX, 'vitest-green.json'), 'utf8'));
+  assert(Array.isArray(green) && green.length === 0, 'parseVitest(全 pass json) → [] [C10/C12]');
+}
+
+// ── C3 lint 不截斷假綠：合法但 > tail 上限（>80000 字）的 eslint JSON 仍解得出 error ──
+{
+  const msgs = [{ ruleId: 'no-debugger', severity: 2, message: 'Unexpected debugger statement.', line: 1, column: 1 }];
+  for (let i = 0; i < 1500; i++) {
+    msgs.push({
+      ruleId: 'max-len',
+      severity: 1,
+      message: `This line exceeds the maximum allowed length budget at occurrence number ${i}.`,
+      line: i + 2,
+      column: 1,
+    });
+  }
+  const bigRaw = JSON.stringify([{ filePath: 'src/huge.ts', messages: msgs, errorCount: 1, warningCount: 1500 }]);
+  assert(bigRaw.length > 80000, '前置：eslint JSON > 80000 字（超 tail 上限）[C3]');
+  const out = parseEslint(bigRaw);
+  assert(
+    Array.isArray(out) &&
+      out.length > 0 &&
+      out.some((f) => f.severity === 'error' && f.ruleId === 'no-debugger'),
+    'parseEslint：大型 JSON 仍解得出 error（不可因長度回 []）[C3]',
   );
 }
 

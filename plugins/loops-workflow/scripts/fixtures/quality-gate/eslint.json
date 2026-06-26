@@ -11,9 +11,27 @@
         "nodeType": "Identifier",
         "endLine": 12,
         "endColumn": 10
+      },
+      {
+        "ruleId": "eqeqeq",
+        "severity": 1,
+        "message": "Expected '===' and instead saw '=='.",
+        "line": 20,
+        "column": 5,
+        "nodeType": "BinaryExpression",
+        "endLine": 20,
+        "endColumn": 7
       }
     ],
     "errorCount": 1,
+    "warningCount": 1,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0
+  },
+  {
+    "filePath": "C:/repo/src/clean.ts",
+    "messages": [],
+    "errorCount": 0,
     "warningCount": 0,
     "fixableErrorCount": 0,
     "fixableWarningCount": 0
