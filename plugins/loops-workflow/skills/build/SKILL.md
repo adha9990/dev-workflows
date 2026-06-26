@@ -23,12 +23,12 @@ description: Implements each planned task via red-green-refactor with separate t
 
 > **動 code 前先確認在 worktree 裡**：在獨立 git worktree（自帶 branch）寫，不在使用者主 checkout 直接改（dispatch 對 issue/fix 已開；純設計迴圈走到這裡才開 —— `git worktree add .claude/worktrees/<slug> -b <slug> <base>`，branch / worktree 名 = slug，不加 type 前綴）。見 `AGENTS.md` 規則 9。
 
-> **平行 build 一律 worktree 隔離**：build 預設**逐任務序列**跑紅綠（同一時間只有一個 writer，在 loop worktree 裡）。若為加速**平行派多個會寫檔的 agent**（跨獨立任務 / DAG 同層），**每個平行 writer 必須各自一個隔離 worktree**（`isolation: 'worktree'`）—— 共用同一工作目錄會競態，且各 agent 自報的「綠」是不同時間點的半成品態、**不可採信**（已踩過）。平行完成後合併回主 worktree，**由主線在合併態跑 quality-gate（見下方〈quality-gate 整合〉、只讀精簡摘要）確認綠才算數** —— 不採信各 agent 自報。見 `AGENTS.md` 規則 9。
+> **平行 build 一律 worktree 隔離**：build 預設**逐任務序列**跑紅綠（同一時間只有一個 writer，在 loop worktree 裡）。若為加速**平行派多個會寫檔的 agent**（跨獨立任務 / DAG 同層），**每個平行 writer 必須各自一個隔離 worktree**（`isolation: 'worktree'`）—— 共用同一工作目錄會競態，且各 agent 自報的「綠」是不同時間點的半成品態、**不可採信**（已踩過）。平行完成後合併回主 worktree，**由主線在合併態跑 quality-gate（見下方〈quality-gate 整合〉、只讀精簡摘要，確認預期 gate 皆 `passed`、非 `not-run`）才算數** —— 不採信各 agent 自報。見 `AGENTS.md` 規則 9。
 
 > **quality-gate 整合（跑測試只讀摘要，省 token）**：build 的三個「主線跑測試」確認點（step 2 確認 Red / step 4 確認 Green / 平行合併 re-run）**不收完整 `pnpm typecheck && lint && test` 輸出**（中大型套件單次可灌 >100k token），改跑 quality-gate 腳本只讀**精簡摘要**：
-> - 調用：`node {loops-workflow-plugin-root}/scripts/loops-quality-gate.mjs --cwd <被驗的目標專案>` —— plugin root 從本 skill 的 base directory 解析（同 reference 絕對路徑機制）；`--cwd` 是**目標專案、不是 plugin**。綠燈＝單行 `✓`；紅燈＝counts + 結構化 failures 清單。
+> - 調用：`node {loops-workflow-plugin-root}/scripts/loops-quality-gate.mjs --cwd <被驗的目標專案>` —— plugin root 從本 skill 的 base directory 解析（同 reference 絕對路徑機制）；`--cwd` 是**目標專案、不是 plugin**。綠燈＝單行 `✓`、紅燈＝counts + 結構化 failures 清單。**但 `✓`（`ok:true`）也涵蓋 gate 被 graceful skip** —— 摘要會逐 gate 標 `passed`/`not-run`/`failed`/`errored`。**Green 成立的條件是「預期要跑的 gate 顯示 `passed`」，不是只看 `✓`**：某預期 gate 落 `not-run`/`status=partial` = 該 gate **未驗證、非綠**（見下 fallback）。
 > - **派 fixer（impl-author / test-author）修紅燈時，prompt 只帶 quality-gate 的結構化 failures（`file:line [code|ruleId] message`，契約見 `references/quality-gate-schema.md`），不附原始 stdout**（要逐欄程式化才加 `--json`）。
-> - **fallback**：目標專案無 `.loops/gate.config.json` 且 gate 自動偵測不到任何工具（gates 全 `not-run`）→ 回退到該專案既有的驗證指令，並建議補 `.loops/gate.config.json`（見 schema）。
+> - **fallback / 漏偵測**：gate **全** `not-run`（無 `.loops/gate.config.json` 又偵測不到任何工具）→ 回退到該專案既有的驗證指令並建議補 config。**任一預期 gate 落 `not-run`**（如缺 `tsconfig.json` / lint script 沒被偵測到、但 test 綠）→ **不可當綠**，提示在 `.loops/gate.config.json` 指明該 gate 指令（見 schema）。
 > - **務實邊界**：目標是把確認點輸出**從 ~100k 壓到 ~2k**，不是「消除 agent 看輸出」（Claude Code `Workflow` 沙箱不能 spawn 測試 → 由主線 Bash 跑腳本讀摘要）。
 
 ## Process（每個任務跑一遍紅 → 綠 → 重構 7 步）
@@ -36,7 +36,7 @@ description: Implements each planned task via red-green-refactor with separate t
 1. **派 `test-author`**：只給它需求 / 契約 + TDD 品質判準，**它的 context 不含 implementation**；把 `references/test-rubric.md` 的**絕對路徑**寫進其 prompt（分層測試 unit/integration/smoke/e2e、real-not-mock、async 等真完成、data-layer 覆蓋清單；subagent 用相對路徑讀不到）。它回 failing test + 「這測哪條需求」。
 2. **主線跑 quality-gate → 確認 Red**（讀精簡摘要：摘要應顯示目標測試失敗、且失敗原因正確；**不收完整 test 輸出**。見上〈quality-gate 整合〉）。
 3. **派 `impl-author`**：給它 test + plan，寫**最小範圍**實作轉綠、**不准改 test**；把 `references/clean-code.md`、`references/clean-architecture.md`、`references/security-checklist.md`、`references/reuse-check.md` 的**絕對路徑**寫進其 prompt —— 要求**綠燈當下就照合併標準寫**：clean code（命名 / 小函式 / guard clause / 顯式錯誤 / 型別契約）+ clean architecture（依賴向內 / port + 注入 / 落點對齊）+ **安全**（輸入邊界驗證 / authn-authz + ownership / SQL 參數化 / 敏感資料不進回應·log / 不藏密鑰）+ **重用**（寫前先確認沒有既有的）—— 不是先寫爛 / 寫不安全再靠 verify 抓（shift-left，見 AGENTS.md 規則 11）。**修紅燈時 prompt 只帶 quality-gate 的結構化 failures（不附原始 stdout，見上〈quality-gate 整合〉）。**
-4. **主線跑 quality-gate → 確認 Green**（讀綠燈單行摘要即可，**不收完整輸出**）。
+4. **主線跑 quality-gate → 確認 Green**（讀綠燈單行摘要、**不收完整輸出**；Green 成立＝**預期要跑的 gate 顯示 `passed`**，不是只看 `✓` —— 某預期 gate 落 `not-run`/`status=partial` 是「未驗證」不是綠，按〈quality-gate 整合〉的 fallback / 漏偵測處理）。
 5. **Refactor**（綠燈後、test 保護下整理結構不改行為）：派 impl-author 時把 `references/refactoring.md` 與 `references/code-simplification.md` 的**絕對路徑**寫進其 prompt（subagent 用相對路徑讀不到，見 AGENTS.md〈參考檔路徑解析〉）—— **`refactoring`：先對到一個具名 code smell 才動、用具名手法（Extract Function / Replace Conditional with Polymorphism…）小步改、設計模式對症才引入**；**`code-simplification`：Chesterton's Fence、過度簡化四陷阱、紅旗「簡化若需要改 test 才能過 = 你改的是行為不是結構，停下」**。
 6. **衝突仲裁**：若 impl-author 主張 test 與需求不符 → 回報主線，主線依 `00-goal.md` 完工定義裁決；必要時派 `referee` 判是 test 錯還是 impl 錯。
 7. **Save Point**：測試綠 → 分段 commit（繁中、每個邏輯單位一筆，規範見 `references/commit-spec.md`）；測試紅且修不動 → revert 到上個 Save Point。寫 `03-build.md`（Change Summaries 三段式，見 `references/change-summaries.md`）。
@@ -69,7 +69,7 @@ description: Implements each planned task via red-green-refactor with separate t
 - [ ] Red/Green 確認點是跑 quality-gate 讀**精簡摘要**（不收完整 `pnpm typecheck && lint && test` 輸出）；派 fixer 只帶結構化 failures（見〈quality-gate 整合〉）。
 - [ ] impl-author 寫的 code 達到**合併標準**（clean code / clean architecture / 安全 / 重用），不是留給 verify 才抓（shift-left）。
 - [ ] test 由 test-author 在無 impl context 下產出；impl 由 impl-author 產出且未改 test。
-- [ ] 若有平行 fan-out 寫檔 agent：各自隔離 worktree，且合併後**主線在合併態跑 quality-gate（讀精簡摘要）確認綠**（沒採信各 agent 自報）。
+- [ ] 若有平行 fan-out 寫檔 agent：各自隔離 worktree，且合併後**主線在合併態跑 quality-gate（讀精簡摘要、確認預期 gate 皆 `passed` 非 `not-run`）確認綠**（沒採信各 agent 自報）。
 - [ ] Refactor 後測試行為未變（仍綠）。
 - [ ] 分段 commit（繁中）對應各 Save Point。
 - [ ] `03-build.md` 有 Change Summaries 三段式。
