@@ -1,4 +1,7 @@
-.loops/
+.loops/*
+# 例外：quality-gate per-repo 覆寫設定要版控共享（見 references/quality-gate-schema.md）
+# 註：須排除「目錄內容」.loops/* 而非目錄 .loops/，否則 git 無法 re-include 被排除目錄下的檔
+!.loops/gate.config.json
 
 # 一次性建置過程紀錄（branch-local，保留本地、不進版控）
 docs/DESIGN.md

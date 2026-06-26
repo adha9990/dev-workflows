@@ -1,0 +1,7 @@
+> tsc --noEmit
+
+src/app.ts(23,9): error TS2322: Type 'string' is not assignable to type 'number'.
+src/main.ts(5,1): error TS2304: Cannot find name 'foo'.
+src/legacy.ts(8,3): warning TS6133: 'bar' is declared but its value is never read.
+
+Found 2 errors.

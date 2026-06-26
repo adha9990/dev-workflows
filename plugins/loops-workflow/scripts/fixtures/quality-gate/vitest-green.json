@@ -1,0 +1,31 @@
+{
+  "numTotalTestSuites": 1,
+  "numTotalTests": 2,
+  "numPassedTests": 2,
+  "numFailedTests": 0,
+  "success": true,
+  "testResults": [
+    {
+      "name": "C:/repo/src/ok.test.ts",
+      "status": "passed",
+      "assertionResults": [
+        {
+          "ancestorTitles": ["sum"],
+          "title": "相加得和",
+          "fullName": "sum 相加得和",
+          "status": "passed",
+          "failureMessages": [],
+          "location": { "line": 3, "column": 3 }
+        },
+        {
+          "ancestorTitles": ["sum"],
+          "title": "相減得差",
+          "fullName": "sum 相減得差",
+          "status": "passed",
+          "failureMessages": [],
+          "location": { "line": 7, "column": 3 }
+        }
+      ]
+    }
+  ]
+}
