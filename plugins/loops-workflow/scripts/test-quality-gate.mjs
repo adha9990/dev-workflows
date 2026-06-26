@@ -10,14 +10,17 @@ import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 import {
   resolveConfig,
+  parseConfig,
   parseVitest,
   parseEslint,
   parseTsc,
   dedupeFailures,
   formatSummary,
+  appendToolFlags,
   runCommand,
   classifyGate,
   buildResult,
@@ -25,6 +28,8 @@ import {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIX = join(HERE, 'fixtures', 'quality-gate');
+// 端到端 smoke 真跑的腳本絕對路徑（與本檔同目錄的待實作腳本）
+const SCRIPT = fileURLToPath(new URL('./loops-quality-gate.mjs', import.meta.url));
 
 let passed = 0;
 const failed = [];
@@ -186,11 +191,10 @@ function assert(cond, msg) {
     typeof s === 'string' && /test/i.test(s) && /lint/i.test(s) && /type/i.test(s),
     'formatSummary：含各 kind 計數標籤 [T6②]',
   );
-  assert(
-    typeof s === 'string' &&
-      (s.includes('src/math.test.ts:9') || s.includes('src/util.ts:12') || s.includes('src/app.ts:23')),
-    'formatSummary：含 file:line 樣式清單行 [T6②]',
-  );
+  // F5：三條 file:line 都要在清單裡（不再用 || 放水，逐筆驗）
+  assert(typeof s === 'string' && s.includes('src/math.test.ts:9'), 'formatSummary：清單含 test 的 file:line [T6②/F5]');
+  assert(typeof s === 'string' && s.includes('src/util.ts:12'), 'formatSummary：清單含 lint 的 file:line [T6②/F5]');
+  assert(typeof s === 'string' && s.includes('src/app.ts:23'), 'formatSummary：清單含 type 的 file:line [T6②/F5]');
 }
 
 // ── C2 classifyGate：gate 狀態判定（工具掛了不可報綠）──────────────────────────
@@ -349,6 +353,100 @@ function assert(cond, msg) {
       out.some((f) => f.severity === 'error' && f.ruleId === 'no-debugger'),
     'parseEslint：大型 JSON 仍解得出 error（不可因長度回 []）[C3]',
   );
+}
+
+// ── F1 端到端 smoke：真跑腳本，守住 main/executeGate/exit-code wiring ──────────
+// 用 type gate（讀 stdout，避開 outputFile）；spawnSync 真起 node 跑 SCRIPT。
+function smokeType(typeCmd) {
+  const tmp = mkdtempSync(join(tmpdir(), 'qg-smoke-'));
+  try {
+    mkdirSync(join(tmp, '.loops'), { recursive: true });
+    writeFileSync(join(tmp, '.loops', 'gate.config.json'), JSON.stringify({ type: typeCmd }), 'utf8');
+    const res = spawnSync('node', [SCRIPT, '--cwd', tmp, '--gates', 'type', '--json'], { encoding: 'utf8' });
+    let json = null;
+    try { json = JSON.parse(res.stdout); } catch { json = null; }
+    return { res, json };
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+{
+  // F1a：type 指令印一行 tsc 錯 → 腳本 exit 1、gates.type=failed、failures 含該筆
+  const { res, json } = smokeType(`node -e "console.log('src/x.ts(1,1): error TS9999: boom')"`);
+  assert(res.error == null, 'F1a：node 啟動成功（spawn 無 error）[F1]');
+  assert(res.status === 1, 'F1a：type gate 失敗 → 腳本 exit code===1 [F1]');
+  assert(json && json.gates && json.gates.type === 'failed', 'F1a：stdout JSON gates.type==="failed" [F1]');
+  assert(
+    json && Array.isArray(json.failures) &&
+      json.failures.some((f) => f.code === 'TS9999' && typeof f.message === 'string' && f.message.includes('boom')),
+    'F1a：failures 含該 TS9999 boom 筆 [F1]',
+  );
+}
+{
+  // F1b：type 全綠（無輸出 exit0）→ 腳本 exit 0、gates.type=passed、status=partial（只 type 跑）
+  const { res, json } = smokeType('node -e ""');
+  assert(res.error == null, 'F1b：node 啟動成功 [F1]');
+  assert(res.status === 0, 'F1b：type gate 全綠 → 腳本 exit code===0 [F1]');
+  assert(json && json.gates && json.gates.type === 'passed', 'F1b：gates.type==="passed" [F1]');
+  assert(json && json.status === 'partial', 'F1b：只 type 跑（test/lint not-run）→ status==="partial" [F1]');
+}
+{
+  // F1c：type 工具非 0 退出但解不出錯 → 腳本 exit 1、gates.type=errored、ok=false
+  const { res, json } = smokeType('node -e "process.exit(2)"');
+  assert(res.error == null, 'F1c：node 啟動成功 [F1]');
+  assert(res.status === 1, 'F1c：type errored → 腳本 exit code===1 [F1]');
+  assert(json && json.gates && json.gates.type === 'errored', 'F1c：gates.type==="errored" [F1]');
+  assert(json && json.ok === false, 'F1c：errored → ok===false [F1]');
+}
+
+// ── F4 parseConfig 邊界：graceful 是刻意契約（壞輸入不丟例外）──────────────────
+{
+  const call = (fn) => {
+    try { return { threw: false, val: fn() }; } catch (e) { return { threw: true, err: e }; }
+  };
+  const nullish = (v) => v === null || v === undefined;
+
+  // 壞 JSON 字串 → 不丟例外、三鍵皆 null（或 {} → 取值 nullish）
+  const bad = call(() => parseConfig('{ not valid json'));
+  assert(!bad.threw, 'parseConfig(壞 JSON) 不丟例外（graceful 契約）[F4]');
+  assert(
+    !bad.threw && bad.val && nullish(bad.val.test) && nullish(bad.val.lint) && nullish(bad.val.type),
+    'parseConfig(壞 JSON) → 三鍵皆 null [F4]',
+  );
+
+  // 非物件 JSON（如 123）→ 同
+  const nonObj = call(() => parseConfig('123'));
+  assert(!nonObj.threw, 'parseConfig(非物件 JSON) 不丟例外 [F4]');
+  assert(
+    !nonObj.threw && nonObj.val && nullish(nonObj.val.test) && nullish(nonObj.val.lint) && nullish(nonObj.val.type),
+    'parseConfig(非物件 JSON 123) → 三鍵皆 null [F4]',
+  );
+
+  // 某鍵空字串 / 非字串 → 該鍵 null、其餘合法鍵保留
+  const mixed = call(() => parseConfig(JSON.stringify({ test: 'vitest run', lint: '', type: 42 })));
+  assert(!mixed.threw, 'parseConfig(部分鍵非法) 不丟例外 [F4]');
+  assert(!mixed.threw && mixed.val && mixed.val.test === 'vitest run', 'parseConfig：合法鍵保留 [F4]');
+  assert(!mixed.threw && mixed.val && nullish(mixed.val.lint), 'parseConfig：空字串鍵 → null [F4]');
+  assert(!mixed.threw && mixed.val && nullish(mixed.val.type), 'parseConfig：非字串鍵 → null [F4]');
+}
+
+// ── F3 appendToolFlags：lint flag 轉發（npm script 放 -- 後、npx/binary 直接附加）─
+{
+  // npm/pnpm/yarn run script → flags 必須在 "--" 之後
+  const out1 = appendToolFlags('npm run lint', ['-f', 'json']);
+  assert(typeof out1 === 'string', 'appendToolFlags：npm 回字串 [F3]');
+  const sep = typeof out1 === 'string' ? out1.indexOf(' -- ') : -1;
+  assert(sep !== -1, 'appendToolFlags：npm run script 插入 "--" 分隔 [F3]');
+  assert(
+    sep !== -1 && out1.indexOf('-f', sep) > sep && out1.includes('json'),
+    'appendToolFlags：npm run → -f json 在 "--" 之後 [F3]',
+  );
+
+  // npx / 直接 binary → 直接附加，無 "--"
+  const out2 = appendToolFlags('npx eslint .', ['-f', 'json']);
+  assert(typeof out2 === 'string' && out2.startsWith('npx eslint .'), 'appendToolFlags：npx 保留原指令 [F3]');
+  assert(typeof out2 === 'string' && out2.includes('-f') && out2.includes('json'), 'appendToolFlags：npx 附加 -f json [F3]');
+  assert(typeof out2 === 'string' && !out2.includes(' -- '), 'appendToolFlags：npx/binary 不插入 "--" [F3]');
 }
 
 // ── T-win runCommand：跨平台 shell（Windows 不可對 .cmd shim 噴 EINVAL）────────

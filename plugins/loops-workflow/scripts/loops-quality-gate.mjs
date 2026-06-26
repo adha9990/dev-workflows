@@ -183,19 +183,21 @@ export function buildResult(perGate, cap = DEFAULT_MAX_FAILURES) {
 }
 
 /**
- * 把 GateResult 轉成人讀摘要（gate 標籤即狀態值，與 JSON 一致）。
+ * 把 GateResult 轉成人讀摘要（gate 標籤即狀態值，與 JSON 一致）。每種結果第一行都列各 gate 狀態，
+ * 這樣 errored（failures=0 但工具掛了）也看得出是哪個 gate 爆，不會只剩誤導的「0 failures」。
  * - ok 且無 warning → 單行 ✓ 摘要。
- * - ok 但有 warning → 中性 ✓ 措辭並標 warning 數（不印 "✗ failures"，避免把警告當失敗嚇人）。
- * - 非 ok → 首行計數，續印各筆 `file:line [code|ruleId] message`；truncated 補一行提示。
+ * - ok 但有 warning → 中性 ✓ 措辭並標 warning 數（不印 "✗"，避免把警告當失敗嚇人）。
+ * - 非 ok → ✗ gate 狀態行 + error/warning 計數行，續印各筆 `file:line [code|ruleId] message`；truncated 補提示。
  */
 export function formatSummary(result) {
-  const counts = result?.counts ?? { test: 0, lint: 0, type: 0, total: 0 };
   const failures = Array.isArray(result?.failures) ? result.failures : [];
+  const gates = result?.gates ?? {};
+  const gateLine = (mark) =>
+    `${mark} quality-gate: ${GATE_ORDER.map((g) => `${g} ${gates[g] ?? 'unknown'}`).join(', ')}`;
 
   if (result?.ok) {
-    const gates = result?.gates ?? {};
-    const header = `✓ quality-gate: ${GATE_ORDER.map((g) => `${g} ${gates[g] ?? 'unknown'}`).join(', ')}`;
     const warnings = failures.filter((f) => f?.severity === 'warning');
+    const header = gateLine('✓');
     if (warnings.length === 0) return header;
 
     const lines = [`${header} (${warnings.length} warnings)`];
@@ -204,7 +206,9 @@ export function formatSummary(result) {
     return lines.join('\n');
   }
 
-  const lines = [`✗ ${counts.total} failures: test=${counts.test} lint=${counts.lint} type=${counts.type}`];
+  const errorCount = failures.filter((f) => f?.severity === 'error').length;
+  const warningCount = failures.filter((f) => f?.severity === 'warning').length;
+  const lines = [gateLine('✗'), `  ${errorCount} errors, ${warningCount} warnings`];
   for (const f of failures) {
     lines.push(`  ${formatFailureLine(f)}`);
   }
@@ -366,8 +370,14 @@ function isPackageManagerScript(command) {
   return /^(npm|pnpm|yarn)\b/.test(command.trim());
 }
 
-function appendToolFlags(command, flags) {
-  return isPackageManagerScript(command) ? `${command} -- ${flags}` : `${command} ${flags}`;
+/**
+ * 把工具 flags（token 陣列）接到指令字串。
+ * npm/pnpm/yarn run script → flags 放 ` -- ` 之後（轉發給底層工具，否則被 package manager 自己吃掉）；
+ * npx / 直接 binary → 直接附加（無 `--`）。
+ */
+export function appendToolFlags(command, flags) {
+  const suffix = (Array.isArray(flags) ? flags : [flags]).join(' ');
+  return isPackageManagerScript(command) ? `${command} -- ${suffix}` : `${command} ${suffix}`;
 }
 
 // test / lint 都把 reporter 寫進暫存檔再讀「完整 raw」，避免吃到被 tail 砍過或混入 stderr 的 stdout。
@@ -376,7 +386,8 @@ function planTestGate(configCommand, scripts, scratchDir) {
   if (!base) return null;
 
   const outFile = join(scratchDir, 'vitest.json');
-  const command = appendToolFlags(base, `--reporter=json --outputFile="${outFile}"`);
+  // reporter flags 經 appendToolFlags 轉發（npm test 形式時要落在 `--` 之後才到得了 vitest）。
+  const command = appendToolFlags(base, ['--reporter=json', `--outputFile="${outFile}"`]);
   return { command, parse: parseVitest, outFile };
 }
 
@@ -386,13 +397,16 @@ function planLintGate(configCommand, scripts, cwd, scratchDir) {
   if (!base) return null;
 
   const outFile = join(scratchDir, 'eslint.json');
-  // 確保 json 格式（config 沒指定 format 才補），並導向暫存檔取完整 raw JSON（C3：根除截斷假綠）。
-  const command = appendToolFlags(ensureEslintJsonFormat(base), `--output-file "${outFile}"`);
+  // -f json 與 --output-file 都是「給 eslint 的 flags」，一起經 appendToolFlags 轉發
+  // （F3：npm script 時兩者都得在 `--` 之後，否則 eslint 收不到 → 退化成截斷假綠）。
+  const command = appendToolFlags(base, eslintReporterFlags(base, outFile));
   return { command, parse: parseEslint, outFile };
 }
 
-function ensureEslintJsonFormat(command) {
-  return /(^|\s)(-f|--format)(\s|=)/.test(command) ? command : `${command} -f json`;
+// eslint reporter flags：已含 format 的 config 指令不重複加 -f json；outFile 引號包覆容許路徑含空白。
+function eslintReporterFlags(command, outFile) {
+  const hasFormat = /(^|\s)(-f|--format)(\s|=)/.test(command);
+  return [...(hasFormat ? [] : ['-f', 'json']), '--output-file', `"${outFile}"`];
 }
 
 function planTypeGate(configCommand, cwd) {
