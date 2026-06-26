@@ -449,6 +449,165 @@ function smokeType(typeCmd) {
   assert(typeof out2 === 'string' && !out2.includes(' -- '), 'appendToolFlags：npx/binary 不插入 "--" [F3]');
 }
 
+// ── G helper：通用 e2e 跑法（tmp cwd + 可選 config/檔案 + 真跑腳本 + parse --json）─
+const FAKE = fileURLToPath(new URL('./fixtures/quality-gate/fake-reporter.mjs', import.meta.url));
+function runGate({ config = null, files = {}, gates, args = [], env = {} } = {}) {
+  const tmp = mkdtempSync(join(tmpdir(), 'qg-e2e-'));
+  try {
+    if (config) {
+      mkdirSync(join(tmp, '.loops'), { recursive: true });
+      writeFileSync(join(tmp, '.loops', 'gate.config.json'), JSON.stringify(config), 'utf8');
+    }
+    for (const [name, content] of Object.entries(files)) {
+      const p = join(tmp, name);
+      mkdirSync(dirname(p), { recursive: true });
+      writeFileSync(p, content, 'utf8');
+    }
+    const res = spawnSync(
+      'node',
+      [SCRIPT, '--cwd', tmp, '--gates', gates, ...args, '--json'],
+      { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, env: { ...process.env, ...env } },
+    );
+    let json = null;
+    try { json = JSON.parse(res.stdout); } catch { json = null; }
+    return { res, json };
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+// 大型 eslint JSON（error 在最前、總長 > 80000 字）—— 給 G1
+function bigEslintErrorFirst() {
+  const msgs = [{ ruleId: 'no-debugger', severity: 2, message: 'Unexpected debugger statement.', line: 1, column: 1 }];
+  for (let i = 0; i < 1500; i++) {
+    msgs.push({ ruleId: 'max-len', severity: 1, message: `This over-length line is occurrence number ${i} of many.`, line: i + 2, column: 1 });
+  }
+  return JSON.stringify([{ filePath: 'src/huge.ts', messages: msgs, errorCount: 1, warningCount: 1500 }]);
+}
+// 含 1 失敗的 vitest JSON —— 給 G2/G3
+function failingVitestJson() {
+  return JSON.stringify({
+    numTotalTests: 1,
+    numFailedTests: 1,
+    success: false,
+    testResults: [
+      {
+        name: 'C:/repo/src/d.test.ts',
+        status: 'failed',
+        assertionResults: [
+          { ancestorTitles: ['d'], title: '會壞', fullName: 'd 會壞', status: 'failed', failureMessages: ['AssertionError: nope-1234'], location: { line: 2, column: 1 } },
+        ],
+      },
+    ],
+  });
+}
+
+// ── G1 lint outFile 路徑端到端（守 P1）：大型 JSON 的開頭 error 不可被 tail 截掉 ──
+{
+  const big = bigEslintErrorFirst();
+  assert(big.length > 80000, 'G1 前置：eslint JSON > 80000 字（超 tail 上限）[G1]');
+  const { res, json } = runGate({
+    config: { lint: `node "${FAKE}"` },
+    gates: 'lint',
+    env: { FAKE_OUT: big, FAKE_EXIT: '1' },
+  });
+  assert(res.error == null, 'G1：node 啟動成功（spawn 無 error）[G1]');
+  assert(json && json.gates && json.gates.lint === 'failed', 'G1：gates.lint==="failed" [G1]');
+  assert(
+    json && Array.isArray(json.failures) &&
+      json.failures.some((f) => f.kind === 'lint' && f.severity === 'error' && f.ruleId === 'no-debugger'),
+    'G1：failures 含最前面的 error（走 outFile 讀完整、開頭沒被 tail 截掉）[G1]',
+  );
+}
+
+// ── G2 自動偵測層端到端（守 P1）─────────────────────────────────────────────
+{
+  // 不寫 gate.config.json，靠 package.json scripts.test 被偵測
+  const { res, json } = runGate({
+    files: { 'package.json': JSON.stringify({ name: 'tmp-pkg', scripts: { test: `node "${FAKE}"` } }) },
+    gates: 'test',
+    env: { FAKE_OUT: failingVitestJson() },
+  });
+  assert(res.error == null, 'G2：node 啟動成功 [G2]');
+  assert(json && json.gates && json.gates.test === 'failed', 'G2：偵測 package.json scripts.test → gates.test==="failed" [G2]');
+  assert(
+    json && Array.isArray(json.failures) &&
+      json.failures.some((f) => f.kind === 'test' && typeof f.message === 'string' && f.message.includes('nope-1234')),
+    'G2：failures 含該失敗筆 [G2]',
+  );
+}
+{
+  // 完全空 tmp（無 config、無 package.json/tsconfig）→ 三 gate 皆 not-run、status=partial
+  const { res, json } = runGate({ gates: 'test,lint,type' });
+  assert(res.error == null, 'G2-empty：node 啟動成功 [G2]');
+  assert(
+    json && json.gates && json.gates.test === 'not-run' && json.gates.lint === 'not-run' && json.gates.type === 'not-run',
+    'G2-empty：無偵測目標 → 三 gate 皆 not-run [G2]',
+  );
+  assert(json && json.status === 'partial', 'G2-empty：全 not-run → status==="partial" [G2]');
+}
+
+// ── G3 多 gate + continue-on-failure（守 P2）─────────────────────────────────
+{
+  const cfg = {
+    test: `node "${FAKE}"`,
+    type: `node -e "console.log('a.ts(1,1): error TS1234: boom')"`,
+  };
+  // ① 不帶旗標：test 失敗即短路 → type not-run、exit 1
+  {
+    const { res, json } = runGate({ config: cfg, gates: 'test,type', env: { FAKE_OUT: failingVitestJson() } });
+    assert(json && json.gates && json.gates.test === 'failed', 'G3①：gates.test==="failed" [G3]');
+    assert(json && json.gates && json.gates.type === 'not-run', 'G3①：test 失敗即短路 → gates.type==="not-run" [G3]');
+    assert(res.status === 1, 'G3①：exit code===1 [G3]');
+  }
+  // ② 帶 --continue-on-failure：type 仍跑，failures 同時含 test 與 type
+  {
+    const { res, json } = runGate({ config: cfg, gates: 'test,type', args: ['--continue-on-failure'], env: { FAKE_OUT: failingVitestJson() } });
+    assert(
+      json && json.gates && json.gates.test === 'failed' && json.gates.type === 'failed',
+      'G3②：continue → type 也有跑且 failed [G3]',
+    );
+    assert(
+      json && Array.isArray(json.failures) &&
+        json.failures.some((f) => f.kind === 'test') && json.failures.some((f) => f.kind === 'type'),
+      'G3②：failures 同時含 test 與 type 兩 kind [G3]',
+    );
+    assert(res.status === 1, 'G3②：exit code===1 [G3]');
+  }
+}
+
+// ── G4 formatSummary 分支（守 P2，純函式）───────────────────────────────────
+{
+  // warning-only 的 passed result：含 ✓、含 "(1 warnings)"、不含 ✗
+  const warnPass = {
+    ok: true,
+    status: 'passed',
+    counts: { test: 0, lint: 1, type: 0, total: 1 },
+    gates: { test: 'passed', lint: 'passed', type: 'passed' },
+    failures: [{ kind: 'lint', severity: 'warning', file: 'a.ts', line: 1, message: 'w' }],
+    truncated: false,
+  };
+  const s = formatSummary(warnPass);
+  assert(typeof s === 'string' && s.includes('✓'), 'G4：warning-only passed 含 ✓ [G4]');
+  assert(typeof s === 'string' && s.includes('(1 warnings)'), 'G4：含 "(1 warnings)" [G4]');
+  assert(typeof s === 'string' && !s.includes('✗'), 'G4：warning-only passed 不含 ✗ [G4]');
+
+  // truncated:true → 含截斷提示（且與 truncated:false 輸出不同）
+  const truncBase = {
+    ok: false,
+    status: 'failed',
+    counts: { test: 1, lint: 0, type: 0, total: 1 },
+    gates: { test: 'failed', lint: 'passed', type: 'passed' },
+    failures: [{ kind: 'test', severity: 'error', file: 'b.ts', line: 2, message: 'm' }],
+  };
+  const st = formatSummary({ ...truncBase, truncated: true });
+  const sf = formatSummary({ ...truncBase, truncated: false });
+  assert(typeof st === 'string' && st !== sf, 'G4：truncated 旗標改變輸出（截斷提示存在）[G4]');
+  assert(
+    typeof st === 'string' && /truncat|截斷|省略|更多|more|\.\.\./i.test(st),
+    'G4：truncated 結果含截斷提示字串 [G4]',
+  );
+}
+
 // ── T-win runCommand：跨平台 shell（Windows 不可對 .cmd shim 噴 EINVAL）────────
 // regression：真實 smoke 發現 runCommand 在 Windows 對 .cmd shim（npm/npx/tsc/eslint）
 // 會 spawn EINVAL。下面用真實子行程（非 mock）抓這條：修好前會 throw/非 0 → 紅。
