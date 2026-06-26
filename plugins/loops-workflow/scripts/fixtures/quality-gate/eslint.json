@@ -1,0 +1,21 @@
+[
+  {
+    "filePath": "C:/repo/src/util.ts",
+    "messages": [
+      {
+        "ruleId": "no-unused-vars",
+        "severity": 2,
+        "message": "'foo' is defined but never used.",
+        "line": 12,
+        "column": 7,
+        "nodeType": "Identifier",
+        "endLine": 12,
+        "endColumn": 10
+      }
+    ],
+    "errorCount": 1,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0
+  }
+]
