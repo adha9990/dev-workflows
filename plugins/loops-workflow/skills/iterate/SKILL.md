@@ -84,7 +84,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 **收尾清理 —— loop 結束的標準環節，不是選項。分兩個時機：**
 
 1. **iterate 結束本 loop 時（完工或中止，不論有沒有交 PR）→ 清掉 loop 期間產生的所有暫存**：移除該 loop 的 worktree（`git worktree remove --force .claude/worktrees/<slug>` → `git worktree prune`；被鎖刪不掉至少 prune）、刪掉草稿 tmp（應已 post 後刪）、screenshot / gif、scratch 檔等**本機產物**。**這步在 loop 收尾就做，不等 PR**。
-2. **PR 合併後 → 清掉分支**：正常流程是 reviewer 審核後才由 reviewer 合併；**本專案是 solo（作者自己合併）→ 合併後也由你自己刪分支 + 清 worktree**（`gh pr merge <PR#> --squash --delete-branch` —— **一律 squash、單一 commit 回 master**，完整 merge 策略見 `references/pr-spec.md`〈merge 策略〉；或事後 `git push origin --delete <slug>` + `git branch -D <slug>`）。遠端 / 本機**只留 `main` + 仍在處理中的 loop 分支**，不囤積已合併分支。
+2. **PR 合併後 → 清掉分支**：正常流程是 reviewer 審核後才由 reviewer 合併；**本專案是 solo（作者自己合併）→ 合併後也由你自己刪分支 + 清 worktree**（**使用者核可後**用 `gh pr merge <PR#> --squash --delete-branch` —— merge 仍 human-gated、**一律 squash、單一 commit 回 master**，完整 merge 策略見 `references/pr-spec.md`〈merge 策略〉；或事後 `git push origin --delete <slug>` + `git branch -D <slug>`）。遠端 / 本機**只留 `main` + 仍在處理中的 loop 分支**，不囤積已合併分支。
 
 **loop 暫存一律不入庫**：worktree、草稿、截圖、`.loops/`、`data/`、`dev.json` 等都不該被 commit / push。repo `.gitignore` 要涵蓋 `.loops/`、`.claude/worktrees/`、`data/`、`dev.json`、截圖（缺就補）；`git ls-files` 掃一遍確認沒有暫存被追蹤。
 

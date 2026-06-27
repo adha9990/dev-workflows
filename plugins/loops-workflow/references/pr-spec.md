@@ -47,6 +47,7 @@ gh pr merge <PR#> --squash --delete-branch \
 ```
 
 - **必帶 `--squash`**（不是預設的 merge-commit）—— 不留「Merge pull request」合併節點、不保留分支內多筆 commit；整個 PR 壓成一筆乾淨 commit、好讀好 revert。
-- **顯式帶 `--subject` / `--body`**：避免 `gh pr merge` 開互動編輯器卡住（本環境 non-interactive）；body 仍放 `Closes #<issue>`（merge 時自動關 issue）與 Co-Authored-By / Claude-Session trailer。
+- **顯式帶 `--subject` / `--body`**：主要為**控制 squash commit 訊息** —— 繁中 subject + body 內 `Closes #<issue>`（merge 時自動關 issue）+ Co-Authored-By / Claude-Session trailer，不讓 GitHub 從分支多筆 commit 自動拼湊；附帶也免去 `gh pr merge` 在 non-interactive 環境開編輯器 / 報錯。
+- **編號來源**：subject 尾綴 `(#<PR#>)`（squash commit 慣例、用 **PR 號**）、`Closes #<issue>` 放 **body**（用 **issue 號**）。PR 號 ≠ issue 號是正常，別把 subject 的 PR# 改成 issue#。
 - `--delete-branch`：合併後刪遠端分支（本機分支 / worktree 由 `skills/iterate` §6 收尾清理）。
 - merge **本身仍是 human gate** —— 使用者核可才執行；這段只規範「核可後用什麼策略合」，不改「誰決定 merge」。
