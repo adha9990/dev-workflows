@@ -10,10 +10,8 @@
 // 退出。這就是 TDD 的紅燈起點。三模組補齊後，下方斷言才有機會逐條轉綠。
 
 import {
-  readFileSync,
   writeFileSync,
   mkdtempSync,
-  mkdirSync,
   rmSync,
   existsSync,
 } from 'node:fs';
@@ -23,7 +21,14 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 import { isProtectedConfig, shouldBlock } from './config-protection.mjs';
-import { addEdit, loadEdits, clearEdits } from './edit-accumulator.mjs';
+import {
+  addEdit,
+  loadEdits,
+  clearEdits,
+  editsStateFile,
+  readEditsForSession,
+  writeEditsState,
+} from './edit-accumulator.mjs';
 import { shouldRunGate, buildGateInjection } from './stop-gate.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -46,21 +51,10 @@ function assert(cond, msg) {
   }
 }
 
-// accumulator / stop-gate 共用的 state 檔路徑規則（與契約一致）：
-//   os.tmpdir()/loops-edits-<sanitize session>.json
-// sanitize：非 [A-Za-z0-9_-] → '_'（與 #15 一致）。impl 不一定 export 此規則，故在測試端自刻同規則
-// 當「安全檔名單一真相源」，並把 smoke 的 session_id 都限制在 [A-Za-z0-9_-]，讓 sanitize 為 identity、
-// 不致與 impl 漂移。
-function sanitizeSession(id) {
-  return String(id).replace(/[^A-Za-z0-9_-]/g, '_');
-}
-function editsStateFile(sessionId) {
-  return join(tmpdir(), 'loops-edits-' + sanitizeSession(sessionId) + '.json');
-}
-function seedEdits(stateFile, paths) {
-  // 預置 accumulator：直接寫 stop-gate 會讀的 state 檔（同 loadEdits 解析得到的 {ts,paths:[]} 形態）。
-  writeFileSync(stateFile, JSON.stringify({ ts: Date.now(), paths }), 'utf8');
-}
+// accumulator / stop-gate 的 state 檔「路徑 / 讀 / 寫」一律走 edit-accumulator.mjs 的 export
+// （editsStateFile / readEditsForSession / writeEditsState）當單一真相源——測試端不再自刻 sanitize、
+// 路徑組法或 seed 寫法，避免與 impl 漂移。seed accumulator 用 writeEditsState(sessionId, paths)：直接
+// 落盤 state 檔、不經 PostToolUse hook，故不受「accumulator 僅在 LOOPS_STOP_GATE=1 才寫」這道 flag 閘影響。
 
 let seq = 0;
 function freshSession(prefix) {
@@ -287,7 +281,7 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
 // SMOKE — edit-accumulator.mjs（真 spawn 累積 state 檔，驗去重 / 多筆）
 // =============================================================================
 
-// ── S-acc①：兩次不同 path → state 檔 paths 累積 2 筆 ─────────────────────────
+// ── S-acc①：兩次不同 path → state 檔 paths 累積 2 筆（accumulator hook 僅 flag=1 才寫 state）──
 {
   const sessionId = freshSession('acc');
   const stateFile = editsStateFile(sessionId);
@@ -295,11 +289,12 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
   try {
     const pa = join(tmpdir(), `acc-a-${sessionId}.ts`); // 絕對路徑：避免 impl 正規化造成 includes 漂移
     const pb = join(tmpdir(), `acc-b-${sessionId}.ts`);
-    const r1 = runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: pa } });
-    const r2 = runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: pb } });
+    // A1：edit-accumulator 的 PostToolUse hook 只在 LOOPS_STOP_GATE=1 時才寫 state，故 spawn 須設 flag。
+    const r1 = runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: pa } }, { LOOPS_STOP_GATE: '1' });
+    const r2 = runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: pb } }, { LOOPS_STOP_GATE: '1' });
     assert(r1.status === 0 && r2.status === 0, 'S-acc①：兩次 spawn 皆 exit 0 [S-acc①]');
     assert(existsSync(stateFile), 'S-acc①：accumulator 產生 state 檔 [S-acc①]');
-    const paths = existsSync(stateFile) ? loadEdits(readFileSync(stateFile, 'utf8')) : [];
+    const paths = readEditsForSession(sessionId); // 單一真相源讀回（不自刻路徑/解析）
     assert(paths.length === 2, 'S-acc①：兩不同 path → state 檔 paths 累積 2 筆 [S-acc①]');
     assert(paths.includes(pa) && paths.includes(pb), 'S-acc①：兩 path 都被記錄 [S-acc①]');
   } finally {
@@ -314,9 +309,10 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
   rmSync(stateFile, { force: true });
   try {
     const p = join(tmpdir(), `acc-dup-${sessionId}.ts`);
-    runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: p } });
-    runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: p } });
-    const paths = existsSync(stateFile) ? loadEdits(readFileSync(stateFile, 'utf8')) : [];
+    // A1：accumulator hook 須在 LOOPS_STOP_GATE=1 下才會寫 state。
+    runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: p } }, { LOOPS_STOP_GATE: '1' });
+    runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: p } }, { LOOPS_STOP_GATE: '1' });
+    const paths = readEditsForSession(sessionId); // 單一真相源讀回
     assert(paths.length === 1, 'S-acc②：同 path 兩次 → 去重後 paths 只 1 筆 [S-acc②]');
   } finally {
     rmSync(stateFile, { force: true });
@@ -331,7 +327,7 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
 {
   const sessionId = freshSession('gate-green');
   const stateFile = editsStateFile(sessionId);
-  seedEdits(stateFile, [join(tmpdir(), `edited-${sessionId}.ts`)]);
+  writeEditsState(sessionId, [join(tmpdir(), `edited-${sessionId}.ts`)]); // seed：直接落盤、不受 flag 閘影響
   try {
     const res = runHook(
       STOP_GATE_SCRIPT,
@@ -342,18 +338,18 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
     assert(res.status === 0, 'S-gate①：gate 綠 → hook exit 0 [S-gate①]');
     assert(typeof res.stdout === 'string' && !res.stdout.includes('additionalContext'),
       'S-gate①：gate 綠 → stdout 無 additionalContext（綠靜默）[S-gate①]');
-    const after = existsSync(stateFile) ? loadEdits(readFileSync(stateFile, 'utf8')) : [];
-    assert(after.length === 0, 'S-gate①：綠跑完 → accumulator 被清空（loadEdits === []）[S-gate①]');
+    const after = readEditsForSession(sessionId);
+    assert(after.length === 0, 'S-gate①：綠跑完 → accumulator 被清空（readEditsForSession === []）[S-gate①]');
   } finally {
     rmSync(stateFile, { force: true });
   }
 }
 
-// ── S-gate②：env=1 + gate-red cwd + 預置 edit → 注入 additionalContext（含 ✗）──
+// ── S-gate②：env=1 + gate-red cwd + 預置 edit → 注入 additionalContext（含 ✗）+ accumulator 被清空 ──
 {
   const sessionId = freshSession('gate-red');
   const stateFile = editsStateFile(sessionId);
-  seedEdits(stateFile, [join(tmpdir(), `edited-${sessionId}.ts`)]);
+  writeEditsState(sessionId, [join(tmpdir(), `edited-${sessionId}.ts`)]); // seed：直接落盤、不受 flag 閘影響
   try {
     const res = runHook(
       STOP_GATE_SCRIPT,
@@ -368,31 +364,38 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
       'S-gate②：gate 紅 → stdout JSON 有 hookSpecificOutput.additionalContext [S-gate②]');
     assert(typeof ctx === 'string' && (ctx.includes('✗') || /error/i.test(ctx)),
       'S-gate②：additionalContext 含 ✗ / error（quality-gate 紅摘要被注入）[S-gate②]');
+    // A6：紅燈跑完也要清 accumulator（與 S-gate① 綠燈清空對稱；把「只綠燈才清」改壞→此條轉紅）。
+    const after = readEditsForSession(sessionId);
+    assert(after.length === 0,
+      'S-gate②：紅跑完 → accumulator 也被清空（readEditsForSession === []）[A6]');
   } finally {
     rmSync(stateFile, { force: true });
   }
 }
 
-// ── S-gate③a：env 關（其餘齊備）→ no-op（不跑 gate、無 additionalContext）──────
+// ── S-gate③a：env 關（其餘齊備、已 seed 一筆）→ no-op（不跑 gate、無 additionalContext、不清 accumulator）──
 {
   const sessionId = freshSession('gate-off');
   const stateFile = editsStateFile(sessionId);
-  seedEdits(stateFile, [join(tmpdir(), `edited-${sessionId}.ts`)]);
+  writeEditsState(sessionId, [join(tmpdir(), `edited-${sessionId}.ts`)]); // seed 一筆：直接落盤、不受 flag 閘影響
   try {
     const res = runHook(STOP_GATE_SCRIPT, { session_id: sessionId, cwd: GATE_GREEN }); // 未設 LOOPS_STOP_GATE
     assert(res.status === 0, 'S-gate③a：env 關 → exit 0 [S-gate③a]');
     assert(typeof res.stdout === 'string' && !res.stdout.includes('additionalContext'),
       'S-gate③a：未設 LOOPS_STOP_GATE → no-op（無 additionalContext）[S-gate③a]');
+    // A5：no-op 不該動 accumulator——若拆掉 flag 守衛、gate 照跑就會清成 0，此條轉紅。
+    assert(readEditsForSession(sessionId).length === 1,
+      'S-gate③a：no-op 不清 accumulator（seed 的 1 筆仍在，readEditsForSession.length === 1）[A5]');
   } finally {
     rmSync(stateFile, { force: true });
   }
 }
 
-// ── S-gate③b：env=1 但 cwd 無 .loops/gate.config.json → no-op ────────────────
+// ── S-gate③b：env=1 但 cwd 無 .loops/gate.config.json（已 seed 一筆）→ no-op（不清 accumulator）──
 {
   const sessionId = freshSession('gate-nocfg');
   const stateFile = editsStateFile(sessionId);
-  seedEdits(stateFile, [join(tmpdir(), `edited-${sessionId}.ts`)]);
+  writeEditsState(sessionId, [join(tmpdir(), `edited-${sessionId}.ts`)]); // seed 一筆：直接落盤、不受 flag 閘影響
   const noCfgCwd = mkdtempSync(join(tmpdir(), 'gate-nocfg-'));
   try {
     const res = runHook(
@@ -403,17 +406,20 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
     assert(res.status === 0, 'S-gate③b：無 .loops/gate.config.json → exit 0 [S-gate③b]');
     assert(typeof res.stdout === 'string' && !res.stdout.includes('additionalContext'),
       'S-gate③b：cwd 無 gate.config.json → no-op（hasConfig=false 不跑 gate）[S-gate③b]');
+    // A5：no-op 不該動 accumulator——若拆掉 hasConfig 守衛、gate 照跑就會清成 0，此條轉紅。
+    assert(readEditsForSession(sessionId).length === 1,
+      'S-gate③b：no-op 不清 accumulator（seed 的 1 筆仍在，readEditsForSession.length === 1）[A5]');
   } finally {
     rmSync(stateFile, { force: true });
     rmSync(noCfgCwd, { recursive: true, force: true });
   }
 }
 
-// ── S-gate③c：env=1 + gate-green cwd 但 accumulator 空 → no-op ───────────────
+// ── S-gate③c：env=1 + gate-green cwd 但 accumulator 空 → no-op（連 state 檔都不寫出）───────────────
 {
   const sessionId = freshSession('gate-noedits');
   const stateFile = editsStateFile(sessionId);
-  rmSync(stateFile, { force: true }); // 確保無任何預置 edit（accumulator 空）
+  rmSync(stateFile, { force: true }); // 確保無任何預置 edit（accumulator 空、state 檔不存在）
   try {
     const res = runHook(
       STOP_GATE_SCRIPT,
@@ -423,6 +429,9 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
     assert(res.status === 0, 'S-gate③c：accumulator 空 → exit 0 [S-gate③c]');
     assert(typeof res.stdout === 'string' && !res.stdout.includes('additionalContext'),
       'S-gate③c：無 edits → no-op（hasEdits=false 不跑 gate）[S-gate③c]');
+    // A5：no-op 不該寫出 state 檔——若拆掉 hasEdits 守衛、gate 照跑就會 clearEditsState 落出空檔，existsSync 轉 true、此條轉紅。
+    assert(existsSync(editsStateFile(sessionId)) === false,
+      'S-gate③c：no-op 不寫出 state 檔（existsSync(editsStateFile) === false）[A5]');
   } finally {
     rmSync(stateFile, { force: true });
   }
