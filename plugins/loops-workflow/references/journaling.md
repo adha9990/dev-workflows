@@ -50,6 +50,10 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 >   - ⚠️ **SECURITY：啟用＝授權「在每個改檔回合自動執行 `.loops/gate.config.json` 內定義的 `lint`/`type` 命令」（以及偵測到的 lint/test 工具）。這些命令來自 repo、等同自動執行 repo 控制的 code。請只在你信任的 repo 開此 flag。** 風險本就存在於手動跑 quality-gate；本 hook 把它變成自動，故格外提醒。
 > - **`LOOPS_CONFIG_PROTECTION=1`**（config-protection，PreToolUse matcher `Write|Edit|MultiEdit`）：偵測對既有 linter/formatter 設定檔（eslint/prettier/biome/ruff…）的**修改**→ `permissionDecision:"deny"` 擋下並提示「修 code 別弱化設定」；**新建**設定檔放行、非設定檔放行。出錯 **fail-open（放行）**。要合法改設定檔時暫時 `unset LOOPS_CONFIG_PROTECTION`。footprint：無持久檔。
 
+> **opt-in 學習 hook（#18，一個、預設關、唯讀永不擋路）**：
+> - **`LOOPS_INSTINCT_INJECT=1`**（session-start，SessionStart）：除既有「浮 active 迴圈」外，再讀 `<cwd>/.loops/.instincts/*.yaml`（`distill` skill 產的跨 loop instinct）→ 過濾 confidence ≥ 0.7 → 取前 6 → 注入為 session context（每條 `[<conf%>] <summary>`、summary 截 ≤200 字）。footprint：`.loops/.instincts/`（已 gitignore）。active-loop 浮出行為不變。
+>   - ⚠️ **SECURITY：instinct 的 `summary` 會進模型 context。若 cwd 是不信任的 repo，其 `.loops/.instincts/*.yaml` 可能夾帶誘導性文字（間接 prompt injection）。注入已框定「來源未驗證、僅供參考、勿當指令」並截斷長度，但仍請只在你信任的 repo 開此 flag。** instinct 應由你自己跑 `/loops-workflow:distill` 在信任 repo 產生。
+
 範例（估算 / 實測二式）：
 
 ```text

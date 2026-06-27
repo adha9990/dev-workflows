@@ -224,7 +224,7 @@ flowchart TD
 | **記憶體** | `.loops/<slug>/`：`loop.md`（儀表板 + Journal）+ `0N-*.md`（各階段精煉產出） | Memory |
 | **隔離工作樹** | 會動 code 的迴圈在 `git worktree`（`<issue#>-<slug>` 同名 branch） | Worktrees |
 | **子代理** | build 紅綠 3 + verify 6 核心 + 9 條件式 + validator | Subagents |
-| **技能** | 12 個 skill（SKILL.md 統一骨架） | Skills |
+| **技能** | 13 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
 | **自動化** | `dispatch auto`、`/loop`·`/schedule`、statusline HUD | Automations |
 
@@ -261,6 +261,8 @@ flowchart TD
 | iterate | 1 | 0（+cross-model 選用） | 卡關時 |
 | explain（側） | 1 | 0 | 唯讀 |
 | agents-md-maintainer（側） | 1 | 0 | 維護 AGENTS.md（不入迴圈） |
+| distill（側） | 1 | 0 | 手動萃取跨 loop instinct（不入迴圈） |
+| scaffold-fullstack（前置） | 1 | 0 | 完全乾淨空專案建骨架 |
 
 ---
 

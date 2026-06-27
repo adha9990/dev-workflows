@@ -23,7 +23,7 @@ description: 跨 loop 自我學習——掃歷史 .loops/ 的 ★outcome/Journal
 ## Process
 
 ### 1. 掃素材
-讀所有 `.loops/*/loop.md`（**完工的優先**），抽每條 loop 的：類型 / operation 性質 / `★[outcome]` 行（token 級距、sub-agent 數、回環圈數、findings validated→剩餘、交付）、Journal 裡的回環與 escalate 軌跡。
+讀所有 `.loops/*/loop.md`（**完工的優先**），抽每條 loop 的：類型 / operation 性質 / `★[outcome]` 行（token 級距、sub-agent 數、回環圈數、findings validated→剩餘、交付——格式定義見 `references/journaling.md`，本檔只讀不另定義）、Journal 裡的回環與 escalate 軌跡。
 
 ### 2. 歸納跨 loop 方法論模式（3–5 條）
 找**跨多條 loop 重複出現**的方法論訊號，例如：
