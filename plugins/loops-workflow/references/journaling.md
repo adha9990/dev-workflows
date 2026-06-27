@@ -45,6 +45,11 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 >
 > **outcome 度量格式以此為單一來源**，各 skill（iterate §6）引用此處、不另定義。
 
+> **opt-in 介入 hook（#17，兩個、預設關、永不擋路；與上面「觀測」不同，這兩個會主動跑閘 / 擋工具）**：
+> - **`LOOPS_STOP_GATE=1`**（stop-gate，Stop hook + edit-accumulator PostToolUse）：**本回合有改檔**時（PostToolUse accumulator 記錄、僅此 flag 開才記）於 Stop 自動跑既有 `loops-quality-gate.mjs --gates type,lint`，**只有紅燈才把摘要注入 context**（綠靜默、不阻擋）。需 cwd 有 `.loops/gate.config.json`。footprint：`os.tmpdir()/loops-edits-<session>.json` 暫存。
+>   - ⚠️ **SECURITY：啟用＝授權「在每個改檔回合自動執行 `.loops/gate.config.json` 內定義的 `lint`/`type` 命令」（以及偵測到的 lint/test 工具）。這些命令來自 repo、等同自動執行 repo 控制的 code。請只在你信任的 repo 開此 flag。** 風險本就存在於手動跑 quality-gate；本 hook 把它變成自動，故格外提醒。
+> - **`LOOPS_CONFIG_PROTECTION=1`**（config-protection，PreToolUse matcher `Write|Edit|MultiEdit`）：偵測對既有 linter/formatter 設定檔（eslint/prettier/biome/ruff…）的**修改**→ `permissionDecision:"deny"` 擋下並提示「修 code 別弱化設定」；**新建**設定檔放行、非設定檔放行。出錯 **fail-open（放行）**。要合法改設定檔時暫時 `unset LOOPS_CONFIG_PROTECTION`。footprint：無持久檔。
+
 範例（估算 / 實測二式）：
 
 ```text
