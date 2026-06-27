@@ -239,10 +239,10 @@ flowchart TD
 
 | | |
 |---|---|
-| **skill** | 12（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **agents-md-maintainer** 側用文檔維運） |
+| **skill** | 13（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **agents-md-maintainer** 側用文檔維運 / **distill** 側用跨 loop 萃取 instinct） |
 | **agent** | 19 = build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + 9 條件式（explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose） |
 | **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 9 條件式）+ N validator |
-| **reference** | 41 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + 8 份 per-axis 審查判準 + operation-first-move）｜**command** loop / resume / status / explain / install-statusline｜**hook** 6 個 / 4 事件（SessionStart 恆跑、其餘 5 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈) + Stop(cost-tracker 估成本 + stop-gate 改檔回合自動跑 quality-gate) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
+| **reference** | 42 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + 8 份 per-axis 審查判準 + operation-first-move + instinct-schema）｜**command** loop / resume / status / explain / install-statusline｜**hook** 6 個 / 4 事件（SessionStart 恆跑、其餘 5 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈 + instinct 注入 opt-in) + Stop(cost-tracker 估成本 + stop-gate 改檔回合自動跑 quality-gate) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
 
 ---
 
