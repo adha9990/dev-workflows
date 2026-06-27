@@ -1,0 +1,1 @@
+{"type":"node -e \"console.log('a.ts(1,1): error TS1: x');process.exit(2)\""}
