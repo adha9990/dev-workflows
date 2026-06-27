@@ -29,6 +29,7 @@ import {
   shouldRemind,
   formatCompactHint,
   pruneStale,
+  sanitizeSessionId,
 } from './suggest-compact.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -36,6 +37,7 @@ const FIX = join(HERE, 'fixtures');
 const SAMPLE = join(FIX, 'transcript-sample.jsonl');
 const NOUSAGE = join(FIX, 'transcript-no-usage.jsonl');
 const LARGE = join(FIX, 'transcript-large.jsonl');
+const TYPEFILTER = join(FIX, 'transcript-type-filter.jsonl');
 const COST_SCRIPT = join(HERE, 'cost-tracker.mjs'); // 真跑的腳本（smoke）
 const COMPACT_SCRIPT = join(HERE, 'suggest-compact.mjs');
 
@@ -81,6 +83,7 @@ function callSafe(fn) {
 {
   assert(getRates('claude-3-5-haiku-20241022') === RATE_TABLE.haiku, 'getRates：含 "haiku" → haiku rates [A2]');
   assert(getRates('claude-opus-4-8') === RATE_TABLE.opus, 'getRates：含 "opus" → opus rates [A2]');
+  assert(getRates('CLAUDE-OPUS-4-8') === RATE_TABLE.opus, 'getRates：全大寫 "CLAUDE-OPUS-4-8" → opus（守 toLowerCase，移除即降級為 sonnet→紅）[A2]');
   assert(getRates('claude-sonnet-4-5') === RATE_TABLE.sonnet, 'getRates：含 "sonnet" → sonnet rates [A2]');
   assert(getRates('totally-unknown-model') === RATE_TABLE.sonnet, 'getRates：無法辨識 → sonnet（預設）[A2]');
   assert(getRates('unknown') === RATE_TABLE.sonnet, 'getRates："unknown" → sonnet（預設）[A2]');
@@ -130,6 +133,17 @@ function callSafe(fn) {
   assert(u.cacheWriteTokens === 0 && u.cacheReadTokens === 0, 'sumUsage：缺 cache 欄補 0、不丟例外 [A3d]');
   assert(u.model === 'claude-3-5-haiku', 'sumUsage：model 取「最後一個」有 usage 的 assistant [A3d]');
 }
+{
+  // A3e（type 過濾）：fixture 含一行帶 usage 的「user」+ 一行 assistant；只算 assistant。
+  // 若移除 entry.type==='assistant' 過濾 → user 行的 usage 被混入加總 → 數值轉紅。
+  const r = callSafe(() => sumUsageFromTranscript(readFileSync(TYPEFILTER, 'utf8')));
+  assert(!r.threw, 'sumUsageFromTranscript：type-filter fixture 不丟例外 [A3e]');
+  const u = r.val || {};
+  assert(u.inputTokens === 100, 'sumUsage：只計 assistant 行 → inputTokens === 100（user 行的 7000 被 type 過濾排除）[A3e]');
+  assert(u.outputTokens === 50, 'sumUsage：只計 assistant 行 → outputTokens === 50（排除 user 行的 3000）[A3e]');
+  assert(u.cacheWriteTokens === 20, 'sumUsage：只計 assistant 行 → cacheWriteTokens === 20（排除 user 行的 1000）[A3e]');
+  assert(u.cacheReadTokens === 30, 'sumUsage：只計 assistant 行 → cacheReadTokens === 30（排除 user 行的 9000）[A3e]');
+}
 
 // ── A4 estimateCostUsd：依 getRates(model) 算 USD，(in*..+out*..+cw*..+cr*..)/1e6 ─
 {
@@ -173,6 +187,17 @@ function callSafe(fn) {
   const nums = row ? [row.input_tokens, row.output_tokens, row.cache_creation_input_tokens, row.cache_read_input_tokens, row.cost_usd] : [];
   assert(nums.length === 5 && nums.every((n) => typeof n === 'number' && n >= 0), 'buildCostRow：所有數字欄皆 number 且 ≥ 0 [A5]');
 }
+{
+  // A5-neg（safeNonNeg）：負值 / NaN 輸入 → 對應數字欄一律落為 0（不可漏出髒值污染下游統計）。
+  // 若把 safeNonNeg 退化成 safeNum（容許負值）或移除守衛 → 下列欄位會帶出 -5 / NaN → 轉紅。
+  const usage = { inputTokens: -5, outputTokens: NaN, cacheWriteTokens: -100, cacheReadTokens: NaN, model: 'claude-opus-4-8' };
+  const row = buildCostRow({ sessionId: 'sess-neg', usage, model: 'claude-opus-4-8', costUsd: -1, ts: '2026-06-27T00:00:00Z' });
+  assert(row && row.input_tokens === 0, 'buildCostRow：負值 inputTokens(-5) → input_tokens === 0（safeNonNeg）[A5-neg]');
+  assert(row && row.output_tokens === 0, 'buildCostRow：NaN outputTokens → output_tokens === 0（safeNonNeg）[A5-neg]');
+  assert(row && row.cache_creation_input_tokens === 0, 'buildCostRow：負值 cacheWriteTokens(-100) → cache_creation_input_tokens === 0 [A5-neg]');
+  assert(row && row.cache_read_input_tokens === 0, 'buildCostRow：NaN cacheReadTokens → cache_read_input_tokens === 0 [A5-neg]');
+  assert(row && row.cost_usd === 0, 'buildCostRow：負值 costUsd(-1) → cost_usd === 0 [A5-neg]');
+}
 
 // =============================================================================
 // B) suggest-compact.mjs — 純函式
@@ -193,6 +218,14 @@ function callSafe(fn) {
   // B1c：無 assistant usage → 0；空字串 → 0
   assert(getRealContextSize(readFileSync(NOUSAGE, 'utf8')) === 0, 'getRealContextSize：無 assistant usage → 0 [B1c]');
   assert(getRealContextSize('') === 0, 'getRealContextSize：空字串 → 0 [B1c]');
+}
+{
+  // B1d（type 過濾）：尾端是一行「帶 usage 的 user」，其後才是 assistant。反向掃描必須跳過 user 行、
+  // 命中 assistant 行 → 100+30+20 = 150。若移除 type==='assistant' 過濾 → 反向先命中尾端 user 行
+  // → 回 7000+9000+1000 = 17000 → 轉紅。釘住「取最後一筆 assistant、非最後一行 / 非 user」。
+  const r = callSafe(() => getRealContextSize(readFileSync(TYPEFILTER, 'utf8')));
+  assert(!r.threw, 'getRealContextSize：type-filter fixture 不丟例外 [B1d]');
+  assert(r.val === 150, 'getRealContextSize：取最後一個 assistant（150），尾端帶 usage 的 user 行被 type 過濾排除 [B1d]');
 }
 
 // ── B2 computeReminderLevel：base 250000 / step 60000，邊界上下界逐點釘 ─────────
@@ -287,6 +320,10 @@ function runHook(scriptAbs, payload, extraEnv = {}) {
     assert(row && row.input_tokens > 0, 'S-cost②：input_tokens > 0（sample 加總 3000）[S-cost②]');
     assert(row && row.estimate === true, 'S-cost②：estimate === true [S-cost②]');
     assert(row && row.schema === 1, 'S-cost②：schema === 1 [S-cost②]');
+    // row wiring：釘住 main() 的 payload→row 接線（session_id 不可漏帶、cost/model 不可斷線）。
+    assert(row && row.session_id === 'smoke-1', 'S-cost②：row.session_id === payload.session_id("smoke-1")（main 接線）[S-cost②]');
+    assert(row && row.cost_usd > 0, 'S-cost②：row.cost_usd > 0（sample 有用量 → 成本 > 0）[S-cost②]');
+    assert(row && row.model === 'claude-opus-4-8', 'S-cost②：row.model === sample 最後一筆 assistant-with-usage 的 model("claude-opus-4-8")[S-cost②]');
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }
@@ -311,8 +348,35 @@ function runHook(scriptAbs, payload, extraEnv = {}) {
   try {
     const missing = join(cwd, 'does-not-exist.jsonl');
     const res = runHook(COST_SCRIPT, { transcript_path: missing, session_id: 'smoke-1', cwd }, { LOOPS_COST_TRACKER: '1' });
+    const costFile = join(cwd, '.loops', '.metrics', 'costs.jsonl');
     assert(res.error == null, 'S-cost④：node 啟動成功（未崩在 spawn 層）[S-cost④]');
     assert(res.status === 0, 'S-cost④：transcript 不存在 → exit 0、不崩 [S-cost④]');
+    assert(!existsSync(costFile), 'S-cost④：transcript 不存在 → 在讀檔失敗即 return，不寫任何 row（不產 costs.jsonl）[S-cost④]');
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
+// ── S-cost⑤（V2 append 累積）：同一 cwd 連續 spawn 兩次 → costs.jsonl 累積到 2 行 ─────────
+// 釘住 main() 用 appendFileSync（而非 writeFileSync）。若改成 writeFileSync，第二次會覆蓋第一行
+// → 檔只剩 1 行 → 本條轉紅。每執行用全新 mkdtempSync 暫存 cwd、跑完 rmSync，跨執行冪等。
+{
+  const cwd = makeCwd(true);
+  try {
+    const costFile = join(cwd, '.loops', '.metrics', 'costs.jsonl');
+    const r1 = runHook(COST_SCRIPT, { transcript_path: SAMPLE, session_id: 'append-1', cwd }, { LOOPS_COST_TRACKER: '1' });
+    const r2 = runHook(COST_SCRIPT, { transcript_path: SAMPLE, session_id: 'append-2', cwd }, { LOOPS_COST_TRACKER: '1' });
+    assert(r1.status === 0 && r2.status === 0, 'S-cost⑤：同一 cwd 連跑兩次皆 exit 0 [S-cost⑤]');
+    assert(existsSync(costFile), 'S-cost⑤：連跑兩次 → costs.jsonl 存在 [S-cost⑤]');
+    const lines = existsSync(costFile)
+      ? readFileSync(costFile, 'utf8').trim().split('\n').filter(Boolean)
+      : [];
+    assert(lines.length === 2, 'S-cost⑤：append 累積 → 檔有 2 行（appendFileSync 換 writeFileSync 只會剩 1 行 → 紅）[S-cost⑤]');
+    let allParse = lines.length === 2;
+    for (const ln of lines) {
+      try { JSON.parse(ln); } catch { allParse = false; }
+    }
+    assert(allParse, 'S-cost⑤：兩行皆為合法 JSON（逐行可 JSON.parse）[S-cost⑤]');
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }
@@ -323,7 +387,8 @@ function runHook(scriptAbs, payload, extraEnv = {}) {
 // 的 session_id（pid+時間+序號），跑前/跑後再 best-effort 刪狀態檔。如此連續兩次跑都從 clean state
 // 起跑（不靠刪檔即成立），刪檔只是 tmp 清潔，避免殘留垃圾。
 function compactStateFile(sessionId) {
-  return join(tmpdir(), 'loops-compact-' + String(sessionId).replace(/[^A-Za-z0-9_-]/g, '_') + '.json');
+  // 用 impl 對外 export 的 sanitizeSessionId 當「安全檔名規則」單一真相源，避免測試重抄正則而漂移。
+  return join(tmpdir(), 'loops-compact-' + sanitizeSessionId(sessionId) + '.json');
 }
 let compactSeq = 0;
 function freshCompactSession(prefix) {
