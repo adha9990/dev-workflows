@@ -62,6 +62,17 @@ export function scoreTask(gateResult, oracle) {
     );
   }
 
+  // oracle 沒指定任何 required test（failToPass 與 passToPass 皆空，含 oracle 整個缺）→ 沒東西可驗，
+  // 一律 errored：驗了零條測試不算通過，與「沒驗到永不當通過」同源。
+  if (failToPassRequired.length === 0 && passToPassRequired.length === 0) {
+    return erroredResult(
+      failToPassRequired,
+      passToPassRequired,
+      gateStatus,
+      'oracle specifies no required tests — nothing to verify',
+    );
+  }
+
   const failedTitlePaths = collectTestFailureTitlePaths(gateResult.failures);
   const passedTitlePaths = collectPassedTitlePaths(gateResult.passedTests);
   const failToPass = classifyRequired(failToPassRequired, passedTitlePaths, failedTitlePaths);

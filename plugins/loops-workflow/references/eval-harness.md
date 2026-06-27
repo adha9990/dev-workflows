@@ -62,8 +62,8 @@ node plugins/loops-workflow/scripts/run-eval.mjs <path-to-scenarios.json>
 {
   "id": "build-add-function", "stage": "build", "pass": true,
   "errored": false,                  // gate 沒跑該 suite、或某 required test 沒被觀察到 → errored:true, pass:false
-  "failToPass": { "required": ["add returns sum"], "passed": ["add returns sum"], "missing": [] },
-  "passToPass": { "required": ["sub returns diff"], "passed": ["sub returns diff"], "missing": [] },
+  "failToPass": { "required": ["add returns sum"], "passed": ["add returns sum"], "missing": [], "unobserved": [] },
+  "passToPass": { "required": ["sub returns diff"], "passed": ["sub returns diff"], "missing": [], "unobserved": [] },
   "gateStatus": "passed",            // 取自 quality-gate（passed/failed/not-run/errored）；取不到時為 null
   "reason": "all required tests passed"
 }
@@ -80,7 +80,9 @@ aggregate：`{ total, passed, failed, tasks: [...] }`；`failed > 0` → **exit 
 - gate `not-run` / `errored` / 取不到 JSON → 整 task `errored`。`truncated` 時 unobserved 一律保守判 errored。
 - `pass`＝gate 有跑 且 無 unobserved required 且每個 required 皆 inPassed。
 - 安全：runner **不收 task 自帶 shell 命令**，oracle 固定走 `loops-quality-gate.mjs`（無注入面）；`task.workspace` 解析後須落在 **plugin 專案根**內，越界（`../` 逃逸 / 絕對路徑）→ errored、不 spawn。
-- ⚠️ **信任邊界**：跑語料庫＝以當前權限執行各 workspace 的 `scripts.test`（任意程式碼）。**只在信任來源的 corpus 上跑**，勿對外來/未審的 corpus 直接 eval。
+- ⚠️ **信任邊界（執行）**：跑語料庫＝以當前權限執行各 workspace 的 `scripts.test`（任意程式碼）。**只在信任來源的 corpus 上跑**，勿對外來/未審的 corpus 直接 eval。
+- ⚠️ **oracle 完整性（候選不可改 test）**：positive-presence 把 `passedTests` 當「該 test 真的通過」的證據，但那是跑**候選 workspace 自己的 test** 產生的。若候選能改 test 檔，它可塞一個必過的同名 test 偽造 `failToPass` titlePath → 假綠。**corpus 必須自擁/釘死 failToPass/passToPass 的 test 定義、候選只能改實作**（如 SWE-bench 在候選碼上套信任的 test patch）；否則 oracle 結果可被 game、不可當 ground truth。
+- 註：`task.workspace` containment 用詞法 `resolve` 比對（非 `realpath`）——對「信任 corpus 內一筆惡意 workspace 字串」的威脅模型足夠；symlink 逃逸需對信任 repo 有寫入權（已等同可執行 `scripts.test`），故 E1 不另做 realpath，為刻意取捨。
 - 與 `references/quality-gate-schema.md` 的 `Failure[]` / `passedTests` / `classifyGate` 對齊。
 
 ## 跑

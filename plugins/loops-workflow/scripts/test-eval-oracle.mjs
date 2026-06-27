@@ -237,6 +237,33 @@ function gate({ test = 'passed', failures = [], passedTests = [], truncated = fa
   assert(r.failToPass.missing.includes('add returns sum'), 'scoreTask：觀察到的失敗名入 failToPass.missing [S-failobserved]');
 }
 
+// ── S-emptyoracle：oracle 無任何 required test（failToPass 與 passToPass 皆空）→「什麼都沒驗」→
+//    errored:true、pass:false。與「永不把沒驗到誤判為通過」一致：驗了零條測試不算通過。
+//    現行實作對空 oracle 會回 pass:true（零測試被當真空綠），故本條必紅＝正確的紅燈起點。
+{
+  const r = scoreTask(
+    gate({ test: 'passed', failures: [], passedTests: [] }),
+    { failToPass: [], passToPass: [] },
+  );
+  assert(r.errored === true, 'scoreTask：oracle 無任何 required test → errored=true（零測試不算驗）[S-emptyoracle]');
+  assert(r.pass === false, 'scoreTask：oracle 無任何 required test → pass=false（不可真空綠）[S-emptyoracle]');
+}
+
+// ── S-missingoracle：oracle 整個缺（undefined）→ 不丟例外、pass!==true（同樣什麼都沒驗 → 應 errored）。
+//    與 S-emptyoracle 同源：缺 oracle 代表零條 required test，沒驗到就不能報綠。
+{
+  let r;
+  let threw = false;
+  try {
+    r = scoreTask(gate({ test: 'passed', failures: [], passedTests: [] }), undefined);
+  } catch {
+    threw = true;
+    r = {};
+  }
+  assert(threw === false, 'scoreTask：oracle 整個缺（undefined）不丟例外（graceful）[S-missingoracle]');
+  assert(r.pass !== true, 'scoreTask：oracle 整個缺 → pass!==true（什麼都沒驗，不可報綠）[S-missingoracle]');
+}
+
 // ── T-spawndiag：gate 結果不可用（null / 非 JSON / 子程序 error）→ scoreTask graceful 回 errored，
 //    reason 帶「gate/結果不可用」診斷字串（非僅泛用 missing test 名）[P2 診斷]
 {
