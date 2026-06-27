@@ -1,9 +1,9 @@
 ---
 name: verify
-description: Fans out six independent reviewers (product/architecture/security/performance/code-quality/tests) then validates findings in a second pass. Use when starting the verify stage of a loops-workflow run, or when built work needs merge-readiness review before iterate.
+description: Fans out the core reviewers (product/architecture/security/performance/code-quality/tests — all six for any code change; right-sized to a minimal set for docs/config-only changes, see §1.4) then validates findings in a second pass. Use when starting the verify stage of a loops-workflow run, or when built work needs merge-readiness review before iterate.
 ---
 
-# verify — 驗證（六 reviewer fan-out + validator 二輪）
+# verify — 驗證（多 reviewer fan-out + validator 二輪）
 
 ## Overview
 
@@ -46,17 +46,17 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 ### 1.4 改動面 → 最小核心 reviewer 集（右尺寸化）
 
-§1 的核心 6 軸是**含 code 改動的下界、不可縮**。但對**客觀窄面**（純文件 / 純 markdown 敘述 / 純非執行設定）——`performance` / `security` / `migration` 等軸**對該改動無可審之物**——全派只是起一堆空轉 agent（規則 10 carve-out 想砍的「非必要貴動作」）。依改動面定**核心 reviewer 的下界**：
+§1 的核心 6 軸是**含 code 改動的下界、不可縮**。但對**客觀窄面**（純文件 / 純 markdown 敘述 / 純非執行設定）——`performance` / `security` / `tests` 等核心軸**對該改動無可審之物**——全派只是起一堆空轉 agent（規則 10 carve-out 想砍的「非必要貴動作」）。依改動面定**核心 reviewer 的下界**（下表只列**核心軸**；領域 reviewer 如 `docs-devex` 由 §1.5 因觸及該領域自動帶入、去重後一起派）：
 
-| 改動面 | 最小核心 reviewer 集 | 為什麼 |
+| 改動面 | 最小**核心**軸下界 | 領域帶入（§1.5）/ 為什麼 |
 |---|---|---|
 | **含任何 code**（`.ts`/`.js`/`.mjs`… 邏輯、schema、CLI、migration、**設定即程式行為**） | **核心 6 軸全派、不得縮** | 規則 10「verify 獨立複查」不可省 |
-| **純文件 / 純 markdown 敘述**（docs、SKILL.md 文案、README、純註解） | `product-contract` + `docs-devex`（內容涉跨檔契約 / 一致性再加 `code-quality`） | 無 DB / API / 效能 / 攻擊面可審 |
-| **純非執行設定 / 資料**（純 fixtures、純文案設定、無程式語意） | `product-contract`（涉密鑰 / 權限 / 認證設定 → 加 `security`） | 視內容微調，但不得低於「能驗收範圍」 |
+| **純文件 / 純 markdown 敘述**（docs、SKILL.md 文案、README、純註解） | `product-contract`（涉跨檔契約 / 一致性再加 `code-quality`） | 無 DB / API / 效能 / 攻擊面可審；動到 docs → `docs-devex` 由 §1.5 帶入（淨集常＝product-contract + docs-devex） |
+| **純非執行設定 / 資料**（純 fixtures、純文案設定、無程式語意） | `product-contract`（涉密鑰 / 權限 / 認證設定 → 加 `security`） | 動到 config → 相應 §1.5 reviewer 帶入；視內容微調，不得低於「能驗收範圍」 |
 
 > **fail-safe（向嚴）**：拿不準改動面是不是「純文件 / 純設定」、或一份 diff **混了 code 與文件** → **當作含 code、核心 6 軸全派**。縮錯 = 漏審，寧可多派、不可漏審。
 
-這是**精準化規則 10 carve-out 的「可省 / 不可省邊界」**，**不是放寬 mandatory 的 verify 獨立複查**：code 永遠核心 6 軸，縮的只是「對該改動無可審之物」的軸。與 §1.5 **正交** —— §1.4 定**核心 6 軸的下界**、§1.5 是**按領域加派**領域 reviewer；兩者疊加 = 該次 verify 的實際 reviewer 集。
+這是**精準化規則 10 carve-out 的「可省 / 不可省邊界」**，**不是放寬 mandatory 的 verify 獨立複查**：code 永遠核心 6 軸，縮的只是「對該改動無可審之物」的核心軸。與 §1.5 **正交** —— §1.4 定**核心軸的下界**、§1.5 **按領域加派**領域 reviewer（純文件 / 設定動到 docs/config → `docs-devex` 等由 §1.5 帶入）；兩者去重疊加 = 該次 verify 的實際 reviewer 集。
 
 ### 1.5 條件式 reviewer（選用，視改動領域加派）
 

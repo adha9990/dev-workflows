@@ -24,8 +24,8 @@ coordinator（主線）看 build 的 Change Summaries + 改動檔案清單：碰
 
 ## 與核心 reviewer 的分工
 
-- 核心 6 個：correctness / 範圍契約 / 架構 / 安全 / 後端效能 / 程式品質 / 測試 —— **每次都派**。
-- 條件式這些：領域特定，**只在觸及時派**。
+- 核心 6 軸（範圍契約 / 架構 / 安全 / 後端效能 / 程式品質〔含 correctness〕/ 測試）：**含 code 改動全派、不得縮**；純文件 / 純設定依 verify **§1.4** 右尺寸化到最小集（核心常只剩範圍契約〔+程式品質視一致性〕）。
+- 條件式這些：領域特定，**只在觸及時派**（純文件 / 設定動到 docs/config 時，docs-devex 等就是由這層帶入）。
 - 兩者輸出同一套格式（P0–P3 + Confidence + Route + 雙視角 + Metric-Honesty），一起進 coordinator 去重 → finding-validator 二輪。
 
 > 註：一般的「程式碼正確性 / 五軸品質 / 測試覆蓋」不另設條件式 reviewer —— 那已是核心 6 個的職責。
