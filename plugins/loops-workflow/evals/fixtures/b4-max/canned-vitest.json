@@ -1,0 +1,11 @@
+{
+  "testResults": [
+    {
+      "name": "max.test.ts",
+      "assertionResults": [
+        { "status": "passed", "title": "max returns larger", "ancestorTitles": ["max"], "failureMessages": [] },
+        { "status": "passed", "title": "max of equal returns value", "ancestorTitles": ["max"], "failureMessages": [] }
+      ]
+    }
+  ]
+}

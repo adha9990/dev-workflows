@@ -1,0 +1,11 @@
+{
+  "testResults": [
+    {
+      "name": "math.test.ts",
+      "assertionResults": [
+        { "status": "failed", "title": "add returns sum", "ancestorTitles": ["math"], "failureMessages": ["AssertionError: expected 0 to be 3 // add not implemented"] },
+        { "status": "passed", "title": "sub returns diff", "ancestorTitles": ["math"], "failureMessages": [] }
+      ]
+    }
+  ]
+}

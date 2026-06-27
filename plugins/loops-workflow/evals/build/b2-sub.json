@@ -1,0 +1,11 @@
+{
+  "id": "b2-sub",
+  "stage": "build",
+  "description": "實作 sub() 使失敗測試轉綠，且不弄壞「相等兩數相減為零」既有測試",
+  "workspace": "../fixtures/b2-sub",
+  "oracle": {
+    "failToPass": ["sub returns diff"],
+    "passToPass": ["sub of equal is zero"]
+  },
+  "tags": ["arithmetic", "build"]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "b1-add",
+  "stage": "build",
+  "description": "實作 add() 使失敗測試轉綠，且不弄壞既有的零元素恆等測試",
+  "workspace": "../fixtures/b1-add",
+  "oracle": {
+    "failToPass": ["add returns sum"],
+    "passToPass": ["add with zero is identity"]
+  },
+  "tags": ["arithmetic", "build"]
+}

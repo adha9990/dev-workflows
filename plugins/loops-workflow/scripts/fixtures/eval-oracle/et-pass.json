@@ -1,0 +1,10 @@
+{
+  "id": "et-pass",
+  "stage": "build",
+  "description": "候選全綠：failToPass 已達成、passToPass 未回歸 → task pass",
+  "workspace": "./ws-pass",
+  "oracle": {
+    "failToPass": ["add returns sum"],
+    "passToPass": ["sub returns diff"]
+  }
+}
