@@ -1,6 +1,6 @@
 # 條件式 reviewer（選用領域視角）
 
-> verify 的 6 個核心 reviewer（product-contract / architecture / security / performance / code-quality / tests）覆蓋每次都該看的主軸。下面這些是**領域特定**的額外視角 —— **只在改動觸及該領域時才派**，避免無關維度造成噪音。觸發時與核心 reviewer **同一回合一起派**（並行）。
+> verify 的核心 reviewer（product-contract / architecture / security / performance / code-quality / tests）覆蓋每次都該看的主軸 —— **含 code 改動派全 6 軸**，純文件 / 純設定類依 verify **§1.4** 右尺寸化到最小集（本檔是 §1.5 領域加派層，與 §1.4 核心下界正交）。下面這些是**領域特定**的額外視角 —— **只在改動觸及該領域時才派**，避免無關維度造成噪音。觸發時與核心 reviewer **同一回合一起派**（並行）。
 
 ## 觸發對照
 
