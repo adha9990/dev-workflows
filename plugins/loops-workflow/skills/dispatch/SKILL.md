@@ -69,7 +69,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-delete-permanent`）、無 issue 號的設計 / 研究用 `<kebab 描述>`（英文 / 數字 / 連字號）。**不加 `fix/`/`feat/` 等 type 前綴** —— 這個 slug 同時是 loop 目錄、worktree、branch 的名字。建立 `.loops/<slug>/loop.md`，寫入：
 - **類型**（issue / design / fix）
-- **operation 性質**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`）—— 依 issue 內容判定（非自動偵測程式），決定 **build 紅燈第一步**（見 `references/operation-first-move.md`）；與**類型正交**（類型決起點 stage、operation 決紅燈起手式）。**拿不準向嚴用 `new-feature`**（標準 TDD）並在 Journal 註明。起點若是 goal（dispatch 跳過）→ 由 goal 補寫。
+- **operation 性質**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`）—— 依 issue 內容判定（非自動偵測程式），決定 **build 紅燈第一步**（見 `references/operation-first-move.md`）；與**類型正交**（類型決起點 stage、operation 決紅燈起手式）。**拿不準向嚴用 `new-feature`**（標準 TDD）並在 Journal 註明。**dispatch 一律在此寫入 operation**（含 `issue# → 從 goal 起` 的情況——dispatch §2 一律先建 loop.md 才進起點階段，故 operation 由 dispatch 寫、不是由 goal）；**唯有使用者直接喊 `/loops-workflow:goal`（完全未經 dispatch）**這條 bypass 入口，才由 goal 補寫（見 `goal` skill）。
 - **起點階段** + **當前階段**（當前階段初始＝起點階段，每進一個階段就更新；供 statusline 顯示）
 - **session**（用 Bash 讀 `$CLAUDE_CODE_SESSION_ID` 填；statusline 靠它**只顯示「本 session」正在跑的 loop**，不被別 session / 歷史 loop 干擾）
 - **推進模式**（closed / auto，預設 closed）

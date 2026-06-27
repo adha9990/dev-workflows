@@ -1,6 +1,6 @@
 # references 目錄（各規範在處理什麼）
 
-> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **39 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
+> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **40 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
 >
 > 機制全貌（每階段怎麼跑）見 [`FLOW.md`](FLOW.md)；這份是「規範字典」。subagent 讀不到相對路徑 → orchestrator 把絕對路徑塞進 prompt（見 `AGENTS.md`〈參考檔路徑解析〉）。
 
@@ -30,6 +30,7 @@
 | `design-plan-schema` | §0–§9 設計書骨架：系統全貌 / 檔案職責表 / 機制圖 / 具名背書 / 三角驗證 / 成果展示 | plan（`02-plan.md`）· iterate（提煉 PR body） |
 | `machine-plan-schema` | 機器可驗證的 `loops-plan` JSON 塊格式（每任務可執行 verification、acceptance ≤3、依賴無環） | plan（可選）+ `validate-plan.mjs` |
 | `change-summaries` | build 產出的 Change Summaries 三段式格式 | build（`03-build.md`） |
+| `operation-first-move` | 4 operation 性質（new-feature/change-behavior/bug-fix/refactor）× test-author 紅燈第一步規則 + fail-safe（單一來源） | dispatch（寫 `operation` 欄）· build（讀欄派 test-author） |
 
 ## 3. 驗證與審查機制
 
