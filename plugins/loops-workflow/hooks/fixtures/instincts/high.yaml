@@ -1,9 +1,9 @@
 id: docs-only-verify-2-axes
 trigger: 本次變更僅涉及文件 / 註解 / README（無程式邏輯）
 action: verify 階段只派 2 軸（lint + 既有單元測試），不派完整測試矩陣
-scope: docs-only
+scope: project
 confidence: 0.85
 evidence:
-  - PR #142 docs-only 派 4 軸全綠，多花 3 倍時間無增益
-  - PR #150 docs-only 2 軸即攔到 typo
+  - docs-readme-refresh
+  - docs-changelog-sync
 summary: docs-only verify 派 2 軸即可
