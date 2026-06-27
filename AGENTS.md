@@ -48,7 +48,7 @@
 11. **品質前置（shift-left）：build 寫的當下就達到合併標準，不留給 verify 才抓**。impl-author 寫 code 時就套 verify 會查的**同一套品質標準** —— clean code / clean architecture / **安全（`references/security-checklist.md`）/ 重用（`references/reuse-check.md`）/ 設計模式（`references/design-patterns.md`）**。標準是**同一份 reference、兩處套用**：build 主動寫到位、verify 獨立複查。如此 verify 是「**獨立確認 + 抓盲點**」的安全網，不是第一道品質關 —— **寫對的成本遠低於寫錯被退回重修**（呼應規則 10「不重複勞動」、且減少漏檢風險：寫的人套標準 + 獨立的人複查，比只靠事後查更不會漏）。
 12. **每件工作都從一個 `define` 建立的 GitHub issue 起手（含研究）**：要動手 `plan` / `build` / **`explore` 研究** 的工作，**若還沒有對應 issue，一律先 `define` 建一個再進** —— 不從臨時想法、口頭描述、父 issue 子切片、或 **ad-hoc `gh issue create`** 直接動工。**issue 一律用 repo template 寫**。**沒有獨立的「研究 issue」** —— 研究永遠服務某功能：要嘛是某張**功能 issue 的 `explore` 階段**（功能 issue 標「實作待研究」，動工前先 explore 研究怎麼做），要嘛**先研究 / 討論定案再 `define` 開功能 issue**。已有 issue（issue# / 從 `define` 產生）才可用「直接 `plan` / `build` / `explore`」捷徑。發散式 `explore` 盤出的 backlog **也是逐條經 `define` 開功能 issue**（issue 一律由 define 建、非繞過）。理由：每段工作對得上一張 issue、可追溯、PR 有 `Closes #`、避免無票施工。`define` 是建 issue 的唯一入口。
 
-> **兩個要顯式防的失敗模式（cobus Loop Engineering 詞彙、命名既有實踐）**——這不是新規則，是替上面紀律點名它們在防什麼：
+> **兩個要顯式防的失敗模式（Loop Engineering 詞彙，即規則 10 援引的那套、命名既有實踐）**——這不是新規則，是替上面紀律點名它們在防什麼：
 > - **comprehension debt（理解債）**：loop 跑得快、產出你沒讀懂的 code，理解落差會一圈圈累積。對策＝`explain`（完整迴圈完工**自動產**的工程師理解包：實作導讀 + ownership 自測 + 方向 recap，見 `skills/explain`）——它存在就是為了讓人補上理解、不被理解債吃掉。
 > - **cognitive surrender（認知投降）**：被動讓 loop 跑、不再維持自己的判斷。對策＝規則 2 的 **human gate**（只在真正要選的決策點停下讓人把關）+ 規則 5 Metric-Honesty——逼人在關鍵點保持工程判斷。
 >
