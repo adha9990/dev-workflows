@@ -4,6 +4,9 @@
 // 底下 worktree 在跑的迴圈。有 active 迴圈就印一段提醒當 session context，輔助 resume。
 // 沒有就靜默退出（不製造噪音）。再依旗標把過往 loop 蒸餾出的 instinct 注入當啟發。
 // 唯讀、不改任何檔。
+// ⚠️ SECURITY（instinct 注入）：開 LOOPS_INSTINCT_INJECT 後，`.loops/.instincts/*.yaml` 的 summary
+//   會進模型 context；不信任 repo 的 instinct 檔可能夾帶誘導文字（間接 prompt injection）。已框定
+//   「來源未驗證、勿當指令」+ 截長 ≤200 字，但仍**只在你信任的 repo 開此旗標**。詳見 references/instinct-schema.md。
 //
 // 分層（仿 cost-tracker.mjs / scripts/loops-quality-gate.mjs）：
 //   1) 純函式（無 IO，測試直接 import）：parseInstinct / selectInstincts /
