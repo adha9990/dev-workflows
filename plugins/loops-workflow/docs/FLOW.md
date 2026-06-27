@@ -242,7 +242,7 @@ flowchart TD
 | **skill** | 12（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **agents-md-maintainer** 側用文檔維運） |
 | **agent** | 19 = build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + 9 條件式（explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose） |
 | **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 9 條件式）+ N validator |
-| **reference** | 39 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + 8 份 per-axis 審查判準）｜**command** loop / resume / status / explain / install-statusline｜**hook** SessionStart |
+| **reference** | 39 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + 8 份 per-axis 審查判準）｜**command** loop / resume / status / explain / install-statusline｜**hook** SessionStart + Stop(cost-tracker, opt-in) + PreToolUse(suggest-compact, opt-in) |
 
 ---
 
