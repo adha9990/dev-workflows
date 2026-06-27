@@ -1,5 +1,5 @@
 {
-  "description": "loops-workflow SDD-CACHE：session 開始時浮出當前目錄 active 的 .loops/ 迴圈，輔助 resume",
+  "description": "loops-workflow hooks：SessionStart 浮出 active 迴圈（resume 輔助）；Stop 記錄實測成本（cost-tracker，opt-in LOOPS_COST_TRACKER）；PreToolUse(Edit|Write) context 壓力提醒（suggest-compact，opt-in LOOPS_COMPACT_HINT）。兩個 opt-in hook 預設關、永不擋路。",
   "hooks": {
     "SessionStart": [
       {
@@ -7,6 +7,27 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/cost-tracker.mjs\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/suggest-compact.mjs\""
           }
         ]
       }
