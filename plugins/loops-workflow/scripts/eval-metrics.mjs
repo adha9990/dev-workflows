@@ -60,17 +60,12 @@ export function buildEvalRow(aggregate, { corpus, ts, runs = 1 } = {}) {
 }
 
 /**
- * 讀 JSONL 歷史檔成 row 陣列。tolerant：壞行逐行跳過、檔不存在 / 讀不到回 []、永不丟例外。
+ * 純函式：把 JSONL 字串逐行解析成 row 陣列。tolerant：壞行逐行跳過、空字串 → []、永不丟例外。
+ * 不碰檔案（IO 留給 readEvalRows）；比照 cost-tracker sumUsageFromTranscript(content) 的純解析拆法。
  */
-export function readEvalRows(file) {
-  let content;
-  try {
-    content = readFileSync(file, 'utf8');
-  } catch {
-    return []; // 檔不存在 / 讀不到 → 空歷史（沒資料不等於錯誤）
-  }
+export function parseEvalRows(content) {
   const rows = [];
-  for (const line of content.split('\n')) {
+  for (const line of String(content ?? '').split('\n')) {
     if (!line.trim()) continue;
     try {
       rows.push(JSON.parse(line));
@@ -82,22 +77,43 @@ export function readEvalRows(file) {
 }
 
 /**
- * 退化判定：baseline row＝rows[baseline]（預設 0）、current＝最後一行；
- * delta＝currentRate - baselineRate；regressed＝currentRate < baselineRate - tolerance（嚴格小於，
- * 恰等於 tolerance 不算退化）。歷史不足兩筆 → regressed:false（沒得比）。
+ * 讀 JSONL 歷史檔成 row 陣列。薄 reader：檔不存在 / 讀不到回 []（沒資料不等於錯誤），
+ * 解析委派 parseEvalRows（純函式，承襲壞行跳過、永不丟）。
+ */
+export function readEvalRows(file) {
+  let content;
+  try {
+    content = readFileSync(file, 'utf8');
+  } catch {
+    return []; // 檔不存在 / 讀不到 → 空歷史（沒資料不等於錯誤）
+  }
+  return parseEvalRows(content);
+}
+
+/**
+ * 退化判定（corpus-aware）：只在「最後一筆的 corpus」歷史子集內比，跨 corpus 不混比，
+ * 避免不同語料庫的 passRate 互相當 baseline。scoped＝最後一筆 corpus 的所有 row；
+ * baseline row＝scoped[baseline]（預設 0）、current＝scoped 末筆；delta＝currentRate - baselineRate；
+ * regressed＝currentRate < baselineRate - tolerance（嚴格小於，恰等於 tolerance 不算退化）。
+ * tolerance 夾到 ≥ 0（負值收緊門檻會誤判持平為退化）。該 corpus 不足兩筆 → regressed:false（沒得比）。
+ * 無 corpus 欄的舊資料（corpus 皆 undefined）會 collapse 成同一組，行為與整體比較一致。
  */
 export function computeRegression(rows, { baseline = 0, tolerance = 0 } = {}) {
   const history = Array.isArray(rows) ? rows : [];
-  const baselineRate = passRateOf(history[baseline]);
-  const currentRate = passRateOf(history[history.length - 1]);
+  const targetCorpus = history[history.length - 1]?.corpus;
+  const scoped = history.filter((row) => row?.corpus === targetCorpus);
+  const safeTolerance = Math.max(0, tolerance); // 負 tolerance 會把門檻收到 baseline 之上 → 夾到 0
+
+  const baselineRate = passRateOf(scoped[baseline]);
+  const currentRate = passRateOf(scoped[scoped.length - 1]);
   const delta = currentRate - baselineRate;
 
-  if (history.length < 2) {
-    return { regressed: false, currentRate, baselineRate, delta, reason: 'insufficient history (need at least 2 records) — no comparison' };
+  if (scoped.length < 2) {
+    return { regressed: false, currentRate, baselineRate, delta, reason: 'insufficient history (need at least 2 records for this corpus) — no comparison' };
   }
 
-  const regressed = currentRate < baselineRate - tolerance;
-  return { regressed, currentRate, baselineRate, delta, reason: describeRegression({ regressed, baselineRate, currentRate, delta, tolerance }) };
+  const regressed = currentRate < baselineRate - safeTolerance;
+  return { regressed, currentRate, baselineRate, delta, reason: describeRegression({ regressed, baselineRate, currentRate, delta, tolerance: safeTolerance }) };
 }
 
 // ── 純函式的內部小工具 ──────────────────────────────────────────────────────────
@@ -127,10 +143,17 @@ function describeRegression({ regressed, baselineRate, currentRate, delta, toler
 
 // ── IO 薄邊界（被 import 時不執行）────────────────────────────────────────────────
 
-/** append 一行 JSON（+ \n）進 JSONL 檔，必要時建立父目錄。比照 cost-tracker append idiom。 */
+/**
+ * append 一行 JSON（+ \n）進 JSONL 檔，必要時建立父目錄。比照 cost-tracker append idiom。
+ * 寫檔失敗（權限 / 磁碟 / 路徑）→ 出聲診斷但不丟例外：記錄動作非 gate，永不擋路（≠ 永不出聲）。
+ */
 export function appendEvalRow(file, row) {
-  mkdirSync(dirname(file), { recursive: true });
-  appendFileSync(file, `${JSON.stringify(row)}\n`);
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    appendFileSync(file, `${JSON.stringify(row)}\n`);
+  } catch (err) {
+    console.error(`eval-metrics: failed to append metric row to "${file}" — ${err?.message ?? err}`);
+  }
 }
 
 /** spawn 同目錄 eval-oracle.mjs 跑語料庫 → tolerant parse 其 --json aggregate；失敗回 null（不丟）。 */
@@ -159,7 +182,11 @@ function runRecord(opts) {
     return EXIT_USAGE;
   }
   const aggregate = runOracle(opts.dir);
-  if (!aggregate) return EXIT_OK; // oracle 跑不起來 / 結果不可用 → 不記錄，但不擋路
+  if (!aggregate) {
+    // oracle 跑不起來 / 結果不可用 → 不寫垃圾進 metrics，但永不擋路（出聲診斷、仍 exit 0）。
+    console.error(`eval-metrics: record skipped — oracle produced no usable report for --dir "${opts.dir}"`);
+    return EXIT_OK;
+  }
   const row = buildEvalRow(aggregate, { corpus: opts.dir, ts: new Date().toISOString() });
   appendEvalRow(resolveMetricsFile(opts.metricsFile), row);
   return EXIT_OK;
@@ -182,6 +209,7 @@ function parseArgs(argv) {
   for (let i = 1; i < argv.length; i += 1) {
     const flag = argv[i];
     if (flag === '--dir') opts.dir = argv[++i] ?? null;
+    // --metrics-file 是檔案路徑：參數來自可信 operator/CI；勿接不可信輸入。
     else if (flag === '--metrics-file') opts.metricsFile = argv[++i] ?? null;
     else if (flag === '--baseline') opts.baseline = Math.trunc(toFiniteNumber(argv[++i], 0));
     else if (flag === '--tolerance') opts.tolerance = toFiniteNumber(argv[++i], 0);

@@ -108,13 +108,14 @@ node plugins/loops-workflow/scripts/eval-oracle.mjs --dir plugins/loops-workflow
   "passK": 1.0 }      // 見下「pass^k 誠實邊界」
 ```
 
-落點 `<cwd>/.loops/.metrics/eval-results.jsonl`（沿用 #15 的 `.loops/.metrics/`，已 gitignore）。
+落點 `<cwd>/.loops/.metrics/eval-results.jsonl`（沿用 #15 的 `.loops/.metrics/`，已 gitignore）。`errored ⊆ failed`（errored task 已計入 `failed`；`passed + failed === total`，errored 是 failed 的子集計數）。
 
 ## 回歸 gate
 
-- `computeRegression(rows, { baseline, tolerance })` → `{ regressed, currentRate, baselineRate, delta, reason }`；`regressed = currentRate < baselineRate − tolerance`。
-- baseline 預設 = 第一行（可 `--baseline <n>`）；tolerance 預設 0（任何下降即退化）。
-- CLI `check` → 退化 exit 1、否則 exit 0；**任何錯（讀不到 / 空 / 壞行）→ exit 0**（永不擋路，比照既有 hook）。
+- `computeRegression(rows, { baseline, tolerance })` → `{ regressed, currentRate, baselineRate, delta, reason }`；`regressed = currentRate < baselineRate − max(0, tolerance)`（負 tolerance clamp 到 0）。
+- **corpus-aware**：只在「最後一行的 corpus」的歷史子集內比（跨 corpus 不混比；同檔多語料庫安全）。
+- baseline 預設 = 該 corpus 子集第一行（可 `--baseline <n>`）；tolerance 預設 0（任何下降即退化）。
+- CLI `check` → 退化 exit 1、無退化 exit 0；**資料錯（讀不到 / 空 / 壞行）→ exit 0**（永不擋路）；**CLI 誤用（未知命令 / `record` 缺 `--dir`）→ exit 2**。record/check 遇基礎設施錯（spawn 失敗 / 寫檔失敗）仍 exit 0 但**印 stderr 診斷**（永不擋路 ≠ 永不出聲）。
 
 ## ⚠️ pass^k 誠實邊界
 
@@ -123,10 +124,10 @@ node plugins/loops-workflow/scripts/eval-oracle.mjs --dir plugins/loops-workflow
 ## 跑
 
 ```bash
-# 跑一輪 corpus 並記一行
-node plugins/loops-workflow/scripts/eval-metrics.mjs record --dir plugins/loops-workflow/evals/build
+# 跑一輪 corpus 並記一行（--metrics-file 可改輸出檔，預設 .loops/.metrics/eval-results.jsonl）
+node plugins/loops-workflow/scripts/eval-metrics.mjs record --dir plugins/loops-workflow/evals/build [--metrics-file <path>]
 # 回歸判定（相對 baseline 退化 → exit≠0）
-node plugins/loops-workflow/scripts/eval-metrics.mjs check [--baseline <n>] [--tolerance <Δ>]
+node plugins/loops-workflow/scripts/eval-metrics.mjs check [--metrics-file <path>] [--baseline <n>] [--tolerance <Δ>]
 ```
 
 > MVP 交付為 CLI；自動掛 stop-gate（改 SKILL/agent 回合觸發回歸檢查）為 follow-up。

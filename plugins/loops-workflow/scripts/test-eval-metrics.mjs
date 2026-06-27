@@ -14,7 +14,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-import { buildEvalRow, readEvalRows, computeRegression } from './eval-metrics.mjs';
+import { buildEvalRow, readEvalRows, parseEvalRows, computeRegression } from './eval-metrics.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // .../scripts
 const ROOT = dirname(HERE); // plugin root（契約：record/check e2e 的 cwd；committed 語料庫在 evals/build）
@@ -104,6 +104,35 @@ function callSafe(fn) {
   const aggregate = { total: 2, passed: 1, failed: 1, tasks: [{ errored: false }, { errored: false }] };
   const row = buildEvalRow(aggregate, { corpus: 'evals/build', ts: 'T' });
   assert(row && row.runs === 1, 'buildEvalRow：未給 runs → 預設 runs===1 [R-runsdefault]');
+}
+
+// ── R-toFinite（防呆）：total/passed/failed 收到非數（string 'x' / undefined / NaN）→ 一律 toFiniteNumber→0，
+//    passRate 連帶為 0；四欄皆 Number.isFinite。裸傳 aggregate.total 會讓 total==='x'（或 NaN）→ 本條紅 [契約 toFiniteNumber 防呆]
+{
+  const row = buildEvalRow({ total: 'x', passed: undefined, failed: NaN, tasks: [] }, { corpus: 'c', ts: 't' });
+  assert(row && row.total === 0 && Number.isFinite(row.total), "buildEvalRow：total='x' → total===0 且有限 [R-toFinite]");
+  assert(row && row.passed === 0 && Number.isFinite(row.passed), 'buildEvalRow：passed=undefined → passed===0 且有限 [R-toFinite]');
+  assert(row && row.failed === 0 && Number.isFinite(row.failed), 'buildEvalRow：failed=NaN → failed===0 且有限 [R-toFinite]');
+  assert(row && row.passRate === 0 && Number.isFinite(row.passRate), 'buildEvalRow：壞輸入 → passRate===0 且有限（非 NaN / Infinity）[R-toFinite]');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  parseEvalRows(content) —— 純函式：把 JSONL 字串逐行解析成 row 陣列。
+//  壞行跳過、空字串→[]、永不丟；readEvalRows(file) 變薄 reader（缺檔→[]）委派它。
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── P-parse：壞行置中（2 合法夾 1 GARBAGE）→ 回 2 筆、後續合法行續讀（第 2 筆 passRate===0.5）；空字串→[]；全程不丟（in-memory）[契約 parseEvalRows 純函式]
+{
+  const r = callSafe(() => parseEvalRows('{"passRate":1}\nGARBAGE\n{"passRate":0.5}\n'));
+  assert(!r.threw, 'parseEvalRows：含壞行不丟例外（純函式 tolerant）[P-parse]');
+  const rows = r.val || [];
+  assert(Array.isArray(rows) && rows.length === 2, 'parseEvalRows：2 合法 + 1 壞 → 回 2 筆（壞行被跳過）[P-parse]');
+  assert(rows[0] && rows[0].passRate === 1, 'parseEvalRows：第 1 筆 passRate===1 [P-parse]');
+  assert(rows[1] && rows[1].passRate === 0.5, 'parseEvalRows：壞行（置中）之後的合法行仍續讀（第 2 筆 passRate===0.5）[P-parse]');
+
+  const e = callSafe(() => parseEvalRows(''));
+  assert(!e.threw, 'parseEvalRows：空字串不丟例外 [P-parse]');
+  assert(Array.isArray(e.val) && e.val.length === 0, 'parseEvalRows：空字串 → [] [P-parse]');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -222,6 +251,40 @@ const rowsOf = (...rates) => rates.map((p) => ({ passRate: p }));
   assert(r && r.regressed === false, 'computeRegression：0.95 不< 0.5 → regressed=false [CR-baseline-index]');
 }
 
+// ── CR-corpus（corpus-aware）：只比「最後一行的 corpus」歷史、跨 corpus 不混比。
+//    rows=[A1.0, B0.5, A0.95]、tol0 → 只取 A：baseline=A 首筆 1.0、current=A 末筆 0.95 → regressed=true；
+//    中間 B 的 0.5 不得當 baseline/current（若用「整體前一行」當 baseline 會撈到 B 的 0.5 → baselineRate 變 0.5 → 本條紅）[契約 corpus-aware 回歸比較]
+{
+  const rows = [
+    { corpus: 'A', passRate: 1.0 },
+    { corpus: 'B', passRate: 0.5 },
+    { corpus: 'A', passRate: 0.95 },
+  ];
+  const r = computeRegression(rows, { tolerance: 0 });
+  assert(r && r.baselineRate === 1.0, 'computeRegression：baseline 取最後 corpus(A) 的首筆=1.0（非中間 B 的 0.5）[CR-corpus]');
+  assert(r && r.currentRate === 0.95, 'computeRegression：current 取最後一行 A 的 0.95（非 B 的 0.5）[CR-corpus]');
+  assert(r && r.regressed === true, 'computeRegression：A 0.95<1.0（tol0）→ regressed=true [CR-corpus]');
+}
+
+// ── CR-corpus-isolation（corpus-aware）：current 是 B 且 B 只一筆 → 沒前例可比 → regressed=false；
+//    且 A 的 0.5 不得洩漏成 B 的 baseline（若跨 corpus 撈 A 當 baseline，baselineRate 會是 0.5 → 本條紅）[契約 corpus 隔離]
+{
+  const rows = [
+    { corpus: 'A', passRate: 0.5 },
+    { corpus: 'B', passRate: 1.0 },
+  ];
+  const r = computeRegression(rows, { tolerance: 0 });
+  assert(r && r.regressed === false, 'computeRegression：最後 corpus(B) 僅 1 筆、無前例 → regressed=false [CR-corpus-isolation]');
+  assert(r && r.baselineRate !== 0.5, 'computeRegression：B 的 baseline 不被別組 A 的 0.5 汙染 [CR-corpus-isolation]');
+}
+
+// ── CR-negtol-clamp（Prove-It）：負 tolerance 須 clamp 到 0。[1.0,1.0]、tolerance -0.1 → 持平不算退化 → regressed=false。
+//    未 clamp 時門檻被收緊到 baseline 之上：current < baseline-(-0.1)，即 1.0 < 1.1 → 會誤判 regressed=true → 本條紅 [契約 負 tolerance clamp]
+{
+  const r = computeRegression(rowsOf(1.0, 1.0), { tolerance: -0.1 });
+  assert(r && r.regressed === false, 'computeRegression：負 tolerance clamp 到 0、持平 → regressed=false [CR-negtol-clamp]');
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 //  e2e smoke —— 真 spawn `scripts/eval-metrics.mjs`（cwd = plugin root），驗檔案最終狀態 / exit code。
 //  record：跑 committed 語料庫 evals/build（5/5）→ 寫一行 metric row。
@@ -284,6 +347,23 @@ function readJsonl(file) {
   }
 }
 
+// ── E-record-fail：record --dir 指向不存在的語料庫目錄 → 程序 exit 0（永不擋路）、但 stderr 非空（有診斷），
+//    且 metrics 檔未被寫入垃圾（不存在或 0 行）[契約 record 失敗有診斷仍 exit 0]
+{
+  const dir = mkdtempSync(join(tmpdir(), 'em-record-fail-'));
+  const missingCorpus = join(dir, 'no-such-corpus'); // 永不建立
+  const metricsFile = join(dir, 'eval-results.jsonl');
+  try {
+    const res = runMetrics(['record', '--dir', missingCorpus, '--metrics-file', metricsFile]);
+    assert(res.error == null, 'E-record-fail：node 啟動成功（spawn 無 error）[E-record-fail]');
+    assert(res.status === 0, 'E-record-fail：record 失敗仍 exit 0（永不擋路）[E-record-fail]');
+    assert((res.stderr || '').trim().length > 0, 'E-record-fail：失敗時 stderr 非空（有診斷）[E-record-fail]');
+    assert(readJsonl(metricsFile).length === 0, 'E-record-fail：metrics 檔未被寫入垃圾（不存在或 0 行）[E-record-fail]');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 // ── E-check-regress：兩行 passRate 1.0 then 0.5 → check 偵測退化 → exit code===1 [契約 check]
 {
   const dir = mkdtempSync(join(tmpdir(), 'em-check-red-'));
@@ -328,6 +408,56 @@ function readJsonl(file) {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+// ── E-check-tolerance：手寫同 corpus 兩行 passRate 1.0→0.5（跌 0.5）→ check --tolerance 0.6 → exit 0。
+//    若 CLI 沒把 --tolerance 接到 computeRegression（用預設 tol 0）→ 跌 0.5 會 exit 1 → 本條紅 [契約 CLI 接線 tolerance]
+{
+  const dir = mkdtempSync(join(tmpdir(), 'em-check-tol-'));
+  const metricsFile = join(dir, 'eval-results.jsonl');
+  try {
+    writeFileSync(metricsFile, [
+      JSON.stringify({ ts: 'T1', corpus: 'evals/build', schema: 1, runs: 1, total: 5, passed: 5, failed: 0, errored: 0, passRate: 1.0, passK: 1.0 }),
+      JSON.stringify({ ts: 'T2', corpus: 'evals/build', schema: 1, runs: 1, total: 4, passed: 2, failed: 2, errored: 0, passRate: 0.5, passK: 0.5 }),
+    ].join('\n') + '\n', 'utf8');
+    const res = runMetrics(['check', '--metrics-file', metricsFile, '--tolerance', '0.6']);
+    assert(res.error == null, 'E-check-tolerance：node 啟動成功 [E-check-tolerance]');
+    assert(res.status === 0, 'E-check-tolerance：跌 0.5 < --tolerance 0.6 → exit 0（容忍度經 CLI 生效）[E-check-tolerance]');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// ── E-check-baseline：手寫同 corpus 三行 passRate [1.0,0.5,0.95] → check --baseline 1 → exit 0。
+//    baseline index 經 CLI 生效：baseline=rows[1]=0.5、current=0.95、0.95 不< 0.5 → 不退化。
+//    若 CLI 沒接 --baseline（用預設 0）→ baseline=1.0、current=0.95 → 退化 exit 1 → 本條紅 [契約 CLI 接線 baseline]
+{
+  const dir = mkdtempSync(join(tmpdir(), 'em-check-base-'));
+  const metricsFile = join(dir, 'eval-results.jsonl');
+  try {
+    writeFileSync(metricsFile, [
+      JSON.stringify({ ts: 'T1', corpus: 'evals/build', schema: 1, runs: 1, total: 5, passed: 5, failed: 0, errored: 0, passRate: 1.0, passK: 1.0 }),
+      JSON.stringify({ ts: 'T2', corpus: 'evals/build', schema: 1, runs: 1, total: 4, passed: 2, failed: 2, errored: 0, passRate: 0.5, passK: 0.5 }),
+      JSON.stringify({ ts: 'T3', corpus: 'evals/build', schema: 1, runs: 1, total: 20, passed: 19, failed: 1, errored: 0, passRate: 0.95, passK: 0.95 }),
+    ].join('\n') + '\n', 'utf8');
+    const res = runMetrics(['check', '--metrics-file', metricsFile, '--baseline', '1']);
+    assert(res.error == null, 'E-check-baseline：node 啟動成功 [E-check-baseline]');
+    assert(res.status === 0, 'E-check-baseline：--baseline 1 → baseline=0.5、current=0.95、不退化 → exit 0 [E-check-baseline]');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// ── E-misuse：CLI 誤用 → exit 2（與「資料缺/操作失敗 exit 0」明確區隔）。
+//    record 不帶必要 --dir → status 2；未知命令 bogus → status 2 [契約 CLI 誤用]
+{
+  const noDir = runMetrics(['record']);
+  assert(noDir.error == null, 'E-misuse：record 無 --dir node 啟動成功 [E-misuse]');
+  assert(noDir.status === 2, 'E-misuse：record 缺必要 --dir → exit status===2（誤用）[E-misuse]');
+
+  const bogus = runMetrics(['bogus']);
+  assert(bogus.error == null, 'E-misuse：未知命令 node 啟動成功 [E-misuse]');
+  assert(bogus.status === 2, 'E-misuse：未知命令 bogus → exit status===2（誤用）[E-misuse]');
 }
 
 // ── 摘要 + exit code ─────────────────────────────────────────────────────────
