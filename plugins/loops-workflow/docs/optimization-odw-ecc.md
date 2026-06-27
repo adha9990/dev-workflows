@@ -142,6 +142,6 @@ ECC 是「agent harness performance optimization system」（271 skill、67 agen
 - verify reviewer 右尺寸化 → `skills/verify/SKILL.md`（§1.4）
 - operation 紅燈起手式 → `references/operation-first-move.md`
 - instinct 格式與隱私/SECURITY → `references/instinct-schema.md`
-- comprehension-debt / cognitive-surrender 概念 → `AGENTS.md`
+- comprehension-debt / cognitive-surrender 概念 → `AGENTS.md`（repo 根治理檔，非 plugin 目錄）
 - opt-in hook 目錄（flag 怎麼開 / footprint / SECURITY）→ `references/journaling.md`
 - 全貌數字總結 → `docs/FLOW.md`
