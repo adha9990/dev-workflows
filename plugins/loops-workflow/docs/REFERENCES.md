@@ -31,6 +31,7 @@
 | `machine-plan-schema` | 機器可驗證的 `loops-plan` JSON 塊格式（每任務可執行 verification、acceptance ≤3、依賴無環） | plan（可選）+ `validate-plan.mjs` |
 | `change-summaries` | build 產出的 Change Summaries 三段式格式 | build（`03-build.md`） |
 | `operation-first-move` | 4 operation 性質（new-feature/change-behavior/bug-fix/refactor）× test-author 紅燈第一步規則 + fail-safe（單一來源） | dispatch（寫 `operation` 欄）· build（讀欄派 test-author） |
+| `quality-gate-schema` | quality-gate 腳本輸出 / failures 結構化契約（`file:line [code\|ruleId] message`） | build（派 fixer 帶 failures）· verify（gate 摘要） |
 
 ## 3. 驗證與審查機制
 
