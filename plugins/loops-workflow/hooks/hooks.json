@@ -1,5 +1,5 @@
 {
-  "description": "loops-workflow hooks（opt-in 皆預設關、永不擋路）：SessionStart 浮出 active 迴圈；Stop=cost-tracker 記估算成本(LOOPS_COST_TRACKER) + stop-gate 改檔回合自動跑 quality-gate 注入失敗(LOOPS_STOP_GATE)；PostToolUse=edit-accumulator 累積本回合改檔(供 stop-gate)；PreToolUse(Edit|Write)=suggest-compact context 壓力提醒(LOOPS_COMPACT_HINT)、(Write|Edit|MultiEdit)=config-protection 擋弱化 linter 設定(LOOPS_CONFIG_PROTECTION)。",
+  "description": "loops-workflow hooks（SessionStart 恆跑；其餘 5 個 opt-in 預設關；皆永不擋路）：SessionStart 浮出 active 迴圈；Stop=cost-tracker 記估算成本(LOOPS_COST_TRACKER) + stop-gate 改檔回合自動跑 quality-gate 注入失敗(LOOPS_STOP_GATE)；PostToolUse=edit-accumulator 累積本回合改檔(供 stop-gate)；PreToolUse(Edit|Write)=suggest-compact context 壓力提醒(LOOPS_COMPACT_HINT)、(Write|Edit|MultiEdit)=config-protection 擋弱化 linter 設定(LOOPS_CONFIG_PROTECTION)。",
   "hooks": {
     "SessionStart": [
       {

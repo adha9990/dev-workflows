@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// edit-accumulator.mjs —— loops-workflow PostToolUse(Edit|Write) hook：把本 session 編輯過的檔案路徑
+// edit-accumulator.mjs —— loops-workflow PostToolUse(Write|Edit|MultiEdit) hook：把本 session 編輯過的檔案路徑
 // 累積進 os.tmpdir() 的 state 檔，供 Stop 階段的 stop-gate 判斷「這趟有沒有改過檔」。
 // 純記錄、不擋路、任何錯誤 no-op exit 0。
 //

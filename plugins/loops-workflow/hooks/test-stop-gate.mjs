@@ -198,6 +198,13 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
   const longOut = buildGateInjection(long, false);
   assert(typeof longOut === 'string' && longOut.length === 10000,
     'buildGateInjection：summary >10000 → 截到 10000 [C2]');
+
+  // A3 空注入 guard 回歸：非 ok 但摘要空 / 全空白 → 仍回 null（gate 崩潰 stdout 為空時不注入空 additionalContext）。
+  // Prove-It：把 impl 的 `out.trim() ? out : null` 改回 `return out`，下兩條會轉紅（''/全空白會被當成有效注入回傳）。
+  assert(buildGateInjection('', false) === null,
+    'buildGateInjection：ok===false 但 summary 空字串 → null（空注入 guard）[C2]');
+  assert(buildGateInjection('   \n ', false) === null,
+    'buildGateInjection：ok===false 但 summary 全空白 → null（空注入 guard）[C2]');
 }
 
 // =============================================================================
@@ -316,6 +323,23 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
     assert(paths.length === 1, 'S-acc②：同 path 兩次 → 去重後 paths 只 1 筆 [S-acc②]');
   } finally {
     rmSync(stateFile, { force: true });
+  }
+}
+
+// ── S-acc③：flag 關（未設 LOOPS_STOP_GATE）→ accumulator no-op、不寫出 state 檔（A1 負向）──
+{
+  const sessionId = freshSession('acc-off');
+  const stateFile = editsStateFile(sessionId);
+  rmSync(stateFile, { force: true }); // 起始確保無殘留 state 檔（冪等）
+  try {
+    const p = join(tmpdir(), `acc-off-${sessionId}.ts`);
+    // A1（負向）：runHook 預設已 delete LOOPS_STOP_GATE，flag 關 → accumulator main 開頭即 return、不落盤。
+    // Prove-It：刪掉 impl 的 `if (process.env.LOOPS_STOP_GATE !== '1') return;`，flag 關仍會寫 state → 檔存在 → 此條轉紅。
+    runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: p } }); // 不帶 LOOPS_STOP_GATE
+    assert(existsSync(editsStateFile(sessionId)) === false,
+      'S-acc③：未設 LOOPS_STOP_GATE → accumulator no-op、不寫出 state 檔（existsSync === false）[A1]');
+  } finally {
+    rmSync(stateFile, { force: true }); // 防衛性清（預期本就無檔）
   }
 }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// config-protection.mjs —— loops-workflow PreToolUse(Edit|Write) hook：擋下「修改既有 linter/formatter
+// config-protection.mjs —— loops-workflow PreToolUse(Write|Edit|MultiEdit) hook：擋下「修改既有 linter/formatter
 // 設定檔」這個弱化品質閘的動作（應改程式碼，而非把 lint/format 規則調鬆）。只擋「受保護且已存在」的檔；
 // 新建設定檔放行。env LOOPS_CONFIG_PROTECTION=1 才啟用，預設靜默放行。
 // fail-open：任何例外一律放行 exit 0，永不擋路（hook 故障不該卡住使用者）。
