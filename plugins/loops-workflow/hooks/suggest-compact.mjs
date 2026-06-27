@@ -25,24 +25,27 @@ const DEFAULT_TTL_MS = 14 * 24 * 60 * 60 * 1000; // state 過期門檻：14 天
 /**
  * 逐行解析 transcript（JSONL）→ 回「最後一個」有 usage 的 assistant 的真實 context 大小，
  * 即 input_tokens + cache_read_input_tokens + cache_creation_input_tokens（窗口實際載入量）。
+ * 反向掃描：自最後一行往前，命中第一筆 assistant-with-usage 即回傳——語意等價於「取最後一筆」，
+ * 但能在尾端命中後提早 break，省去前面所有前綴行的 JSON.parse（transcript 通常很長）。
  * 容錯：壞 JSON 行跳過；無任何 assistant usage → 0。
  */
 export function getRealContextSize(content) {
-  let size = 0;
-  for (const line of String(content ?? '').split('\n')) {
+  const lines = String(content ?? '').split('\n');
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
     if (!line.trim()) continue;
     let entry;
     try {
       entry = JSON.parse(line);
     } catch {
-      continue;
+      continue; // 壞 JSON 行跳過（反向時通常根本掃不到，因已提早命中）
     }
     if (entry?.type !== 'assistant' || !entry?.message?.usage) continue;
 
     const u = entry.message.usage;
-    size = safeNum(u.input_tokens) + safeNum(u.cache_read_input_tokens) + safeNum(u.cache_creation_input_tokens);
+    return safeNum(u.input_tokens) + safeNum(u.cache_read_input_tokens) + safeNum(u.cache_creation_input_tokens);
   }
-  return size;
+  return 0; // 無任何 assistant usage
 }
 
 /**
@@ -88,8 +91,11 @@ function readStdin() {
   return readFileSync(0, 'utf8'); // fd 0 = stdin（hook payload 由父行程以 pipe 餵入）
 }
 
-/** session_id 轉成安全檔名片段：非 [A-Za-z0-9_-] 一律換成 _（避免路徑穿越 / 非法檔名）。 */
-function sanitizeSessionId(sessionId) {
+/**
+ * session_id 轉成安全檔名片段：非 [A-Za-z0-9_-] 一律換成 _（避免路徑穿越 / 非法檔名）。
+ * 對外 export 供測試 import 當「安全檔名規則」的單一真相源（避免測試重抄正則而漂移）。
+ */
+export function sanitizeSessionId(sessionId) {
   return String(sessionId ?? '').replace(/[^A-Za-z0-9_-]/g, '_');
 }
 
@@ -131,6 +137,10 @@ function main() {
 
   if (!shouldRemind(level, state.lastNotifiedLevel)) return; // 同級 / 未達門檻 → 靜默
 
+  // persist-before-emit（防洗版）：先把新級數落盤，落盤成功後才印提醒。
+  // 若 writeFileSync 拋出 → 由 invokedDirectly 外層 catch 吞掉、不提醒、exit 0（永不擋路）；
+  // 確保「提醒過」必然伴隨「已記住級數」，否則下次又會對同級距重複洗版。
+  writeFileSync(stateFile, JSON.stringify({ lastNotifiedLevel: level, ts: Date.now() }));
   console.log(
     JSON.stringify({
       hookSpecificOutput: {
@@ -139,7 +149,6 @@ function main() {
       },
     }),
   );
-  writeFileSync(stateFile, JSON.stringify({ lastNotifiedLevel: level, ts: Date.now() }));
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
