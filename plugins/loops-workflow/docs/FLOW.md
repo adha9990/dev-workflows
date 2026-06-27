@@ -189,7 +189,7 @@ flowchart TD
 | **處理什麼** | 把 verify 缺口 / PR reviewer 回饋分類、修根因、決定回環或完工 |
 | **機制** | 收集回饋（`type=fix` 走 `pr-feedback-sources.md`：inline comment 要 `gh api`）→ **RECONCILE 四分類** → **Stop-the-Line 修**（DIAGNOSE 先定位失敗層 + `git bisect` → 修根因 → 每修加回歸測試）→ **修完一定再 verify** → 完工 or 回環（看收斂·≤3 圈·不收斂即 escalate） |
 | **完工交接物（依類型）** | **修正型**＝一份修正回覆 comment（`comment-policy` §8 版型：工程角度根因/怎麼修/怎麼驗＋客戶角度修正前→後；**不@reviewer**）；**完整迴圈**＝PR 收尾 comment + **自動產 explain**。follow-up 留當前 issue 不另開。PR body 放 `Closes #issue`、指派 `@me`、與 master 衝突自動合併 |
-| **收尾清理（兩時機）** | ① **loop 結束時**（不論交不交 PR）清掉 loop 期間所有暫存：移除 worktree（`git worktree remove`/`prune`）、刪草稿/截圖/scratch · ② **PR 合併後**（solo 自己合併→自己清）刪分支（`gh pr merge --delete-branch`，只留 `main`+進行中）· loop 暫存一律不入庫（`.loops`/`.claude/worktrees`/`data`/`dev.json`/截圖 由 `.gitignore` 涵蓋，`git ls-files` 掃一遍） |
+| **收尾清理（兩時機）** | ① **loop 結束時**（不論交不交 PR）清掉 loop 期間所有暫存：移除 worktree（`git worktree remove`/`prune`）、刪草稿/截圖/scratch · ② **PR 合併後**（solo 自己合併→自己清）刪分支（`gh pr merge <PR#> --squash --delete-branch`，**一律 squash 單一 commit**、策略見 `pr-spec`〈merge 策略〉，只留 `main`+進行中）· loop 暫存一律不入庫（`.loops`/`.claude/worktrees`/`data`/`dev.json`/截圖 由 `.gitignore` 涵蓋，`git ls-files` 掃一遍） |
 | **策略** | **交 reviewer 前把問題解到最少**（actionable 一律自動全修、不問「修多少」）· severity 只決定停不停、不決定修不修 · **回環看收斂**（findings 沒變少 / 同條復現就 escalate，不等第 3 圈）· **3 圈上限 = 檢查點非硬牆**（停下問你：回頭重想 / 換跨模型 / 授權再繞重置計數） |
 | **gate** | ✋ 完工 or 回哪階段（修完再 verify 不是選項，一律再驗） |
 

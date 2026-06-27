@@ -35,3 +35,18 @@ issue-driven PR 的 **body 開頭必須放關閉關鍵字** `Closes #<issue>`（
 - **開 / 改 PR 時自動與 master 同步**：`git fetch origin master` 後若 branch 落後 / 與 master 衝突 → **自動把 master 合進 branch**（`git merge origin/master`）並解衝突（謹慎解、不盲目取單邊；真的解不清才停下用 `AskUserQuestion` 問），解完 push —— **不留帶衝突 / 落後的 PR**，再請求 review。
 - 送出前對外內容（PR body / 回覆）先寫 tmp 草稿給使用者校稿（見 `references/comment-policy.md`），確認才 post。
 - **開 / 改 PR 後驗證 `gh pr view <PR#> --json closingIssuesReferences` 已含目標 issue**（body 的 `Closes #<issue>` 生效了），不是空陣列。
+
+## merge 策略（單一來源）
+
+PR 經使用者**核可後**才合併（**human-gated、絕不 auto-merge**）；核可後一律用 **squash**，讓 master 每個 PR 只進**一個 commit**、歷史線性：
+
+```
+gh pr merge <PR#> --squash --delete-branch \
+  --subject "<type>: <繁中主旨> (#<PR#>)" \
+  --body "<精煉成果 + Closes #<issue> + Co-Authored-By / Claude-Session trailer>"
+```
+
+- **必帶 `--squash`**（不是預設的 merge-commit）—— 不留「Merge pull request」合併節點、不保留分支內多筆 commit；整個 PR 壓成一筆乾淨 commit、好讀好 revert。
+- **顯式帶 `--subject` / `--body`**：避免 `gh pr merge` 開互動編輯器卡住（本環境 non-interactive）；body 仍放 `Closes #<issue>`（merge 時自動關 issue）與 Co-Authored-By / Claude-Session trailer。
+- `--delete-branch`：合併後刪遠端分支（本機分支 / worktree 由 `skills/iterate` §6 收尾清理）。
+- merge **本身仍是 human gate** —— 使用者核可才執行；這段只規範「核可後用什麼策略合」，不改「誰決定 merge」。
