@@ -27,6 +27,8 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 
 先讀 dispatch 建的 `loop.md` 與 issue / 描述。**逐句掃過整張 issue** —— 描述、背景、舉例、邊界說明、留言、甚至順帶一句的補充 —— **把每個 requirement-bearing 句子抽成一條清單**，**不是只看「驗收標準 / Acceptance Criteria」那一段**：需求常散在 prose、舉例、非目標裡（例：一句「排序要 score ASC」藏在敘述中段，不在任何 AC 清單）。抽出的每一條後面都要落到第 3 步六欄某處。
 
+> **補寫 `operation`（讀到無欄就補、不綁成因）**：goal step 1 讀 `loop.md` 時，**若無 `operation` 欄**——任何成因（直接喊 `/loops-workflow:goal` 未經 dispatch、經 `define` 建 loop.md 時未寫、升級前的舊 loop）——就順手依 issue 性質判定補寫（`new-feature` / `change-behavior` / `bug-fix` / `refactor`，見 `references/operation-first-move.md`；拿不準向嚴 `new-feature` 並在 Journal 註明）。這是**兜底**：確保走到 build 前 operation 一定有著落（這欄決定 build 紅燈第一步；萬一仍缺，build 會 fail-safe 退到 `new-feature`）。
+
 **issue 裡寫的實作做法 / 指名的套件，記成「建議」不是「需求」** —— 需求是「要達成 X」，「用套件 Y」只是建議，**留給 explore 多方法評估**（可能有更好的，見 explore §4.5）。別把「用 Y」當成 locked 的完工條件填進六欄。
 
 **能從素材推得的不要問** —— 只問會改變方向的 blocking 決策。

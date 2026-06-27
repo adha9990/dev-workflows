@@ -53,7 +53,7 @@ flowchart TD
 |---|---|
 | **skill** | `dispatch`（1）｜**agent** 0 |
 | **處理什麼** | 判**意圖清晰度** → 建 `.loops/<slug>/loop.md` → 進起點階段（模糊先路由給 clarify） |
-| **機制** | 決策樹：**乾淨空專案→scaffold**／issue#（明確）→goal／PR#（明確）→iterate／**模糊想法→`clarify`**（釐清+判方向）／已釐清待解決→`define`→goal／**想先探索一塊空間→explore→產出經 `define` 開功能 issue**。建 loop.md（類型·session id·當前階段）。**所有 issue 一律經 define + repo template 建、不 ad-hoc；無獨立研究 issue**（規則 12）。**會動 code 的迴圈開 git worktree**，但 `.loops/` 留主 repo（免被 worktree 清掉） |
+| **機制** | 決策樹：**乾淨空專案→scaffold**／issue#（明確）→goal／PR#（明確）→iterate／**模糊想法→`clarify`**（釐清+判方向）／已釐清待解決→`define`→goal／**想先探索一塊空間→explore→產出經 `define` 開功能 issue**。建 loop.md（類型·**operation 性質**·session id·當前階段）。**所有 issue 一律經 define + repo template 建、不 ad-hoc；無獨立研究 issue**（規則 12）。**會動 code 的迴圈開 git worktree**，但 `.loops/` 留主 repo（免被 worktree 清掉） |
 | **策略** | **只分流、不串接** —— routine 不問你；**dispatch 自己不做訪談 / 複述確認**（模糊路由給 `clarify`），只有分類衝突 / scaffold 大動作才停 |
 
 ---
@@ -150,7 +150,7 @@ flowchart LR
     REF --> SP
 ```
 
-> test-author 帶 `test-rubric.md`（四層測試 / Real>Fake>Stub>Mock / pyramid 80/15/5）；**impl-author 帶 `clean-code.md` + `clean-architecture.md` + `security-checklist.md` + `reuse-check.md`（綠燈當下就照合併標準寫、非先寫爛再救）**；Refactor 依 `refactoring.md`（異味 → 具名手法 → 設計模式時機）+ `code-simplification.md`（安全簡化紀律、精修非補救）；偏離 plan 就回去更新 `02-plan.md`。做完直接進 verify。
+> test-author 帶 `test-rubric.md`（四層測試 / Real>Fake>Stub>Mock / pyramid 80/15/5），並依 `loop.md` 的 `operation` 性質決定**紅燈第一步**（bug-fix 先寫重現測試 / refactor 先確認全綠無紅燈相…見 `operation-first-move`）；**impl-author 帶 `clean-code.md` + `clean-architecture.md` + `security-checklist.md` + `reuse-check.md`（綠燈當下就照合併標準寫、非先寫爛再救）**；Refactor 依 `refactoring.md`（異味 → 具名手法 → 設計模式時機）+ `code-simplification.md`（安全簡化紀律、精修非補救）；偏離 plan 就回去更新 `02-plan.md`。做完直接進 verify。
 
 ---
 
@@ -242,7 +242,7 @@ flowchart TD
 | **skill** | 12（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **agents-md-maintainer** 側用文檔維運） |
 | **agent** | 19 = build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + 9 條件式（explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose） |
 | **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 9 條件式）+ N validator |
-| **reference** | 39 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + 8 份 per-axis 審查判準）｜**command** loop / resume / status / explain / install-statusline｜**hook** 6 個 / 4 事件（SessionStart 恆跑、其餘 5 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈) + Stop(cost-tracker 估成本 + stop-gate 改檔回合自動跑 quality-gate) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
+| **reference** | 41 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + 8 份 per-axis 審查判準 + operation-first-move）｜**command** loop / resume / status / explain / install-statusline｜**hook** 6 個 / 4 事件（SessionStart 恆跑、其餘 5 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈) + Stop(cost-tracker 估成本 + stop-gate 改檔回合自動跑 quality-gate) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
 
 ---
 

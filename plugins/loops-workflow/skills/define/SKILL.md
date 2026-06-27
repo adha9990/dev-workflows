@@ -71,7 +71,7 @@ description: Turns any new work without a GitHub issue into a structured, templa
 
 ### 7. 建 issue → 交 goal
 
-草稿（依選定 template）寫**暫存 tmp 檔**給使用者逐字校稿（依 `references/comment-policy.md`）→ 確認後 `gh issue create --title "<繁中標題>" --body-file <tmp> --assignee @me` → 拿到新 issue#、**送出後刪 tmp** → 進 `goal`。slug 用 `<新 issue#>-<kebab>`、loop.md 類型 = issue。
+草稿（依選定 template）寫**暫存 tmp 檔**給使用者逐字校稿（依 `references/comment-policy.md`）→ 確認後 `gh issue create --title "<繁中標題>" --body-file <tmp> --assignee @me` → 拿到新 issue#、**送出後刪 tmp** → 進 `goal`。slug 用 `<新 issue#>-<kebab>`、loop.md 類型 = issue、**並依 issue 性質寫入 `operation` 欄**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`，見 `references/operation-first-move.md`；拿不準向嚴 `new-feature`）——因 define 是無 issue 工作建 loop.md 的入口（非 dispatch），operation 由 define 寫；漏寫時 goal 會兜底補。
 intake 已釐清 + 結構化，**goal 多半能直接從這張 issue 抽出六欄 DoD、不必重複訪談**。
 
 ## Input hygiene（把寫作指示濾掉）
