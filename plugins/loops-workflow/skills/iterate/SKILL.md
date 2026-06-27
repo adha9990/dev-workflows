@@ -79,7 +79,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 > 這些只在「完工」這條分支產；回環途中不產。
 
-完工後把 `loop.md` 的「當前階段」設為「**完工**」（statusline 即不再顯示此 loop）。
+完工後把 `loop.md` 的「當前階段」設為「**完工**」（statusline 即不再顯示此 loop），**並在 Journal 末尾 append 一行 outcome 度量** —— 依 `references/journaling.md`〈完工 outcome 度量〉的格式（`★[outcome] 結果 ｜ token≈估算(級距)est ｜ sub-agent 數 ｜ 回環 圈 ｜ findings validated→剩餘 ｜ 交付：交付物`），從本 loop Journal 回推各欄、**token 標粗估（規則 5）**，給這條 loop 留下可回顧的成本 / 規模輪廓（落實規則 10 成本意識可觀測）。中止（descoped / aborted）收尾同樣 append 一行。格式定義以 `journaling.md` 為**單一來源**，這裡只引用、不另立第二份。
 
 **收尾清理 —— loop 結束的標準環節，不是選項。分兩個時機：**
 
@@ -119,6 +119,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - 把本可在當前 issue 解決的 follow-up 擅自另開新 issue。
 - issue-driven PR 的 body 沒放關閉關鍵字 `Closes #<issue>`（只寫標題 `(#issue)` / 內文提及 = 不連結、merge 不自動關 issue，見 `references/pr-spec.md`）。
 - **合併後沒刪已合併分支 / 沒清 worktree**，囤積一堆 merged branch；或 **loop 暫存（草稿 / 截圖 / worktree / `.loops` / `data`）被 commit 推上去**。
+- **完工 / 中止沒在 `loop.md` Journal append 一行 outcome 度量**（缺成本 / 規模輪廓，違規則 10 可觀測）；或 token 欄寫成精準值沒標 `est`（違規則 5）。
 
 ## Verification
 
@@ -129,6 +130,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工。
 - [ ] 完工前最近一輪 verify 無 actionable findings。
 - [ ] 完工前對照 `00-goal.md` 停止條件全達成。
+- [ ] **完工 / 中止已在 `loop.md` Journal append 一行 outcome 度量**（依 `references/journaling.md`〈完工 outcome 度量〉，欄位齊全、token 帶 `est`／級距標粗估）。
 - [ ] 收尾交接物依迴圈類型：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」、完整迴圈產 PR 收尾 comment + **自動產 explain（沒問「要不要產」）**；對外那份經使用者確認才送、未自動 post、回環途中不產。
 - [ ] follow-up 在當前 issue 內處理，沒有擅自另開新 issue。
 - [ ] **收尾清理兩時機都做了**：① loop 結束時清掉 loop 期間所有暫存（worktree / 草稿 / 截圖 / scratch，不等 PR）；② PR 合併後刪分支（solo 自己合併自己清，只留 `main` + 進行中）。loop 暫存沒被推上去（`.gitignore` 有涵蓋）。
