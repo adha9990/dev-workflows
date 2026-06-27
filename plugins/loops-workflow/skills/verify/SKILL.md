@@ -1,13 +1,13 @@
 ---
 name: verify
-description: Fans out six independent reviewers (product/architecture/security/performance/code-quality/tests) then validates findings in a second pass. Use when starting the verify stage of a loops-workflow run, or when built work needs merge-readiness review before iterate.
+description: Fans out the core reviewers (product/architecture/security/performance/code-quality/tests — all six for any code change; right-sized to a minimal set for docs/config-only changes, see §1.4) then validates findings in a second pass. Use when starting the verify stage of a loops-workflow run, or when built work needs merge-readiness review before iterate.
 ---
 
-# verify — 驗證（六 reviewer fan-out + validator 二輪）
+# verify — 驗證（多 reviewer fan-out + validator 二輪）
 
 ## Overview
 
-`verify` 的引擎是多 reviewer fan-out：主線**在同一回合一次發 6 個 reviewer**（並行、fresh context、不巢狀），各審一軸；再派 `finding-validator` 對每個 blocking finding 做二輪確認；最後 merge 成 **Ready / Not ready**。
+`verify` 的引擎是多 reviewer fan-out：主線**在同一回合一次發出一組核心 reviewer**（並行、fresh context、不巢狀），各審一軸 —— **含 code 改動是核心 6 軸全派**、純文件 / 純設定類依 §1.4 **右尺寸化**到最小集；再派 `finding-validator` 對每個 blocking finding 做二輪確認；最後 merge 成 **Ready / Not ready**。
 
 > 用多個 fresh-context reviewer 各審一軸，而非主線自己掃一遍 —— 寫 code 時的假設不會帶進 review，獨立性換來覆蓋廣度。
 
@@ -25,7 +25,9 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 ## Process
 
-### 1. 同一回合派 6 個 reviewer（並行、各一軸）
+### 1. 同一回合並行派核心 reviewer（各審一軸）
+
+下表是**核心 6 軸 reviewer 的清單（menu）**；**實際派幾軸由 §1.4 依改動面決定**（含 code＝6 軸全派；純文件 / 設定＝最小集）。
 
 | reviewer | 審什麼 | 補強 |
 |------|------|------|
@@ -36,11 +38,25 @@ description: Fans out six independent reviewers (product/architecture/security/p
 | `code-quality-reviewer` | **正確性與狀態流（先於風格）** / 錯誤處理 / typing / 可讀性與簡潔 / code smells / 重用 | correctness-review（狀態流 / 部分失敗 / 冪等 / txn）+ clean-code + refactoring + code-simplification + reuse-check |
 | `tests-reviewer` | 測試覆蓋 / 邊界 / migration | **反偏見：不給它「作者說已通過」的結論** |
 
-> 必須在**同一個 assistant 回合**一次發出 6 個 Agent call 才會真的並行。subagent 不能再派 subagent。
+> 必須在**同一個 assistant 回合**一次發出（§1.4 定的那組）reviewer 的 Agent call 才會真的並行。subagent 不能再派 subagent。
 
 > **派 reviewer 只給 artifact + 契約**（issue / `02-plan.md` 契約 / diff），**不給作者的理由 / 辯護** —— `03-build.md` 的 POTENTIAL CONCERNS 是給人看的、**不轉發**給 reviewer。餵作者 rationale 會讓 reviewer 偏向同意（反偏見的正面規則，同 tests-reviewer「不告知作者說已過」）。
 
 > **參考檔路徑（必做）**：subagent 的 CWD 是使用者 repo、且 `${CLAUDE_PLUGIN_ROOT}` 在 markdown 不展開，所以相對路徑 `references/xxx.md` 它們讀不到。派 reviewer 前，**從本 skill 的 base directory 推出 plugin root**（base 上兩層 = `…/plugins/loops-workflow/`），組出絕對路徑塞進各 reviewer 的 prompt：全部 reviewer ← `references/reviewer-severity.md` + `references/review-dispositions.md`（每軸盯點 + 出手前共用誤報底線）+ `references/preflight.md` §(c)「作者已留痕的決定不算 finding」硬規則原文；`product-contract-reviewer` 另加 `references/acceptance-review.md`；`code-quality-reviewer` 另加 `references/correctness-review.md`、`references/clean-code.md`、`references/refactoring.md`、`references/code-simplification.md` 與 `references/reuse-check.md`；`architecture-reviewer` 另加 `references/architecture-review.md`、`references/clean-architecture.md` 與 `references/design-patterns.md`；`security-reviewer` 另加 `references/security-checklist.md`；`performance-reviewer` 另加 `references/performance-review.md`；`tests-reviewer` 另加 `references/test-rubric.md`；條件式 `frontend-ui-reviewer` ← `references/ui-interaction-review.md`、`root-cause-reviewer` ← `references/root-cause-review.md`、`docs-devex-reviewer` ← `references/docs-devex-review.md`；`finding-validator` ← `references/finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
+
+### 1.4 改動面 → 最小核心 reviewer 集（右尺寸化）
+
+§1 的核心 6 軸是**含 code 改動的下界、不可縮**。但對**客觀窄面**（純文件 / 純 markdown 敘述 / 純非執行設定）——`performance` / `security` / `tests` 等核心軸**對該改動無可審之物**——全派只是起一堆空轉 agent（規則 10 carve-out 想砍的「非必要貴動作」）。依改動面定**核心 reviewer 的下界**（下表只列**核心軸**；領域 reviewer 如 `docs-devex` 由 §1.5 因觸及該領域自動帶入、去重後一起派）：
+
+| 改動面 | 最小**核心**軸下界 | 領域帶入（§1.5）/ 為什麼 |
+|---|---|---|
+| **含任何 code**（`.ts`/`.js`/`.mjs`… 邏輯、schema、CLI、migration、**設定即程式行為**） | **核心 6 軸全派、不得縮** | 規則 10「verify 獨立複查」不可省 |
+| **純文件 / 純 markdown 敘述**（docs、SKILL.md 文案、README、純註解） | `product-contract`（涉跨檔契約 / 一致性再加 `code-quality`） | 無 DB / API / 效能 / 攻擊面可審；動到 docs → `docs-devex` 由 §1.5 帶入（淨集常＝product-contract + docs-devex） |
+| **純非執行設定 / 資料**（純 fixtures、純文案設定、無程式語意） | `product-contract`（涉密鑰 / 權限 / 認證設定 → 加 `security`） | 動到 config → 相應 §1.5 reviewer 帶入；視內容微調，不得低於「能驗收範圍」 |
+
+> **fail-safe（向嚴）**：拿不準改動面是不是「純文件 / 純設定」、或一份 diff **混了 code 與文件** → **當作含 code、核心 6 軸全派**。縮錯 = 漏審，寧可多派、不可漏審。
+
+這是**精準化規則 10 carve-out 的「可省 / 不可省邊界」**，**不是放寬 mandatory 的 verify 獨立複查**：code 永遠核心 6 軸，縮的只是「對該改動無可審之物」的核心軸。與 §1.5 **正交** —— §1.4 定**核心軸的下界**、§1.5 **按領域加派**領域 reviewer（純文件 / 設定動到 docs/config → `docs-devex` 等由 §1.5 帶入）；兩者去重疊加 = 該次 verify 的實際 reviewer 集。
 
 ### 1.5 條件式 reviewer（選用，視改動領域加派）
 
@@ -87,14 +103,16 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 | 藉口 | 反駁 |
 |------|------|
-| 「我自己掃一遍就好，不用派 6 個」 | 單一 context 會被你寫 code 時的假設帶偏。6 個 fresh reviewer 各審一軸才有獨立性。 |
-| 「reviewer 逐個派，省得一次發太多」 | 逐個派就不是並行，還會互相污染 context。要同一回合一次發 6 個。 |
+| 「我自己掃一遍就好，不用派 reviewer」 | 單一 context 會被你寫 code 時的假設帶偏。一組 fresh reviewer 各審一軸才有獨立性（該派幾軸依 §1.4 改動面 —— code 全 6 軸）。 |
+| 「reviewer 逐個派，省得一次發太多」 | 逐個派就不是並行，還會互相污染 context。要同一回合一次發出（§1.4 定的那組）。 |
+| 「純文件小改也要全 6 軸」 | 反向也是浪費：純文件 / 純設定無 DB / 效能 / 攻擊面可審，依 §1.4 縮到最小集；但**拿不準 / 混 code 一律全派**（fail-safe 向嚴）。 |
 | 「finding 看起來真，直接記 P0」 | 沒過 validator 二輪，可能是既有防護已處理 / 非本次引入的誤報。 |
 | 「效能我覺得沒問題」 | 沒實跑就是 `not measured`，不能寫「沒問題」。 |
 
 ## Red Flags
 
-- 6 個 reviewer 不是同一回合派出（變成序列、互相污染）。
+- 該派的 reviewer（§1.4 定的那組）不是同一回合派出（變成序列、互相污染）。
+- **對含 code 的改動縮減核心 6 軸**（右尺寸化只適用客觀窄面 —— 純文件 / 純設定；拿不準 / 混 code 一律全派，縮錯＝漏審）。
 - tests-reviewer 被餵了「作者說測試已過」。
 - blocking finding 沒過 finding-validator 就進報告。
 - 出現未實測的效能 / 覆蓋率數字。
@@ -103,7 +121,7 @@ description: Fans out six independent reviewers (product/architecture/security/p
 
 ## Verification
 
-- [ ] 6 個 reviewer 在同一回合並行派出，各一軸。
+- [ ] 依 §1.4 改動面定 reviewer 集（**含 code＝核心 6 軸全派**；純文件 / 純設定＝最小集；**拿不準 / 混 code 向嚴全派**），在同一回合並行派出、各一軸。
 - [ ] security-reviewer 有跑威脅建模 / OWASP 補強。
 - [ ] 已跑真 app（`/run`·`/verify`）+ 本機 `/code-review`，或純 lib 無 app 據實標 `not measured`。
 - [ ] 每個 blocking finding 有 finding-validator 的 `validated/rejected/degraded`。
