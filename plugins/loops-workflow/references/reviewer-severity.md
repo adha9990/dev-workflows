@@ -1,6 +1,6 @@
 # Reviewer 嚴重度 / 信心 / Route
 
-> verify 六 reviewer 與 coordinator 共用的分級語彙（P0–P3 / Confidence / Route），讓每個 reviewer 的輸出格式一致、可彙整。
+> verify 各 reviewer 與 coordinator 共用的分級語彙（P0–P3 / Confidence / Route），讓每個 reviewer 的輸出格式一致、可彙整。
 
 ## Finding 形狀
 
