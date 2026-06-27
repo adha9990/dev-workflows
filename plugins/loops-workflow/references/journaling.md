@@ -20,6 +20,31 @@
 
 事件用**序號**（E1, E2…）排序，不用時間戳（跨工具 / 跨 session 時間不可靠）。每筆一行：**動作 + 結果 / 產物（commit SHA、選擇、回環）**。
 
+## 完工 outcome 度量（完工 / 中止收尾時 append 一行）
+
+loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** outcome 度量 —— 給每條 loop 留下可回顧、可比較的**成本 / 規模輪廓**，把 `AGENTS.md` 規則 10「成本意識」從**只有意識**落實成**可觀測**。一行、pipe 分隔、緊接最後一筆 E：
+
+```text
+- ★[outcome] <結果> ｜ token≈<粗估>(<級距>)est ｜ sub-agent <n> ｜ 回環 <n> 圈 ｜ findings <validated>→<剩餘> ｜ 交付：<交付物>
+```
+
+| 欄 | 寫法 | 說明 |
+|----|------|------|
+| 結果 | `完工` / `中止(descoped)` / `中止(aborted)` | 對應 loop.md「當前階段＝完工」 |
+| token≈ | `≈120K(中)est` / `≈?(低)est` | **粗估或級距、必帶 `est`**。級距：低 <100K／中 100–500K／高 >500K。**Claude Code 不保證對 agent 暴露 per-turn token 用量 → 這欄一律是估算、非精準實測**（規則 5 Metric-Honesty）；無從估時寫 `≈?(<級距>)est`。 |
+| sub-agent | `11` / `3(verify 2+validator 1)` | 本 loop 派出的 subagent 總數（test-author／impl-author／referee／verify reviewer／finding-validator／explore fan-out…），從 Journal 回推；純文件／主線直編 loop 可能為 `0`。 |
+| 回環 | `0 圈` / `2 圈` | iterate 回環圈數（`0`＝一次過）。 |
+| findings | `6→0` / `1→0` / `—` | verify validated blocking findings 數 → 收尾剩餘（理想 →0）；無 verify 標 `—`。 |
+| 交付 | `PR #6 merged` / `descoped` / `issue backlog #7-9` / `文件 only` | 實際產物。 |
+
+**鐵則**：不適用欄一律標 `—`，**不留空、不編造**；token 一律帶 `≈`／級距／`est`，**不得寫成精準值**（規則 5）。需要程式化彙總時日後再加 `--json`（不在預設）。
+
+範例：
+
+```text
+- ★[outcome] 完工 ｜ token≈120K(中)est ｜ sub-agent 3(verify 2+validator 1) ｜ 回環 1 圈 ｜ findings 1→0 ｜ 交付：PR #6 merged
+```
+
 ## Resume 協定（新 session 接手）
 
 任一階段被獨立呼叫、或新 session 要續跑：
