@@ -91,4 +91,42 @@ aggregate：`{ total, passed, failed, tasks: [...] }`；`failed > 0` → **exit 
 node plugins/loops-workflow/scripts/eval-oracle.mjs --dir plugins/loops-workflow/evals/build [--task <id>] [--json]
 ```
 
-> 本票（E1）只出 **per-run 報告**；跨 run 聚合 + pass@1/pass^k + 回歸 gate 是 #28（E2）。
+> E1 只出 **per-run 報告**；跨 run 聚合 + pass@1/pass^k + 回歸 gate 是下節（E2）。
+
+---
+
+# E2 — 跨 run 聚合 + 回歸 gate（`eval-metrics.mjs`）
+
+> 把 E1 的單次 corpus pass/fail 變成**跨 run 可比較 + 退化偵測**。複用 `hooks/cost-tracker.mjs` 的 append-JSONL 模式（純函式 buildRow + 薄 IO append）；**不重碰 eval-oracle**（spawn 它 `--json` 取數）。
+
+## eval-results.jsonl（一行 = 一次 record）
+
+```jsonc
+{ "ts": "<ISO>", "corpus": "evals/build", "schema": 1,
+  "runs": 1, "total": 5, "passed": 5, "failed": 0, "errored": 0,
+  "passRate": 1.0,    // pass@1 = passed/total
+  "passK": 1.0 }      // 見下「pass^k 誠實邊界」
+```
+
+落點 `<cwd>/.loops/.metrics/eval-results.jsonl`（沿用 #15 的 `.loops/.metrics/`，已 gitignore）。
+
+## 回歸 gate
+
+- `computeRegression(rows, { baseline, tolerance })` → `{ regressed, currentRate, baselineRate, delta, reason }`；`regressed = currentRate < baselineRate − tolerance`。
+- baseline 預設 = 第一行（可 `--baseline <n>`）；tolerance 預設 0（任何下降即退化）。
+- CLI `check` → 退化 exit 1、否則 exit 0；**任何錯（讀不到 / 空 / 壞行）→ exit 0**（永不擋路，比照既有 hook）。
+
+## ⚠️ pass^k 誠實邊界
+
+`pass^k`（同 task 跑 N 次連 k 次全綠率）量的是**隨機性下的可靠度**，只在「候選每次重新生成」時有意義。E1 runner 對**固定候選**跑確定性 oracle → 同 task N 跑必相同 → pass^k 退化成 = pass@1。故 MVP 記 `runs:1、passK=passRate`，schema 保留 `passK` 欄為日後「候選由 Claude 每次重生」預留。**回歸 gate 以 `passRate`（pass@1）為主判準**；勿把確定性 corpus 的 passK 當可靠度指標解讀。
+
+## 跑
+
+```bash
+# 跑一輪 corpus 並記一行
+node plugins/loops-workflow/scripts/eval-metrics.mjs record --dir plugins/loops-workflow/evals/build
+# 回歸判定（相對 baseline 退化 → exit≠0）
+node plugins/loops-workflow/scripts/eval-metrics.mjs check [--baseline <n>] [--tolerance <Δ>]
+```
+
+> MVP 交付為 CLI；自動掛 stop-gate（改 SKILL/agent 回合觸發回歸檢查）為 follow-up。
