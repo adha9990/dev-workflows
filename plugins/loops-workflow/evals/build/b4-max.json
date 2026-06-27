@@ -1,0 +1,11 @@
+{
+  "id": "b4-max",
+  "stage": "build",
+  "description": "實作 max() 使失敗測試轉綠，且不弄壞「兩數相等回傳該值」既有測試",
+  "workspace": "../fixtures/b4-max",
+  "oracle": {
+    "failToPass": ["max returns larger"],
+    "passToPass": ["max of equal returns value"]
+  },
+  "tags": ["comparison", "build"]
+}

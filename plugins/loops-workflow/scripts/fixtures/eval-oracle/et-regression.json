@@ -1,0 +1,10 @@
+{
+  "id": "et-regression",
+  "stage": "build",
+  "description": "passToPass 轉紅（既有的 sub 回歸）→ passToPass.missing 非空、task fail",
+  "workspace": "./ws-regression",
+  "oracle": {
+    "failToPass": ["add returns sum"],
+    "passToPass": ["sub returns diff"]
+  }
+}

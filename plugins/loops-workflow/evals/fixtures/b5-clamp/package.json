@@ -1,0 +1,8 @@
+{
+  "name": "b5-clamp",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node ../emit-vitest.mjs"
+  }
+}

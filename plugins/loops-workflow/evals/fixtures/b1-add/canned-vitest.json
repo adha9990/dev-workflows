@@ -1,0 +1,11 @@
+{
+  "testResults": [
+    {
+      "name": "add.test.ts",
+      "assertionResults": [
+        { "status": "passed", "title": "add returns sum", "ancestorTitles": ["add"], "failureMessages": [] },
+        { "status": "passed", "title": "add with zero is identity", "ancestorTitles": ["add"], "failureMessages": [] }
+      ]
+    }
+  ]
+}

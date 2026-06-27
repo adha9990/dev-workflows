@@ -83,7 +83,7 @@
 | `onboarding` | 文檔優先上手：先讀 repo 既有 onboarding 文檔再動手 | explore（第 0 步摸架構） |
 | `adr-template` | 決策留痕 ADR 五欄模板：情境 / 選項 / 決定 / 理由 / 後果 | plan（決策留痕） |
 | `task-template` | 可驗證任務模板：Description / Acceptance / Verification / Deps / Files / Scope + 「該再拆」四訊號 + 垂直切片 / risk-first / XS–XL | plan（拆任務） |
-| `eval-harness` | 評測 harness（`run-eval.mjs`）：跑情境集評估 plugin 行為 | plugin 自評 |
+| `eval-harness` | 評測 harness 兩路：scenario-checklist（`run-eval.mjs`，人工勾）＋ 確定性 oracle runner（`eval-oracle.mjs`，走 quality-gate 比對 failToPass/passToPass、positive-presence 永不假綠） | plugin 自評 |
 
 ---
 

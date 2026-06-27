@@ -1,0 +1,11 @@
+{
+  "testResults": [
+    {
+      "name": "sub.test.ts",
+      "assertionResults": [
+        { "status": "passed", "title": "sub returns diff", "ancestorTitles": ["sub"], "failureMessages": [] },
+        { "status": "passed", "title": "sub of equal is zero", "ancestorTitles": ["sub"], "failureMessages": [] }
+      ]
+    }
+  ]
+}

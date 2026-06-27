@@ -1,0 +1,11 @@
+{
+  "testResults": [
+    {
+      "name": "clamp.test.ts",
+      "assertionResults": [
+        { "status": "passed", "title": "clamp limits to range", "ancestorTitles": ["clamp"], "failureMessages": [] },
+        { "status": "passed", "title": "clamp within range is identity", "ancestorTitles": ["clamp"], "failureMessages": [] }
+      ]
+    }
+  ]
+}

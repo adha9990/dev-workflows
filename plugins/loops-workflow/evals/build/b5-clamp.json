@@ -1,0 +1,11 @@
+{
+  "id": "b5-clamp",
+  "stage": "build",
+  "description": "實作 clamp() 使超界測試轉綠，且不弄壞「範圍內維持原值」既有測試",
+  "workspace": "../fixtures/b5-clamp",
+  "oracle": {
+    "failToPass": ["clamp limits to range"],
+    "passToPass": ["clamp within range is identity"]
+  },
+  "tags": ["range", "build"]
+}

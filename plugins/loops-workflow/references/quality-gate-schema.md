@@ -13,9 +13,12 @@
   "counts": { "test": 0, "lint": 0, "type": 0, "total": 0 }, // 含 warning
   "gates":  { "test": "passed", "lint": "passed", "type": "passed" }, // "passed" | "failed" | "not-run" | "errored"
   "failures": [ /* Failure[]，見下 */ ],
-  "truncated": false                // failures 是否因 cap 被截
+  "truncated": false,               // failures 是否因 cap 被截
+  "passedTests": []                 // 通過 test assertion 的 titlePath 清單（與 failure 同 titlePath 組法）
 }
 ```
+
+> **`passedTests`**：只有 test gate 跑時才填（無 test gate / not-run → `[]`），元素為通過 assertion 的 titlePath（`ancestorTitles > … > title`，以 ` > ` 連接，與 failure titlePath 同組法但不接細節）。提供「真的觀察到通過」的**正向證據**，下游 oracle 用它避免「不在 failures 即當通過」的假綠（required test 缺席/打錯名 → 既不在 `failures` 也不在 `passedTests` → 判 unverified，而非誤報綠）。加性欄位，不影響既有 `ok`/`status`/`failures` 語意。
 
 > **判「是否通過」一律用 `ok`，勿用 `failures.length` / `counts.total`**：warning（severity=1）也會計入 `failures`/`counts`，但不影響 `ok`/`status`（只看 error 級）。
 > **但 `ok=true` 不代表「該跑的 gate 都跑了」**：某 gate 被 graceful skip（`gates.*="not-run"`、`status="partial"`）時 `ok` 仍可為 `true`。#3 整合應額外確認**預期跑的 gate 真的是 `passed`**（而非被漏偵測成 `not-run`）—— 別只看 `ok`/exit code。
@@ -71,6 +74,6 @@ node scripts/loops-quality-gate.mjs [--cwd <dir>] [--gates test,lint,type] [--js
 
 ## reporter 解析
 
-- **test**：`vitest --reporter=json`（JSON 結構承襲 jest，但 invocation 為 vitest 專屬）→ 走訪 `testResults[].assertionResults[]` 取 `status==="failed"`。
+- **test**：`vitest --reporter=json`（JSON 結構承襲 jest，但 invocation 為 vitest 專屬）→ 走訪 `testResults[].assertionResults[]`，`status==="failed"` 進 `failures`、`status==="passed"` 的 titlePath 進 `passedTests`。
 - **lint**：`eslint -f json` → 每個 `messages[]` 一筆，`severity` 2→error / 1→warning。
 - **type**：`tsc --noEmit` → regex 解析 `file(line,col): error TSxxxx: message`，過濾 preamble / 摘要行。

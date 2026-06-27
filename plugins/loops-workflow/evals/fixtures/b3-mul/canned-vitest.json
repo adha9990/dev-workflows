@@ -1,0 +1,11 @@
+{
+  "testResults": [
+    {
+      "name": "mul.test.ts",
+      "assertionResults": [
+        { "status": "passed", "title": "mul returns product", "ancestorTitles": ["mul"], "failureMessages": [] },
+        { "status": "passed", "title": "mul by one is identity", "ancestorTitles": ["mul"], "failureMessages": [] }
+      ]
+    }
+  ]
+}

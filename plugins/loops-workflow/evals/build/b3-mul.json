@@ -1,0 +1,11 @@
+{
+  "id": "b3-mul",
+  "stage": "build",
+  "description": "實作 mul() 使失敗測試轉綠，且不弄壞「乘以一為恆等」既有測試",
+  "workspace": "../fixtures/b3-mul",
+  "oracle": {
+    "failToPass": ["mul returns product"],
+    "passToPass": ["mul by one is identity"]
+  },
+  "tags": ["arithmetic", "build"]
+}

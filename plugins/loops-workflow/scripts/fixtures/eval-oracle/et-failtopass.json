@@ -1,0 +1,10 @@
+{
+  "id": "et-failtopass",
+  "stage": "build",
+  "description": "failToPass 仍紅（add 該綠卻 fail）→ failToPass.missing 非空、task fail",
+  "workspace": "./ws-failtopass",
+  "oracle": {
+    "failToPass": ["add returns sum"],
+    "passToPass": ["sub returns diff"]
+  }
+}
