@@ -1,0 +1,8 @@
+id: large-refactor-full-matrix
+trigger: 跨多檔大型重構
+action: verify 階段派完整測試矩陣（多軸）
+scope: refactor
+confidence: 0.5
+evidence:
+  - PR #131 大重構漏測跨模組互動
+summary: 大型重構派完整測試矩陣
