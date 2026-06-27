@@ -1,0 +1,10 @@
+{
+  "id": "et-errored",
+  "stage": "build",
+  "description": "oracle 指名 canned vitest 裡不存在的 test → 該名 unobserved（既不在 passedTests 也不在 failures）→ 整 task errored、pass=false",
+  "workspace": "./ws-errored",
+  "oracle": {
+    "failToPass": ["test that does not exist in suite"],
+    "passToPass": []
+  }
+}

@@ -61,21 +61,27 @@ node plugins/loops-workflow/scripts/run-eval.mjs <path-to-scenarios.json>
 ```jsonc
 {
   "id": "build-add-function", "stage": "build", "pass": true,
+  "errored": false,                  // gate 沒跑該 suite、或某 required test 沒被觀察到 → errored:true, pass:false
   "failToPass": { "required": ["add returns sum"], "passed": ["add returns sum"], "missing": [] },
   "passToPass": { "required": ["sub returns diff"], "passed": ["sub returns diff"], "missing": [] },
-  "gateStatus": "passed",            // 取自 quality-gate（passed/failed/not-run/errored）
+  "gateStatus": "passed",            // 取自 quality-gate（passed/failed/not-run/errored）；取不到時為 null
   "reason": "all required tests passed"
 }
 ```
 
-aggregate：`{ total, passed, failed, tasks: [...] }`；`failed > 0` → **exit 1**（當 gate）。
+aggregate：`{ total, passed, failed, tasks: [...] }`；`failed > 0` → **exit 1**（當 gate）。`errored` 計入 `failed`（非 passed）。
 
-## 判定規則（不變量）
+## 判定規則（不變量）—— positive-presence，永不把「沒驗到」當通過
 
-- test「pass」＝該 test 名**不在** quality-gate 回報的 failures 內，**且** gate 真的跑了該 suite。
-- gate `not-run` / 缺某個 required test → task 標 **`errored`（非 pass）**——永不把「沒驗到」誤判為通過。
-- 安全：runner **不收 task 自帶 shell 命令**，oracle 一律走 `loops-quality-gate.mjs`（避免注入面）。
-- 與 `references/quality-gate-schema.md` 的 `Failure[]` / `classifyGate` 對齊。
+- 一個 required test 名分三態（對照 quality-gate 的 `passedTests` 與 `failures`，皆用 titlePath「完全相等 或 ` > <名>` 結尾」比對）：
+  - **inPassed**（出現在 `passedTests`）→ 算通過。
+  - **inFailed**（命中某 `kind==='test'` failure）→ 算失敗（failToPass＝沒轉綠 / passToPass＝回歸），入該組 `missing`、`pass:false`、但 `errored:false`（合法失敗）。
+  - **unobserved**（既不在 passedTests 也不在 failures）→ 該 test **沒被驗到** → task `errored:true、pass:false`。**這就是「永不把沒驗到誤判為通過」的實作**——只靠「不在 failures」反推會把打錯字/被改名/不存在的 test 名當成綠，故改為要求**正面出現在 passedTests** 才算 pass。
+- gate `not-run` / `errored` / 取不到 JSON → 整 task `errored`。`truncated` 時 unobserved 一律保守判 errored。
+- `pass`＝gate 有跑 且 無 unobserved required 且每個 required 皆 inPassed。
+- 安全：runner **不收 task 自帶 shell 命令**，oracle 固定走 `loops-quality-gate.mjs`（無注入面）；`task.workspace` 解析後須落在 **plugin 專案根**內，越界（`../` 逃逸 / 絕對路徑）→ errored、不 spawn。
+- ⚠️ **信任邊界**：跑語料庫＝以當前權限執行各 workspace 的 `scripts.test`（任意程式碼）。**只在信任來源的 corpus 上跑**，勿對外來/未審的 corpus 直接 eval。
+- 與 `references/quality-gate-schema.md` 的 `Failure[]` / `passedTests` / `classifyGate` 對齊。
 
 ## 跑
 

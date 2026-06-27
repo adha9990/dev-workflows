@@ -608,6 +608,59 @@ function failingVitestJson() {
   );
 }
 
+// ── PT passedTests：GateResult 加性輸出「通過的 test titlePath 清單」（守 verify P1）──────
+// 契約：--json GateResult 新增 passedTests:string[]＝通過 assertion 的 titlePath
+//       （ancestorTitles > … > title，以 " > " 連接）。只有 test gate 會填，無 test gate → []。
+//       其餘欄位不變（向後相容）。用既有 vitest fixtures 餵入，驗 positive-presence 的來源信號。
+{
+  // PT1：vitest.json（1 passed + 1 failed）→ passedTests 含通過那筆的 titlePath、不含失敗那筆；failures 仍含失敗那筆
+  const { res, json } = runGate({
+    config: { test: `node "${FAKE}"` },
+    gates: 'test',
+    env: { FAKE_OUT: readFileSync(join(FIX, 'vitest.json'), 'utf8'), FAKE_EXIT: '1' },
+  });
+  assert(res.error == null, 'PT1：node 啟動成功（spawn 無 error）[PT]');
+  assert(json && json.gates && json.gates.test === 'failed', 'PT1：含失敗 assertion → gates.test==="failed" [PT]');
+  assert(
+    json && Array.isArray(json.passedTests) && json.passedTests.includes('add > 回傳兩數之和'),
+    'PT1：passedTests 含通過 assertion 的 titlePath "add > 回傳兩數之和" [PT]',
+  );
+  assert(
+    json && Array.isArray(json.passedTests) && !json.passedTests.includes('add > 處理負數相加'),
+    'PT1：passedTests 不含失敗 assertion 的 titlePath（只收通過）[PT]',
+  );
+  assert(
+    json && Array.isArray(json.failures) &&
+      json.failures.some((f) => f.kind === 'test' && typeof f.message === 'string' && f.message.includes('expected -1 to be 1')),
+    'PT1：failures 仍含失敗 assertion（加性、不破壞既有）[PT]',
+  );
+}
+{
+  // PT2：vitest-green.json（全綠）→ passedTests 含兩筆通過 titlePath、failures 空
+  const { res, json } = runGate({
+    config: { test: `node "${FAKE}"` },
+    gates: 'test',
+    env: { FAKE_OUT: readFileSync(join(FIX, 'vitest-green.json'), 'utf8'), FAKE_EXIT: '0' },
+  });
+  assert(res.error == null, 'PT2：node 啟動成功 [PT]');
+  assert(json && json.gates && json.gates.test === 'passed', 'PT2：全綠 → gates.test==="passed" [PT]');
+  assert(
+    json && Array.isArray(json.passedTests) &&
+      json.passedTests.includes('sum > 相加得和') && json.passedTests.includes('sum > 相減得差'),
+    'PT2：passedTests 含兩筆通過 titlePath [PT]',
+  );
+  assert(json && Array.isArray(json.failures) && json.failures.length === 0, 'PT2：全綠 → failures 空 [PT]');
+}
+{
+  // PT3：無 test gate（只跑 type）→ passedTests 為 []（契約：只有 test gate 會填）
+  const { res, json } = smokeType('node -e ""');
+  assert(res.error == null, 'PT3：node 啟動成功 [PT]');
+  assert(
+    json && Array.isArray(json.passedTests) && json.passedTests.length === 0,
+    'PT3：無 test gate → passedTests===[]（加性欄存在且為空）[PT]',
+  );
+}
+
 // ── T-win runCommand：跨平台 shell（Windows 不可對 .cmd shim 噴 EINVAL）────────
 // regression：真實 smoke 發現 runCommand 在 Windows 對 .cmd shim（npm/npx/tsc/eslint）
 // 會 spawn EINVAL。下面用真實子行程（非 mock）抓這條：修好前會 throw/非 0 → 紅。

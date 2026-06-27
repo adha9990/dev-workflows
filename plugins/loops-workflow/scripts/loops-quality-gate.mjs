@@ -65,6 +65,27 @@ export function parseVitest(rawJsonString) {
 }
 
 /**
+ * vitest --reporter=json → 收集 status==="passed" 的 assertion titlePath（positive-presence 訊號）。
+ * 與 parseVitest 對稱：用同一套 titlePath 組法（ancestorTitles > … > title），但只取 titlePath、不接 failure detail。
+ * 下游 oracle 用此清單做「真的觀察到通過」的正向證據，避免「不在 failures 即當通過」的假綠。
+ */
+export function parseVitestPassed(rawJsonString) {
+  const report = parseJsonMaybe(rawJsonString);
+  const suites = Array.isArray(report?.testResults) ? report.testResults : [];
+
+  const titlePaths = [];
+  for (const suite of suites) {
+    const assertions = Array.isArray(suite?.assertionResults) ? suite.assertionResults : [];
+    for (const a of assertions) {
+      if (a?.status !== 'passed') continue;
+      const titlePath = vitestTitlePath(a);
+      if (titlePath) titlePaths.push(titlePath);
+    }
+  }
+  return titlePaths;
+}
+
+/**
  * eslint -f json → 攤平每個 messages[] 成一筆 lint 類 Failure；severity 2→error、其餘→warning。
  * 乾淨檔（messages:[]）自然不貢獻任何 Failure。
  */
@@ -156,6 +177,7 @@ export function classifyGate({ ran, code, failures }) {
  * 把每 gate 的 { status, failures } 組裝成 GateResult。
  * gates.<g> 直接吐狀態值（passed/failed/not-run/errored），不轉成 "ok"，與 JSON / 人讀摘要一致。
  * ok = 無 error 級 failure 且無 gate 為 failed/errored；status 有 blocking→failed、否則有 not-run→partial、否則 passed。
+ * passedTests（加性）＝test gate 通過 assertion 的 titlePath 清單；其餘 gate 無此訊號 → test gate 未跑時為 []。
  */
 export function buildResult(perGate, cap = DEFAULT_MAX_FAILURES) {
   const gates = {};
@@ -179,7 +201,13 @@ export function buildResult(perGate, cap = DEFAULT_MAX_FAILURES) {
     : GATE_ORDER.some((g) => gates[g] === 'not-run') ? 'partial'
     : 'passed';
 
-  return { ok, status, counts, gates, failures, truncated };
+  return { ok, status, counts, gates, failures, truncated, passedTests: collectPassedTests(perGate) };
+}
+
+// passedTests 只由 test gate 提供（lint/type 無此訊號）；test gate 未跑（無 passedTests）→ []。
+function collectPassedTests(perGate) {
+  const testEntry = perGate?.test;
+  return Array.isArray(testEntry?.passedTests) ? testEntry.passedTests : [];
 }
 
 /**
@@ -232,10 +260,15 @@ function asCommand(value) {
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
-function buildVitestMessage(assertion) {
-  const titlePath = [...(assertion?.ancestorTitles ?? []), assertion?.title]
+// titlePath ＝ ancestorTitles > … > title（以 " > " 連接、濾掉空段）。失敗訊息與 passedTests 共用此組法。
+function vitestTitlePath(assertion) {
+  return [...(assertion?.ancestorTitles ?? []), assertion?.title]
     .filter((s) => typeof s === 'string' && s.length > 0)
     .join(' > ');
+}
+
+function buildVitestMessage(assertion) {
+  const titlePath = vitestTitlePath(assertion);
   const detail = Array.isArray(assertion?.failureMessages) ? assertion.failureMessages.join('\n') : '';
   return titlePath ? `${titlePath}\n${detail}` : detail;
 }
@@ -388,7 +421,8 @@ function planTestGate(configCommand, scripts, scratchDir) {
   const outFile = join(scratchDir, 'vitest.json');
   // reporter flags 經 appendToolFlags 轉發（npm test 形式時要落在 `--` 之後才到得了 vitest）。
   const command = appendToolFlags(base, ['--reporter=json', `--outputFile="${outFile}"`]);
-  return { command, parse: parseVitest, outFile };
+  // parsePassed 收 positive-presence 訊號（通過 assertion 的 titlePath）；僅 test gate 有。
+  return { command, parse: parseVitest, parsePassed: parseVitestPassed, outFile };
 }
 
 function planLintGate(configCommand, scripts, cwd, scratchDir) {
@@ -416,11 +450,13 @@ function planTypeGate(configCommand, cwd) {
   return null;
 }
 
-// 跑一道閘 → 回 { code, failures }。有 outFile 的閘讀檔取完整 raw；否則用（tail 截斷後的）stdout。
+// 跑一道閘 → 回 { code, failures, passedTests }。有 outFile 的閘讀檔取完整 raw；否則用（tail 截斷後的）stdout。
+// passedTests 僅在閘有提供 parsePassed（目前只有 test gate）時收集，否則為 []。
 async function executeGate(plan, cwd, tailChars) {
   const { code, output } = await runCommand(plan.command, { cwd, tailChars });
   const raw = plan.outFile ? (readFileMaybe(plan.outFile) ?? output) : output;
-  return { code, failures: plan.parse(raw) };
+  const passedTests = plan.parsePassed ? plan.parsePassed(raw) : [];
+  return { code, failures: plan.parse(raw), passedTests };
 }
 
 async function main(rawArgv) {
@@ -441,9 +477,9 @@ async function main(rawArgv) {
         continue;
       }
 
-      const { code, failures } = await executeGate(plan, cwd, opts.tail);
+      const { code, failures, passedTests } = await executeGate(plan, cwd, opts.tail);
       const status = classifyGate({ ran: true, code, failures });
-      perGate[gate] = { status, failures };
+      perGate[gate] = { status, failures, passedTests };
       if (BLOCKING_GATE_STATES.has(status) && !opts.continueOnFailure) stopped = true;
     }
   } finally {
