@@ -4,8 +4,8 @@
 
 ## 協定（上層 opt-in 怎麼接）
 對語料庫每個 task（`evals/<stage>/*.json`，含 oracle failToPass/passToPass）：
-1. **重生 N 個候選**（N 建議 3–5）：每次讓 Claude / workflow **從乾淨起點**重跑該 task → 產一份候選 workspace（diff）。**每次必須是獨立重生**（不同 session/隨機性），否則退化成固定候選、pass^k≡pass@1。
-2. **每個候選跑 oracle**：`node scripts/eval-oracle.mjs --dir <task-dir> --task <id> --json` → 取該 task 的 `pass`。
+1. **重生 N 個候選**（N 建議 3–5）：每次讓 Claude / workflow **從乾淨起點**重跑該 task → 產一份候選實作。**每次必須是獨立重生**（不同 session/隨機性），否則退化成固定候選、pass^k≡pass@1。
+2. **把候選就地覆寫進 task 宣告的 `workspace`，再跑 oracle**：⚠️ **關鍵接縫** —— `eval-oracle.mjs` **無 `--workspace` 覆寫旗標**，它只評 task JSON 裡那條固定 `task.workspace`，且該路徑**須落在 plugin 專案根內**（`../` 逃逸 / 絕對路徑 → errored、不 spawn，見 `eval-harness.md` E1）。所以每輪要把重生的候選**覆寫進 `task.workspace` 指的根內目錄**（別把候選產到 repo 外暫存夾再指過去——會撞 containment），或為候選改寫一份指向根內候選夾的暫時 task JSON。**候選只能改實作、不可動 test 定義**（見下沙箱段 oracle 完整性）。然後 `node scripts/eval-oracle.mjs --dir <task-dir> --task <id> --json` → 取該 task 的 `pass`。
 3. **寫一行 runs.jsonl**：`{ "taskId": "<id>", "pass": <bool>, "runIndex": <0..N-1> }`。
 4. 全部跑完 → `node scripts/eval-passk.mjs passk --runs <runs.jsonl> --k <k>` 得 per-task 真 pass@1 + pass^k。
 

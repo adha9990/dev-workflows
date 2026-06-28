@@ -17,7 +17,9 @@ import { pathToFileURL } from 'node:url';
 
 // ── 純函式 ───────────────────────────────────────────────────────────────────────
 
-/** C(n,k)，乘法式（小 N 精確、避免大階乘溢位）+ Math.round 收浮點。k<0/k>n → 0。 */
+/** C(n,k)，乘法式（小 N 精確、避免大階乘溢位）+ Math.round 收浮點。k<0/k>n → 0。
+ *  精度域：結果須 ≤ Number.MAX_SAFE_INTEGER（約到 C(56,28)≈7.6e15）才保證精確——本工具的 N＝每 task
+ *  重生次數（個位~低十位數，見 protocol N=3–5 建議），遠在此域內；不為超域加 guard（不可達）。 */
 export function combinations(n, k) {
   if (!Number.isInteger(n) || !Number.isInteger(k) || k < 0 || k > n) return 0;
   if (k === 0 || k === n) return 1;
@@ -40,6 +42,10 @@ export function passAt1(passed, total) {
 export function passHatK(passed, total, k) {
   if (!Number.isInteger(total) || total <= 0 || !Number.isInteger(k) || k <= 0) {
     return { value: null, reason: 'invalid total/k (need positive integers)' };
+  }
+  // passed 須是 [0, total] 內整數——否則回 null（防直接誤用算出 >1 的「機率」；正常 caller aggregateByTask 已保證此不變量）。
+  if (!Number.isInteger(passed) || passed < 0 || passed > total) {
+    return { value: null, reason: `invalid passed (${passed}); must be integer in [0, ${total}]` };
   }
   if (k > total) return { value: null, reason: `k (${k}) > total runs (${total}) — cannot estimate pass^k` };
   if (passed < k) return { value: 0, reason: `fewer than k passes (${passed} < ${k})` };
