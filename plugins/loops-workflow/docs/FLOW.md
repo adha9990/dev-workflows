@@ -158,13 +158,18 @@ flowchart LR
 
 | 項目 | 內容 |
 |---|---|
-| **skill** | `verify`（1）｜**agent** **6 核心 + 0～9 條件式 + N 個 finding-validator**（同一回合並行） |
+| **skill** | `verify`（1）｜**agent** **依風險 1～6 核心（§1.4 4 級梯）+ 0～9 條件式 + holistic（DEEP必/STANDARD可選）+ N 個 finding-validator**（同一回合並行） |
 | **處理什麼** | 合併前把關：多個獨立視角各審一軸，再二輪驗證 findings |
 | **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`）· **作者已留痕的決定不算 finding** · **獨立安全網非第一道品質關**（標準已在 build shift-left 套用，verify 複查 + 抓盲點） |
 
 ```mermaid
 flowchart TD
-    BUILD[build 成果 + 契約] --> FAN{同一回合 fan-out}
+    BUILD[build 成果 + 契約] --> TR{§1.4 風險分級<br/>SKIP/LIGHT/STANDARD/DEEP}
+    TR -.SKIP·護欄保護瑣碎面.-> OUT
+    TR -->|DEEP 先| TW{§1.6 tripwire<br/>契約+正確性}
+    TW -.catastrophic miss.-> BUILD
+    TR -->|LIGHT 3軸 / STANDARD 6軸| FAN{同一回合 fan-out<br/>該級軸集}
+    TW -->|過·併入不重跑| FAN
     FAN --> C1[product-contract]
     FAN --> C2[architecture]
     FAN --> C3[security]
@@ -173,11 +178,13 @@ flowchart TD
     FAN --> C6[tests]
     FAN -.觸及領域才加派.-> COND[條件式 9 選:<br/>frontend-ui·accessibility·web-performance·observability·<br/>ci-cd·migration·processing-reliability·root-cause·docs-devex]
     C1 & C2 & C3 & C4 & C5 & C6 & COND --> CO[coordinator 主線<br/>去重 + 跑真 app + 本機 /code-review]
-    CO -->|每個 blocking finding| FV[finding-validator 二輪<br/>真實?本次?已防護?對症?]
+    CO -.DEEP必/STANDARD可選.-> HOL[§2.5 holistic 交叉軸 pass]
+    CO --> FV[finding-validator 二輪<br/>真實?本次?已防護?對症?]
+    HOL --> FV
     FV --> OUT[P0–P3 + Confidence + Route<br/>→ Ready / Not ready → 04-verify.md]
 ```
 
-> 核心 6 軸每次都派；條件式 9 個只在改動觸及該領域才加派（省成本，含 bug-fix→root-cause、docs/契約→docs-devex）。每個 blocking finding 過 `finding-validator` 四問二輪才算數。出 P0 才停下問你，否則直接進 iterate。
+> **派幾軸由 §1.4 風險 4 級梯決定**：SKIP（護欄保護的瑣碎面，不派）/ LIGHT（小孤立 code，3 軸）/ STANDARD（一般 code，核心 6 軸）/ DEEP（高風險，先 §1.6 tripwire 短路 catastrophic miss、過了才放 6 軸 + §2.5 holistic 交叉軸 pass）。條件式 9 個只在改動觸及該領域才加派（含 bug-fix→root-cause、docs/契約→docs-devex）。每個 blocking finding 過 `finding-validator` 四問二輪才算數。出 P0 才停下問你，否則直接進 iterate。
 
 ---
 
@@ -223,7 +230,7 @@ flowchart TD
 |---|---|---|
 | **記憶體** | `.loops/<slug>/`：`loop.md`（儀表板 + Journal）+ `0N-*.md`（各階段精煉產出） | Memory |
 | **隔離工作樹** | 會動 code 的迴圈在 `git worktree`（`<issue#>-<slug>` 同名 branch） | Worktrees |
-| **子代理** | build 紅綠 3 + verify 6 核心 + 9 條件式 + validator | Subagents |
+| **子代理** | build 紅綠 3 + verify 1～6 核心（§1.4 風險梯）+ holistic + 9 條件式 + validator | Subagents |
 | **技能** | 13 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
 | **自動化** | `dispatch auto`、`/loop`·`/schedule`、statusline HUD | Automations |
@@ -240,9 +247,9 @@ flowchart TD
 | | |
 |---|---|
 | **skill** | 13（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **agents-md-maintainer** 側用文檔維運 / **distill** 側用跨 loop 萃取 instinct） |
-| **agent** | 19 = build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + 9 條件式（explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose） |
-| **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 9 條件式）+ N validator |
-| **reference** | 42 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + 8 份 per-axis 審查判準 + operation-first-move + instinct-schema）｜**command** loop / resume / status / explain / install-statusline｜**hook** 6 個 / 4 事件（SessionStart 恆跑、其餘 5 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈 + instinct 注入 opt-in) + Stop(cost-tracker 估成本 + stop-gate 改檔回合自動跑 quality-gate) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
+| **agent** | 20 = build 3（test-author / impl-author / referee）+ verify 6 核心 + holistic-reviewer + finding-validator + 9 條件式（explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose） |
+| **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 9 條件式）+ holistic + N validator |
+| **reference** | 43 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + 8 份 per-axis 審查判準 + verify-triage 風險分級 + operation-first-move + instinct-schema）｜**command** loop / resume / status / explain / install-statusline｜**hook** 6 個 / 4 事件（SessionStart 恆跑、其餘 5 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈 + instinct 注入 opt-in) + Stop(cost-tracker 估成本 + stop-gate 改檔回合自動跑 quality-gate) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
 
 ---
 
@@ -257,7 +264,7 @@ flowchart TD
 | explore | 1 | **1 掃描 + N 評估** | 方法競爭時一候選一 agent |
 | plan | 1 | 0（+設計審查 / Fleet 選用） | 風險大才派 |
 | build | 1 | **2 / 任務**（test+impl）+ referee | 衝突時 referee |
-| verify | 1 | **6 + 0–9 + N** | 同回合並行 |
+| verify | 1 | **1–6 + 0–9 + holistic + N** | 同回合並行 |
 | iterate | 1 | 0（+cross-model 選用） | 卡關時 |
 | explain（側） | 1 | 0 | 唯讀 |
 | agents-md-maintainer（側） | 1 | 0 | 維護 AGENTS.md（不入迴圈） |
