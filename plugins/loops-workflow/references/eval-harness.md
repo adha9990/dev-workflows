@@ -175,7 +175,7 @@ exit code：**ok exit 0**（多餘步仍 0）、**漏/禁止/順序 exit 1**、*
 - `validateVerdict(verdict, {scaleMin,scaleMax,threshold,dimension})`：加 `scoreInRange`、`pass`（**門檻推導且須先界內 `scoreInRange ＆ score≥threshold`，覆蓋 judge 自報**——越界分數不可能 pass，把分數→pass 變確定）、`passMismatch`（自報非 null 且 ≠ 推導，留痕供 #33 κ 校準）、`dimension`（**rubric 為權威**）+ `dimensionMismatch`（judge 自報 ≠ rubric——dimension 是 #33 聚合分組鍵）、`valid`（parseOk ＆ scoreInRange）。
 
 ## 分軌（Metric-Honesty，核心不變量）
-`buildJudgeRecord` 產的 record **硬帶 `track:'judge-estimate'`**（永不採信外部塞的 track）+ `judgeId`/`model`（forward-compat 給 #33 PoLL/κ 在陣列上聚合）。落**獨立** `<cwd>/.loops/.metrics/judge-results.jsonl`（`appendJudgeRecord` append-then-rotate、cap 1000）。`partitionByTrack` 把 measured/judge-estimate 分開。
+`buildJudgeRecord` 產的 record **硬帶 `track:'judge-estimate'`**（永不採信外部塞的 track）+ `judgeId`/`model`/`caseId`（forward-compat：`caseId` 供 E5 PoLL 分組 / κ 配對金標、其餘給陣列聚合）。落**獨立** `<cwd>/.loops/.metrics/judge-results.jsonl`（`appendJudgeRecord` append-then-rotate、cap 1000）。`partitionByTrack` 把 measured/judge-estimate 分開。
 > **judge-estimate 絕不進 `eval-metrics.mjs` 的 `passRate` 回歸 gate**——那只讀 `eval-results.jsonl` 的確定性 oracle 結果。獨立檔 + `track` 標記 ＝ 零耦合零污染，**禁止把 judge record 寫進 eval-results.jsonl**。
 
 ## 跑
@@ -183,9 +183,36 @@ exit code：**ok exit 0**（多餘步仍 0）、**漏/禁止/順序 exit 1**、*
 # 驗 rubric（config 不合法 exit 1、讀檔失敗 exit 3）
 node plugins/loops-workflow/scripts/eval-judge.mjs validate-rubric plugins/loops-workflow/references/eval-judge-rubric.md
 # 離線解析一份 judge 已產出的 verdict → 印 record + append judge-results.jsonl（advisory 永不擋路 exit 0）
-node plugins/loops-workflow/scripts/eval-judge.mjs parse --rubric <rubric.md> --output <judge-out.json|-> [--judge-file <path>] [--judge-id <id>] [--model <name>]
+node plugins/loops-workflow/scripts/eval-judge.mjs parse --rubric <rubric.md> --output <judge-out.json|-> [--judge-file <path>] [--judge-id <id>] [--model <name>] [--case-id <id>]
 ```
 exit code：`validate-rubric` valid 0 / invalid 1 / 讀檔失敗 3；`parse` 產出 record 0（**含 verdict invalid——advisory 永不擋路、record 自帶 `valid` 誠實標**）/ 缺旗標·未知命令 2 / 讀檔失敗 3。
 
 ## 範圍邊界
-本支只 **single-answer rubric judge**。**多 judge 投票（PoLL）+ Cohen κ 校準＝#33**（在 record 陣列上聚合，schema 已留 `judgeId/model`）；scenario 版本/tag + eval↔verify 銜接＝#34；live-candidate 真跑＝#36。
+本支只 **single-answer rubric judge**。**多 judge 投票（PoLL）+ Cohen κ 校準＝E5（已落地，見下）**；scenario 版本/tag + eval↔verify 銜接＝#34；live-candidate 真跑＝#36。
+
+---
+
+# E5 — judge 校準（Cohen κ）+ 多 judge 投票（PoLL）（`eval-poll.mjs` + `evals/gold/*.json`）
+
+> E4 的 judge 是**單一**評分；E5 補兩個**確定性聚合**能力：① 對人工金標量 **Cohen κ**（judge 與人工多一致）② **PoLL 異質 panel 投票**（N 個不同模型 judge 投票 > 單一大 judge，抗偏誤、便宜 ~7×）。**混合架構**：κ/投票是純函式（可測）；**panel fan-out（派哪幾個 judge）留主迴圈/Workflow（opt-in、`eval-poll.mjs` 不 spawn）**。皆在 E4 的 `judge-results.jsonl` record 陣列上聚合（靠 `caseId` 串）。
+
+## 純函式
+- `cohenKappa(labelsA, labelsB)` → `{kappa, po, pe, n, reason?}`：`κ=(po−pe)/(1−pe)`。不等長/空 → null；**無變異（1−pe=0）→ null + reason，不假裝 1**。`interpretKappa` 粗分 strong(≥.8)/moderate(≥.6)/fair(≥.4)/weak。
+- `pollVote(values, {method})`：`majority`（眾數，**平手→null** 誠實標歧義）/ `median`（偶數取兩中位平均）/ `max`/`min`。空→null。
+- `aggregatePanel(records, {key:'caseId', scoreMethod})`：依 caseId 分組 → 每組 `{caseId, panelSize, pass:majority, passTie, score:method, judges}`，**只計 `track:'judge-estimate'`**。
+- `pairJudgeVsGold(records, gold)`：依 caseId 配 `gold[].id`（gold 帶 boolean `goldPass`）→ pass label pairs 餵 cohenKappa；無配對 → `unmatched`。
+
+## 金標集（`evals/gold/<dimension>.json`）
+陣列，每筆 `{id, dimension, artifactRef, goldPass:boolean, goldScore, note}`（`id` 對 judge record 的 `caseId`、是唯一連結鍵；`artifactRef`＝指向被評 artifact 的機讀欄、operator 養金標時填、本 fixture 留 null；`note`＝散文說明）。committed 為**代表性數筆**（涵蓋 1–5 分譜）；**operator 養到 50–100 筆**才有統計意義。**Metric-Honesty**：κ 是**估算**、標來源（人工金標），非確定性權威；judge-estimate 軌不污染 oracle 回歸曲線。
+
+## 跑
+```bash
+# judge 對人工金標的 Cohen κ（校準）
+node plugins/loops-workflow/scripts/eval-poll.mjs kappa --records <judge-results.jsonl> --gold plugins/loops-workflow/evals/gold/explanation-quality.json
+# 多 judge panel 投票聚合（per-case 共識）
+node plugins/loops-workflow/scripts/eval-poll.mjs poll --records <judge-results.jsonl> [--score-method median|max|min]
+```
+exit code：產出 0（advisory 永不擋路）/ 缺旗標·未知命令·**未知 `--score-method`** 2 / 讀檔失敗 3。輸出含 `loaded/skipped`（揭露跳過的壞行數）。**`poll` 需 record 帶 `caseId` 才有意義**——缺 caseId 的 record 會被併為單一 null 群、印 stderr 警示。panel fan-out（派 N judge、各帶 `--case-id` 落 record）由上層做；`eval-poll.mjs` 只聚合。
+
+## 範圍邊界
+單票只交付**確定性聚合 + 金標 schema**。真派 judge panel / 真標 50–100 筆金標＝留 operator/上層。scenario 版本 tag + eval↔verify 銜接＝#34；live-candidate 真跑＝#36。
