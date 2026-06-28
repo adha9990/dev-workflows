@@ -85,6 +85,10 @@ stage-0 tripwire（product-contract + correctness 兩軸）**任一回確證的 
 
 > 兩軸**皆無確證 P0/P1** → 放行；**product-contract 併入不重跑、correctness smoke 由 fan-out 的完整 code-quality 軸補跑**（tripwire 不是額外一輪全 review：product-contract 是把該完整軸先跑當 gate、correctness 只是便宜前哨，DEEP 仍得完整 6 軸覆蓋）。放行後的 finding 一樣進 §3 finding-validator。
 
+> **⚠️ tripwire ≠ acceptance-completeness 完整性檢查（別把「逐項驗收」當成只有 DEEP 才做）**：
+> - **§1.6 tripwire 是 DEEP-only 的「早退成本優化」** —— 高風險時先用 product-contract + correctness 擋一道，**決定要不要先 bounce、再放貴 fan-out**。它的價值在「省 DEEP 的大 fan-out」，所以**刻意只在 DEEP 跑**。
+> - **「issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足或 descoped 才放行」是 tier-independent 的出口 gate** —— 凡 `product-contract` 有跑（任何 issue，LIGHT 起每級必跑）就生效，**LIGHT/STANDARD/DEEP 一律受其約束**（見 `acceptance-review.md` §二完整性 gate + verify SKILL §4.5）。STANDARD/LIGHT 沒有早退 tripwire，但**一樣不得在 acceptance ledger 有未收斂項時判 Ready**。partial 當完成在**任何級**都是 P0/P1、都該擋。
+
 ## 範例
 
 | 改動 | 判定 | 級 |
