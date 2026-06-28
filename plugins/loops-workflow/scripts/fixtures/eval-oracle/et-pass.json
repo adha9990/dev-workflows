@@ -6,5 +6,8 @@
   "oracle": {
     "failToPass": ["add returns sum"],
     "passToPass": ["sub returns diff"]
-  }
+  },
+  "version": "1.0",
+  "tags": ["arithmetic", "regression"],
+  "verifyAxes": ["tests"]
 }

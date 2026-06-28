@@ -7,5 +7,7 @@
     "failToPass": ["add returns sum"],
     "passToPass": ["add with zero is identity"]
   },
-  "tags": ["arithmetic", "build"]
+  "version": "1.0",
+  "tags": ["arithmetic", "build"],
+  "verifyAxes": ["tests"]
 }
