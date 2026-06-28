@@ -158,3 +158,34 @@ node plugins/loops-workflow/scripts/eval-trajectory.mjs check --observed <loop.m
 ```
 
 exit code：**ok exit 0**（多餘步仍 0）、**漏/禁止/順序 exit 1**、**誤用（缺旗標）exit 2**、**reference/observed 讀取失敗或壞 JSON exit 3**（設定錯不偽裝成 eval 結果）。observed 解析只掃 `## Journal` 區段、且排除 markdown 連結 `[text](url)`（避免敘述行連結被誤抽成階段而遮蔽漏階段）。`allowed: []`（顯式空陣列）＝不判多餘步（要禁所有額外步請列具體 `allowed`）。`unorderedEqual` 為獨立 comparator（order-agnostic），checkTrajectory 本身用更嚴的 `order`。零 LLM judge、純 node。
+
+---
+
+# E4 — eval-judge（`eval-judge.mjs` + `agents/eval-judge.md` + `references/eval-judge-rubric.md`）
+
+> E1–E3 都**零 judge**（oracle / 規則）。E4 補唯一缺口：**沒有可執行 ground truth 的維度**（解釋/溝通品質）。原則仍是 **oracle-first, judge-last**——能用測試轉綠 / exit 0 / 檔案存在判的**一律不用 judge**；judge 只評「人類讀者能不能看懂/據以驗證」這種無 ground truth 的東西。
+>
+> **混合架構**：`eval-judge.mjs` **不 spawn judge agent**（plugin script 無此能力）。LLM judge 的調用由**主迴圈 / Workflow** 在 eval/verify 流程**opt-in** 派 `agents/eval-judge.md`（像 verify 的 reviewer，複用反偏誤）；script 只做**離線可確定性測**的部分——驗 rubric、解析 judge verdict、門檻為準推導 pass、分軌、落檔。
+
+## rubric（`references/eval-judge-rubric.md`，G-Eval 式鎖死步驟）
+扁平 YAML frontmatter（機讀，`eval-judge.mjs` 驗）：`dimension` / `scale_min` / `scale_max` / `threshold` / `schema`；body 的 `## Evaluation steps` ≥3 條編號步驟（**鎖死**、judge 逐步照走防分數漂移）。`validateRubric` 驗：dimension 非空 ＆ 整數 scaleMin<scaleMax ＆ scaleMin≤threshold≤scaleMax ＆ stepCount≥3。
+
+## verdict 解析 + 驗證（純函式，永不擋路）
+- `parseVerdict(raw)`：tolerant 三段降級（**fenced 線性掃描、優先 ```json 標籤** → 直接 parse → 首個平衡 `{...}`）→ `{score, pass, reasoning, dimension?, parseOk}`；壞到底 `parseOk:false`（不丟例外）。score 僅接受真數字（字串/缺 → null）。
+- `validateVerdict(verdict, {scaleMin,scaleMax,threshold,dimension})`：加 `scoreInRange`、`pass`（**門檻推導且須先界內 `scoreInRange ＆ score≥threshold`，覆蓋 judge 自報**——越界分數不可能 pass，把分數→pass 變確定）、`passMismatch`（自報非 null 且 ≠ 推導，留痕供 #33 κ 校準）、`dimension`（**rubric 為權威**）+ `dimensionMismatch`（judge 自報 ≠ rubric——dimension 是 #33 聚合分組鍵）、`valid`（parseOk ＆ scoreInRange）。
+
+## 分軌（Metric-Honesty，核心不變量）
+`buildJudgeRecord` 產的 record **硬帶 `track:'judge-estimate'`**（永不採信外部塞的 track）+ `judgeId`/`model`（forward-compat 給 #33 PoLL/κ 在陣列上聚合）。落**獨立** `<cwd>/.loops/.metrics/judge-results.jsonl`（`appendJudgeRecord` append-then-rotate、cap 1000）。`partitionByTrack` 把 measured/judge-estimate 分開。
+> **judge-estimate 絕不進 `eval-metrics.mjs` 的 `passRate` 回歸 gate**——那只讀 `eval-results.jsonl` 的確定性 oracle 結果。獨立檔 + `track` 標記 ＝ 零耦合零污染，**禁止把 judge record 寫進 eval-results.jsonl**。
+
+## 跑
+```bash
+# 驗 rubric（config 不合法 exit 1、讀檔失敗 exit 3）
+node plugins/loops-workflow/scripts/eval-judge.mjs validate-rubric plugins/loops-workflow/references/eval-judge-rubric.md
+# 離線解析一份 judge 已產出的 verdict → 印 record + append judge-results.jsonl（advisory 永不擋路 exit 0）
+node plugins/loops-workflow/scripts/eval-judge.mjs parse --rubric <rubric.md> --output <judge-out.json|-> [--judge-file <path>] [--judge-id <id>] [--model <name>]
+```
+exit code：`validate-rubric` valid 0 / invalid 1 / 讀檔失敗 3；`parse` 產出 record 0（**含 verdict invalid——advisory 永不擋路、record 自帶 `valid` 誠實標**）/ 缺旗標·未知命令 2 / 讀檔失敗 3。
+
+## 範圍邊界
+本支只 **single-answer rubric judge**。**多 judge 投票（PoLL）+ Cohen κ 校準＝#33**（在 record 陣列上聚合，schema 已留 `judgeId/model`）；scenario 版本/tag + eval↔verify 銜接＝#34；live-candidate 真跑＝#36。
