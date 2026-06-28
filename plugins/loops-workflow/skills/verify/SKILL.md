@@ -114,9 +114,21 @@ coordinator 去重後，派 `holistic-reviewer`（fresh context）看 **findings
 
 每個 finding 標 **P0–P3 + Confidence 50/75/100 + Route**（見 `references/reviewer-severity.md`）。所有 reviewer 套 **Metric-Honesty**（沒實跑就標 `not measured`）。主線 merge 成 **Ready / Not ready** 寫 `04-verify.md` + 摘要，**直接進 iterate**（routine 轉場不問）。**只有出 P0** 才停下用 `AskUserQuestion` 問怎麼處理（先修 / 接受風險 / 看細節）。
 
+> **判 Ready 前必過〈§4.5 acceptance-completeness 出口 gate〉** —— findings 全清不等於「做到 issue 要的每一件事」，後者由下方 gate 獨立把關。
+
 > **若把驗收結論 post 成 issue / PR comment**（給人審 / 留 audit）：固定套 `references/comment-policy.md` §7「驗收報告 comment 版型」——方向總評 → 按維度分組 → 每點「會發生什麼情境 / 為什麼是問題 / 建議怎麼修 / 建議補測試」→ 結尾 merge 風險。先寫 tmp 草稿、送出後刪（§5）。
 
 > **送審前自檢（作者視角）**：把 verify 的合併安全結論 + explain 的方向 recap 收成**單一送審判定**（`可送審` / `建議先修` / `資訊不足`）、跨關去重、以及硬規則「**作者已留痕的決定（alignment comment / `02-plan.md` / PR body）不算 finding**，除非它本身也是獨立 bug」—— 見 `references/preflight.md`。派 reviewer 時把這條硬規則原文也塞進每個 reviewer 的 prompt。
+
+### 4.5 acceptance-completeness 出口 gate（tier-independent，**所有級通用**）
+
+**「findings 全清」≠「做到 issue 要的每一件事」**。前者是「有沒有引入問題」，後者是「該交付的有沒有交付」—— 兩者正交。所以 verify 的 **Ready 判定多一道與級別無關的硬閘**：
+
+> **凡 `product-contract` 有跑（即任何 issue —— code 改動從 LIGHT 起每級必跑、有驗收契約的實質文件 / 設定走 product-contract+docs-devex 軌也跑；只有無驗收契約的 SKIP 不適用），verify 不得判 Ready，直到 product-contract 對 issue 的「每一條」acceptance criterion 都逐項列出 `references/acceptance-review.md` 的完成度五態（已滿足 / 部分滿足 / 缺失 / 證據不足 / 被反證），且每條都收斂到「已滿足（有可信證據）」或「明確 descoped（作者留痕）」—— 任一條停在 部分滿足 / 缺失 / 證據不足 / 被反證 且未明確 descoped → Not ready，回 iterate（partial 當完成是 P0/P1）。**
+
+- **與 §1.6 tripwire 的分工（別混淆）**：tripwire 是 **DEEP-only 的早退成本優化**（高風險時先用 product-contract + correctness 擋一道，再決定要不要放完整貴 fan-out）；本 gate 是 **tier-independent 的出口條件**（LIGHT/STANDARD/DEEP 一律生效，決定「能不能判 Ready」）。DEEP 兩者都有（tripwire 早退 + 出口 gate）；STANDARD/LIGHT 沒有早退 tripwire，但**一樣受這道出口 gate 約束** —— 「沒做到 issue」在 STANDARD/LIGHT 不是「眾多 finding 之一、靠 reviewer 自律」，而是**判 Ready 的硬前提**。
+- **怎麼落實**：product-contract reviewer 的輸出本就要逐項五態 ledger（見 `acceptance-review.md`）；主線 coordinator 在寫 `04-verify.md` 結論前，**對著 issue 的 acceptance 清單逐條勾稽** ledger 是否完整、有無未收斂項 —— 缺項 / 漏列即視同 Not ready，不得以「findings 都清了」打發。
+- **descoped 要留痕**：某條 acceptance 經對齊決定不做（縮範圍）時，必須在 `02-plan.md` / issue / PR 有作者留痕（呼應 preflight「作者已留痕的決定不算 finding」），ledger 標 `descoped + 出處`；無留痕的「沒做」一律算未完成。
 
 ### 雙視角記錄
 
@@ -140,6 +152,7 @@ coordinator 去重後，派 `holistic-reviewer`（fresh context）看 **findings
 - **對含 code 的改動縮到該風險級以下**（右尺寸化只允許依風險浮動下界 —— 拿不準 / 混 code / 碰高風險 path 一律向上升級，縮錯＝漏審）。
 - **把 LIGHT/STANDARD/DEEP 的品質維度排成順序 gate**（先 A 過再跑 B）—— 維度要並行，順序只給 quality-gate pre-gate 與 DEEP 的 §1.6 tripwire。
 - **DEEP 的 §1.6 tripwire 變成「再派一輪全 review」**（它只是 product-contract + correctness 兩軸 stage-0、結果併入不重跑）。
+- **STANDARD/LIGHT 判 Ready 卻沒對 issue 逐條勾稽 acceptance ledger**（把「sentence-by-sentence 驗收完整性」當成只有 DEEP tripwire 才做 —— §4.5 出口 gate 是 tier-independent，partial 當完成在任何級都該擋）。
 - **DEEP 跳過 §2.5 holistic**，或 LIGHT/SKIP 硬跑 holistic（噪音）。
 - tests-reviewer 被餵了「作者說測試已過」。
 - blocking finding 沒過 finding-validator 就進報告。
@@ -157,4 +170,5 @@ coordinator 去重後，派 `holistic-reviewer`（fresh context）看 **findings
 - [ ] 已跑真 app（`/run`·`/verify`）+ 本機 `/code-review`，或純 lib 無 app 據實標 `not measured`。
 - [ ] 每個 blocking finding 有 finding-validator 的 `validated/rejected/degraded`。
 - [ ] 每條 finding 有 P0–P3 + Confidence + Route，且套 Metric-Honesty。
+- [ ] **過了 §4.5 acceptance-completeness 出口 gate（tier-independent）**：product-contract 對 issue **每一條** acceptance criterion 都列了五態、且每條收斂到 已滿足（有證據）或 明確 descoped（留痕）才判 Ready —— **不分 LIGHT/STANDARD/DEEP，不是只有 DEEP tripwire**；任一條停在 部分滿足/缺失/證據不足/被反證 未 descoped → Not ready。
 - [ ] `04-verify.md` 結論是 Ready / Not ready 並進 iterate（只有出 P0 才停下用 `AskUserQuestion` 問）。
