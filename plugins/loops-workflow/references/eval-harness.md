@@ -203,7 +203,7 @@ exit code：`validate-rubric` valid 0 / invalid 1 / 讀檔失敗 3；`parse` 產
 - `pairJudgeVsGold(records, gold)`：依 caseId 配 `gold[].id`（gold 帶 boolean `goldPass`）→ pass label pairs 餵 cohenKappa；無配對 → `unmatched`。
 
 ## 金標集（`evals/gold/<dimension>.json`）
-陣列，每筆 `{id, dimension, goldPass:boolean, goldScore, note}`。committed 為**代表性數筆**（涵蓋 1–5 分譜）；**operator 養到 50–100 筆**才有統計意義。**Metric-Honesty**：κ 是**估算**、標來源（人工金標），非確定性權威；judge-estimate 軌不污染 oracle 回歸曲線。
+陣列，每筆 `{id, dimension, artifactRef, goldPass:boolean, goldScore, note}`（`id` 對 judge record 的 `caseId`、是唯一連結鍵；`artifactRef`＝指向被評 artifact 的機讀欄、operator 養金標時填、本 fixture 留 null；`note`＝散文說明）。committed 為**代表性數筆**（涵蓋 1–5 分譜）；**operator 養到 50–100 筆**才有統計意義。**Metric-Honesty**：κ 是**估算**、標來源（人工金標），非確定性權威；judge-estimate 軌不污染 oracle 回歸曲線。
 
 ## 跑
 ```bash
@@ -212,7 +212,7 @@ node plugins/loops-workflow/scripts/eval-poll.mjs kappa --records <judge-results
 # 多 judge panel 投票聚合（per-case 共識）
 node plugins/loops-workflow/scripts/eval-poll.mjs poll --records <judge-results.jsonl> [--score-method median|max|min]
 ```
-exit code：產出 0（advisory 永不擋路）/ 缺旗標·未知命令 2 / 讀檔失敗 3。panel fan-out（派 N judge、各帶 `--case-id` 落 record）由上層做；`eval-poll.mjs` 只聚合。
+exit code：產出 0（advisory 永不擋路）/ 缺旗標·未知命令·**未知 `--score-method`** 2 / 讀檔失敗 3。輸出含 `loaded/skipped`（揭露跳過的壞行數）。**`poll` 需 record 帶 `caseId` 才有意義**——缺 caseId 的 record 會被併為單一 null 群、印 stderr 警示。panel fan-out（派 N judge、各帶 `--case-id` 落 record）由上層做；`eval-poll.mjs` 只聚合。
 
 ## 範圍邊界
 單票只交付**確定性聚合 + 金標 schema**。真派 judge panel / 真標 50–100 筆金標＝留 operator/上層。scenario 版本 tag + eval↔verify 銜接＝#34；live-candidate 真跑＝#36。

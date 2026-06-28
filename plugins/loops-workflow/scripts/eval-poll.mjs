@@ -164,31 +164,35 @@ function parseArgs(argv) {
   return opts;
 }
 
-/** tolerant 讀 jsonl：檔不存在 → throw（CLI 接住 exit 3）；單行壞 → 跳過（不致命）。 */
+const VALID_SCORE_METHODS = new Set(['median', 'max', 'min']);
+
+/** tolerant 讀 jsonl：檔不存在 → throw（CLI 接住 exit 3）；單行壞 → 跳過並計數（揭露於輸出，非靜默吞）。 */
 function loadRecords(file) {
   const text = readFileSync(file, 'utf8');
-  const out = [];
+  const records = [];
+  let skipped = 0;
   for (const line of text.split('\n')) {
     if (!line.trim()) continue;
-    try { out.push(JSON.parse(line)); } catch { /* skip bad line */ }
+    try { records.push(JSON.parse(line)); } catch { skipped += 1; }
   }
-  return out;
+  return { records, skipped };
 }
 
 function cmdKappa(argv) {
   const opts = parseArgs(argv);
   if (!opts.records || !opts.gold) { console.error(USAGE); process.exit(2); }
-  let records;
+  let loaded;
   let gold;
-  try { records = loadRecords(resolve(opts.records)); }
+  try { loaded = loadRecords(resolve(opts.records)); }
   catch (e) { console.error(`kappa: records 讀取失敗 ${opts.records}: ${e?.message ?? e}`); process.exit(3); }
   try { gold = JSON.parse(readFileSync(resolve(opts.gold), 'utf8')); }
   catch (e) { console.error(`kappa: gold 讀取失敗 ${opts.gold}: ${e?.message ?? e}`); process.exit(3); }
-  const paired = pairJudgeVsGold(records, gold);
+  const paired = pairJudgeVsGold(loaded.records, gold);
   const k = cohenKappa(paired.judgeLabels, paired.goldLabels);
   console.log(JSON.stringify({
     kappa: k.kappa, interpretation: interpretKappa(k.kappa),
     po: k.po, pe: k.pe, paired: paired.paired, unmatched: paired.unmatched, reason: k.reason ?? null,
+    loaded: loaded.records.length, skipped: loaded.skipped,
     note: 'judge-estimate vs 人工金標 — κ 為估算、非確定性權威',
   }, null, 2));
   process.exit(0);
@@ -197,11 +201,22 @@ function cmdKappa(argv) {
 function cmdPoll(argv) {
   const opts = parseArgs(argv);
   if (!opts.records) { console.error(USAGE); process.exit(2); }
-  let records;
-  try { records = loadRecords(resolve(opts.records)); }
+  // 未知 --score-method 不可靜默落 majority（會把 score 語意悄悄換掉）→ 明確拒絕。
+  if (!VALID_SCORE_METHODS.has(opts.scoreMethod)) {
+    console.error(`poll: 未知 --score-method "${opts.scoreMethod}"（用 median|max|min）`);
+    process.exit(2);
+  }
+  let loaded;
+  try { loaded = loadRecords(resolve(opts.records)); }
   catch (e) { console.error(`poll: records 讀取失敗 ${opts.records}: ${e?.message ?? e}`); process.exit(3); }
+  // 缺 caseId 的 judge record 會被併進單一 null 群一起投票（跨無關 item）→ 警示，避免假共識被誤讀。
+  const nullCase = loaded.records.filter((r) => r?.track === JUDGE_TRACK && (r?.caseId === null || r?.caseId === undefined)).length;
+  if (nullCase > 0) {
+    console.error(`poll: 警告 — ${nullCase} 筆 judge record 無 caseId，已併為單一 null 群組，PoLL 結果可能無意義（請給 --case-id）`);
+  }
   console.log(JSON.stringify({
-    cases: aggregatePanel(records, { scoreMethod: opts.scoreMethod }),
+    cases: aggregatePanel(loaded.records, { scoreMethod: opts.scoreMethod }),
+    loaded: loaded.records.length, skipped: loaded.skipped,
     note: 'PoLL 多 judge 投票聚合 — judge-estimate 軌（advisory）',
   }, null, 2));
   process.exit(0);
