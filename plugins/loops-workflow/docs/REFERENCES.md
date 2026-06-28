@@ -1,6 +1,6 @@
 # references 目錄（各規範在處理什麼）
 
-> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **45 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
+> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **46 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
 >
 > 機制全貌（每階段怎麼跑）見 [`FLOW.md`](FLOW.md)；這份是「規範字典」。subagent 讀不到相對路徑 → orchestrator 把絕對路徑塞進 prompt（見 `AGENTS.md`〈參考檔路徑解析〉）。
 
@@ -84,9 +84,10 @@
 | `onboarding` | 文檔優先上手：先讀 repo 既有 onboarding 文檔再動手 | explore（第 0 步摸架構） |
 | `adr-template` | 決策留痕 ADR 五欄模板：情境 / 選項 / 決定 / 理由 / 後果 | plan（決策留痕） |
 | `task-template` | 可驗證任務模板：Description / Acceptance / Verification / Deps / Files / Scope + 「該再拆」四訊號 + 垂直切片 / risk-first / XS–XL | plan（拆任務） |
-| `eval-harness` | 評測 harness 五路：scenario-checklist（`run-eval.mjs`，人工勾）＋ 確定性 oracle runner（`eval-oracle.mjs`，走 quality-gate 比對 failToPass/passToPass、positive-presence 永不假綠）＋ 跨 run 聚合/回歸 gate（`eval-metrics.mjs` record/check）＋ trajectory/process 規則比對（`eval-trajectory.mjs`，superset/subset/unordered/order，零 judge）＋ rubric judge（`eval-judge.mjs`，只評無 oracle 維度、judge-estimate 分軌不污染回歸曲線、不 spawn agent；**其校準/投票延伸** `eval-poll.mjs`＝Cohen κ 對人工金標 + PoLL 多 judge 投票聚合，純函式、不 spawn）。**橫切**：`eval-tags.mjs`＝tag 分組聚合 + eval↔verify 雙向互指（tags 為連結脊椎、task 加 version/verifyAxes、純函式）；`eval-passk.mjs`＝live-candidate 真 pass^k（無偏估計 C(c,k)/C(N,k)、候選重生留上層、純函式不 spawn、附協定 + 成本/沙箱邊界文件 `evals/live/README-protocol.md`）。**活流程**：`eval-panel.mjs`＝judge panel 組合膠水（import 組合 eval-judge+eval-poll，N verdict→PoLL 共識+金標 agreement、不 spawn） | plugin 自評 |
+| `eval-harness` | 評測 harness 五路：scenario-checklist（`run-eval.mjs`，人工勾）＋ 確定性 oracle runner（`eval-oracle.mjs`，走 quality-gate 比對 failToPass/passToPass、positive-presence 永不假綠）＋ 跨 run 聚合/回歸 gate（`eval-metrics.mjs` record/check）＋ trajectory/process 規則比對（`eval-trajectory.mjs`，superset/subset/unordered/order，零 judge）＋ rubric judge（`eval-judge.mjs`，只評無 oracle 維度、judge-estimate 分軌不污染回歸曲線、不 spawn agent；**其校準/投票延伸** `eval-poll.mjs`＝Cohen κ 對人工金標 + PoLL 多 judge 投票聚合，純函式、不 spawn）。**橫切**：`eval-tags.mjs`＝tag 分組聚合 + eval↔verify 雙向互指（tags 為連結脊椎、task 加 version/verifyAxes、純函式）；`eval-passk.mjs`＝live-candidate 真 pass^k（無偏估計 C(c,k)/C(N,k)、候選重生留上層、純函式不 spawn、附協定 + 成本/沙箱邊界文件 `evals/live/README-protocol.md`）。**活流程**：`eval-panel.mjs`＝judge panel 組合膠水（import 組合 eval-judge+eval-poll，N verdict→PoLL 共識+金標 agreement、不 spawn）；`eval-runs.mjs`＝live-candidate spawn-oracle 膠水（spawn eval-oracle 評當前候選→append 一行 run，候選重生留上層、不 spawn workflow） | plugin 自評 |
 | `eval-judge-rubric` | eval-judge 的鎖死評分卡（G-Eval 式）：無 oracle 維度（解釋/溝通品質）的 dimension / 1–5 刻度 / threshold / 鎖死 evaluation steps + 反偏誤紀律 + verdict 輸出格式 | eval-judge agent（無 oracle 維度評分） |
 | `eval-judge-panel` | judge panel orchestration recipe：主迴圈同回合派 N 異質 judge（反偏誤）→ verdicts.jsonl → `eval-panel.mjs` 共識；累積後 `eval-poll kappa` 校準。**派 judge 留上層、膠水不 spawn** | eval Phase 3 活流程 |
+| `eval-live-candidate` | live-candidate orchestration recipe：每 task 獨立重生 N 候選 → 覆寫進 task workspace → `eval-runs.mjs record`（spawn oracle 收 run）→ `eval-passk` 真 pass^k。**候選重生留上層、膠水不重生不 spawn workflow**；成本/沙箱邊界引 `evals/live/README-protocol.md` | eval Phase 3 活流程 |
 
 ---
 
