@@ -101,7 +101,7 @@ ECC 是「agent harness performance optimization system」（271 skill、67 agen
 - **operation-first-move 規則**（ECC #16）：build 紅燈起手式依任務性質分岔，見 `references/operation-first-move.md`。
 - **跨 loop instinct 學習**（ECC #18）：`/distill` + SessionStart 注入，見 `references/instinct-schema.md`。
 - **squash 合併政策**（cobus #11）：全部 squash 合併進 plugin master，每 PR master 一筆 commit。
-- **13 skills、44 references**；文件全同步（FLOW / REFERENCES / README / journaling）且經各 PR 的 docs-devex reviewer 查核一致。
+- **13 skills、45 references**；文件全同步（FLOW / REFERENCES / README / journaling）且經各 PR 的 docs-devex reviewer 查核一致。
 - 各 opt-in flag 的「怎麼開 / 行為 / footprint / SECURITY」目錄見 `references/journaling.md`。
 
 ### dogfood 實證（meta 閉環）

@@ -218,7 +218,7 @@ node plugins/loops-workflow/scripts/eval-poll.mjs poll --records <judge-results.
 exit code：產出 0（advisory 永不擋路）/ 缺旗標·未知命令·**未知 `--score-method`** 2 / 讀檔失敗 3。輸出含 `loaded/skipped`（揭露跳過的壞行數）。**`poll` 需 record 帶 `caseId` 才有意義**——缺 caseId 的 record 會被併為單一 null 群、印 stderr 警示。panel fan-out（派 N judge、各帶 `--case-id` 落 record）由上層做；`eval-poll.mjs` 只聚合。
 
 ## 範圍邊界
-單票只交付**確定性聚合 + 金標 schema**。真派 judge panel / 真標 50–100 筆金標＝留 operator/上層。scenario 版本 tag + eval↔verify 銜接＝**E6（已落地，見下）**；live-candidate 真跑＝#36。
+單票只交付**確定性聚合 + 金標 schema**。**真派 judge panel 的活流程＝Phase 3 已落地**（`references/eval-judge-panel.md` recipe + `eval-panel.mjs` 組合膠水：主迴圈派 N 異質 judge → verdicts → 共識 + 金標 agreement，累積後 `eval-poll kappa` 校準；膠水不 spawn、派 judge 留 recipe）。真標 50–100 筆金標＝留 operator（#50）。scenario 版本 tag + eval↔verify 銜接＝**E6（已落地，見下）**；live-candidate 真跑＝#36。
 
 ---
 
