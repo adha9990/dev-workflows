@@ -14,7 +14,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-import { buildEvalRow, readEvalRows, parseEvalRows, computeRegression } from './eval-metrics.mjs';
+import { buildEvalRow, readEvalRows, parseEvalRows, computeRegression, rotateLines, appendEvalRow } from './eval-metrics.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // .../scripts
 const ROOT = dirname(HERE); // plugin root（契約：record/check e2e 的 cwd；committed 語料庫在 evals/build）
@@ -485,5 +485,40 @@ function readJsonl(file) {
 }
 
 // ── 摘要 + exit code ─────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+//  rotation —— rotateLines 純函式 + appendEvalRow 上限（避免 eval-results.jsonl 無界成長）。
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── ROT-pure：rotateLines 保留最後 cap 行；cap<=0 / 未超過 / 恰等於 / 非陣列 邊界 ──
+{
+  assert(JSON.stringify(rotateLines(['a', 'b', 'c'], 2)) === JSON.stringify(['b', 'c']), 'rotateLines：超過 cap → 保留最後 cap 行 [ROT-pure]');
+  assert(JSON.stringify(rotateLines(['a', 'b', 'c'], 3)) === JSON.stringify(['a', 'b', 'c']), 'rotateLines：恰等於 cap → 原樣不截 [ROT-pure]');
+  assert(JSON.stringify(rotateLines(['a'], 5)) === JSON.stringify(['a']), 'rotateLines：未超過 cap → 原樣 [ROT-pure]');
+  assert(JSON.stringify(rotateLines(['a', 'b'], 0)) === JSON.stringify(['a', 'b']), 'rotateLines：cap<=0 → 不 rotation [ROT-pure]');
+  assert(JSON.stringify(rotateLines('not-array', 2)) === JSON.stringify([]), 'rotateLines：非陣列 → [] [ROT-pure]');
+}
+
+// ── ROT-e2e：appendEvalRow 以小 cap 連寫 5 行 → 檔只剩最後 cap 行、保留的是最後 N 筆、每行仍可 parse ──
+{
+  const dir = mkdtempSync(join(tmpdir(), 'em-rot-'));
+  const file = join(dir, 'eval-results.jsonl');
+  try {
+    for (let i = 0; i < 5; i++) appendEvalRow(file, { corpus: 'R', seqno: i, passRate: 1.0 }, 3);
+    const rows = readEvalRows(file);
+    assert(rows.length === 3, 'ROT-e2e：cap=3 連寫 5 → 檔只剩 3 行（rotation 生效）[ROT-e2e]');
+    assert(rows[0].seqno === 2 && rows[2].seqno === 4, 'ROT-e2e：保留的是最後 3 筆（seqno 2,3,4）[ROT-e2e]');
+    assert(rows.every((r) => typeof r.seqno === 'number'), 'ROT-e2e：rotation 後每行仍是合法 JSON（可 parse）[ROT-e2e]');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
+// ── ROT-writefail：appendEvalRow 寫檔失敗（路徑為既有目錄）→ 不丟例外（catch 吞、永不擋路）[契約 寫檔容錯] ──
+{
+  const dir = mkdtempSync(join(tmpdir(), 'em-wf-'));
+  try {
+    const r = callSafe(() => appendEvalRow(dir, { corpus: 'W', passRate: 1.0 }, 3)); // file=目錄 → append/write 失敗
+    assert(!r.threw, 'appendEvalRow：寫檔失敗（路徑為目錄）→ 不丟例外 [ROT-writefail]');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
 process.exit(failed.length > 0 ? 1 : 0);

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // edit-accumulator.mjs —— loops-workflow PostToolUse(Write|Edit|MultiEdit) hook：把本 session 編輯過的檔案路徑
-// 累積進 os.tmpdir() 的 state 檔，供 Stop 階段的 stop-gate 判斷「這趟有沒有改過檔」。
+// 累積進 os.tmpdir() 的 state 檔，供 Stop 階段的 stop-gate / eval-gate 判斷「這趟有沒有改過檔」。
 // 純記錄、不擋路、任何錯誤 no-op exit 0。
 //
 // 分層（仿 hooks/suggest-compact.mjs）：
@@ -97,9 +97,9 @@ export function clearEditsState(sessionId) {
  * 安全 / 永不擋路：env 預設關 / payload 壞掉 / 無檔路徑 → no-op；state 只落在 os.tmpdir()；任何例外 exit 0。
  */
 function main() {
-  // accumulator 的唯一消費者是 stop-gate（僅在 LOOPS_STOP_GATE=1 時運作）；flag 關時真 no-op、
-  // 不寫 tmp——避免「opt-in 預設關卻仍每次寫 state」的 footprint 不一致。
-  if (process.env.LOOPS_STOP_GATE !== '1') return;
+  // accumulator 的消費者是 stop-gate 與 eval-gate（任一 flag 開才需要「這趟改了哪些檔」）；
+  // 兩 flag 都關時真 no-op、不寫 tmp——避免「opt-in 預設關卻仍每次寫 state」的 footprint 不一致。
+  if (process.env.LOOPS_STOP_GATE !== '1' && process.env.LOOPS_EVAL_GATE !== '1') return;
 
   let payload;
   try {

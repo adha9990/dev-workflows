@@ -1,5 +1,5 @@
 {
-  "description": "loops-workflow hooks（SessionStart active-loop 恆跑；其餘為 opt-in 預設關；皆永不擋路）：SessionStart=浮出 active 迴圈 + instinct 注入(opt-in LOOPS_INSTINCT_INJECT，注入 distill 產的跨 loop instinct)；Stop=cost-tracker 記估算成本(LOOPS_COST_TRACKER) + stop-gate 改檔回合自動跑 quality-gate 注入失敗(LOOPS_STOP_GATE)；PostToolUse=edit-accumulator 累積本回合改檔(供 stop-gate)；PreToolUse(Edit|Write)=suggest-compact context 壓力提醒(LOOPS_COMPACT_HINT)、(Write|Edit|MultiEdit)=config-protection 擋弱化 linter 設定(LOOPS_CONFIG_PROTECTION)。",
+  "description": "loops-workflow hooks（SessionStart active-loop 恆跑；其餘為 opt-in 預設關；皆永不擋路）：SessionStart=浮出 active 迴圈 + instinct 注入(opt-in LOOPS_INSTINCT_INJECT，注入 distill 產的跨 loop instinct)；Stop=cost-tracker 記估算成本(LOOPS_COST_TRACKER) + eval-gate 改檔回合自動跑 eval-metrics check 注入退化(LOOPS_EVAL_GATE) + stop-gate 改檔回合自動跑 quality-gate 注入失敗(LOOPS_STOP_GATE)；PostToolUse=edit-accumulator 累積本回合改檔(供 stop-gate / eval-gate；任一 opt-in 開才累積)；PreToolUse(Edit|Write)=suggest-compact context 壓力提醒(LOOPS_COMPACT_HINT)、(Write|Edit|MultiEdit)=config-protection 擋弱化 linter 設定(LOOPS_CONFIG_PROTECTION)。",
   "hooks": {
     "SessionStart": [
       {
@@ -17,6 +17,10 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/cost-tracker.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/eval-gate.mjs\""
           },
           {
             "type": "command",
