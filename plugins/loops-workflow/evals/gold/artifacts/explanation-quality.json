@@ -1,0 +1,282 @@
+[
+  {
+    "id": "dw-9bd995d",
+    "source": "dev-workflows commit 9bd995d",
+    "text": "eval Phase 3：eval-gate hook 擴跑 eval-tags/eval-poll（改檔回合多訊號，#56）\n\n把 #35 單訊號 eval-gate 擴成三條獨立 opt-in 訊號的同一 Stop hook：LOOPS_EVAL_TAGS_GATE→eval-tags by-tag 失敗 tag、LOOPS_EVAL_POLL_GATE→eval-poll poll 共識，改檔回合讀已持久化 artifact、注入合併單一 additionalContext、永不擋路。enabling seam：eval-metrics record 持久化 per-task eval-report.json。verify 5 軸抓到 P1（producer 沒認新 flag→單開死）+ P2（defer-clear 洩漏）+ security（tag 注入）全修。eval-gate 114 + metrics 167 測。Closes #49."
+  },
+  {
+    "id": "dw-89c8840",
+    "source": "dev-workflows commit 89c8840",
+    "text": "eval Phase 3：scenario version 寫進 eval-results.jsonl 跨 run 追溯 (#55)\n\nbuildEvalRow 把 corpus 各 task 的 scenario version 去重排序摘要成 row 的 versions 欄（schema v1→v2），跨 run 歷史可依版本分組追溯；groupRowsByVersion + CLI versions 子命令；computeRegression 未動（回歸主判準逐位元不變）、舊 schema-1 row 相容。154 測。Closes #51."
+  },
+  {
+    "id": "dw-8a4f59b",
+    "source": "dev-workflows commit 8a4f59b",
+    "text": "eval Phase 3：live-candidate orchestrator（eval-runs spawn-oracle 膠水 + recipe）(#54)\n\n把 #36 pass^k 引擎 + 候選協定接成可跑的 live-candidate 活流程。\n\n- eval-runs.mjs：extractRunResult/buildRunLine + spawnOracle/appendRunLine + CLI record。候選重生留上層、只 spawn oracle 收一行 run、不 spawn workflow。\n- infra 錯 vs 候選 fail 分清（exit 3 不偽裝）；errored 訊號保留（run line +errored）。\n- references/eval-live-candidate.md：recipe（重生→覆寫 workspace→eval-runs record→eval-passk）。\n- 19 測綠（真 spawn oracle）；verify 0 blocking、1 圈 iterate（mutation Prove-It 守 errored）。\n\nCloses #48"
+  },
+  {
+    "id": "dw-f1d9480",
+    "source": "dev-workflows commit f1d9480",
+    "text": "eval Phase 3：judge panel orchestrator（eval-panel 組合膠水 + recipe）(#53)\n\n把 #32 eval-judge + #33 eval-poll 接成可跑的 judge panel 活流程。\n\n- eval-panel.mjs：runPanel import 組合 → N verdict → 只 valid 投票的 PoLL 共識 + 金標 agreement + CLI run。不 spawn、零重造。\n- references/eval-judge-panel.md：recipe（派 N 異質 judge 反偏誤 → verdicts → eval-panel；累積後 eval-poll kappa 校準）。\n- 棄權語意（壞 verdict 不投票）、rubric 驗證揭露、平手 agree null。\n- 26 測綠；verify 0 blocking、1 圈 iterate（mutation Prove-It 守棄權）。\n\nCloses #47"
+  },
+  {
+    "id": "dw-53a43e9",
+    "source": "dev-workflows commit 53a43e9",
+    "text": "eval：live-candidate 真 pass^k（混合引擎 + 候選協定 + 成本/沙箱邊界）(#46)\n\n解開 pass^k 退化。混合：eval-passk.mjs 算確定性 pass^k、候選重生留上層、script 不 spawn。\n\n- eval-passk.mjs：combinations / passAt1 / passHatK（無偏估計 C(c,k)/C(N,k)、k>total 誠實 null、passed∈[0,total] 守門）/ aggregateByTask + CLI passk。\n- evals/live/README-protocol.md：候選生成協定（獨立重生 → 覆寫進 task workspace → oracle → runs.jsonl → passk）+ 成本/沙箱邊界。\n- 33 測綠；verify 0 blocking（pass^k 估計式無偏正確）、1 圈 iterate（mutation Prove-It 守 pass===true、補協定接縫防退化）。\n\nCloses #36"
+  },
+  {
+    "id": "dw-6ba535e",
+    "source": "dev-workflows commit 6ba535e",
+    "text": "eval E6：eval↔verify 銜接 + scenario 版本/tag (#45)\n\ntags 為統一連結脊椎：同驅動跨 run 分組 + eval↔verify 互指。\n\n- eval-tags.mjs：groupByTag（去重、__proto__ 安全）/ summarizeByTag / crossLink（eval 失敗 ↔ finding 依共享 tag/axis 雙向、onlyFailures）+ CLI by-tag/link。\n- eval-oracle.mjs：per-task passthrough tags/version/verifyAxes。\n- task schema +version/verifyAxes。\n- 互指純函式+慣例、不硬接 verify、與回歸 gate 零耦合。\n- 25+85 測綠；verify 0 blocking、1 圈 iterate（mutation Prove-It 守 link wiring）。\n\nCloses #34"
+  },
+  {
+    "id": "dw-4ad0d8c",
+    "source": "dev-workflows commit 4ad0d8c",
+    "text": "eval E5：judge 校準（Cohen κ）+ 多 judge 投票（PoLL）(#44)\n\neval-judge 的確定性聚合延伸（E5），混合架構：κ/投票純函式、panel fan-out 留上層不 spawn。\n\n- eval-poll.mjs：cohenKappa（無變異邊界誠實 null）/ pollVote（majority 平手 null / median / max / min）/ aggregatePanel（依 caseId 分組、只計 judge-estimate）/ pairJudgeVsGold。CLI kappa/poll（score-method 守門、揭露 skipped、caseId 警示）。\n- evals/gold/explanation-quality.json：金標 schema + 6 筆範例。\n- eval-judge.mjs：+caseId 連結欄（向後相容）。\n- 32 + 61 測綠；verify 0 blocking、1 圈 iterate 收斂（mutation Prove-It 守 tie/passTie）。\n\nCloses #33"
+  },
+  {
+    "id": "dw-e4b15b7",
+    "source": "dev-workflows commit e4b15b7",
+    "text": "eval E4：eval-judge（rubric judge 只評無 oracle 維度、judge-estimate 分軌）(#43)\n\n為「無可執行 ground truth 維度」（解釋/溝通品質）補上 eval 第五路 eval-judge（oracle-first, judge-last）。\n\n- eval-judge.mjs：純函式（tolerant verdict 解析 / rubric 驗證 / 門檻為準+越界 gate / track:judge-estimate 分軌 / partition / rotation）+ CLI（validate-rubric / parse 落 judge-results.jsonl）。混合架構：script 不 spawn judge。\n- eval-judge-rubric.md（G-Eval 鎖死步驟）+ eval-judge.md（反偏誤接線）。\n- 分軌零污染：judge-estimate 落獨立檔，eval-metrics 回歸 gate 只讀 eval-results.jsonl。\n- 59 測綠；verify 7 軸 0 blocking、2 圈 iterate 收斂（含 mutation Prove-It 修 fenced 測試假綠 + O(n²) 換行掃描）。\n- doc-sync：eval-harness E4、ref 43→44、agent 20→21、eval 五路。\n\nCloses #32"
+  },
+  {
+    "id": "dw-cd57feb",
+    "source": "dev-workflows commit cd57feb",
+    "text": "eval E3：trajectory/process 檢查（純規則，零 judge）(#42)\n\neval-trajectory.mjs：superset/subset/unordered/order 純規則比對 + committed reference。dogfood verify 抓出 parseStages 假 ok 已修。40 tests。\n\nCloses #31\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-8528e2f",
+    "source": "dev-workflows commit 8528e2f",
+    "text": "eval：自動掛 eval-gate 回歸檢查 + eval-results.jsonl rotation (#41)\n\nopt-in eval-gate Stop hook（改檔回合自動跑 eval-metrics check 注入退化）+ eval-results.jsonl rotation。dogfood verify 抓出 P1（eval-gate 單獨開失效）已修。\n\nCloses #35\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-7485a95",
+    "source": "dev-workflows commit 7485a95",
+    "text": "eval-metrics 測試強化：E2 verify 3 條 P3 打磨 (#40)\n\nCR-corpus mutation Prove-It（row 序 [B0.5,A1.0,A0.95]）+ E-record-fail/E-misuse stderr 關鍵字斷言 + CR-mixed-corpus/CR-baseline-oob 窄邊界。純測試、99 passed、impl 未動。\n\nCloses #37\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-6a6ed1e",
+    "source": "dev-workflows commit 6a6ed1e",
+    "text": "verify 風險分級：§1.4 升 4 級風險梯 + DEEP tripwire + holistic (#39)\n\nverify reviewer fan-out 從固定核心 6 軸升級為依改動風險的 4 級梯（SKIP/LIGHT/STANDARD/DEEP）+ DEEP stage-0 tripwire + holistic 交叉軸 pass。繼 #8 把 code 內部也分級。dogfood verify 自己（2 輪 fan-out + iterate，抓修 1 P1 下界倒掛）。markdown-only。\n\nCloses #38\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-a5d6855",
+    "source": "dev-workflows commit a5d6855",
+    "text": "feat(eval)：跨 run 聚合 + 回歸 gate（E2） (#30)\n\nCloses #28\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-65fda23",
+    "source": "dev-workflows commit 65fda23",
+    "text": "feat(eval)：oracle-based eval runner + 任務語料庫（E1） (#29)\n\nCloses #27\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-fd9618f",
+    "source": "dev-workflows commit fd9618f",
+    "text": "docs：優化總覽補第三個專案 cobus（loop-engineering） (#26)\n\nCloses #25\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-1e7d372",
+    "source": "dev-workflows commit 1e7d372",
+    "text": "docs：吸收 ODW + ECC 兩專案優化總覽 (#24)\n\nCloses #23\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-627f11a",
+    "source": "dev-workflows commit 627f11a",
+    "text": "跨 loop instinct 自我學習：/distill + SessionStart 注入 (#22)\n\nCloses #18\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-b469418",
+    "source": "dev-workflows commit b469418",
+    "text": "Operation-type first-move 規則：依性質分岔 build 紅燈起手式 (#21)\n\nCloses #16\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-a549e3e",
+    "source": "dev-workflows commit a549e3e",
+    "text": "Stop 自動 quality-gate + config-protection 防作弊閘 (#20)\n\nCloses #17\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-f6d66eb",
+    "source": "dev-workflows commit f6d66eb",
+    "text": "成本可觀測閉環：cost-tracker + compact 提醒 hook (#19)\n\nCloses #15\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-b74c9de",
+    "source": "dev-workflows commit b74c9de",
+    "text": "docs(agents): 補 comprehension-debt / cognitive-surrender 概念詞彙 (#14)\n\nAGENTS.md 規則 12 後補兩個具名失敗模式 + 連既有對策：comprehension debt＝explain、\ncognitive surrender＝規則 2 human gate；explain Overview 點明對應 comprehension debt。\n純命名 polish、零機制變更、用語對齊規則 10「Loop Engineering」。\n\nCloses #9\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-9b52557",
+    "source": "dev-workflows commit 9b52557",
+    "text": "docs(verify): §1.4 reviewer 右尺寸化 — 依改動面定最小核心集 (#13)\n\nverify 新增 §1.4「改動面→最小核心 reviewer 集」：含 code 一律核心 6 軸全派、\n純文件/純設定縮到最小集；fail-safe 向嚴、與 §1.5 正交、對齊規則 10 carve-out\n（不放寬 mandatory verify）。調和「永遠 6」措辭於 verify SKILL + optional-reviewers\n+ preflight + reviewer-severity。\n\nCloses #8\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-c3318f4",
+    "source": "dev-workflows commit c3318f4",
+    "text": "docs(pr-spec): PR 合併一律 squash（單一 commit 回 master）(#12)\n\n把「PR 合併用 squash（單一 commit 回 master、仍 human-gated）」明文寫進 plugin merge 指引：\npr-spec.md 新增〈merge 策略〉段（單一來源）、iterate §6 + FLOW.md 同步 --squash。\n\nCloses #11\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-87e6de3",
+    "source": "dev-workflows commit 87e6de3",
+    "text": "feat(iterate): 完工收尾記錄結構化 outcome 度量（成本可觀測）(#10)\n\n把 AGENTS.md 規則 10 成本意識落實成可觀測：loop 完工/中止收尾在 loop.md Journal\nappend 一行結構化 outcome 度量（粗估 token/sub-agent 數/回環圈數/findings 數/交付物）。\njournaling.md 定格式單一來源、iterate 引用、token 標粗估（規則 5）。\n\nCloses #7\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_019rg6oUgnvaBABivvzSPVpC"
+  },
+  {
+    "id": "dw-d99435f",
+    "source": "dev-workflows commit d99435f",
+    "text": "fix(build): 綠燈確認須核對預期 gate=passed、非 not-run（防漏偵測假綠）\n\nverify 抓到：原 step4/parallel/checklist 只認單行 ✓，但 ✓(ok:true) 也涵蓋\ngate 被 graceful skip(not-run/partial)——對齊 #2 schema 警告：ok=true 不代表\n該跑的 gate 都跑了。改：Green 成立＝預期 gate 顯示 passed；某預期 gate 落\nnot-run 視為未驗證、非綠 → 走 fallback/漏偵測（提示補 .loops/gate.config.json）。\n對應 #3。\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-cc3f028",
+    "source": "dev-workflows commit cc3f028",
+    "text": "feat(build): 三個確認點改用 quality-gate 讀精簡摘要（接 #2）\n\nbuild 的 step 2/4 紅綠確認與 parallel-build 合併 re-run 從「收完整\npnpm typecheck && lint && test 輸出」改成「跑 loops-quality-gate.mjs\n只讀精簡摘要」；派 fixer 修紅燈時只帶結構化 failures（依 quality-gate-schema）、\n不附原始 stdout。新增〈quality-gate 整合〉說明段（調用 / fixer failures /\nfallback / 務實邊界）。直擊 build 階段 token 熱點：每次確認從灌 ~96k 變讀 ~1.6k。\n不動 agent .md、不碰 #2 腳本與 iterate/verify（B3/B5 另票）。對應 #3。\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-15fcfbe",
+    "source": "dev-workflows commit 15fcfbe",
+    "text": "test(quality-gate): 補端到端 guard smoke（outFile / 偵測層 / 多 gate）\n\n關閉 re-verify 點名的 false-green guard 缺口：\n- G1 lint outFile 路徑端到端（>80k JSON、error 在開頭 → 不被 tail 截斷成假綠）\n- G2 自動偵測層（無 config 靠 package.json scripts 偵測）+ 全空→partial\n- G3 多 gate 短路 / --continue-on-failure\n- G4 formatSummary warning-only / truncated 分支\n新增 fake-reporter.mjs fixture（讀 --output-file 寫 FAKE_OUT、FAKE_EXIT 控 exit）。\n測試 115 passed / exit 0。對應 #2。\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-6215634",
+    "source": "dev-workflows commit 6215634",
+    "text": "docs(quality-gate): 釐清 vitest-only / not-run 假綠縫隙 / --outputFile 命名\n\n- test runner 目前僅支援 vitest（jest 為格式相容、invocation 不同）\n- 補警示：ok=true 不代表該跑的 gate 都跑了（not-run 縫隙），#3 應確認預期 gate=passed\n- --output-file → --outputFile（vitest 實際旗標）\n對應 #2。\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-cc8cb03",
+    "source": "dev-workflows commit cc8cb03",
+    "text": "fix(quality-gate): 修 npm-script lint flag 轉發 + errored 摘要可診斷性\n\n- lint 的 -f json 與 --output-file 統一經 appendToolFlags 轉發（npm/pnpm/yarn\n  script 放 -- 之後），移除把 -f json 接在 -- 前被 npm 吞掉的 ensureEslintJsonFormat\n  （修真功能 bug：npm-script lint 假綠）\n- formatSummary 紅燈行列各 gate 狀態（errored 可見，不再「✗ 0 failures」）、\n  區分 errors/warnings 不再把 warning 叫 failures\n- 補端到端 exit-code smoke（spawn 真腳本）+ parseConfig/appendToolFlags 邊界測\n測試 94 passed / exit 0。對應 #2。\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-f34289e",
+    "source": "dev-workflows commit f34289e",
+    "text": "docs(quality-gate): 修正契約值 / 設定範例 / gitignore 例外\n\n- schema 契約 gates 值改 passed/failed/not-run/errored + warning 判過用 ok 註記\n- config 範例改 eslint . -f json + 明載指令須輸出 parser 期望格式\n- .gitignore 改 .loops/* 才能 re-include gate.config.json（git check-ignore 驗證）\n對應 #2。\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-7ff55bd",
+    "source": "dev-workflows commit 7ff55bd",
+    "text": "fix(quality-gate): 修正 false-green 與契約漂移（exit code / lint 截斷 / gates 值）\n\nverify 抓到的 blocking：\n- gates JSON 值統一為 passed/failed/not-run/errored（移除 ok 漂移，#3 契約一致）\n- 子行程 exit code 非 0 卻解不出 failures → 標 errored、ok=false（不再假綠）\n- lint 改走 --output-file 讀完整 JSON，根除 tail 截斷砍頭 → 假綠\n- 組裝層抽成純函式 classifyGate/buildResult/parseConfig（可測，補 30 條 regression）\n- dedupe identity 修正、暫存檔改 mkdtemp、warning-only 中性措辭\n測試 66 passed / exit 0。對應 #2。\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-a2b6844",
+    "source": "dev-workflows commit a2b6844",
+    "text": "docs(quality-gate): failures 契約 schema 與 .gitignore 覆寫例外\n\nreferences/quality-gate-schema.md 定義 GateResult/Failure 契約（#3 build 整合\n與 verify 對齊基準）；.gitignore 加 !.loops/gate.config.json 例外讓 per-repo\ngate 覆寫設定可版控共享。對應 #2。\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-1983658",
+    "source": "dev-workflows commit 1983658",
+    "text": "feat(scripts): 新增 quality-gate 腳本（結構化測試輸出 + 跨平台 runner）\n\n跑 test/lint/type → 機器 reporter 解析成結構化 failures，預設印精簡摘要、\n--json 印完整結構；綠燈不喚 agent、紅燈只給 failures。純函式（parseVitest/\nparseEslint/parseTsc/dedupeFailures/formatSummary/resolveConfig）+ 薄 CLI；\nrunCommand 經平台 shell 跑指令字串以跨平台支援 Windows .cmd shim。\n紅綠分離測試 36 passed（含跨平台 regression）。eagle-app-core smoke：\nvitest 原始輸出 95,828 字 → gate 摘要 1,596 字（≈60×）。對應 #2。\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-f0da343",
+    "source": "dev-workflows commit f0da343",
+    "text": "fix(security-checklist): 修正 reviewer 抓到的 pre-existing 安全判準問題\n\nverify 階段 fresh-context reviewer 順手抓到、早於 CTO 整合的既有問題：\n\n- `--audit-level` 語意：它是 CI 紅燈門檻、不是顯示過濾；別設 critical 而漏看 high/moderate（改為全量檢視 + `--json`，門檻交 CI 政策）\n- secret 掃描：grep 關鍵字只是快篩（高熵密鑰漏抓、命名誤中），補上 entropy/規則型工具（gitleaks/detect-secrets）建議\n- 密碼雜湊 cost 不寫死 12，改「依硬體調到目標耗時（下限約 10–12）」\n- session cookie `sameSite` 不寫死 'lax'，補跨站需求放寬到 'none'+secure / 最嚴 'strict'\n- 新增 CSRF 防護（sameSite 非完整防線）與 token constant-time 比對（防 timing attack）\n\nbump 0.56.1。\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-e7f4c2e",
+    "source": "dev-workflows commit e7f4c2e",
+    "text": "docs(loops): 同步 FLOW/REFERENCES/README/AGENTS + bump 0.56.0\n\n- FLOW：verify 圖條件式 reviewer 7→9（含 root-cause/docs-devex）、新增 §8.5 agents-md 側用段、計數同步（skill 11→12 / agent 17→19 / reference 31→39）\n- REFERENCES：新增「per-axis 審查判準」8 條、總數 31→39\n- docs/README + marketplace README：計數同步、加 agents-md 側用 skill、結構樹補新 reference\n- AGENTS §3 intent 表：加 agents-md-maintainer 側用列（不被 dispatch 路由）\n- plugin.json：0.55.1 → 0.56.0（feature 級新增）\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-3fbd842",
+    "source": "dev-workflows commit 3fbd842",
+    "text": "feat(skills): explain 設計閘 + agents-md-maintainer 獨立 skill\n\n- explain §3 加 opt-in 三態設計閘（方向可行/要修/資訊不足），補「對既有 diff 的輕量設計篩」空檔；非預設、明確要求才做、不取代 verify\n- 新增 agents-md-maintainer 獨立 skill：漸進維護 repo 的 agent-facing 文檔（根 AGENTS.md + 覆蓋率追蹤表 + 各模組 AGENTS.md），documentation-only、每次一個 scope、檔名嚴格 AGENTS.md；標 standalone 側用、不入閉環\n- dispatch SKILL 註記側用工具（explain / agents-md-maintainer）不歸 dispatch 路由\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-261c15a",
+    "source": "dev-workflows commit 261c15a",
+    "text": "feat(verify): 接線 reviewer 至新判準 + 新增 root-cause/docs-devex reviewer\n\n- 新增 2 個 conditional reviewer：root-cause-reviewer（bug-fix 觸發）、docs-devex-reviewer（docs/契約/CLI/migration 觸發）\n- 5 個既有 reviewer 各加薄 bullet 指向對應新 reference；code-quality 升 correctness-first（審讀序先正確性後風格）\n- verify SKILL §1 注入清單接入全部 8 份新 reference（全 reviewer ← review-dispositions；各軸 ← 對應 ref）、§1.5 加兩新 conditional reviewer\n- optional-reviewers 觸發對照表加 root-cause/docs-devex 兩列、frontend-ui 看點擴成交互閉環\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-e9a95aa",
+    "source": "dev-workflows commit e9a95aa",
+    "text": "feat(verify): 擴充 security/test/comment 三份既有 reference\n\n- security-checklist：候選 finding 五步 exploit-path（鏈不完整不報）、IDOR 高風險訊號、權限變更 session rotation、結構性 SQL allowlist、路徑遍歷 canonicalization + symlink/TOCTOU、不可信檔案/zip-slip/解壓炸彈、error 不外洩內部、HTML DOM-sink caveat\n- test-rubric：最小有效測試層級決策樹、bug-fix regression 四問、手動驗證可接受性 + 證據欄位、UI 測試驗可見結果 + 樂觀回滾必驗、finding 句型（禁「加測試」）\n- comment-policy §2：白話 register 擴及 reviewer/preflight 內部輸出 + 輸出前逐句自檢 + 術語湯→白話對照表\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-99cc797",
+    "source": "dev-workflows commit 99cc797",
+    "text": "feat(verify): 新增 8 份 per-axis 審查判準 reference\n\n把審查方法論抽象成技術中立的 per-axis reference，供 verify reviewer 出手前注入（薄 agent + 厚 reference）：\n\n- correctness-review：狀態流不變量 / 跨儲存部分失敗 / 冪等·stale 覆寫 / transaction 正確性 / check-then-act\n- ui-interaction-review：交互閉環 / 假成功回滾 / 快取同步 / 亂序 / 編輯 flush / DOM-sink\n- acceptance-review：錯題偵測 P0 / 完成度五態 / 端到端+持久化 / 證據強弱\n- performance-review：四件式證據門檻 / 查詢計畫退化 / index / 分頁 / I/O 放大\n- architecture-review：追 contract sync / import graph / wiring graph + 降級清單\n- review-dispositions：每軸 hunting disposition + 出手前共用誤報底線\n- root-cause-review：症狀 vs 病根 / 因果鏈 / 同類入口 / 回歸測試四問\n- docs-devex-review：文件同步 + PR body 驗證證據品質\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "dw-1ae581d",
+    "source": "dev-workflows commit 1ae581d",
+    "text": "docs(docs-policy): 加 Diátaxis 四型格式範本 + 一份檔顯性分節骨架\n\ndocs-policy 原本只講「何時寫 / 寫什麼」，缺一個可照抄的格式骨架。補上業界\n公認的 Diátaxis 框架（tutorial/how-to/reference/explanation 四型、分開不混）\n作為教學手冊的範本，並點明本工作流家規＝Diátaxis 減 Explanation（why 進\nplan/PR、已是本規範既有立場）。\n\n- 四型對照表 + 各答什麼問題。\n- 單一內部 feature → 一份檔、Diátaxis 顯性分節（概念/教學/操作指南/參考）\n  骨架，不必拆四檔（避免碎片化）。\n- 「跟著走一遍」Tutorial 為性價比最高手法；範例程式碼必須對齊真實型別/定義\n  形狀（讀者會照抄）。\n- REFERENCES.md 字典條目同步；version 0.55.0 → 0.55.1。"
+  },
+  {
+    "id": "dw-141bfa0",
+    "source": "dev-workflows commit 141bfa0",
+    "text": "Merge pull request #6 from adha9990/3-build-gate-integration\n\nfeat(build): build 確認點改用 quality-gate 讀精簡摘要 (#3)"
+  },
+  {
+    "id": "dw-f53565f",
+    "source": "dev-workflows commit f53565f",
+    "text": "Merge pull request #5 from adha9990/2-quality-gate-script\n\nfeat(quality-gate): deterministic 測試輸出壓縮腳本 + 結構化 failures 契約 (#2)"
+  },
+  {
+    "id": "eac-d49fc078",
+    "source": "eagle-app-core commit d49fc078",
+    "text": "Unify confirm dialogs into a shared shell + dialog family (#158)\n\n* chore(dev): add temporary destructive-dialog preview gallery\n\nEnumerate all 8 destructive confirm dialogs in the agreed target style on a\nscrollable /dev route, with light/dark × default/claude theme switches, to\nverify the unified look and inventory the confirm-button icons still missing.\nScaffold only — to be deleted once the unification lands.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\n\n* i18n(dialogs): unify destructive confirm copy & confirm-button icons\n\n- Translate folder / smart-folder / tag / tag-group delete dialogs to\n  Simplified Chinese (ConfirmDialog default labels: Cancel→取消, Delete→删除).\n- Drop the type word from delete titles so all four read 删除\"name\"?\n  (type stays in the description); the deactivate button reads 停用, matching\n  the verb-only style of the other destructive buttons.\n- Wire confirm-button icons in the preview gallery: IconDelete for the delete\n  family, IconEmptyTrash for empty-trash — both reuse existing components.\n\nCopy/icon design is finalized in the /dev preview; back-porting the target\nstyle + icons into the real ConfirmDialog is the next step.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\n\n* fix(theme): align Claude dark muted-foreground with the opacity scale\n\nIn the Claude theme's dark mode --muted-foreground was a standalone solid\noklch(0.60) — the only foreground-opacity token not expressed as a color-mix\nof --foreground. It rendered every secondary-text surface (grid card meta,\ndialog descriptions, etc.) too light against the dark background. Switch it to\ncolor-mix(in oklch, var(--foreground) 60%, transparent), matching the 60%\nlevel used in light mode, the base theme, and the 80/50/25 levels everywhere.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\n\n* chore(dev): expand confirm-dialog preview to A/B family with progress markers\n\nRework the temporary preview into the agreed panorama: categories A (pure\nconfirm) and B (confirm + single input), each rendered in the unified target\nshell via one canonical cancel/confirm button (destructive vs primary tone).\n\nStatus chip now tracks OUR review progress (❌ 未调整 / ✅ 已调整), not the real\ncode's current style. Title polish: drop the colloquial 真的要…吗？ phrasing —\n清空回收站？ / 全部还原？ (queued for the real-code batch apply).\n\nStill scaffold-only; nothing wired into production yet.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\n\n* chore(dev): unify confirm-dialog primary buttons in preview gallery\n\nDrop the icon from the primary action button, pin its horizontal\npadding to 12px, and rewrite the labels as verb+object phrases\n(e.g. 删除 -> 删除智能文件夹) across the preview gallery.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\n\n* chore(dev): add create-library dialog to confirm-dialog preview\n\nAdd the LibraryDialog (icon tile + name + description form) as a new\ncategory C in the preview gallery, reusi\n…(truncated)"
+  },
+  {
+    "id": "eac-882e32b9",
+    "source": "eagle-app-core commit 882e32b9",
+    "text": "chore(codex): Cap project agent threads"
+  },
+  {
+    "id": "eac-badc589e",
+    "source": "eagle-app-core commit badc589e",
+    "text": "[codex] Update CTO PR review workflow (#154)\n\n* docs(agents): isolate CTO PR reviews in worktrees\n\nRequire cto-pr-reviewer to inspect each PR in a dedicated review worktree so multiple CTO reviews can proceed without branch switching. Also marks blocking PR comment headings with the coordinator severity for clearer GitHub request-changes comments.\n\n* docs(agents): discover CTO review issues from PRs\n\nAllow cto-pr-reviewer calls to start from a PR alone by resolving the source issue from PR metadata, body, or discussion before building the review packet. Fall back to the PR body only when no linked issue can be found."
+  },
+  {
+    "id": "eac-33f1ccea",
+    "source": "eagle-app-core commit 33f1ccea",
+    "text": "docs(docs): Clarify AI-native agent-era positioning\n\nFrame Eagle V5 as a material library that remains useful alongside stronger general agents and OS search.\n\nClarify the product risks to avoid, the trusted material-state role, and comparison tasks for validating the V5 workflow direction."
+  },
+  {
+    "id": "eac-297a3e4d",
+    "source": "eagle-app-core commit 297a3e4d",
+    "text": "fix(url-import): stabilize task paging and header overrides (#148)\n\nPin paged task sync to the first-page revision so updates created between pages are delivered by the next delta instead of shifting cursor state.\n\nAllow validated User-Agent overrides and keep the import dialog locked while a 202 submit is pending so created tasks can hydrate before close."
+  },
+  {
+    "id": "eac-7b851d22",
+    "source": "eagle-app-core commit 7b851d22",
+    "text": "feat(url-import): add download center URL imports (#52)\n\nAdd the URL import workflow end to end: the client can collect pasted or dropped URLs, submit them with folder context and allowed header overrides, and hydrate the Download Center from the accepted create response.\n\nIntroduce the URL import orchestration service on top of Downloader Core, including per-library task revisions, cancel/retry support, terminal retention, tombstones, idempotent create handling, redacted task responses, and resource guardrails for active downloads.\n\nHarden the Download Center sync path with stable keyset snapshot pagination so multi-page delta polling cannot miss task updates while background downloads continue to change state.\n\nSupport controlled download header overrides for Referer and User-Agent while keeping unsafe headers rejected by downloader policy. Document the public URL import contract and cover the client, service, downloader policy, and HTTP API behavior with focused regression tests."
+  },
+  {
+    "id": "eac-c10b0283",
+    "source": "eagle-app-core commit c10b0283",
+    "text": "fix(client): preserve view after reconnect\n\nAvoid bulk-refetching active queries when the connection-error overlay reconnects, so the underlying route stays in place instead of flashing through loading states. Keep the retry state visible briefly for fast probes and let the illustration exit immediately when retrying ends."
+  },
+  {
+    "id": "eac-0108edae",
+    "source": "eagle-app-core commit 0108edae",
+    "text": "style(connection-error): restore layered illustration opacity via foreground token\n\nReplace the flat single-opacity treatment of the eagle logo and server\nrack illustrations with per-stroke/fill opacity layers, driving color from\nthe --foreground token (currentColor) instead of letting the container clamp\neverything to 25%. Bumps the wrapper back to text-foreground so the in-SVG\nopacity levels render at their intended depth without double-stacking opacity.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "eac-bf28a8bc",
+    "source": "eagle-app-core commit bf28a8bc",
+    "text": "docs(docs): Clarify AI-native workflow wedge\n\nDefine V5 as a new Agent-era product, capture the first material workflow aha moment, and document the metadata, UI, and result-shape boundaries that keep the strategy focused."
+  },
+  {
+    "id": "eac-75e96c05",
+    "source": "eagle-app-core commit 75e96c05",
+    "text": "docs(docs): Frame AI-native material workflows\n\nExpand the AI-native strategy notes from a material capability base into a workflow platform, including official skills, prototype coverage, and updated guide links."
+  },
+  {
+    "id": "eac-97948c5c",
+    "source": "eagle-app-core commit 97948c5c",
+    "text": "chore(connection-error): remove dev preview route\n\nThe animated connection error screen shipped via #146; the temporary\n/dev/connection-error preview route is no longer needed.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+  },
+  {
+    "id": "eac-79b560fb",
+    "source": "eagle-app-core commit 79b560fb",
+    "text": "feat: add multi-color filtering and color match ranking\n\nImplements the #106 multi-color Color filter across the React content list and server item-query pipeline.\n\n- Add URL-driven Color filter UI with picker, swatches, text input, All/Any mode, tolerance settings, grayscale support, and library-scoped custom palette persistence.\n- Add `color_match` AST support backed by `item_colors` LAB data, with color-bin Roaring Bitmap indexing for fast filtering and approximate color-match ranking.\n- Wire the color index through workspace services, persistence migration `008_color_facet_index`, item query/list/locate paths, and item count `hasColors` gating.\n- Cover parsing, AST validation, item-query behavior, color index maintenance, palette persistence, UI interactions, and benchmark scenarios.\n\nValidation noted in PR: focused client/server tests and typecheck were run by the author; final merge should use the post-conflict branch state."
+  },
+  {
+    "id": "eac-3cab073d",
+    "source": "eagle-app-core commit 3cab073d",
+    "text": "docs(docs): Document agent visual inspection flow\n\nAdd an AI Native guide for result overview images that let external agents visually inspect, narrow, and reliably address large search result sets. Link the new guide from the AI Native index and strategy reading path."
+  },
+  {
+    "id": "eac-40e9d226",
+    "source": "eagle-app-core commit 40e9d226",
+    "text": "docs(docs): Split AI-native strategy into guide series\n\nRestructure the monolithic V5 AI-native strategy into a docs/ai-native guide series while keeping the original strategy path as a short entry point.\n\nRewrite the new pages with lower English terminology density so the Chinese-speaking team can read the direction without unnecessary jargon."
+  }
+]
