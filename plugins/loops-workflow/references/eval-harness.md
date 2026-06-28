@@ -218,7 +218,7 @@ exit code：`validate-rubric` valid 0 / invalid 1 / 讀檔失敗 3；`parse` 產
 - `pairJudgeVsGold(records, gold)`：依 caseId 配 `gold[].id`（gold 帶 boolean `goldPass`）→ pass label pairs 餵 cohenKappa；無配對 → `unmatched`。
 
 ## 金標集（`evals/gold/<dimension>.json`）
-陣列，每筆 `{id, dimension, artifactRef, goldPass:boolean, goldScore, note}`（`id` 對 judge record 的 `caseId`、是唯一連結鍵；`artifactRef`＝指向被評 artifact 的機讀欄、operator 養金標時填、本 fixture 留 null；`note`＝散文說明）。committed 為**代表性數筆**（涵蓋 1–5 分譜）；**operator 養到 50–100 筆**才有統計意義。**Metric-Honesty**：κ 是**估算**、標來源（人工金標），非確定性權威；judge-estimate 軌不污染 oracle 回歸曲線。
+陣列，每筆 `{id, dimension, artifactRef, goldPass:boolean, goldScore, note, provenance}`（`id` 對 judge record 的 `caseId`、是唯一連結鍵；`artifactRef`＝指向被評 artifact 的機讀欄；`provenance`＝`synthetic-anchor`/`self-annotated-baseline`/`human`，標金標來源）。**#50 已養到 62 筆**（6 抽象錨 + 56 真實 commit 訊息 artifact，附 `artifacts/explanation-quality.json` 文字快照 + `judge-results-demo.jsonl` 獨立盲標軌）→ 跑 `eval-poll kappa` 得 **κ=0.845（strong）**。**⚠️ 但這是 `self-annotated-baseline`（LLM 套 rubric 標）非獨立人工金標**：κ 量的是 **inter-agent 一致性**（gold-annotator vs 3 段獨立盲標 judge-fleet，皆同 opus 模型家族、不同 agent context）、**非 judge-vs-人類校準**——證明 pipeline 端到端可跑 + rubric 在獨立盲標 agent pass 間應用一致（同模型家族、**非**跨不同模型），**不證明 judge 對齊人類**。真人工金標（`provenance:human`）＝唯一待人類步驟、operational 交接（見 `evals/gold/README.md`）。**Metric-Honesty**：κ 是**估算**、標來源，非確定性權威；judge-estimate 軌不污染 oracle 回歸曲線。
 
 ## 跑
 ```bash
@@ -230,7 +230,7 @@ node plugins/loops-workflow/scripts/eval-poll.mjs poll --records <judge-results.
 exit code：產出 0（advisory 永不擋路）/ 缺旗標·未知命令·**未知 `--score-method`** 2 / 讀檔失敗 3。輸出含 `loaded/skipped`（揭露跳過的壞行數）。**`poll` 需 record 帶 `caseId` 才有意義**——缺 caseId 的 record 會被併為單一 null 群、印 stderr 警示。panel fan-out（派 N judge、各帶 `--case-id` 落 record）由上層做；`eval-poll.mjs` 只聚合。
 
 ## 範圍邊界
-單票只交付**確定性聚合 + 金標 schema**。**真派 judge panel 的活流程＝Phase 3 已落地**（`references/eval-judge-panel.md` recipe + `eval-panel.mjs` 組合膠水：主迴圈派 N 異質 judge → verdicts → 共識 + 金標 agreement，累積後 `eval-poll kappa` 校準；膠水不 spawn、派 judge 留 recipe）。真標 50–100 筆金標＝留 operator（#50）。scenario 版本 tag + eval↔verify 銜接＝**E6（已落地，見下）**；live-candidate 真跑＝#36。
+單票只交付**確定性聚合 + 金標 schema**。**真派 judge panel 的活流程＝Phase 3 已落地**（`references/eval-judge-panel.md` recipe + `eval-panel.mjs` 組合膠水：主迴圈派 N 異質 judge → verdicts → 共識 + 金標 agreement，累積後 `eval-poll kappa` 校準；膠水不 spawn、派 judge 留 recipe）。金標已由 **#50 養到 62 筆**（self-annotated baseline + κ=0.845 demo；**真人工金標**＝唯一待人類 operational 交接，見 `evals/gold/README.md`）。scenario 版本 tag + eval↔verify 銜接＝**E6（已落地，見下）**；live-candidate 真跑＝#36。
 
 ---
 

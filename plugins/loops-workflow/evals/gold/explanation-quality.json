@@ -1,8 +1,560 @@
 [
-  { "id": "gold-clear-pr-body", "dimension": "explanation-quality", "artifactRef": null, "goldPass": true, "goldScore": 5, "note": "PR body 逐條對應 diff、附可跑驗證指令、不熟領域者讀完即懂 — 清楚可驗" },
-  { "id": "gold-good-with-minor-gap", "dimension": "explanation-quality", "artifactRef": null, "goldPass": true, "goldScore": 4, "note": "解釋清楚、大致完整，僅一處小缺漏不影響理解/驗證 — pass 下限" },
-  { "id": "gold-missing-evidence", "dimension": "explanation-quality", "artifactRef": null, "goldPass": false, "goldScore": 3, "note": "可懂但只說『我測過了』無讀者可自行跑的驗證證據 — 缺可驗證性" },
-  { "id": "gold-misleading", "dimension": "explanation-quality", "artifactRef": null, "goldPass": false, "goldScore": 2, "note": "描述與 artifact 實際行為不符、讀者需回頭問才能動工 — 誤導" },
-  { "id": "gold-vague-optimize", "dimension": "explanation-quality", "artifactRef": null, "goldPass": false, "goldScore": 1, "note": "只寫『優化效能 / 改善穩定度』無具體改了什麼/為什麼/影響誰 — 空泛無法據以理解" },
-  { "id": "gold-verbose-no-signal", "dimension": "explanation-quality", "artifactRef": null, "goldPass": false, "goldScore": 2, "note": "冗長但未提升理解（verbosity 不加分）— 長度不是品質" }
+  {
+    "id": "gold-clear-pr-body",
+    "dimension": "explanation-quality",
+    "artifactRef": null,
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "PR body 逐條對應 diff、附可跑驗證指令、不熟領域者讀完即懂 — 清楚可驗",
+    "provenance": "synthetic-anchor"
+  },
+  {
+    "id": "gold-good-with-minor-gap",
+    "dimension": "explanation-quality",
+    "artifactRef": null,
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "解釋清楚、大致完整，僅一處小缺漏不影響理解/驗證 — pass 下限",
+    "provenance": "synthetic-anchor"
+  },
+  {
+    "id": "gold-missing-evidence",
+    "dimension": "explanation-quality",
+    "artifactRef": null,
+    "goldPass": false,
+    "goldScore": 3,
+    "note": "可懂但只說『我測過了』無讀者可自行跑的驗證證據 — 缺可驗證性",
+    "provenance": "synthetic-anchor"
+  },
+  {
+    "id": "gold-misleading",
+    "dimension": "explanation-quality",
+    "artifactRef": null,
+    "goldPass": false,
+    "goldScore": 2,
+    "note": "描述與 artifact 實際行為不符、讀者需回頭問才能動工 — 誤導",
+    "provenance": "synthetic-anchor"
+  },
+  {
+    "id": "gold-vague-optimize",
+    "dimension": "explanation-quality",
+    "artifactRef": null,
+    "goldPass": false,
+    "goldScore": 1,
+    "note": "只寫『優化效能 / 改善穩定度』無具體改了什麼/為什麼/影響誰 — 空泛無法據以理解",
+    "provenance": "synthetic-anchor"
+  },
+  {
+    "id": "gold-verbose-no-signal",
+    "dimension": "explanation-quality",
+    "artifactRef": null,
+    "goldPass": false,
+    "goldScore": 2,
+    "note": "冗長但未提升理解（verbosity 不加分）— 長度不是品質",
+    "provenance": "synthetic-anchor"
+  },
+  {
+    "id": "dw-9bd995d",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 9bd995d",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "多行清楚闡述三條獨立訊號擴展、verify 5 軸與測試（114+167），完整可獨立驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-89c8840",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 89c8840",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "清楚說明版本去重排序、跨 run 追溯與 154 測，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-8a4f59b",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 8a4f59b",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "說明活流程接成原因、部件分解、19 測綠與迭代，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-f1d9480",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit f1d9480",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "judge panel 活流程、部件組合、26 測綠與棄權語意，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-53a43e9",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 53a43e9",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "pass^k 引擎、協定、33 測綠與成本邊界，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-6ba535e",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 6ba535e",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "tags 連結、eval↔verify 銜接、25+85 測與慣例，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-4ad0d8c",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 4ad0d8c",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "Cohen κ、投票聚合、32+61 測與金標 schema，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-e4b15b7",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit e4b15b7",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "eval-judge 無 oracle 維度、59 測+7 軸、分軌設計，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-cd57feb",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit cd57feb",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "trajectory 純規則、40 測與 dogfood，大致完整簡潔",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-8528e2f",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 8528e2f",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "eval-gate 自動掛載、dogfood 抓 P1 與 rotation，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-7485a95",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 7485a95",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "測試強化 mutation、99 passed 與邊界打磨，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-6a6ed1e",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 6a6ed1e",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "風險梯級、tripwire、why 與 2 輪 fan-out，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-a5d6855",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit a5d6855",
+    "goldPass": false,
+    "goldScore": 1,
+    "note": "僅標題+Closes #28，無實質/why/驗證，空泛",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-65fda23",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 65fda23",
+    "goldPass": false,
+    "goldScore": 1,
+    "note": "僅標題+Closes #27，無實質/why/驗證，空泛",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-fd9618f",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit fd9618f",
+    "goldPass": false,
+    "goldScore": 1,
+    "note": "僅標題+Closes #25，無實質/why/驗證，空泛",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-1e7d372",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 1e7d372",
+    "goldPass": false,
+    "goldScore": 1,
+    "note": "僅標題+Closes #23，無實質/why/驗證，空泛",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-627f11a",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 627f11a",
+    "goldPass": false,
+    "goldScore": 1,
+    "note": "僅標題+Closes #18，無實質/why/驗證，空泛",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-b469418",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit b469418",
+    "goldPass": false,
+    "goldScore": 1,
+    "note": "僅標題+Closes #16，無實質/why/驗證，空泛",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-a549e3e",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit a549e3e",
+    "goldPass": false,
+    "goldScore": 1,
+    "note": "僅標題+Closes #17，無實質/why/驗證，空泛",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-f6d66eb",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit f6d66eb",
+    "goldPass": false,
+    "goldScore": 1,
+    "note": "僅標題+Closes #15，無實質/why/驗證，空泛",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-b74c9de",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit b74c9de",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "補新概念詞、why 對齊規則 10、純命名 polish，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-9b52557",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 9b52557",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "reviewer 尺寸化邏輯、驗證與調和措辭，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-c3318f4",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit c3318f4",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "squash 策略、why 單一來源、同步 FLOW，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-87e6de3",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 87e6de3",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "結構化 outcome 度量、why 成本可觀測，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-d99435f",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit d99435f",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "bug 根因 ok=true 漂移、修復與 false-green 防漏，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-cc3f028",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit cc3f028",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "改用 quality-gate、why token 96k→1.6k 量化證據，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-15fcfbe",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 15fcfbe",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "guard smoke 補全、四缺口與 115 passed，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-6215634",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 6215634",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "文件澄清三點與驗證，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-cc8cb03",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit cc8cb03",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "lint flag 轉發與 errored 摘要、94 passed，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-f34289e",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit f34289e",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "三修正點與驗證方式，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-7ff55bd",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 7ff55bd",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "false-green 修復、四改動與 66 passed，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-a2b6844",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit a2b6844",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "契約 schema 與 gitignore 例外，大致完整簡潔",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-1983658",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 1983658",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "腳本功能、why token 壓縮、36 passed 與量化 95828→1596，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-f0da343",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit f0da343",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "安全修復五點、why 與驗證，完整可驗無誤導",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-e7f4c2e",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit e7f4c2e",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "文件同步範圍與計數，大致完整驗證間接",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-3fbd842",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 3fbd842",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "explain 三態設計閘與 maintainer skill，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-261c15a",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 261c15a",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "reviewer 接線與觸發對照，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-e9a95aa",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit e9a95aa",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "三 reference 擴充內容，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-99cc797",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 99cc797",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "8 份 per-axis reference、各軸 disposition 與驗證，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-1ae581d",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 1ae581d",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "Diátaxis 四型範本、why 與分節骨架，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-141bfa0",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit 141bfa0",
+    "goldPass": false,
+    "goldScore": 2,
+    "note": "Merge commit 僅 PR 標題，缺 why/細節/驗證",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "dw-f53565f",
+    "dimension": "explanation-quality",
+    "artifactRef": "dev-workflows commit f53565f",
+    "goldPass": false,
+    "goldScore": 2,
+    "note": "Merge commit 僅 PR 標題，缺 why/細節/驗證",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-d49fc078",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit d49fc078",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "統一 dialog 多次迭代、各步改動與細節，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-882e32b9",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit 882e32b9",
+    "goldPass": false,
+    "goldScore": 1,
+    "note": "一行 Cap agent threads，無解釋/why/驗證，空泛",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-badc589e",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit badc589e",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "CTO PR review 改進、worktree 隔離與 issue 發現，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-33f1ccea",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit 33f1ccea",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "AI-native 定位澄清、why 與視覺檢查流，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-297a3e4d",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit 297a3e4d",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "task paging 穩定與 header overrides 兩修，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-7b851d22",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit 7b851d22",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "URL import 端到端、why 與多層驗證，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-c10b0283",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit c10b0283",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "reconnect 後保留 view 修復與邏輯，大致完整簡潔",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-0108edae",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit 0108edae",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "opacity 層級修復、why 與 color-mix，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-bf28a8bc",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit bf28a8bc",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "workflow wedge 定義、why 與邊界，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-75e96c05",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit 75e96c05",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "策略擴 workflow 平台、涵蓋項與 why，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-97948c5c",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit 97948c5c",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "dev preview 路由清理、why 與驗證點，簡潔無冗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-79b560fb",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit 79b560fb",
+    "goldPass": true,
+    "goldScore": 5,
+    "note": "多色濾色、AST/index/persistence、驗證與 benchmark，完整可驗",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-3cab073d",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit 3cab073d",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "agent 視覺檢查流新文件、why 與 guide link，大致完整",
+    "provenance": "self-annotated-baseline"
+  },
+  {
+    "id": "eac-40e9d226",
+    "dimension": "explanation-quality",
+    "artifactRef": "eagle-app-core commit 40e9d226",
+    "goldPass": true,
+    "goldScore": 4,
+    "note": "策略重組 guide series、why 降術語密度，大致完整",
+    "provenance": "self-annotated-baseline"
+  }
 ]
