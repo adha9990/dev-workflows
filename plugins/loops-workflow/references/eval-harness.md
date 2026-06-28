@@ -130,4 +130,31 @@ node plugins/loops-workflow/scripts/eval-metrics.mjs record --dir plugins/loops-
 node plugins/loops-workflow/scripts/eval-metrics.mjs check [--metrics-file <path>] [--baseline <n>] [--tolerance <Δ>]
 ```
 
-> MVP 交付為 CLI；自動掛 stop-gate（改 SKILL/agent 回合觸發回歸檢查）為 follow-up。
+> MVP 交付為 CLI；自動掛回歸檢查已由 **#35 的 `eval-gate` Stop hook**（opt-in `LOOPS_EVAL_GATE`、改檔回合自動跑 `check`、退化注入）落地；`eval-results.jsonl` 由 `appendEvalRow` 內建 rotation（上限 1000 行）防無界成長。
+
+---
+
+# E3 — trajectory / process 檢查（`eval-trajectory.mjs`，純規則、零 judge）
+
+> 對 lifecycle 的**階段序列**做規則比對，抓「最終看似對、但流程走錯 / 漏階段」的退化（judge 維度走 E4）。observed 由 loop.md Journal 的 `[stage]` 標記抽出（箭頭展開、濾 `outcome`），對 committed reference 做四種比對。
+
+## reference 格式（`evals/trajectories/<name>.json`）
+
+`{ name, required[], optional[], allowed?[], order[], forbidden[] }` —— `required`＝不可跳的核心關卡；`allowed` 未給時退回 `required ∪ optional`；`order`＝核心關卡相對先後；`forbidden`＝不該出現的階段。committed：`evals/trajectories/issue-lifecycle.json`。
+
+## 四種比對 + 判定
+
+- **superset**（required ⊆ observed？）：漏關鍵階段（跳關卡）→ `missing` → **fail**。
+- **subset**（observed ⊆ allowed？）：多餘步 / step efficiency → `extra` → **警示（不擋）**。
+- **unordered**：集合等價（順序無關）。
+- **order**：`reference.order` 的相對先後被破壞 → `orderViolations` → **fail**。
+- **forbidden**：不該出現的階段出現 → **fail**。
+- `ok` = 無 `missing` ＆ 無 `forbidden` ＆ 無 `orderViolations`（`extra` 不影響 ok —— subset 抓低效非錯誤）。
+
+## 跑
+
+```bash
+node plugins/loops-workflow/scripts/eval-trajectory.mjs check --observed <loop.md> --reference plugins/loops-workflow/evals/trajectories/issue-lifecycle.json [--json]
+```
+
+exit code：**ok exit 0**（多餘步仍 0）、**漏/禁止/順序 exit 1**、**誤用（缺旗標）exit 2**、**reference/observed 讀取失敗或壞 JSON exit 3**（設定錯不偽裝成 eval 結果）。observed 解析只掃 `## Journal` 區段、且排除 markdown 連結 `[text](url)`（避免敘述行連結被誤抽成階段而遮蔽漏階段）。`allowed: []`（顯式空陣列）＝不判多餘步（要禁所有額外步請列具體 `allowed`）。`unorderedEqual` 為獨立 comparator（order-agnostic），checkTrajectory 本身用更嚴的 `order`。零 LLM judge、純 node。
