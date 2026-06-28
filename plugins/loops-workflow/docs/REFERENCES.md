@@ -84,7 +84,7 @@
 | `onboarding` | 文檔優先上手：先讀 repo 既有 onboarding 文檔再動手 | explore（第 0 步摸架構） |
 | `adr-template` | 決策留痕 ADR 五欄模板：情境 / 選項 / 決定 / 理由 / 後果 | plan（決策留痕） |
 | `task-template` | 可驗證任務模板：Description / Acceptance / Verification / Deps / Files / Scope + 「該再拆」四訊號 + 垂直切片 / risk-first / XS–XL | plan（拆任務） |
-| `eval-harness` | 評測 harness 五路：scenario-checklist（`run-eval.mjs`，人工勾）＋ 確定性 oracle runner（`eval-oracle.mjs`，走 quality-gate 比對 failToPass/passToPass、positive-presence 永不假綠）＋ 跨 run 聚合/回歸 gate（`eval-metrics.mjs` record/check）＋ trajectory/process 規則比對（`eval-trajectory.mjs`，superset/subset/unordered/order，零 judge）＋ rubric judge（`eval-judge.mjs`，只評無 oracle 維度、judge-estimate 分軌不污染回歸曲線、不 spawn agent；**其校準/投票延伸** `eval-poll.mjs`＝Cohen κ 對人工金標 + PoLL 多 judge 投票聚合，純函式、不 spawn）。**橫切**：`eval-tags.mjs`＝tag 分組聚合 + eval↔verify 雙向互指（tags 為連結脊椎、task 加 version/verifyAxes、純函式） | plugin 自評 |
+| `eval-harness` | 評測 harness 五路：scenario-checklist（`run-eval.mjs`，人工勾）＋ 確定性 oracle runner（`eval-oracle.mjs`，走 quality-gate 比對 failToPass/passToPass、positive-presence 永不假綠）＋ 跨 run 聚合/回歸 gate（`eval-metrics.mjs` record/check）＋ trajectory/process 規則比對（`eval-trajectory.mjs`，superset/subset/unordered/order，零 judge）＋ rubric judge（`eval-judge.mjs`，只評無 oracle 維度、judge-estimate 分軌不污染回歸曲線、不 spawn agent；**其校準/投票延伸** `eval-poll.mjs`＝Cohen κ 對人工金標 + PoLL 多 judge 投票聚合，純函式、不 spawn）。**橫切**：`eval-tags.mjs`＝tag 分組聚合 + eval↔verify 雙向互指（tags 為連結脊椎、task 加 version/verifyAxes、純函式）；`eval-passk.mjs`＝live-candidate 真 pass^k（無偏估計 C(c,k)/C(N,k)、候選重生留上層、純函式不 spawn、附協定 + 成本/沙箱邊界文件 `evals/live/README-protocol.md`） | plugin 自評 |
 | `eval-judge-rubric` | eval-judge 的鎖死評分卡（G-Eval 式）：無 oracle 維度（解釋/溝通品質）的 dimension / 1–5 刻度 / threshold / 鎖死 evaluation steps + 反偏誤紀律 + verdict 輸出格式 | eval-judge agent（無 oracle 維度評分） |
 
 ---

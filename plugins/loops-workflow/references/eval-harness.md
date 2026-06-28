@@ -122,6 +122,7 @@ node plugins/loops-workflow/scripts/eval-oracle.mjs --dir plugins/loops-workflow
 ## ⚠️ pass^k 誠實邊界
 
 `pass^k`（同 task 跑 N 次連 k 次全綠率）量的是**隨機性下的可靠度**，只在「候選每次重新生成」時有意義。E1 runner 對**固定候選**跑確定性 oracle → 同 task N 跑必相同 → pass^k 退化成 = pass@1。故 MVP 記 `runs:1、passK=passRate`，schema 保留 `passK` 欄為日後「候選由 Claude 每次重生」預留。**回歸 gate 以 `passRate`（pass@1）為主判準**；勿把確定性 corpus 的 passK 當可靠度指標解讀。
+> **真 pass^k 計算引擎已落地（見下 E7 / `eval-passk.mjs`）**：候選每次重生時用無偏估計 `C(passed,k)/C(N,k)` 算真 pass^k；把它接成 `eval-metrics` 的 `passK` 真值＝上層協定（本票給引擎 + 協定，不改 buildEvalRow）。
 
 ## 跑
 
@@ -255,4 +256,31 @@ node plugins/loops-workflow/scripts/eval-tags.mjs link --eval <report.json> --fi
 exit code：產出 0 / 缺旗標·未知命令·**findings 非陣列** 2 / 讀檔失敗 3。
 
 ## 範圍邊界
-單票交付 schema 擴充 + 分組/互指純函式。**真把 verify 流程的 findings 持久化成檔讓 eval 自動讀＝留上層慣例**；不動 eval-metrics 回歸主判準；live-candidate 真跑＝#36。
+單票交付 schema 擴充 + 分組/互指純函式。**真把 verify 流程的 findings 持久化成檔讓 eval 自動讀＝留上層慣例**；不動 eval-metrics 回歸主判準；live-candidate 真跑＝**E7（已落地，見下）**。
+
+---
+
+# E7 — live-candidate 真 pass^k（`eval-passk.mjs` + `evals/live/README-protocol.md`）
+
+> 解開 E2 的 pass^k 退化（固定候選 → pass^k≡pass@1）。**混合 framing**：`eval-passk.mjs` 只做**確定性 pass^k 計算**；「真跑 workflow 重生候選」屬**上層**（主迴圈/Workflow，opt-in、協定見 `evals/live/README-protocol.md`、**script 不 spawn**）。
+
+## 純函式（`eval-passk.mjs`）
+- `combinations(n,k)` → C(n,k)（乘法式 + round、k<0/k>n→0）。
+- `passAt1(passed,total)` → 平均成功率（守除零）。
+- `passHatK(passed,total,k)` → `{value, reason?}`：**無偏估計 `C(passed,k)/C(total,k)`**（一隨機 k-子集全綠的機率）；**k>total → null+reason（誠實不假裝）**；passed<k → 0。
+- `aggregateByTask(runs,{k})` → 依 taskId 分組 → per-task `{total, passed, passAt1, passHatK}` + 整體 `{tasks, k, overallPassAt1}`。
+
+## 為何 pass^k（抓「平均沒退、其實變不穩」）
+pass@1 看平均、pass^k 看**隨機性下連 k 次全綠的可靠度**：4/5 的 pass@1=0.8 但 pass^2=0.6——pass^k 才抓得到「變更不穩」。回歸 gate 量可靠度時看 pass^k。
+
+## 接線是上層協定（script 不 spawn）
+候選重生＝上層每 task 重跑 N 次（**獨立重生**才有意義，否則退化）→ 各跑 eval-oracle → 寫 `runs.jsonl`（`{taskId, pass, runIndex?}`）→ `eval-passk.mjs` 算。完整協定 + 成本/沙箱邊界見 `evals/live/README-protocol.md`。把 pass^k 接成 `eval-metrics` `passK` 真值＝上層協定（本票不改 buildEvalRow）。
+
+## 跑
+```bash
+node plugins/loops-workflow/scripts/eval-passk.mjs passk --runs <runs.jsonl> --k <k>
+```
+exit code：產出 0（含 k>total 的 task 標 null/reason、advisory 永不擋路）/ 缺 --runs·k 非正整數·未知命令 2 / 讀檔失敗 3。輸出含 `loaded/skipped`。
+
+## ⚠️ 成本/沙箱邊界（見 protocol 文件）
+真跑很貴（task 數 × N 重生 × 多 agent）→ 建議小語料庫 + N=3–5、只在量可靠度時跑。跑候選＝執行任意碼 → 沿用 eval-oracle 信任邊界（只在信任語料庫跑）。容器化沙箱實作 out-of-scope（本票只給邊界文件）。pass^k 為估算（N 有限），標來源。
