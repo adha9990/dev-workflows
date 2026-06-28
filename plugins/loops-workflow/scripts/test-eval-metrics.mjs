@@ -252,16 +252,17 @@ const rowsOf = (...rates) => rates.map((p) => ({ passRate: p }));
 }
 
 // ── CR-corpus（corpus-aware）：只比「最後一行的 corpus」歷史、跨 corpus 不混比。
-//    rows=[A1.0, B0.5, A0.95]、tol0 → 只取 A：baseline=A 首筆 1.0、current=A 末筆 0.95 → regressed=true；
-//    中間 B 的 0.5 不得當 baseline/current（若用「整體前一行」當 baseline 會撈到 B 的 0.5 → baselineRate 變 0.5 → 本條紅）[契約 corpus-aware 回歸比較]
+//    rows=[B0.5, A1.0, A0.95]、tol0 → 只取 A：baseline=A 首筆 1.0、current=A 末筆 0.95 → regressed=true。
+//    刻意把別組 B 的 0.5 擺第一筆：若「移除 corpus filter」(scoped=整段歷史)，baseline 會撈到 B 的 0.5
+//    → baselineRate 變 0.5、regressed 變 false → 本條自身就獨立轉紅（mutation Prove-It，不必倚賴 CR-corpus-isolation）[契約 corpus-aware 回歸比較]
 {
   const rows = [
-    { corpus: 'A', passRate: 1.0 },
     { corpus: 'B', passRate: 0.5 },
+    { corpus: 'A', passRate: 1.0 },
     { corpus: 'A', passRate: 0.95 },
   ];
   const r = computeRegression(rows, { tolerance: 0 });
-  assert(r && r.baselineRate === 1.0, 'computeRegression：baseline 取最後 corpus(A) 的首筆=1.0（非中間 B 的 0.5）[CR-corpus]');
+  assert(r && r.baselineRate === 1.0, 'computeRegression：baseline 取最後 corpus(A) 的首筆=1.0（非別組 B 的 0.5）[CR-corpus]');
   assert(r && r.currentRate === 0.95, 'computeRegression：current 取最後一行 A 的 0.95（非 B 的 0.5）[CR-corpus]');
   assert(r && r.regressed === true, 'computeRegression：A 0.95<1.0（tol0）→ regressed=true [CR-corpus]');
 }
@@ -283,6 +284,26 @@ const rowsOf = (...rates) => rates.map((p) => ({ passRate: p }));
 {
   const r = computeRegression(rowsOf(1.0, 1.0), { tolerance: -0.1 });
   assert(r && r.regressed === false, 'computeRegression：負 tolerance clamp 到 0、持平 → regressed=false [CR-negtol-clamp]');
+}
+
+// ── CR-mixed-corpus（窄邊界）：corpus 欄有無混存 → 只比最後一筆 corpus 的同組，缺 corpus 欄者自成一組（undefined）不混入。
+//    rows=[{A 1.0},{無欄 0.9},{A 0.8}] → 最後是 A：scoped=[A1.0, A0.8]、baseline 1.0、current 0.8 → regressed=true（中間缺欄 0.9 不混入）[契約 corpus 分組]
+{
+  const rows = [
+    { corpus: 'A', passRate: 1.0 },
+    { passRate: 0.9 },
+    { corpus: 'A', passRate: 0.8 },
+  ];
+  const r = computeRegression(rows, { tolerance: 0 });
+  assert(r && r.baselineRate === 1.0 && r.currentRate === 0.8, 'computeRegression：混 corpus 欄 → 只取最後 corpus(A) 同組、缺欄者不混入 [CR-mixed-corpus]');
+  assert(r && r.regressed === true, 'computeRegression：A 0.8<1.0 → regressed=true [CR-mixed-corpus]');
+}
+
+// ── CR-baseline-oob（窄邊界）：--baseline 越界 index（scoped 僅 2 筆卻指 9）→ baselineRate 安全 fallback、不丟例外、regressed=false（無合法 baseline 不誤判退化）[契約 越界 graceful]
+{
+  const r = callSafe(() => computeRegression(rowsOf(1.0, 0.8), { baseline: 9, tolerance: 0 }));
+  assert(!r.threw, 'computeRegression：baseline 越界 index 不丟例外 [CR-baseline-oob]');
+  assert(r.val && r.val.regressed === false, 'computeRegression：baseline 越界 → 無合法 baseline、regressed=false（不誤判退化）[CR-baseline-oob]');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -358,6 +379,7 @@ function readJsonl(file) {
     assert(res.error == null, 'E-record-fail：node 啟動成功（spawn 無 error）[E-record-fail]');
     assert(res.status === 0, 'E-record-fail：record 失敗仍 exit 0（永不擋路）[E-record-fail]');
     assert((res.stderr || '').trim().length > 0, 'E-record-fail：失敗時 stderr 非空（有診斷）[E-record-fail]');
+    assert(/skipped|oracle/.test(res.stderr || ''), 'E-record-fail：stderr 含關鍵診斷字（skipped/oracle）、非任意雜訊冒充 [E-record-fail]');
     assert(readJsonl(metricsFile).length === 0, 'E-record-fail：metrics 檔未被寫入垃圾（不存在或 0 行）[E-record-fail]');
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -454,10 +476,12 @@ function readJsonl(file) {
   const noDir = runMetrics(['record']);
   assert(noDir.error == null, 'E-misuse：record 無 --dir node 啟動成功 [E-misuse]');
   assert(noDir.status === 2, 'E-misuse：record 缺必要 --dir → exit status===2（誤用）[E-misuse]');
+  assert(/usage/i.test(noDir.stderr || ''), 'E-misuse：缺 --dir stderr 含 usage 提示（非任意雜訊）[E-misuse]');
 
   const bogus = runMetrics(['bogus']);
   assert(bogus.error == null, 'E-misuse：未知命令 node 啟動成功 [E-misuse]');
   assert(bogus.status === 2, 'E-misuse：未知命令 bogus → exit status===2（誤用）[E-misuse]');
+  assert(/usage/i.test(bogus.stderr || ''), 'E-misuse：未知命令 stderr 含 usage 提示（非任意雜訊）[E-misuse]');
 }
 
 // ── 摘要 + exit code ─────────────────────────────────────────────────────────
