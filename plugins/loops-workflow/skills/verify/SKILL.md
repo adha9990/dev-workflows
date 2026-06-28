@@ -1,17 +1,19 @@
 ---
 name: verify
-description: Fans out the core reviewers (product/architecture/security/performance/code-quality/tests — all six for any code change; right-sized to a minimal set for docs/config-only changes, see §1.4) then validates findings in a second pass. Use when starting the verify stage of a loops-workflow run, or when built work needs merge-readiness review before iterate.
+description: Fans out reviewers right-sized to change risk (4-tier ladder SKIP/LIGHT/STANDARD/DEEP, see §1.4 — STANDARD code keeps all six core axes, DEEP adds a cheap stage-0 tripwire + holistic cross-cutting pass, LIGHT shrinks to three, guarded trivial changes skip), then validates findings in a second pass. Use when starting the verify stage of a loops-workflow run, or when built work needs merge-readiness review before iterate.
 ---
 
 # verify — 驗證（多 reviewer fan-out + validator 二輪）
 
 ## Overview
 
-`verify` 的引擎是多 reviewer fan-out：主線**在同一回合一次發出一組核心 reviewer**（並行、fresh context、不巢狀），各審一軸 —— **含 code 改動是核心 6 軸全派**、純文件 / 純設定類依 §1.4 **右尺寸化**到最小集；再派 `finding-validator` 對每個 blocking finding 做二輪確認；最後 merge 成 **Ready / Not ready**。
+`verify` 的引擎是多 reviewer fan-out：主線**在同一回合一次發出一組 reviewer**（並行、fresh context、不巢狀），各審一軸 —— **派幾軸由 §1.4「改動風險 4 級梯」決定**（一般 code＝STANDARD 核心 6 軸；高風險＝DEEP 加碼；小孤立 code＝LIGHT 縮 3 軸；受護欄保護的瑣碎面＝SKIP 不派）；再派 `finding-validator` 對每個 blocking finding 做二輪確認；最後 merge 成 **Ready / Not ready**。
 
 > 用多個 fresh-context reviewer 各審一軸，而非主線自己掃一遍 —— 寫 code 時的假設不會帶進 review，獨立性換來覆蓋廣度。
 
 > **verify 是獨立安全網、不是第一道品質關**：品質標準在 build 寫的當下就該套用（shift-left，見 `AGENTS.md` 規則 11）；verify 用 fresh-context 獨立**複查同一套標準 + 抓 build 的盲點**。build 寫到位 → verify 找到的少、跑得快；但這**不代表能省略 verify** —— 寫的人有盲點，獨立複查才補得到。
+
+> **右尺寸化 ≠ 放寬**：4 級梯只**依風險浮動「核心軸的下界」** —— 低風險縮、一般維持、**高風險反而加碼**（tripwire + holistic）。它精準化規則 10 carve-out 的「可省 / 不可省邊界」，**不是給 code 開後門**：任何疑慮一律向上升級（fail-safe 向嚴）。
 
 > **回環再驗（delta re-verify）**：iterate 修完回來時，verify 聚焦「這輪改了什麼 + 它的**波及面**（誰用到被改的程式碼）」派 fresh reviewer 再驗 —— 不是只重跑 diff、更不是只看測試綠；共用元件 / 跨切面改動要把 consumer 一起納入。修完一律再驗一輪，這是 closed-loop 的預設，不是選項。
 
@@ -25,9 +27,9 @@ description: Fans out the core reviewers (product/architecture/security/performa
 
 ## Process
 
-### 1. 同一回合並行派核心 reviewer（各審一軸）
+### 1. 同一回合並行派 reviewer（各審一軸）
 
-下表是**核心 6 軸 reviewer 的清單（menu）**；**實際派幾軸由 §1.4 依改動面決定**（含 code＝6 軸全派；純文件 / 設定＝最小集）。
+下表是**核心 6 軸 reviewer 的清單（menu）**；**實際派哪幾軸由 §1.4 的 4 級梯依改動風險決定**。
 
 | reviewer | 審什麼 | 補強 |
 |------|------|------|
@@ -42,21 +44,26 @@ description: Fans out the core reviewers (product/architecture/security/performa
 
 > **派 reviewer 只給 artifact + 契約**（issue / `02-plan.md` 契約 / diff），**不給作者的理由 / 辯護** —— `03-build.md` 的 POTENTIAL CONCERNS 是給人看的、**不轉發**給 reviewer。餵作者 rationale 會讓 reviewer 偏向同意（反偏見的正面規則，同 tests-reviewer「不告知作者說已過」）。
 
-> **參考檔路徑（必做）**：subagent 的 CWD 是使用者 repo、且 `${CLAUDE_PLUGIN_ROOT}` 在 markdown 不展開，所以相對路徑 `references/xxx.md` 它們讀不到。派 reviewer 前，**從本 skill 的 base directory 推出 plugin root**（base 上兩層 = `…/plugins/loops-workflow/`），組出絕對路徑塞進各 reviewer 的 prompt：全部 reviewer ← `references/reviewer-severity.md` + `references/review-dispositions.md`（每軸盯點 + 出手前共用誤報底線）+ `references/preflight.md` §(c)「作者已留痕的決定不算 finding」硬規則原文；`product-contract-reviewer` 另加 `references/acceptance-review.md`；`code-quality-reviewer` 另加 `references/correctness-review.md`、`references/clean-code.md`、`references/refactoring.md`、`references/code-simplification.md` 與 `references/reuse-check.md`；`architecture-reviewer` 另加 `references/architecture-review.md`、`references/clean-architecture.md` 與 `references/design-patterns.md`；`security-reviewer` 另加 `references/security-checklist.md`；`performance-reviewer` 另加 `references/performance-review.md`；`tests-reviewer` 另加 `references/test-rubric.md`；條件式 `frontend-ui-reviewer` ← `references/ui-interaction-review.md`、`root-cause-reviewer` ← `references/root-cause-review.md`、`docs-devex-reviewer` ← `references/docs-devex-review.md`；`finding-validator` ← `references/finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
+> **參考檔路徑（必做）**：subagent 的 CWD 是使用者 repo、且 `${CLAUDE_PLUGIN_ROOT}` 在 markdown 不展開，所以相對路徑 `references/xxx.md` 它們讀不到。派 reviewer 前，**從本 skill 的 base directory 推出 plugin root**（base 上兩層 = `…/plugins/loops-workflow/`），組出絕對路徑塞進各 reviewer 的 prompt：全部 reviewer ← `references/reviewer-severity.md` + `references/review-dispositions.md`（每軸盯點 + 出手前共用誤報底線）+ `references/preflight.md` §(c)「作者已留痕的決定不算 finding」硬規則原文；triage 判級主線另讀 `references/verify-triage.md`；`product-contract-reviewer` 另加 `references/acceptance-review.md`；`code-quality-reviewer` 另加 `references/correctness-review.md`、`references/clean-code.md`、`references/refactoring.md`、`references/code-simplification.md` 與 `references/reuse-check.md`；`architecture-reviewer` 另加 `references/architecture-review.md`、`references/clean-architecture.md` 與 `references/design-patterns.md`；`security-reviewer` 另加 `references/security-checklist.md`；`performance-reviewer` 另加 `references/performance-review.md`；`tests-reviewer` 另加 `references/test-rubric.md`；`holistic-reviewer` ← `references/reviewer-severity.md`（看 findings 全集，§2.5）；條件式 `frontend-ui-reviewer` ← `references/ui-interaction-review.md`、`root-cause-reviewer` ← `references/root-cause-review.md`、`docs-devex-reviewer` ← `references/docs-devex-review.md`；`finding-validator` ← `references/finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
 
-### 1.4 改動面 → 最小核心 reviewer 集（右尺寸化）
+### 1.4 改動風險 → reviewer 集（4 級風險梯）
 
-§1 的核心 6 軸是**含 code 改動的下界、不可縮**。但對**客觀窄面**（純文件 / 純 markdown 敘述 / 純非執行設定）——`performance` / `security` / `tests` 等核心軸**對該改動無可審之物**——全派只是起一堆空轉 agent（規則 10 carve-out 想砍的「非必要貴動作」）。依改動面定**核心 reviewer 的下界**（下表只列**核心軸**；領域 reviewer 如 `docs-devex` 由 §1.5 因觸及該領域自動帶入、去重後一起派）：
+主線（orchestrator）依 `references/verify-triage.md` 的明文 rubric 看 build 的 Change Summaries + 改動檔案，把這次改動歸到一級，決定**核心 reviewer 的下界**（領域 reviewer 由 §1.5 觸及才加派、去重疊加）：
 
-| 改動面 | 最小**核心**軸下界 | 領域帶入（§1.5）/ 為什麼 |
+| 級別 | 觸發（rubric 判定，判準見 `verify-triage.md`） | 最小**核心**軸下界 |
 |---|---|---|
-| **含任何 code**（`.ts`/`.js`/`.mjs`… 邏輯、schema、CLI、migration、**設定即程式行為**） | **核心 6 軸全派、不得縮** | 規則 10「verify 獨立複查」不可省 |
-| **純文件 / 純 markdown 敘述**（docs、SKILL.md 文案、README、純註解） | `product-contract`（涉跨檔契約 / 一致性再加 `code-quality`） | 無 DB / API / 效能 / 攻擊面可審；動到 docs → `docs-devex` 由 §1.5 帶入（淨集常＝product-contract + docs-devex） |
-| **純非執行設定 / 資料**（純 fixtures、純文案設定、無程式語意） | `product-contract`（涉密鑰 / 權限 / 認證設定 → 加 `security`） | 動到 config → 相應 §1.5 reviewer 帶入；視內容微調，不得低於「能驗收範圍」 |
+| **SKIP** | docs / 註解 / 純格式 / test-only / 死碼移除 / SemVer patch 升版 —— **且 SKIP 護欄全成立**（CI 綠 + 單一領域 + 不碰高風險路徑 + 無夾帶）。**含執行語意的 code（含 <5 行邏輯改動）一律 ≥ LIGHT、不進 SKIP** | 0 **核心**軸；§1.5 條件式仍正交（碰對外契約/CLI/setup 文件 → 帶 docs-devex；純內部 typo/格式/test-only 則真 0） |
+| **LIGHT** | 小、孤立、低 blast-radius 的 code（少 caller、易回滾、已有測試覆蓋、單一領域；LIGHT 判準全成立） | `code-quality`(correctness) + `product-contract` + `tests`＝**3 軸**，全並行 |
+| **STANDARD** | 一般 code 改動（**預設**） | 核心 **6 軸**，全並行 |
+| **DEEP** | **高風險硬閘**（見 `verify-triage.md` 清單：auth/authz、加密/密鑰/機敏、金流、DB schema/migration、對外 API/契約、並發/非同步、IaC）或大 blast-radius 或大量 AI 生成 code | **§1.6 stage-0 tripwire → 過了才放完整 6 軸**（product-contract 併入不重跑、code-quality 仍跑完整軸）+ **對應領域條件式**（§1.5 觸及才加；auth/加密/金流等無對應條件式者由核心 security 軸承接）+ **§2.5 holistic 交叉軸 pass**，全並行 |
 
-> **fail-safe（向嚴）**：拿不準改動面是不是「純文件 / 純設定」、或一份 diff **混了 code 與文件** → **當作含 code、核心 6 軸全派**。縮錯 = 漏審，寧可多派、不可漏審。
+> **這 4 級梯以 code 風險為主軸。非 code 改動（純 docs / 設定）**：受護欄保護的瑣碎面（typo / 格式 / test-only / 死碼 / SemVer patch）→ SKIP（0 核心）；**有驗收契約的實質文件 / 設定** → `product-contract`（驗收）+ §1.5 領域（docs-devex 等），即 #8 既有的文件右尺寸化（不套 LIGHT/STANDARD/DEEP）。
 
-這是**精準化規則 10 carve-out 的「可省 / 不可省邊界」**，**不是放寬 mandatory 的 verify 獨立複查**：code 永遠核心 6 軸，縮的只是「對該改動無可審之物」的核心軸。與 §1.5 **正交** —— §1.4 定**核心軸的下界**、§1.5 **按領域加派**領域 reviewer（純文件 / 設定動到 docs/config → `docs-devex` 等由 §1.5 帶入）；兩者去重疊加 = 該次 verify 的實際 reviewer 集。
+> **fail-safe（向嚴）**：風險級拿不準、或一份 diff **混了 code 與文件 / 混多領域**、或 SKIP/LIGHT 護欄有一條不確定 → **升一級**（縮錯＝漏審，漏審成本 >> 多派成本）。**含 code 至少 LIGHT、預設 STANDARD；碰高風險硬閘清單一律 DEEP，不論行數多小**（「小 ≠ 安全」）。
+
+> **維度不順序化**：LIGHT/STANDARD/DEEP 內選定的那組軸**一律同一回合並行**，**不**把品質維度排成「先正確性過了再跑安全」的序列 —— 順序化會造成交叉軸漏審 + 後者錨定前者偏誤。順序只用在「便宜確定性 pre-gate（quality-gate，已在 build/§1.4 前）」與「DEEP 的單次 §1.6 tripwire 短路」。
+
+這與 §1.5 **正交**：§1.4 定**核心軸的下界**、§1.5 **按領域加派**領域 reviewer；兩者去重疊加 = 該次 verify 的實際 reviewer 集。
 
 ### 1.5 條件式 reviewer（選用，視改動領域加派）
 
@@ -68,9 +75,18 @@ description: Fans out the core reviewers (product/architecture/security/performa
 - CI/CD 設定 → `ci-cd-reviewer`
 - schema migration / 介面汰換 → `migration-reviewer`
 - **bug fix**（issue 標 bug / 標題含 fix·修·regression）→ `root-cause-reviewer`
-- **docs / README / 對外契約 / CLI / setup / migration / config 改動，或 PR body 聲稱免改文件** → `docs-devex-reviewer`
+- **docs / README / 對外契約 / CLI / setup / migration / config 改動，或 PR body 聲稱免改文件** → `docs-devex-reviewer`（純內部 typo / 格式且無對外契約者除外，視內容）
 
-### 1.8 跑真 app + 本機 /code-review（把 `not measured` 變實測）
+### 1.6 DEEP 的 stage-0 tripwire（只在 DEEP 級啟動）
+
+DEEP 級的軸最貴（威脅建模 / 實測 / holistic），fan-out 最大。**先派一個便宜的 stage-0 smoke**：`product-contract-reviewer`（完整軸）+ 一個 **correctness smoke**（`code-quality-reviewer` 的 correctness 切片）先審「契約符合 + 核心正確性」（不是另開一輪全 review）。
+
+- **皆過** → 放行完整並行 fan-out：**product-contract 不重跑**（tripwire 已是完整軸）；**code-quality 仍在 fan-out 跑完整軸**（correctness smoke 只是便宜前哨、不取代完整 code-quality 的錯誤處理 / typing / smells / 重用）；其餘 4 軸照常。**DEEP 因此仍得完整 6 軸覆蓋、絕不因 tripwire 縮水**。
+- **catastrophic miss**（tripwire 任一軸出**確證**〔reviewer 直接證明 / coordinator 當場驗證，非 §3 validator 專稱〕的 P0/P1：解錯問題 / partial 當完成 / 核心驗收落空 / happy-path 崩壞）→ **直接 bounce 回 build**，**不啟動整套昂貴 fan-out**（那些軸在註定要大改的 code 上跑會半作廢）。放行後併入 fan-out 的 finding 一樣照 §3 finding-validator 二輪。
+
+> **LIGHT/STANDARD 不加 tripwire** —— shift-left 常態下 verify 找不到東西，順序短路只多延遲、零省；tripwire 的期望收益只在「軸貴 + fan-out 大 + 早 blocker 機率高」的 DEEP 才為正。
+
+### 1.7 跑真 app + 本機 /code-review（把 `not measured` 變實測）
 
 靜態 review 之外，**Claude 親自代跑**、不推託「需使用者 / 瀏覽器」：
 
@@ -82,6 +98,13 @@ description: Fans out the core reviewers (product/architecture/security/performa
 ### 2. coordinator（主線）
 
 去重、過濾純 style / 低信心雜訊。
+
+### 2.5 holistic 交叉軸 pass（安全網，DEEP 必 / STANDARD 可選 / LIGHT·SKIP 不跑）
+
+coordinator 去重後，派 `holistic-reviewer`（fresh context）看 **findings 全集 + 契約**，專抓「**沒有單一 reviewer 看得到的跨維度 / 架構級衝突 / 級聯效應**」——例如一個同時是 correctness 又是 security 的問題、或數條 finding 合起來才暴露的設計缺陷。它是「敢縮 reviewer」的對價安全網（補右尺寸化後可能的交叉軸漏審）。
+
+- **DEEP 必跑**（軸多、交叉面大）；**STANDARD 可選** —— 改到**局部共用元件**（中等 fan-in、未達 `verify-triage.md` 的「廣泛 import」DEEP 門檻）/ 跨切面才值得；**LIGHT / SKIP 不跑**（面窄、無交叉軸可漏，跑了是噪音）。
+- holistic 產出的 finding 走**同一套** P0–P3 + Confidence + Route + 雙視角，併入 coordinator 一起進 §3 finding-validator 二輪（不特權、一樣要被驗）。
 
 ### 3. finding-validator 二輪
 
@@ -103,16 +126,21 @@ description: Fans out the core reviewers (product/architecture/security/performa
 
 | 藉口 | 反駁 |
 |------|------|
-| 「我自己掃一遍就好，不用派 reviewer」 | 單一 context 會被你寫 code 時的假設帶偏。一組 fresh reviewer 各審一軸才有獨立性（該派幾軸依 §1.4 改動面 —— code 全 6 軸）。 |
+| 「我自己掃一遍就好，不用派 reviewer」 | 單一 context 會被你寫 code 時的假設帶偏。一組 fresh reviewer 各審一軸才有獨立性（該派幾軸依 §1.4 風險梯）。 |
 | 「reviewer 逐個派，省得一次發太多」 | 逐個派就不是並行，還會互相污染 context。要同一回合一次發出（§1.4 定的那組）。 |
-| 「純文件小改也要全 6 軸」 | 反向也是浪費：純文件 / 純設定無 DB / 效能 / 攻擊面可審，依 §1.4 縮到最小集；但**拿不準 / 混 code 一律全派**（fail-safe 向嚴）。 |
+| 「解一個小 bug 也要全 6 軸」 | 反向也是浪費：小而孤立、低 blast-radius、有測試覆蓋的 code 依 §1.4 走 LIGHT（3 軸）；受護欄保護的瑣碎面走 SKIP。**但拿不準 / 混 code / 碰高風險 path 一律向上升級**（fail-safe）。 |
+| 「先跑正確性，過了再跑安全，逐 level 省 token」 | 把品質維度排成序列會交叉軸漏審 + 錨定偏誤，且 shift-left 常態（verify 找不到東西）下順序化零省、只多延遲。維度一律並行；要省就用 §1.4 **選對軸集**，不是排序列。順序短路只保留給 DEEP 的 §1.6 tripwire。 |
+| 「這改動碰 auth 但只有兩行，跑 LIGHT 就好」 | 「小 ≠ 安全」（2 行可釀數月漏洞）。碰高風險硬閘清單一律 DEEP，不論行數。 |
 | 「finding 看起來真，直接記 P0」 | 沒過 validator 二輪，可能是既有防護已處理 / 非本次引入的誤報。 |
 | 「效能我覺得沒問題」 | 沒實跑就是 `not measured`，不能寫「沒問題」。 |
 
 ## Red Flags
 
 - 該派的 reviewer（§1.4 定的那組）不是同一回合派出（變成序列、互相污染）。
-- **對含 code 的改動縮減核心 6 軸**（右尺寸化只適用客觀窄面 —— 純文件 / 純設定；拿不準 / 混 code 一律全派，縮錯＝漏審）。
+- **對含 code 的改動縮到該風險級以下**（右尺寸化只允許依風險浮動下界 —— 拿不準 / 混 code / 碰高風險 path 一律向上升級，縮錯＝漏審）。
+- **把 LIGHT/STANDARD/DEEP 的品質維度排成順序 gate**（先 A 過再跑 B）—— 維度要並行，順序只給 quality-gate pre-gate 與 DEEP 的 §1.6 tripwire。
+- **DEEP 的 §1.6 tripwire 變成「再派一輪全 review」**（它只是 product-contract + correctness 兩軸 stage-0、結果併入不重跑）。
+- **DEEP 跳過 §2.5 holistic**，或 LIGHT/SKIP 硬跑 holistic（噪音）。
 - tests-reviewer 被餵了「作者說測試已過」。
 - blocking finding 沒過 finding-validator 就進報告。
 - 出現未實測的效能 / 覆蓋率數字。
@@ -121,8 +149,11 @@ description: Fans out the core reviewers (product/architecture/security/performa
 
 ## Verification
 
-- [ ] 依 §1.4 改動面定 reviewer 集（**含 code＝核心 6 軸全派**；純文件 / 純設定＝最小集；**拿不準 / 混 code 向嚴全派**），在同一回合並行派出、各一軸。
-- [ ] security-reviewer 有跑威脅建模 / OWASP 補強。
+- [ ] 依 §1.4 改動風險定級（**SKIP/LIGHT/STANDARD/DEEP**）→ 定該級 reviewer 集，**拿不準 / 混 code / 碰高風險 path 向嚴升級**；在同一回合並行派出、各一軸。
+- [ ] DEEP 級先跑 §1.6 stage-0 tripwire（product-contract + correctness）；catastrophic miss → bounce build，否則放行 + 兩軸結果併入不重跑。
+- [ ] LIGHT/STANDARD/DEEP 的品質維度**並行未被順序化**（順序只在 quality-gate pre-gate 與 DEEP tripwire）。
+- [ ] DEEP 跑了 §2.5 holistic 交叉軸 pass（STANDARD 視波及面可選；LIGHT/SKIP 不跑）；holistic finding 一樣進 finding-validator。
+- [ ] security-reviewer（STANDARD/DEEP）有跑威脅建模 / OWASP 補強。
 - [ ] 已跑真 app（`/run`·`/verify`）+ 本機 `/code-review`，或純 lib 無 app 據實標 `not measured`。
 - [ ] 每個 blocking finding 有 finding-validator 的 `validated/rejected/degraded`。
 - [ ] 每條 finding 有 P0–P3 + Confidence + Route，且套 Metric-Honesty。

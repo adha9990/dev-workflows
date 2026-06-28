@@ -1,6 +1,6 @@
 # references 目錄（各規範在處理什麼）
 
-> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **42 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
+> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **43 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
 >
 > 機制全貌（每階段怎麼跑）見 [`FLOW.md`](FLOW.md)；這份是「規範字典」。subagent 讀不到相對路徑 → orchestrator 把絕對路徑塞進 prompt（見 `AGENTS.md`〈參考檔路徑解析〉）。
 
@@ -42,6 +42,7 @@
 | `finding-validation` | finding-validator 二輪四問：真實 / 本次引入 / 已防護 / 對症 → validated / rejected / degraded | verify（finding-validator） |
 | `preflight` | 送審單一判定（可送審 / 建議先修 / 資訊不足）+ 硬規則「作者已留痕的決定不算 finding」 | verify（送審自檢 + 全 reviewer） |
 | `optional-reviewers` | 條件式領域 reviewer 對照（哪種改動加派哪個：前端 / a11y / 可觀測性 / CI-CD / migration / bug-fix / docs…） | verify（1.5 加派） |
+| `verify-triage` | verify 改動風險 4 級梯判準（SKIP/LIGHT/STANDARD/DEEP）：高風險硬閘清單 / SKIP·LIGHT 護欄 / tangling veto / DEEP §1.6 tripwire bounce 門檻 | verify（§1.4 判級） |
 | `cross-model-review` | opt-in 換不同模型當對手 reviewer（卡關時升級對抗審查） | iterate（卡關）· verify（可選） |
 
 **per-axis 審查判準**（reviewer 出手前注入的判準 / 方法論，薄 agent 不重述）：
