@@ -27,7 +27,7 @@
 - **並發 / 非同步 / 背景流程**：queue、background job、鎖、交易邊界、重試 / 冪等路徑。
 - **IaC / 部署設定**：CI/CD 發布、基礎設施、權限 / 網路設定。
 
-> 命中高風險硬閘的 DEEP 流程：先 §1.6 stage-0 tripwire（product-contract + correctness）→ 過了才放完整 6 軸 + **對應領域條件式**（§1.5 觸及才加；auth/加密/金流等無對應條件式者由核心 security 軸承接）+ §2.5 holistic。
+> 命中高風險硬閘的 DEEP 流程：完整 6 軸 + **對應領域條件式**（§1.5 觸及才加；auth/加密/金流等無對應條件式者由核心 security 軸承接）+ §2.5 holistic 全局交叉檢查，**全並行、一次跑完**（不再先拆一輪前置閘）。跑完若確證根本做錯 → 整個退回 build（見下「做錯東西就整個退回」）。
 
 ## 大 blast-radius / 大量 AI 生成（→ DEEP）
 
@@ -74,20 +74,21 @@
 - 一個「小重構」是否其實改了行為（不是純結構搬移）？
 - 命中任一 → **不得 SKIP/LIGHT，打回 STANDARD**（含 code 一律重驗）。
 
-## catastrophic miss 判準（DEEP §1.6 tripwire 的 bounce 門檻）
+## 做錯東西就整個退回（catastrophic miss 判準，所有級通用）
 
-stage-0 tripwire（product-contract + correctness 兩軸）**任一回確證的 P0/P1**（reviewer 直接證明 / coordinator 當場驗證，**非** §3 finding-validator 的 `validated` 專稱）即 catastrophic miss → bounce 回 build、不啟動完整 fan-out。典型：
+審查（fan-out）一次跑完後，若 `product-contract` / 正確性 **任一回確證的 P0/P1**（reviewer 直接證明 / coordinator 當場驗證，**非** §3 finding-validator 的 `validated` 專稱）＝根本性做錯 → **整個 bounce 回 build、不對其他軸 finding 逐條 iterate**（在註定要大改的東西上修小問題是白工）。典型：
 
 - **解錯問題** —— 做的根本不是 issue 要的（product-contract）。
 - **partial 當完成** —— 核心驗收標準未達卻當完工（product-contract）。
 - **核心契約落空** —— 對外形狀 / DoD 契約破壞（product-contract）。
 - **happy-path 崩壞** —— 核心正確流程跑不起來 / 明顯狀態流錯誤（correctness）。
 
-> 兩軸**皆無確證 P0/P1** → 放行；**product-contract 併入不重跑、correctness smoke 由 fan-out 的完整 code-quality 軸補跑**（tripwire 不是額外一輪全 review：product-contract 是把該完整軸先跑當 gate、correctness 只是便宜前哨，DEEP 仍得完整 6 軸覆蓋）。放行後的 finding 一樣進 §3 finding-validator。
+> **所有級適用、跑完才判（不再先拆一輪前置閘）**：以前 DEEP 會先單跑「契約 + 正確性」兩軸當早退閘、過了才放完整審查（舊 tripwire）。**已移除** —— shift-left 常態下根本做錯很少，先拆一輪只是多跑、多等、零省。現在所有級都**一次跑完整審查**，跑完若確證上述任一根本做錯 → 整個退回；否則該次 finding 照 §3 finding-validator 二輪。
 
-> **⚠️ tripwire ≠ acceptance-completeness 完整性檢查（別把「逐項驗收」當成只有 DEEP 才做）**：
-> - **§1.6 tripwire 是 DEEP-only 的「早退成本優化」** —— 高風險時先用 product-contract + correctness 擋一道，**決定要不要先 bounce、再放貴 fan-out**。它的價值在「省 DEEP 的大 fan-out」，所以**刻意只在 DEEP 跑**。
-> - **「issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足或 descoped 才放行」是 tier-independent 的出口 gate** —— 凡 `product-contract` 有跑（任何 issue，LIGHT 起每級必跑）就生效，**LIGHT/STANDARD/DEEP 一律受其約束**（見 `acceptance-review.md` §二完整性 gate + verify SKILL §4.5）。STANDARD/LIGHT 沒有早退 tripwire，但**一樣不得在 acceptance ledger 有未收斂項時判 Ready**。partial 當完成在**任何級**都是 P0/P1、都該擋。
+> **「整個退回」≠「逐項 acceptance ledger」（兩者都 tier-independent、互補）**：
+> - **本段「做錯東西就整個退回」**處理的是**根本性 miss**（做了別的東西 / 核心沒做到 / 最基本流程崩壞）—— 一旦確證，**整個退回 build、別逐條修**。
+> - **`acceptance-review.md` §二的逐項完整性 gate**處理的是**每條 acceptance criterion 有沒有收斂**（五態列完、無未處理項才准 Ready，餵 verify SKILL §4.5 出口 gate）。
+> - 兩者同源（契約面的 P0 同時觸發兩者）、都**所有級適用**：partial 當完成在 LIGHT/STANDARD/DEEP 都該擋、都該退回，不是「只有高風險才做」。
 
 ## 範例
 

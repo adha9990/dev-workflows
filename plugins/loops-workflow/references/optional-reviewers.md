@@ -1,6 +1,6 @@
 # 條件式 reviewer（選用領域視角）
 
-> verify 的核心 reviewer（product-contract / architecture / security / performance / code-quality / tests）覆蓋每次都該看的主軸 —— **派哪幾軸由 verify §1.4 的 4 級風險梯（SKIP/LIGHT/STANDARD/DEEP）決定**（一般 code＝STANDARD 全 6 軸；高風險＝DEEP 加 §1.6 tripwire + §2.5 holistic；小孤立＝LIGHT 3 軸；護欄保護的瑣碎面＝SKIP 不派；本檔是 §1.5 領域加派層，與 §1.4 核心下界正交）。下面這些是**領域特定**的額外視角 —— **只在改動觸及該領域時才派**，避免無關維度造成噪音。觸發時與核心 reviewer **同一回合一起派**（並行）。
+> verify 的核心 reviewer（product-contract / architecture / security / performance / code-quality / tests）覆蓋每次都該看的主軸 —— **派哪幾軸由 verify §1.4 的 4 級風險梯（SKIP/LIGHT/STANDARD/DEEP）決定**（一般 code＝STANDARD 全 6 軸；高風險＝DEEP 全 6 軸 + §2.5 holistic；小孤立＝LIGHT 3 軸；護欄保護的瑣碎面＝SKIP 不派；本檔是 §1.5 領域加派層，與 §1.4 核心下界正交）。下面這些是**領域特定**的額外視角 —— **只在改動觸及該領域時才派**，避免無關維度造成噪音。觸發時與核心 reviewer **同一回合一起派**（並行）。
 
 ## 觸發對照
 
@@ -24,7 +24,7 @@ coordinator（主線）看 build 的 Change Summaries + 改動檔案清單：碰
 
 ## 與核心 reviewer 的分工
 
-- 核心 6 軸（範圍契約 / 架構 / 安全 / 後端效能 / 程式品質〔含 correctness〕/ 測試）：**派哪幾軸由 verify §1.4 的 4 級風險梯決定**（STANDARD code＝全 6 軸；DEEP 再加 §1.6 tripwire + §2.5 holistic；LIGHT＝correctness + 範圍契約 + 測試 3 軸；SKIP＝不派）。**右尺寸化只依風險浮動下界、不是給 code 開後門**（拿不準 / 混 code / 碰高風險 path 一律向上升級）。
+- 核心 6 軸（範圍契約 / 架構 / 安全 / 後端效能 / 程式品質〔含 correctness〕/ 測試）：**派哪幾軸由 verify §1.4 的 4 級風險梯決定**（STANDARD code＝全 6 軸；DEEP 全 6 軸 + §2.5 holistic；LIGHT＝correctness + 範圍契約 + 測試 3 軸；SKIP＝不派）。**右尺寸化只依風險浮動下界、不是給 code 開後門**（拿不準 / 混 code / 碰高風險 path 一律向上升級）。
 - 條件式這些：領域特定，**只在觸及時派**（純文件 / 設定動到 docs/config 時，docs-devex 等就是由這層帶入）。
 - 兩者輸出同一套格式（P0–P3 + Confidence + Route + 雙視角 + Metric-Honesty），一起進 coordinator 去重 → finding-validator 二輪。
 
