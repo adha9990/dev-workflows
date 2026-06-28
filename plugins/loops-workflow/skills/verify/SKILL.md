@@ -124,7 +124,7 @@ coordinator 去重後，派 `holistic-reviewer`（fresh context）看 **findings
 
 **「findings 全清」≠「做到 issue 要的每一件事」**。前者是「有沒有引入問題」，後者是「該交付的有沒有交付」—— 兩者正交。所以 verify 的 **Ready 判定多一道與級別無關的硬閘**：
 
-> **凡 `product-contract` 有跑（即任何 issue —— 它從 LIGHT 起每級必跑、只有無驗收契約的 SKIP 不適用），verify 不得判 Ready，直到 product-contract 對 issue 的「每一條」acceptance criterion 都逐項列出 `references/acceptance-review.md` 的完成度五態（已滿足 / 部分滿足 / 缺失 / 證據不足 / 被反證），且每條都收斂到「已滿足（有可信證據）」或「明確 descoped（作者留痕）」—— 任一條停在 部分滿足 / 缺失 / 證據不足 / 被反證 且未明確 descoped → Not ready，回 iterate（partial 當完成是 P0/P1）。**
+> **凡 `product-contract` 有跑（即任何 issue —— code 改動從 LIGHT 起每級必跑、有驗收契約的實質文件 / 設定走 product-contract+docs-devex 軌也跑；只有無驗收契約的 SKIP 不適用），verify 不得判 Ready，直到 product-contract 對 issue 的「每一條」acceptance criterion 都逐項列出 `references/acceptance-review.md` 的完成度五態（已滿足 / 部分滿足 / 缺失 / 證據不足 / 被反證），且每條都收斂到「已滿足（有可信證據）」或「明確 descoped（作者留痕）」—— 任一條停在 部分滿足 / 缺失 / 證據不足 / 被反證 且未明確 descoped → Not ready，回 iterate（partial 當完成是 P0/P1）。**
 
 - **與 §1.6 tripwire 的分工（別混淆）**：tripwire 是 **DEEP-only 的早退成本優化**（高風險時先用 product-contract + correctness 擋一道，再決定要不要放完整貴 fan-out）；本 gate 是 **tier-independent 的出口條件**（LIGHT/STANDARD/DEEP 一律生效，決定「能不能判 Ready」）。DEEP 兩者都有（tripwire 早退 + 出口 gate）；STANDARD/LIGHT 沒有早退 tripwire，但**一樣受這道出口 gate 約束** —— 「沒做到 issue」在 STANDARD/LIGHT 不是「眾多 finding 之一、靠 reviewer 自律」，而是**判 Ready 的硬前提**。
 - **怎麼落實**：product-contract reviewer 的輸出本就要逐項五態 ledger（見 `acceptance-review.md`）；主線 coordinator 在寫 `04-verify.md` 結論前，**對著 issue 的 acceptance 清單逐條勾稽** ledger 是否完整、有無未收斂項 —— 缺項 / 漏列即視同 Not ready，不得以「findings 都清了」打發。

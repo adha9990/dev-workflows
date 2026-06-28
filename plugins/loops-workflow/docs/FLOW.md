@@ -181,10 +181,12 @@ flowchart TD
     CO -.DEEP必/STANDARD可選.-> HOL[§2.5 holistic 交叉軸 pass]
     CO --> FV[finding-validator 二輪<br/>真實?本次?已防護?對症?]
     HOL --> FV
-    FV --> OUT[P0–P3 + Confidence + Route<br/>→ Ready / Not ready → 04-verify.md]
+    FV --> AC{§4.5 acceptance-completeness<br/>出口 gate（tier-independent）<br/>每條 criterion 收斂到 已滿足/descoped?}
+    AC -.否·partial 當完成 P0/P1.-> BUILD
+    AC -->|是| OUT[P0–P3 + Confidence + Route<br/>→ Ready / Not ready → 04-verify.md]
 ```
 
-> **派幾軸由 §1.4 風險 4 級梯決定**：SKIP（護欄保護的瑣碎面，不派核心軸）/ LIGHT（小孤立 code，3 軸）/ STANDARD（一般 code，核心 6 軸）/ DEEP（高風險，先 §1.6 tripwire 短路 catastrophic miss、過了才放 6 軸 + §2.5 holistic 交叉軸 pass）。**非 code 改動（純 docs/設定）**：瑣碎→SKIP、有驗收契約的實質文件→product-contract + docs-devex（不入 code 級梯）。條件式 9 個只在改動觸及該領域才加派（與核心軸正交，SKIP 仍可帶 docs-devex；含 bug-fix→root-cause、docs/契約→docs-devex）。每個 blocking finding 過 `finding-validator` 四問二輪才算數。出 P0 才停下問你，否則直接進 iterate。
+> **派幾軸由 §1.4 風險 4 級梯決定**：SKIP（護欄保護的瑣碎面，不派核心軸）/ LIGHT（小孤立 code，3 軸）/ STANDARD（一般 code，核心 6 軸）/ DEEP（高風險，先 §1.6 tripwire 短路 catastrophic miss、過了才放 6 軸 + §2.5 holistic 交叉軸 pass）。**非 code 改動（純 docs/設定）**：瑣碎→SKIP、有驗收契約的實質文件→product-contract + docs-devex（不入 code 級梯）。條件式 9 個只在改動觸及該領域才加派（與核心軸正交，SKIP 仍可帶 docs-devex；含 bug-fix→root-cause、docs/契約→docs-devex）。每個 blocking finding 過 `finding-validator` 四問二輪才算數。**判 Ready 前還須過 §4.5 acceptance-completeness 出口 gate（tier-independent、所有級通用）**：凡 product-contract 有跑（任何 issue），issue 每條 acceptance criterion 都逐項列五態、收斂到 已滿足（有證據）或 明確 descoped（留痕）才放行——任一條 partial 當完成在**任何級**都 P0/P1 擋回 iterate（這道完整性閘**不是只有 DEEP tripwire**才做）。出 P0 才停下問你，否則直接進 iterate。
 
 ---
 
