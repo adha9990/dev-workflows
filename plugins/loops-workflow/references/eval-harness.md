@@ -296,7 +296,7 @@ node plugins/loops-workflow/scripts/eval-passk.mjs passk --runs <runs.jsonl> --k
 exit code：產出 0（含 k>total 的 task 標 null/reason、advisory 永不擋路）/ 缺 --runs·k 非正整數·未知命令 2 / 讀檔失敗 3。輸出含 `loaded/skipped`。
 
 ## ⚠️ 成本/沙箱邊界（見 protocol 文件）
-真跑很貴（task 數 × N 重生 × 多 agent）→ 建議小語料庫 + N=3–5、只在量可靠度時跑。跑候選＝執行任意碼 → 沿用 eval-oracle 信任邊界（只在信任語料庫跑）。容器化沙箱實作 out-of-scope（本票只給邊界文件）。pass^k 為估算（N 有限），標來源。
+真跑很貴（task 數 × N 重生 × 多 agent）→ 建議小語料庫 + N=3–5、只在量可靠度時跑。跑候選＝執行任意碼 → 沿用 eval-oracle 信任邊界（只在信任語料庫跑）。**容器化沙箱＝#52 已落地雙層隔離**：`scripts/eval-sandbox.mjs`（第一層 `checkContainment` 詞法 + 第二層 `buildSandboxCommand`/`validateSandboxPolicy` 容器 policy/指令：`--network none`/`--read-only`+`--tmpfs`/`--memory`·`--pids-limit`·`--cpus`/`--cap-drop ALL`+`no-new-privileges`，CLI `check`/`plan` **建構+驗證、不執行容器**，runtime 由 `LOOPS_SANDBOX_RUNNER` 選、none fallback）。**⚠️ 真容器執行 + 真逃逸/越權測試需 CI container runtime**（script 只驗 policy 結構 + 詞法 containment，第二層執行屬 recipe/CI、見 `references/eval-live-candidate.md`）。pass^k 為估算（N 有限），標來源。
 
 ---
 
