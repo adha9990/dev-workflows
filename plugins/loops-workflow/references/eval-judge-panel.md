@@ -13,17 +13,23 @@
    ```jsonc
    { "judgeId": "sonnet-1", "model": "claude-sonnet-4-6", "output": "<該 judge 的 raw verdict 文字>" }
    ```
-3. **跑膠水算共識**：
+3. **跑膠水算共識**（cwd＝repo 根，路徑與 `eval-harness.md` 一致）：
    ```bash
-   node scripts/eval-panel.mjs run --rubric references/eval-judge-rubric.md \
-     --verdicts <verdicts.jsonl> --case-id <artifact-id> [--gold evals/gold/explanation-quality.json] [--judge-file .loops/.metrics/judge-results.jsonl]
+   node plugins/loops-workflow/scripts/eval-panel.mjs run \
+     --rubric plugins/loops-workflow/references/eval-judge-rubric.md \
+     --verdicts <verdicts.jsonl> --case-id <artifact-id> \
+     [--gold plugins/loops-workflow/evals/gold/explanation-quality.json] [--judge-file .loops/.metrics/judge-results.jsonl]
    ```
-   → 回 `{consensus（PoLL 投票：pass/passTie/score）, goldAgreement（該 case vs 金標）, records, skipped}`，並（有 `--judge-file`）把 N 筆 record append judge-results.jsonl（帶 caseId、judge-estimate 軌）。
+   → 回 `{consensus（PoLL 投票：pass/passTie/score；**只計 valid verdict**）, validCount, panelSize, goldAgreement, records, rubricValid, skipped}`，並（有 `--judge-file`）把 N 筆 record append judge-results.jsonl（帶 caseId、judge-estimate 軌）。
+   - **棄權語意**：解析失敗/越界的 verdict 計入 `panelSize`、仍落檔，但**不投票**（`validCount` 才是投票數）——一個 judge 吐壞 JSON ＝沒投票、非投反對。
+   - **`--gold` 的 per-case agreement** 只在 `--case-id` 本身就是金標案例 id 時有值；對真實 artifact（caseId＝該 artifact id）通常 `goldAgreement:null`，**常態校準走下方累積 κ**。平手共識 → `agree:null`（不把擲銅板算成一致）。
+   - exit code：產出 0（advisory 永不擋路，rubric 不合法只警示不擋）/ 缺旗標·未知命令 2 / rubric·verdicts·gold 讀檔失敗 3。
 
 ## 校準（跨 case κ，累積後做）
-單次 panel 只給「這份 artifact 的共識」。**judge 與人工的 Cohen κ 校準是跨多 case 的**——累積夠多 case 的 judge-results.jsonl 後跑既有：
+單次 panel 只給「這份 artifact 的共識」。**judge 與人工的 Cohen κ 校準是跨多 case 的**——累積夠多 case 的 judge-results.jsonl 後跑既有（cwd＝repo 根）：
 ```bash
-node scripts/eval-poll.mjs kappa --records .loops/.metrics/judge-results.jsonl --gold evals/gold/explanation-quality.json
+node plugins/loops-workflow/scripts/eval-poll.mjs kappa \
+  --records .loops/.metrics/judge-results.jsonl --gold plugins/loops-workflow/evals/gold/explanation-quality.json
 ```
 （金標養到 50–100 筆 κ 才有統計意義，見 #50。）
 

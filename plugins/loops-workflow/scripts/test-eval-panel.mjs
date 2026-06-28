@@ -2,7 +2,7 @@
 // test-eval-panel.mjs —— eval-panel.mjs 的紅綠斷言（自帶 harness）。
 // 用法（cwd = plugins/loops-workflow）：node scripts/test-eval-panel.mjs
 
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,29 +34,54 @@ const RUBRIC_MD = [
 // ── T1 runPanel：N verdict → 共識 ────────────────────────────────────────────────
 {
   const r = runPanel(VERDICTS, { rubricMeta: RUBRIC_META, caseId: 'c1' });
-  assert(r.panelSize === 3 && r.records.length === 3, 'runPanel：3 verdict → 3 record / panelSize 3 [T1]');
+  assert(r.panelSize === 3 && r.validCount === 3 && r.records.length === 3,
+    'runPanel：3 verdict → panelSize 3 / validCount 3 [T1]');
   assert(r.consensus.pass === true && r.consensus.score === 4 && r.consensus.passTie === false,
     'runPanel：共識 pass majority t / score median 4 [T1]');
   assert(r.records.every((rec) => rec.caseId === 'c1' && rec.track === 'judge-estimate'),
     'runPanel：record 帶 caseId + judge-estimate 軌 [T1]');
   assert(r.goldAgreement === null, 'runPanel：無金標 → goldAgreement null [T1]');
-  // 壞 output 仍產 record（valid false、pass false），計入 panel
+
+  // 壞 output：record 仍計入 panelSize/落檔，但 valid false → **棄權**（不投票、不翻盤共識）
   const withBad = runPanel([...VERDICTS, { judgeId: 'd', model: 'm4', output: 'garbage' }],
     { rubricMeta: RUBRIC_META, caseId: 'c1' });
   const bad = withBad.records.find((rec) => rec.judgeId === 'd');
-  assert(withBad.panelSize === 4 && bad.valid === false && bad.pass === false,
-    'runPanel：壞 output → record valid false / pass false 仍計入 [T1]');
+  assert(withBad.panelSize === 4 && withBad.validCount === 3 && bad.valid === false && bad.pass === false,
+    'runPanel：壞 output → 計入 panelSize 但不計 validCount（棄權）[T1]');
+  assert(withBad.consensus.pass === true,
+    'runPanel：壞 verdict 棄權 → 共識仍由 3 valid 決定（不被壞輸出翻盤）[T1]');
+
+  // N=2：一真 pass + 一 garbage → garbage 棄權 → 共識 pass（非被稀釋成平手）
+  const n2 = runPanel([VERDICTS[0], { judgeId: 'x', output: 'not json' }], { rubricMeta: RUBRIC_META, caseId: 'c1' });
+  assert(n2.validCount === 1 && n2.consensus.pass === true && n2.consensus.passTie === false,
+    'runPanel：N=2 一真 pass + 一壞 → 壞棄權、共識 pass（不稀釋）[T1]');
+
+  // 空 / 全壞 verdict → consensus null（穩定、不 crash）
+  const empty = runPanel([], { rubricMeta: RUBRIC_META, caseId: 'c1' });
+  assert(empty.consensus === null && empty.panelSize === 0 && empty.validCount === 0,
+    'runPanel：空 verdict → consensus null panelSize 0 [T1]');
+  const allBad = runPanel([{ judgeId: 'a', output: 'x' }, { judgeId: 'b', output: 'y' }],
+    { rubricMeta: RUBRIC_META, caseId: 'c1' });
+  assert(allBad.consensus === null && allBad.panelSize === 2 && allBad.validCount === 0,
+    'runPanel：全壞 verdict → consensus null（validCount 0）[T1]');
 }
 
 // ── T2 runPanel goldAgreement ────────────────────────────────────────────────────
 {
   const agree = runPanel(VERDICTS, { rubricMeta: RUBRIC_META, caseId: 'c1', gold: [{ id: 'c1', goldPass: true }] });
-  assert(agree.goldAgreement && agree.goldAgreement.agree === true && agree.goldAgreement.gold === true,
+  assert(agree.goldAgreement && agree.goldAgreement.agree === true && agree.goldAgreement.consensusTie === false,
     'runPanel：共識 pass===gold → agree true [T2]');
   const dis = runPanel(VERDICTS, { rubricMeta: RUBRIC_META, caseId: 'c1', gold: [{ id: 'c1', goldPass: false }] });
   assert(dis.goldAgreement && dis.goldAgreement.agree === false, 'runPanel：共識 pass≠gold → agree false [T2]');
   const noCase = runPanel(VERDICTS, { rubricMeta: RUBRIC_META, caseId: 'c1', gold: [{ id: 'other', goldPass: true }] });
   assert(noCase.goldAgreement === null, 'runPanel：金標無此 case → goldAgreement null [T2]');
+  // 平手共識（2 valid 對半）→ agree null（不把擲銅板說成與金標一致）
+  const tie = runPanel(
+    [{ judgeId: 'a', output: '{"score":5,"pass":true,"reasoning":"x"}' },
+      { judgeId: 'b', output: '{"score":2,"pass":false,"reasoning":"y"}' }],
+    { rubricMeta: RUBRIC_META, caseId: 'c1', gold: [{ id: 'c1', goldPass: false }] });
+  assert(tie.consensus.passTie === true && tie.goldAgreement.agree === null && tie.goldAgreement.consensusTie === true,
+    'runPanel：平手共識 → agree null + consensusTie true [T2]');
 }
 
 // ── T3 CLI spawn smoke ──────────────────────────────────────────────────────────
@@ -88,6 +113,22 @@ function run(args) {
   assert(run(['bogus']).status === 2, 'CLI：未知命令 → exit 2 [T3]');
   assert(run(['run', '--rubric', join(dir, 'nope.md'), '--verdicts', verdictsFile, '--case-id', 'c1']).status === 3,
     'CLI run：rubric 讀檔失敗 → exit 3 [T3]');
+  // 落檔 record 欄位完整（非只 track）+ rubricValid
+  const rec0 = JSON.parse(recLines[0]);
+  assert(rec0.caseId === 'c1' && typeof rec0.pass === 'boolean' && rec0.score !== undefined && rec0.judgeId,
+    'CLI run：落檔 record 欄位完整（caseId/pass/score/judgeId）[T3]');
+  assert(out.rubricValid === true, 'CLI run：合法 rubric → rubricValid true [T3]');
+  // 錯誤路徑：缺 --case-id exit2、verdicts/gold 讀檔失敗 exit3
+  assert(run(['run', '--rubric', rubricFile, '--verdicts', verdictsFile]).status === 2,
+    'CLI run：缺 --case-id → exit 2 [T3]');
+  assert(run(['run', '--rubric', rubricFile, '--verdicts', join(dir, 'nope.jsonl'), '--case-id', 'c1']).status === 3,
+    'CLI run：verdicts 讀檔失敗 → exit 3 [T3]');
+  assert(run(['run', '--rubric', rubricFile, '--verdicts', verdictsFile, '--case-id', 'c1', '--gold', join(dir, 'nope.json')]).status === 3,
+    'CLI run：gold 讀檔失敗 → exit 3 [T3]');
+  // --judge-file 落檔失敗（指向目錄 EISDIR）仍 exit 0 + 印 report + stderr
+  const dirAsFile = join(dir, 'isdir'); mkdirSync(dirAsFile);
+  const pWf = run(['run', '--rubric', rubricFile, '--verdicts', verdictsFile, '--case-id', 'c1', '--judge-file', dirAsFile]);
+  assert(pWf.status === 0 && /落檔失敗/.test(pWf.stderr), 'CLI run：落檔失敗仍 exit 0 + stderr [T3]');
   rmSync(dir, { recursive: true, force: true });
 }
 

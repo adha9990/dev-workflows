@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { parseRubricMeta, parseVerdict, validateVerdict, buildJudgeRecord, appendJudgeRecord } from './eval-judge.mjs';
+import { parseRubricMeta, validateRubric, parseVerdict, validateVerdict, buildJudgeRecord, appendJudgeRecord } from './eval-judge.mjs';
 import { aggregatePanel } from './eval-poll.mjs';
 
 const CALIBRATION_NOTE = '跨 case 的 Cohen κ 校準：對累積的 judge-results.jsonl 跑 `eval-poll.mjs kappa --records <jsonl> --gold <json>`';
@@ -26,7 +26,7 @@ const CALIBRATION_NOTE = '跨 case 的 Cohen κ 校準：對累積的 judge-resu
  * aggregatePanel 出單 case 共識；有 gold 則算該 case 共識 vs 金標的 agreement。
  * 複用 #32 解析/驗證/分軌 + #33 投票聚合；不 spawn、跨 case κ 不在此（見 CALIBRATION_NOTE）。
  */
-export function runPanel(verdicts, { rubricMeta = {}, caseId = null, gold = null } = {}) {
+export function runPanel(verdicts, { rubricMeta = {}, caseId = null, gold = null, ts = null } = {}) {
   const list = Array.isArray(verdicts) ? verdicts : [];
   const params = {
     scaleMin: rubricMeta.scaleMin,
@@ -36,12 +36,16 @@ export function runPanel(verdicts, { rubricMeta = {}, caseId = null, gold = null
   };
   const records = list.map((v) => {
     const validated = validateVerdict(parseVerdict(v?.output), params);
-    return buildJudgeRecord(validated, { judgeId: v?.judgeId ?? null, model: v?.model ?? null, caseId });
+    return buildJudgeRecord(validated, { judgeId: v?.judgeId ?? null, model: v?.model ?? null, caseId, ts });
   });
-  const consensus = aggregatePanel(records, {})[0] ?? null;
+  // **棄權語意**：只有 valid 的 verdict 投票——解析失敗 / 越界的 judge 是「沒投票」（不是投反對），否則 N=2
+  // 時單一壞輸出會把共識翻成平手/不過。壞 record 仍計入 panelSize、仍落檔（透明），但不進投票池。
+  const voting = records.filter((r) => r.valid === true);
+  const consensus = aggregatePanel(voting, {})[0] ?? null;
   return {
     caseId,
     panelSize: records.length,
+    validCount: voting.length,
     consensus,
     records,
     goldAgreement: computeGoldAgreement(gold, caseId, consensus),
@@ -49,12 +53,14 @@ export function runPanel(verdicts, { rubricMeta = {}, caseId = null, gold = null
   };
 }
 
-/** 該 case 的 panel 共識 pass vs 金標 goldPass 是否一致（跨 case κ 才是統計校準，見 note）。 */
+/** 該 case 的 panel 共識 pass vs 金標 goldPass 是否一致（跨 case κ 才是統計校準，見 note）。
+ *  平手共識（passTie）= 沒有真共識 → agree:null（不把擲銅板說成與金標一致）。 */
 function computeGoldAgreement(gold, caseId, consensus) {
   if (!Array.isArray(gold) || !consensus) return null;
   const g = gold.find((x) => x?.id === caseId);
   if (!g || typeof g.goldPass !== 'boolean') return null;
-  return { gold: g.goldPass, consensus: consensus.pass, agree: g.goldPass === consensus.pass };
+  if (consensus.passTie) return { gold: g.goldPass, consensus: consensus.pass, consensusTie: true, agree: null };
+  return { gold: g.goldPass, consensus: consensus.pass, consensusTie: false, agree: g.goldPass === consensus.pass };
 }
 
 // ── 薄 IO：CLI（被 import 時不執行）──────────────────────────────────────────────
@@ -103,14 +109,27 @@ function cmdRun(argv) {
     try { gold = JSON.parse(readFileSync(resolve(opts.gold), 'utf8')); }
     catch (e) { console.error(`run: gold 讀取失敗 ${opts.gold}: ${e?.message ?? e}`); process.exit(3); }
   }
-  const result = runPanel(loaded.rows, { rubricMeta: parseRubricMeta(rubricText), caseId: opts.caseId, gold });
+  const rubricMeta = parseRubricMeta(rubricText);
+  // 揭露 rubric 是否合法——殘缺 rubric（如缺 threshold）會讓每筆 verdict 越界 → 整 case 靜默全 fail；
+  // 不靜默，印 stderr 警示 + report 帶 rubricValid/reasons（advisory，仍 exit 0）。
+  const rubricCheck = validateRubric(rubricMeta);
+  if (!rubricCheck.valid) {
+    console.error(`run: 警告 — rubric 不合法（共識可能失真）：${rubricCheck.reasons.join('；')}`);
+  }
+  const result = runPanel(loaded.rows, { rubricMeta, caseId: opts.caseId, gold, ts: new Date().toISOString() });
   // 落檔（opt-in）：每筆 record append judge-results.jsonl；失敗不擋路（stderr + 仍印 report）。
   if (opts.judgeFile) {
     const jf = resolve(opts.judgeFile);
-    try { for (const rec of result.records) appendJudgeRecord(jf, rec); }
-    catch (e) { console.error(`run: 落檔失敗 ${jf}: ${e?.message ?? e}（report 仍輸出）`); }
+    let wrote = 0;
+    try { for (const rec of result.records) { appendJudgeRecord(jf, rec); wrote += 1; } }
+    catch (e) { console.error(`run: 落檔失敗 ${jf}（已寫 ${wrote}/${result.records.length} 筆，可能含部分 panel）: ${e?.message ?? e}（report 仍輸出）`); }
   }
-  console.log(JSON.stringify({ ...result, skipped: loaded.skipped }, null, 2));
+  console.log(JSON.stringify({
+    ...result,
+    rubricValid: rubricCheck.valid,
+    ...(rubricCheck.valid ? {} : { rubricReasons: rubricCheck.reasons }),
+    skipped: loaded.skipped,
+  }, null, 2));
   process.exit(0);
 }
 

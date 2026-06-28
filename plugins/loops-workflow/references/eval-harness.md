@@ -284,3 +284,19 @@ exit code：產出 0（含 k>total 的 task 標 null/reason、advisory 永不擋
 
 ## ⚠️ 成本/沙箱邊界（見 protocol 文件）
 真跑很貴（task 數 × N 重生 × 多 agent）→ 建議小語料庫 + N=3–5、只在量可靠度時跑。跑候選＝執行任意碼 → 沿用 eval-oracle 信任邊界（只在信任語料庫跑）。容器化沙箱實作 out-of-scope（本票只給邊界文件）。pass^k 為估算（N 有限），標來源。
+
+---
+
+# 活流程 — judge panel（`eval-panel.mjs` + `references/eval-judge-panel.md`，Phase 3）
+
+> 把 E4 eval-judge + E5 eval-poll 從 standalone 引擎接成**可跑的活流程**：主迴圈派 N 異質 judge 評一份 artifact → 組合膠水算共識。**派 N judge＝上層 recipe（主迴圈/Workflow）**；組合 N verdict→共識＝`eval-panel.mjs`（**不 spawn**）。完整 recipe（含反偏誤三點、verdicts.jsonl 形狀）見 `references/eval-judge-panel.md`。
+
+## 純函式組合（`eval-panel.mjs`）
+`runPanel(verdicts, {rubricMeta, caseId, gold, ts})`：對每個 verdict（`{judgeId, model, output}`，output＝raw 文字）跑 `parseVerdict→validateVerdict→buildJudgeRecord`（複用 E4）→ **只把 valid 的 record 投票**（棄權語意：壞 verdict 計入 panelSize/落檔但不投票）→ `aggregatePanel`（複用 E5）出共識 → `{consensus, validCount, panelSize, goldAgreement, records, calibrationNote}`。**跨 case Cohen κ 校準＝既有 `eval-poll kappa`**（累積 judge-results.jsonl 後跑，不在 panel 重造、避免單 case κ 退化）。
+
+## 跑
+```bash
+node plugins/loops-workflow/scripts/eval-panel.mjs run --rubric plugins/loops-workflow/references/eval-judge-rubric.md \
+  --verdicts <verdicts.jsonl> --case-id <artifact-id> [--gold plugins/loops-workflow/evals/gold/explanation-quality.json] [--judge-file .loops/.metrics/judge-results.jsonl]
+```
+exit code：產出 0（advisory；rubric 不合法只警示不擋、report 帶 `rubricValid`）/ 缺旗標·未知命令 2 / rubric·verdicts·gold 讀檔失敗 3。輸出含 `skipped/validCount`。
