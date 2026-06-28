@@ -1,0 +1,8 @@
+{
+  "name": "issue-lifecycle",
+  "_doc": "issue 驅動迴圈的 trajectory reference：required＝不可跳的核心關卡；optional＝視情況的前置/收尾階段；order＝核心關卡的相對先後；forbidden＝issue 迴圈不該出現的階段。observed 由 loop.md Journal 的 [stage] 標記抽出。",
+  "required": ["goal", "plan", "build", "verify", "iterate"],
+  "optional": ["dispatch", "clarify", "define", "explore", "ship", "explain"],
+  "order": ["goal", "plan", "build", "verify", "iterate"],
+  "forbidden": ["scaffold"]
+}
