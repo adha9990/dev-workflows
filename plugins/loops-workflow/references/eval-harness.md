@@ -218,7 +218,7 @@ node plugins/loops-workflow/scripts/eval-poll.mjs poll --records <judge-results.
 exit code：產出 0（advisory 永不擋路）/ 缺旗標·未知命令·**未知 `--score-method`** 2 / 讀檔失敗 3。輸出含 `loaded/skipped`（揭露跳過的壞行數）。**`poll` 需 record 帶 `caseId` 才有意義**——缺 caseId 的 record 會被併為單一 null 群、印 stderr 警示。panel fan-out（派 N judge、各帶 `--case-id` 落 record）由上層做；`eval-poll.mjs` 只聚合。
 
 ## 範圍邊界
-單票只交付**確定性聚合 + 金標 schema**。真派 judge panel / 真標 50–100 筆金標＝留 operator/上層。scenario 版本 tag + eval↔verify 銜接＝**E6（已落地，見下）**；live-candidate 真跑＝#36。
+單票只交付**確定性聚合 + 金標 schema**。**真派 judge panel 的活流程＝Phase 3 已落地**（`references/eval-judge-panel.md` recipe + `eval-panel.mjs` 組合膠水：主迴圈派 N 異質 judge → verdicts → 共識 + 金標 agreement，累積後 `eval-poll kappa` 校準；膠水不 spawn、派 judge 留 recipe）。真標 50–100 筆金標＝留 operator（#50）。scenario 版本 tag + eval↔verify 銜接＝**E6（已落地，見下）**；live-candidate 真跑＝#36。
 
 ---
 
@@ -284,3 +284,19 @@ exit code：產出 0（含 k>total 的 task 標 null/reason、advisory 永不擋
 
 ## ⚠️ 成本/沙箱邊界（見 protocol 文件）
 真跑很貴（task 數 × N 重生 × 多 agent）→ 建議小語料庫 + N=3–5、只在量可靠度時跑。跑候選＝執行任意碼 → 沿用 eval-oracle 信任邊界（只在信任語料庫跑）。容器化沙箱實作 out-of-scope（本票只給邊界文件）。pass^k 為估算（N 有限），標來源。
+
+---
+
+# 活流程 — judge panel（`eval-panel.mjs` + `references/eval-judge-panel.md`，Phase 3）
+
+> 把 E4 eval-judge + E5 eval-poll 從 standalone 引擎接成**可跑的活流程**：主迴圈派 N 異質 judge 評一份 artifact → 組合膠水算共識。**派 N judge＝上層 recipe（主迴圈/Workflow）**；組合 N verdict→共識＝`eval-panel.mjs`（**不 spawn**）。完整 recipe（含反偏誤三點、verdicts.jsonl 形狀）見 `references/eval-judge-panel.md`。
+
+## 純函式組合（`eval-panel.mjs`）
+`runPanel(verdicts, {rubricMeta, caseId, gold, ts})`：對每個 verdict（`{judgeId, model, output}`，output＝raw 文字）跑 `parseVerdict→validateVerdict→buildJudgeRecord`（複用 E4）→ **只把 valid 的 record 投票**（棄權語意：壞 verdict 計入 panelSize/落檔但不投票）→ `aggregatePanel`（複用 E5）出共識 → `{consensus, validCount, panelSize, goldAgreement, records, calibrationNote}`。**跨 case Cohen κ 校準＝既有 `eval-poll kappa`**（累積 judge-results.jsonl 後跑，不在 panel 重造、避免單 case κ 退化）。
+
+## 跑
+```bash
+node plugins/loops-workflow/scripts/eval-panel.mjs run --rubric plugins/loops-workflow/references/eval-judge-rubric.md \
+  --verdicts <verdicts.jsonl> --case-id <artifact-id> [--gold plugins/loops-workflow/evals/gold/explanation-quality.json] [--judge-file .loops/.metrics/judge-results.jsonl]
+```
+exit code：產出 0（advisory；rubric 不合法只警示不擋、report 帶 `rubricValid`）/ 缺旗標·未知命令 2 / rubric·verdicts·gold 讀檔失敗 3。輸出含 `skipped/validCount`。
