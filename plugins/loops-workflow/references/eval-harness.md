@@ -135,6 +135,8 @@ node plugins/loops-workflow/scripts/eval-oracle.mjs --dir plugins/loops-workflow
 node plugins/loops-workflow/scripts/eval-metrics.mjs record --dir plugins/loops-workflow/evals/build [--metrics-file <path>]
 # 回歸判定（相對 baseline 退化 → exit≠0）
 node plugins/loops-workflow/scripts/eval-metrics.mjs check [--metrics-file <path>] [--baseline <n>] [--tolerance <Δ>]
+# 依 scenario 版本分組追溯（read-only，印各 version 的 records / avgPassRate；#51）
+node plugins/loops-workflow/scripts/eval-metrics.mjs versions [--metrics-file <path>]
 ```
 
 > MVP 交付為 CLI；自動掛回歸檢查已由 **#35 的 `eval-gate` Stop hook**（opt-in `LOOPS_EVAL_GATE`、改檔回合自動跑 `check`、退化注入）落地；`eval-results.jsonl` 由 `appendEvalRow` 內建 rotation（上限 1000 行）防無界成長。
@@ -195,7 +197,7 @@ node plugins/loops-workflow/scripts/eval-judge.mjs parse --rubric <rubric.md> --
 exit code：`validate-rubric` valid 0 / invalid 1 / 讀檔失敗 3；`parse` 產出 record 0（**含 verdict invalid——advisory 永不擋路、record 自帶 `valid` 誠實標**）/ 缺旗標·未知命令 2 / 讀檔失敗 3。
 
 ## 範圍邊界
-本支只 **single-answer rubric judge**。**多 judge 投票（PoLL）+ Cohen κ 校準＝E5（已落地，見下）**；scenario 版本/tag + eval↔verify 銜接＝#34；live-candidate 真跑＝#36。
+本支只 **single-answer rubric judge**。**多 judge 投票（PoLL）+ Cohen κ 校準＝E5（已落地，見下）**；scenario 版本/tag + eval↔verify 銜接＝**E6（已落地，見下）**（version 跨 run 追溯 consumer＝#51，見 E2）；live-candidate 真跑＝#36。
 
 ---
 

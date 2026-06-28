@@ -259,12 +259,14 @@ function runCheck(opts) {
 }
 
 /**
- * versions：讀歷史 → 依 versions 分桶 → 每桶印一行摘要（version / runs＝桶內 row 數 / avgPassRate）。
+ * versions：讀歷史 → 依 versions 分桶 → 每桶印一行摘要（version / records＝桶內 row 數 / avgPassRate）。
+ * label 用 records（非 runs）：row 自身另有語意不同的 runs 欄（oracle 重跑次數），桶計數叫 runs 會撞名誤導。
+ * 版本鍵升冪輸出（字典序）、NO_VERSION_BUCKET 桶永遠殿後（不論字典序），確保亂序寫入下輸出穩定可重現。
  * 純唯讀報表（不寫檔、非 gate），恆 exit 0；缺檔 → readEvalRows 回 [] → 桶為空 → 印 (no records)。
  */
 function runVersions(opts) {
   const buckets = groupRowsByVersion(readEvalRows(resolveMetricsFile(opts.metricsFile)));
-  const versions = Object.keys(buckets);
+  const versions = orderVersionBuckets(Object.keys(buckets));
   if (versions.length === 0) {
     console.log('eval-metrics: (no records)');
     return EXIT_OK;
@@ -272,9 +274,15 @@ function runVersions(opts) {
   for (const version of versions) {
     const rows = buckets[version];
     const avgPassRate = rows.length > 0 ? rows.reduce((sum, row) => sum + passRateOf(row), 0) / rows.length : 0;
-    console.log(`  ${version}  runs ${rows.length}  avgPassRate ${avgPassRate.toFixed(4)}`);
+    console.log(`  ${version}  records ${rows.length}  avgPassRate ${avgPassRate.toFixed(4)}`);
   }
   return EXIT_OK;
+}
+
+/** 版本鍵升冪（字典序）排序，NO_VERSION_BUCKET 桶永遠殿後（不論字典序）。 */
+function orderVersionBuckets(keys) {
+  const named = keys.filter((key) => key !== NO_VERSION_BUCKET).sort();
+  return keys.includes(NO_VERSION_BUCKET) ? [...named, NO_VERSION_BUCKET] : named;
 }
 
 function parseArgs(argv) {

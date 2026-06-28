@@ -521,6 +521,11 @@ function readJsonl(file) {
     assert(row && row.passRate === 1, 'E-record：committed 語料庫 5/5 → passRate===1 [E-record]');
     assert(row && row.passed === 5, 'E-record：passed===5 [E-record]');
     assert(row && row.errored === 0, 'E-record：5/5 全綠 → errored===0 [E-record]');
+    // committed corpus：5 task 中僅 b1-add.json 帶 version:"1.0"，其餘 4 task 無 version。
+    // summarizeVersions 去重 → ['1.0']。此條釘整條 oracle report → buildEvalRow → 落盤 鏈
+    // 真把 corpus 的 version 攤進 row.versions（鏈中任一環沒帶過 version 就會紅）。
+    assert(JSON.stringify(row && row.versions) === JSON.stringify(['1.0']),
+      'E-record：record 把 corpus 真實 version 寫進 row.versions（整條 oracle passthrough→buildEvalRow→落盤鏈）[E-record]');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -700,15 +705,24 @@ function readJsonl(file) {
 //  暫存檔放 os.tmpdir()、測完 rmSync 清掉（冪等）。
 // ════════════════════════════════════════════════════════════════════════════
 
-// ── E-versions：多筆 row（含/不含 versions）→ versions → exit 0、stdout 含 1.0 / 1.1 / (none)，且 '1.0' 反映 2 runs [契約5 versions 摘要]
+// ── E-versions：多筆 row（含/不含 versions）→ versions → exit 0；新 CLI 契約＝每行
+//    `<version>  records <N>  avgPassRate <X>`（label 為 records 非 runs；avgPassRate 4 位小數），
+//    且版本鍵升冪輸出、'(none)' 殿後。fixture 刻意「亂序寫入」（1.1 先於 1.0）讓排序斷言有 teeth [契約5 versions 摘要]
 {
   const dir = mkdtempSync(join(tmpdir(), 'em-versions-'));
   const metricsFile = join(dir, 'eval-results.jsonl');
   try {
+    // 可預測 fixture（每筆 runs:1，桶內 record 數 ≠ runs 欄值 → 驗 label 為 records）：
+    //   1.0 桶 = rowB(1.0) + rowC(0.5) → records 2、avgPassRate (1.0+0.5)/2 = 0.7500
+    //   1.1 桶 = rowA(1.0)            → records 1、avgPassRate 1.0000
+    //   (none) 桶 = rowD(無 versions)  → records 1、avgPassRate 1.0000
+    // 寫入序刻意亂（rowA=1.1 先、rowB/rowC=1.0 後、rowD=(none) 最後）：
+    //   不排序的 impl（Object.keys 插入序）會印成 1.1 先於 1.0 → 排序斷言先紅。
     writeFileSync(metricsFile, [
-      JSON.stringify({ ts: 'T1', corpus: 'evals/build', schema: 2, runs: 1, total: 5, passed: 5, failed: 0, errored: 0, passRate: 1.0, passK: 1.0, versions: ['1.0'] }),
-      JSON.stringify({ ts: 'T2', corpus: 'evals/build', schema: 2, runs: 1, total: 5, passed: 5, failed: 0, errored: 0, passRate: 1.0, passK: 1.0, versions: ['1.0', '1.1'] }),
-      JSON.stringify({ ts: 'T3', corpus: 'evals/build', schema: 1, runs: 1, total: 4, passed: 2, failed: 2, errored: 0, passRate: 0.5, passK: 0.5 }), // 舊 row 無 versions → (none)
+      JSON.stringify({ ts: 'T1', corpus: 'evals/build', schema: 2, runs: 1, total: 5, passed: 5, failed: 0, errored: 0, passRate: 1.0, passK: 1.0, versions: ['1.1'] }), // rowA
+      JSON.stringify({ ts: 'T2', corpus: 'evals/build', schema: 2, runs: 1, total: 5, passed: 5, failed: 0, errored: 0, passRate: 1.0, passK: 1.0, versions: ['1.0'] }), // rowB
+      JSON.stringify({ ts: 'T3', corpus: 'evals/build', schema: 2, runs: 1, total: 4, passed: 2, failed: 2, errored: 0, passRate: 0.5, passK: 0.5, versions: ['1.0'] }), // rowC
+      JSON.stringify({ ts: 'T4', corpus: 'evals/build', schema: 1, runs: 1, total: 5, passed: 5, failed: 0, errored: 0, passRate: 1.0, passK: 1.0 }), // rowD：舊 row 無 versions → (none)
     ].join('\n') + '\n', 'utf8');
     const res = runMetrics(['versions', '--metrics-file', metricsFile]);
     assert(res.error == null, 'E-versions：node 啟動成功（spawn 無 error）[E-versions]');
@@ -717,8 +731,25 @@ function readJsonl(file) {
     assert(out.includes('1.0'), "E-versions：stdout 含版本 '1.0' 摘要 [E-versions]");
     assert(out.includes('1.1'), "E-versions：stdout 含版本 '1.1' 摘要 [E-versions]");
     assert(out.includes('(none)'), "E-versions：stdout 含 '(none)' 那組（舊無 versions row）[E-versions]");
-    assert(out.split('\n').some((l) => l.includes('1.0') && /\b2\b/.test(l)),
-      "E-versions：'1.0' 摘要反映 2 runs（T1+T2 兩筆帶 1.0）[E-versions]");
+
+    // 版本鍵在行首；用 \s 邊界避免把 avg 值裡的 '1.0000' 當成 '1.0' 行首誤吃。
+    const lines = out.split('\n').map((l) => l.trim());
+    const idx10 = lines.findIndex((l) => /^1\.0\s/.test(l));
+    const idx11 = lines.findIndex((l) => /^1\.1\s/.test(l));
+    const idxNone = lines.findIndex((l) => /^\(none\)\s/.test(l));
+    const v10 = idx10 >= 0 ? lines[idx10] : '';
+
+    // (1) label rename：1.0 桶含 2 record → 印 `records 2`（現 impl 印 `runs 2` → 先紅）
+    assert(v10.includes('records 2'),
+      "E-versions：'1.0' 桶印 records 2（label 由 runs 改 records；row 自身 runs 欄語意不同）[E-versions]");
+    // (2) avgPassRate 數值：1.0 桶 (1.0+0.5)/2 = 0.7500（4 位小數）。改壞平均（錯分母/漏項/回 0）→ 紅
+    assert(v10.includes('avgPassRate 0.7500'),
+      "E-versions：'1.0' 桶 avgPassRate===0.7500（兩筆 1.0/0.5 平均、4 位小數）[E-versions]");
+    // (3) 排序：版本鍵升冪、'(none)' 殿後（1.0 < 1.1 < (none)）。亂序寫入下不排序則紅
+    assert(idx10 >= 0 && idx11 >= 0 && idxNone >= 0,
+      'E-versions：三個版本桶摘要行皆出現於 stdout [E-versions]');
+    assert(idx10 < idx11 && idx11 < idxNone,
+      "E-versions：版本桶升冪輸出、'(none)' 殿後（1.0 < 1.1 < (none)）；亂序寫入(1.1 先) → 不排序則紅 [E-versions]");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
