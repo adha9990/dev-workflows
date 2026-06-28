@@ -109,7 +109,7 @@ ECC 是「agent harness performance optimization system」（271 skill、67 agen
 
 - `[90%]` 主線複跑勝過 subagent 自報 / LSP diagnostics
 - `[85%]` plugin hook 一律 opt-in 預設關 + 永不擋路
-- `[85%]` docs-only verify 派 2-3 軸、含 code 依風險梯（#8 二分 → #38 4 級：LIGHT/STANDARD/DEEP）
+- `[85%]` 瑣碎 docs→SKIP、實質 docs→2 軸（product-contract+docs-devex）、含 code 依風險梯（#8 二分 → #38 4 級）
 - `[80%]` 檔案數 / 度量以 `ls` / 實跑為準、不信算術
 - `[80%]` 自動執行 repo 內容 / 注入 context → 威脅建模 + 信任警示
 

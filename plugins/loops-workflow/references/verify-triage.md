@@ -7,9 +7,10 @@
 ```
 1. 碰「高風險硬閘清單」任一？           → DEEP（不論行數多小）
 2. 否則 大 blast-radius / 大量 AI 生成？  → DEEP
-3. 否則 符合「SKIP 條件」且「SKIP 護欄」全成立？ → SKIP
-4. 否則 符合「LIGHT 判準」全成立？        → LIGHT
-5. 否則（含任何 code 的一般改動）         → STANDARD（預設）
+3. 否則 符合「SKIP 條件」且「SKIP 護欄」全成立？ → SKIP（0 核心；§1.5 仍正交）
+4. 否則 非 code 的實質文件 / 設定（有驗收契約）？ → product-contract + §1.5 docs-devex（不入下面 code 級梯）
+5. 否則 符合「LIGHT 判準」全成立？        → LIGHT
+6. 否則（含任何 code 的一般改動）         → STANDARD（預設）
 ```
 
 > **任一步驟存疑 → 取較嚴的級**。含 code 至少 LIGHT；混 code+文件 / 混多領域 → 當 code 並至少 STANDARD。
@@ -26,13 +27,13 @@
 - **並發 / 非同步 / 背景流程**：queue、background job、鎖、交易邊界、重試 / 冪等路徑。
 - **IaC / 部署設定**：CI/CD 發布、基礎設施、權限 / 網路設定。
 
-> 命中高風險硬閘的 DEEP 流程：先 §1.6 stage-0 tripwire（product-contract + correctness）→ 過了才放完整 6 軸 + 必帶條件式 + §2.5 holistic。
+> 命中高風險硬閘的 DEEP 流程：先 §1.6 stage-0 tripwire（product-contract + correctness）→ 過了才放完整 6 軸 + **對應領域條件式**（§1.5 觸及才加；auth/加密/金流等無對應條件式者由核心 security 軸承接）+ §2.5 holistic。
 
 ## 大 blast-radius / 大量 AI 生成（→ DEEP）
 
 > 門檻是**啟發式代理、非精準**（拿不準一律向嚴升 DEEP）。
 
-- **大 blast-radius**：改到**被廣泛 import 的共用元件 / 核心型別 / 跨多模組的契約**（改一處波及面大）。代理：被 **≥ ~5 處** import、或在 **public barrel / index 匯出**、或屬**核心型別 / 共用 schema**。
+- **大 blast-radius**：改到**被廣泛 import 的共用元件 / 核心型別 / 跨多模組的契約**（改一處波及面大）。代理：**fan-in ≥ ~5（import / caller 站點）**、或在 **public barrel / index 匯出**、或屬**核心型別 / 共用 schema**。
 - **大量 AI 生成**：單次大批 AI 生成的 code（缺人類審的大批生成缺陷率較高）。代理：單次 **> ~100 行** AI 生成。
 
 ## SKIP 條件（受護欄保護的瑣碎面 → 不派核心 reviewer；§1.5 條件式仍正交）
@@ -59,7 +60,7 @@
 **全部成立**才走 LIGHT，任一存疑 → STANDARD：
 
 1. **單一領域** —— diff confined 在一個模組 / 關注點。
-2. **低 blast-radius** —— 動到的 symbol fan-in 低（代理：**< ~5 caller**、非 public barrel / index 匯出、非核心型別 / 跨切面）。
+2. **低 blast-radius** —— 動到的 symbol fan-in 低（代理：**fan-in < ~5（import / caller 站點）**、非 public barrel / index 匯出、非核心型別 / 跨切面）。
 3. **有測試覆蓋** —— 被改的 code 已有既有測試守。
 4. **不碰高風險硬閘路徑**。
 5. **無夾帶（tangling）**。

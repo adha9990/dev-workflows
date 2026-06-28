@@ -158,7 +158,7 @@ flowchart LR
 
 | 項目 | 內容 |
 |---|---|
-| **skill** | `verify`（1）｜**agent** **依風險 1～6 核心（§1.4 4 級梯）+ 0～9 條件式 + holistic（DEEP必/STANDARD可選）+ N 個 finding-validator**（同一回合並行） |
+| **skill** | `verify`（1）｜**agent** **依風險 0～6 核心（§1.4 4 級梯）+ 0～9 條件式 + holistic（DEEP必/STANDARD可選）+ N 個 finding-validator**（同一回合並行） |
 | **處理什麼** | 合併前把關：多個獨立視角各審一軸，再二輪驗證 findings |
 | **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`）· **作者已留痕的決定不算 finding** · **獨立安全網非第一道品質關**（標準已在 build shift-left 套用，verify 複查 + 抓盲點） |
 
@@ -184,7 +184,7 @@ flowchart TD
     FV --> OUT[P0–P3 + Confidence + Route<br/>→ Ready / Not ready → 04-verify.md]
 ```
 
-> **派幾軸由 §1.4 風險 4 級梯決定**：SKIP（護欄保護的瑣碎面，不派）/ LIGHT（小孤立 code，3 軸）/ STANDARD（一般 code，核心 6 軸）/ DEEP（高風險，先 §1.6 tripwire 短路 catastrophic miss、過了才放 6 軸 + §2.5 holistic 交叉軸 pass）。條件式 9 個只在改動觸及該領域才加派（含 bug-fix→root-cause、docs/契約→docs-devex）。每個 blocking finding 過 `finding-validator` 四問二輪才算數。出 P0 才停下問你，否則直接進 iterate。
+> **派幾軸由 §1.4 風險 4 級梯決定**：SKIP（護欄保護的瑣碎面，不派核心軸）/ LIGHT（小孤立 code，3 軸）/ STANDARD（一般 code，核心 6 軸）/ DEEP（高風險，先 §1.6 tripwire 短路 catastrophic miss、過了才放 6 軸 + §2.5 holistic 交叉軸 pass）。**非 code 改動（純 docs/設定）**：瑣碎→SKIP、有驗收契約的實質文件→product-contract + docs-devex（不入 code 級梯）。條件式 9 個只在改動觸及該領域才加派（與核心軸正交，SKIP 仍可帶 docs-devex；含 bug-fix→root-cause、docs/契約→docs-devex）。每個 blocking finding 過 `finding-validator` 四問二輪才算數。出 P0 才停下問你，否則直接進 iterate。
 
 ---
 
@@ -230,7 +230,7 @@ flowchart TD
 |---|---|---|
 | **記憶體** | `.loops/<slug>/`：`loop.md`（儀表板 + Journal）+ `0N-*.md`（各階段精煉產出） | Memory |
 | **隔離工作樹** | 會動 code 的迴圈在 `git worktree`（`<issue#>-<slug>` 同名 branch） | Worktrees |
-| **子代理** | build 紅綠 3 + verify 1～6 核心（§1.4 風險梯）+ holistic + 9 條件式 + validator | Subagents |
+| **子代理** | build 紅綠 3 + verify 0～6 核心（§1.4 風險梯）+ holistic + 9 條件式 + validator | Subagents |
 | **技能** | 13 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
 | **自動化** | `dispatch auto`、`/loop`·`/schedule`、statusline HUD | Automations |

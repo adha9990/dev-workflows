@@ -75,7 +75,7 @@ description: Fans out reviewers right-sized to change risk (4-tier ladder SKIP/L
 - CI/CD 設定 → `ci-cd-reviewer`
 - schema migration / 介面汰換 → `migration-reviewer`
 - **bug fix**（issue 標 bug / 標題含 fix·修·regression）→ `root-cause-reviewer`
-- **docs / README / 對外契約 / CLI / setup / migration / config 改動，或 PR body 聲稱免改文件** → `docs-devex-reviewer`
+- **docs / README / 對外契約 / CLI / setup / migration / config 改動，或 PR body 聲稱免改文件** → `docs-devex-reviewer`（純內部 typo / 格式且無對外契約者除外，視內容）
 
 ### 1.6 DEEP 的 stage-0 tripwire（只在 DEEP 級啟動）
 
