@@ -82,10 +82,15 @@ const RUBRIC_OK = [
   assert(!parseVerdict('prefix {"score":4 no close').parseOk,
     'parseVerdict：無閉合 { → parseOk:false [T1]');
 
-  // fenced 優先 ```json 標籤：先非 json fence、後 json verdict → 抽到後者
-  const preferJson = parseVerdict('```\nplain text block\n```\n```json\n{"score":5,"reasoning":"v"}\n```');
+  // fenced 優先 ```json 標籤：無標籤 fence **本身也是合法 JSON(score 1)**，唯有「優先 json 標籤」
+  // 才會抽到 score 5——顛倒成文件順序的 mutant 會抽到 score 1，故 score===5 真能殺該 mutant（非假綠）。
+  const preferJson = parseVerdict('```\n{"score":1,"reasoning":"u"}\n```\n```json\n{"score":5,"reasoning":"v"}\n```');
   assert(preferJson.parseOk && preferJson.score === 5,
-    'parseVerdict：先非 json fence、後 ```json → 抽 json 那塊 [T1]');
+    'parseVerdict：無標籤 fence 亦合法 JSON、後 ```json → 優先抽 json 標籤那塊(5 非 1) [T1]');
+
+  // 病態輸入（大量 ``` 無換行）→ parseOk:false 且線性掃描不掛（守 O(n) 回歸）
+  assert(!parseVerdict('```'.repeat(20000)).parseOk,
+    'parseVerdict：大量 ``` 無換行 → parseOk:false（線性掃描不掛）[T1]');
 }
 
 // ── T2 parseRubricMeta + validateRubric ───────────────────────────────────────
@@ -168,6 +173,12 @@ const RUBRIC_OK = [
     { score: 4, pass: true, reasoning: 'r', parseOk: true, dimension: 'explanation-quality' },
     { ...params, dimension: 'explanation-quality' });
   assert(dm2.dimensionMismatch === false, 'validateVerdict：dimension 一致 → dimensionMismatch false [T3]');
+
+  // rubric 無 dimension（params 不給）→ 退用 judge 自報、不算 mismatch
+  const dmFallback = validateVerdict(
+    { score: 4, pass: true, reasoning: 'r', parseOk: true, dimension: 'judge-said' }, params);
+  assert(dmFallback.dimension === 'judge-said' && dmFallback.dimensionMismatch === false,
+    'validateVerdict：rubric 無 dimension → 退 judge 自報 + 不算 mismatch [T3]');
 }
 
 // ── T4 buildJudgeRecord / partitionByTrack / rotateLines / appendJudgeRecord ───
@@ -178,6 +189,7 @@ const RUBRIC_OK = [
   };
   const rec = buildJudgeRecord(validated, { judgeId: 'j1', model: 'claude-x', ts: '2026-06-28T00:00:00Z' });
   assert(rec.track === 'judge-estimate', 'buildJudgeRecord：track 硬編 judge-estimate [T4]');
+  assert(rec.dimensionMismatch === false, 'buildJudgeRecord：validated 無 dimensionMismatch → 預設 false [T4]');
   assert(rec.judgeId === 'j1' && rec.model === 'claude-x' && rec.score === 4
     && rec.dimension === 'explanation-quality' && rec.schema === 1 && rec.ts === '2026-06-28T00:00:00Z',
     'buildJudgeRecord：攜 judgeId/model/ts + 透傳欄 [T4]');
@@ -258,10 +270,10 @@ function run(args) {
   // --output - 從 stdin 讀
   const pStdin = spawnSync(process.execPath,
     [SCRIPT, 'parse', '--rubric', rubricFile, '--output', '-', '--judge-file', judgeFile],
-    { encoding: 'utf8', input: '{"score":4,"pass":true,"reasoning":"r"}' });
+    { encoding: 'utf8', input: '{"score":3,"pass":false,"reasoning":"r"}' });
   let recStdin = null; try { recStdin = JSON.parse(pStdin.stdout); } catch { /* leave null */ }
-  assert(pStdin.status === 0 && recStdin && recStdin.score === 4,
-    'CLI parse：--output - 從 stdin 讀 [T5]');
+  assert(pStdin.status === 0 && recStdin && recStdin.score === 3,
+    'CLI parse：--output - 從 stdin 讀（score 3 異於 happy-path 證來自 stdin）[T5]');
 
   // 落檔失敗仍 exit 0 + 印 record + stderr 診斷（--judge-file 指向目錄 → EISDIR）
   const dirAsFile = join(dir, 'isdir'); mkdirSync(dirAsFile);

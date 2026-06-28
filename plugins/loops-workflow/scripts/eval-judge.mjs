@@ -75,10 +75,12 @@ function extractFromFences(text) {
     const afterTicks = open + 3;
     const close = text.indexOf('```', afterTicks);
     if (close < 0) break; // 無閉合 fence → 不再有完整區塊可抽
-    const nl = text.indexOf('\n', afterTicks);
-    const hasLangLine = nl >= 0 && nl < close;
-    const lang = (hasLangLine ? text.slice(afterTicks, nl) : '').trim().toLowerCase();
-    const content = text.slice(hasLangLine ? nl + 1 : afterTicks, close);
+    // 只在本 fence 內 [afterTicks, close) 找語言行換行——各輪掃描區間互斥 → 整體真 O(n)
+    // （不可用 text.indexOf('\n', afterTicks)：無換行時會掃到字串尾，n 個 fence 退化成 O(n²)）。
+    const head = text.slice(afterTicks, close);
+    const nlRel = head.indexOf('\n');
+    const lang = (nlRel >= 0 ? head.slice(0, nlRel) : '').trim().toLowerCase();
+    const content = nlRel >= 0 ? head.slice(nlRel + 1) : head;
     (lang === 'json' ? tagged : untagged).push(content);
     i = close + 3;
   }
