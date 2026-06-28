@@ -166,7 +166,7 @@ flowchart LR
 flowchart TD
     BUILD[build 成果 + 契約] --> TR{§1.4 風險分級<br/>SKIP/LIGHT/STANDARD/DEEP}
     TR -.SKIP·護欄保護瑣碎面.-> OUT
-    TR -->|LIGHT 3軸 / STANDARD 6軸 / DEEP 6軸+holistic| FAN{同一回合一次派出多審查員<br/>該級軸集、全並行}
+    TR -->|LIGHT 3軸 / STANDARD 6軸 / DEEP 6軸| FAN{同一回合一次派出多審查員<br/>該級軸集、全並行<br/>holistic 在 coordinator 之後才跑}
     FAN --> C1[product-contract]
     FAN --> C2[architecture]
     FAN --> C3[security]
@@ -184,7 +184,7 @@ flowchart TD
     AC -->|是| OUT[P0–P3 + Confidence + Route<br/>→ Ready / Not ready → 04-verify.md]
 ```
 
-> **派幾軸由 §1.4 風險 4 級梯決定**：SKIP（護欄保護的瑣碎面，不派核心軸）/ LIGHT（小孤立 code，3 軸）/ STANDARD（一般 code，核心 6 軸）/ DEEP（高風險，核心 6 軸 + §2.5 holistic 全局交叉檢查）。**四級都是「同一回合一次派出、全並行跑完」**——不再像以前 DEEP 先拆一輪「契約+正確性」前置閘（已移除：shift-left 常態下根本做錯很少，先拆一輪只是多跑、多等、零省）。**非 code 改動（純 docs/設定）**：瑣碎→SKIP、有驗收契約的實質文件→product-contract + docs-devex（不入 code 級梯）。條件式 9 個只在改動觸及該領域才加派（與核心軸正交，SKIP 仍可帶 docs-devex；含 bug-fix→root-cause、docs/契約→docs-devex）。每個 blocking finding 過 `finding-validator` 四問二輪才算數。
+> **派幾軸由 §1.4 風險 4 級梯決定**（「fan-out」＝同一回合一次派出多個審查員、各審一軸、並行跑）：SKIP（護欄保護的瑣碎面，不派核心軸）/ LIGHT（小孤立 code，3 軸）/ STANDARD（一般 code，核心 6 軸）/ DEEP（高風險，核心 6 軸；coordinator 彙整後再加一道 §2.5 holistic 全局交叉檢查）。**四級的核心軸都是「同一回合一次派出、全並行跑完」**——不再像以前 DEEP 先拆一輪「契約+正確性」前置閘（已移除：shift-left＝品質在 build 邊寫邊做到位，根本做錯很少，先拆一輪只是多跑、多等、零省）。（holistic 不在這一波並行裡，它要等 coordinator 把所有 finding 彙整完才跑，因為它看的是 finding 全集。）**非 code 改動（純 docs/設定）**：瑣碎→SKIP、有驗收契約的實質文件→product-contract + docs-devex（不入 code 級梯）。條件式 9 個只在改動觸及該領域才加派（與核心軸正交，SKIP 仍可帶 docs-devex；含 bug-fix→root-cause、docs/契約→docs-devex）。每個 blocking finding 過 `finding-validator` 四問二輪才算數。
 >
 > **Ready 前兩道與級別無關的閘（所有級通用）**：① **§1.6 做錯東西就整個退回** —— 審查跑完後若有人確證「做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞」，整個退回 build 重做、不對其他 finding 逐條修。② **§4.5 acceptance-completeness 出口 gate** —— issue 每條 acceptance criterion 都逐項列五態、收斂到 已滿足（有證據）或 明確 descoped（留痕）才放行，任一條 partial 當完成在**任何級**都擋回 iterate。出 P0 才停下問你，否則直接進 iterate。
 

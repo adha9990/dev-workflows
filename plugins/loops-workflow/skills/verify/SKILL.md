@@ -57,7 +57,7 @@ description: Fans out reviewers right-sized to change risk (4-tier ladder SKIP/L
 | **SKIP** | docs / 註解 / 純格式 / test-only / 死碼移除 / SemVer patch 升版 —— **且 SKIP 護欄全成立**（CI 綠 + 單一領域 + 不碰高風險路徑 + 無夾帶）。**含執行語意的 code（含 <5 行邏輯改動）一律 ≥ LIGHT、不進 SKIP** | 0 **核心**軸；§1.5 條件式仍正交（碰對外契約/CLI/setup 文件 → 帶 docs-devex；純內部 typo/格式/test-only 則真 0） |
 | **LIGHT** | 小、孤立、低 blast-radius 的 code（少 caller、易回滾、已有測試覆蓋、單一領域；LIGHT 判準全成立） | `code-quality`(correctness) + `product-contract` + `tests`＝**3 軸**，全並行 |
 | **STANDARD** | 一般 code 改動（**預設**） | 核心 **6 軸**，全並行 |
-| **DEEP** | **高風險硬閘**（見 `verify-triage.md` 清單：auth/authz、加密/密鑰/機敏、金流、DB schema/migration、對外 API/契約、並發/非同步、IaC）或大波及面 或大量 AI 生成 code | 核心 **6 軸** + **對應領域條件式**（§1.5 觸及才加；auth/加密/金流等無對應條件式者由核心 security 軸承接）+ **§2.5 holistic 全局交叉檢查**，**全並行、一次跑完**（不再先拆一輪前置閘）。跑完若有人確證「根本做錯」→ §1.6 整個退回 |
+| **DEEP** | **高風險硬閘**（見 `verify-triage.md` 清單：auth/authz、加密/密鑰/機敏、金流、DB schema/migration、對外 API/契約、並發/非同步、IaC）或大波及面 或大量 AI 生成 code | 核心 **6 軸** + **對應領域條件式**（§1.5 觸及才加；auth/加密/金流等無對應條件式者由核心 security 軸承接）**全並行、一次派出**（不再先拆一輪前置閘）；coordinator 彙整後再加一道 **§2.5 holistic 全局交叉檢查**。跑完若有人確證「根本做錯」→ §1.6 整個退回 |
 
 > **這 4 級梯以 code 風險為主軸。非 code 改動（純 docs / 設定）**：受護欄保護的瑣碎面（typo / 格式 / test-only / 死碼 / SemVer patch）→ SKIP（0 核心）；**有驗收契約的實質文件 / 設定** → `product-contract`（驗收）+ §1.5 領域（docs-devex 等），即 #8 既有的文件右尺寸化（不套 LIGHT/STANDARD/DEEP）。
 
@@ -81,7 +81,9 @@ description: Fans out reviewers right-sized to change risk (4-tier ladder SKIP/L
 
 ### 1.6 做錯東西就整個退回（所有級通用）
 
-審查（fan-out）一次跑完後，**若有 reviewer 確證**（直接證明 / coordinator 當場驗證，不必等 §3 validator 二輪）這次是**根本性做錯** —— 任一種：
+> 時序：這一步發生在 **§2 coordinator 彙整完 findings 之後**（不是派 reviewer 的當下）；編號排在這裡，只是為了和上面的風險分級說明放在一起。
+
+審查（fan-out）一次跑完、coordinator 彙整後，**若有 reviewer 確證**（直接證明 / coordinator 當場驗證，不必等 §3 validator 二輪）這次是**根本性做錯** —— 任一種：
 
 - **做的不是 issue 要的**（解錯問題、做了別的東西）；
 - **核心驗收沒做到卻當完工**（partial 當完成、核心契約落空）；
@@ -89,7 +91,7 @@ description: Fans out reviewers right-sized to change risk (4-tier ladder SKIP/L
 
 → 就**把整個改動退回 build 重做，不要對其他軸的 finding 逐條 iterate**。在註定要大改的東西上修一堆小問題是白工。
 
-- **所有級適用（不限高風險）**：「做錯東西」在 LIGHT/STANDARD/DEEP 都該整個退回。這條與 §4.5 acceptance-completeness 出口 gate **同源**：契約面的「做錯 / partial 當完成」本就是 §4.5 的 P0（§4.5 擋 Ready、本條多一步「整個退回、別逐條修」）；正確性面的「最基本流程崩壞」＝code-quality 的 P0 finding，一樣觸發整個退回。
+- **所有級適用（不限高風險）**：「做錯東西」在 LIGHT/STANDARD/DEEP 都該整個退回。這條與 §4.5 acceptance-completeness 出口 gate **同源**：契約面的「做錯 / partial 當完成」本就是 §4.5 的 P0/P1（§4.5 擋 Ready、本條多一步「整個退回、別逐條修」）；正確性面的「最基本流程崩壞」＝code-quality 的 P0 finding，一樣觸發整個退回。
 - **不另拆前置輪**：以前 DEEP 會先單跑「契約 + 正確性」兩軸當早退閘（舊作法），跑完才放完整審查。**已移除** —— 因為 build 階段本就邊寫邊把品質做到位（shift-left），「根本做錯」其實很少發生，先拆一輪只是多跑一次、多等一輪、常態下零省（保費每次付、理賠罕見）。現在 DEEP 跟其他級一樣**一次跑完整審查**，跑完才整個退回，省掉那道前置輪。
 
 ### 1.7 跑真 app + 本機 /code-review（把 `not measured` 變實測）
