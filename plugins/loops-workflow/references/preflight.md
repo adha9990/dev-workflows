@@ -12,7 +12,7 @@ preflight 的三道關，loops-workflow 既有階段**已經做掉大半**，本
 
 | preflight 關卡 | loops-workflow 既有對應 | 覆蓋程度 |
 |---|---|---|
-| Merge-readiness（合併安全） | `verify`：核心 reviewer fan-out（含 code 全 6 軸 product / architecture / security / performance / code-quality / tests；純文件 / 設定依 §1.4 右尺寸化到最小集）+ 條件式 reviewer + `finding-validator` 二輪 | **完全等價**。verify 就是 merge-review 引擎本身，連 finding 驗證、P0–P3 分級、Ready/Not ready 收斂都有 |
+| Merge-readiness（合併安全） | `verify`：核心 reviewer fan-out（依 §1.4 4 級風險梯右尺寸化：STANDARD 預設 6 軸 product / architecture / security / performance / code-quality / tests；LIGHT 小孤立 code 3 軸；DEEP 高風險加 tripwire + holistic；SKIP 護欄保護的瑣碎面）+ 條件式 reviewer + `finding-validator` 二輪 | **完全等價**。verify 就是 merge-review 引擎本身，連 finding 驗證、P0–P3 分級、Ready/Not ready 收斂都有 |
 | Implementation walkthrough（實作導讀） | `explain` 第 1 段：進入點 / 責任盒 / 介面邊 / payload 流動 + mermaid 圖 + `file:line` 證據錨點 | **完全等價** |
 | Ownership rehearsal（面談預演） | `explain` 第 2 段：5 題 ownership 自測（需求 / 設計取捨 / 實作流程 / API 用法 / 防呆驗證）+ 參考解答 | **完全等價** |
 | Design-direction（設計方向） | `explain` 第 3 段：一句話講工程方向 + 指出有沒有偏離 issue 契約 | 有 recap，但**不是 pass/fail 關卡**（見下節缺口 a） |
@@ -71,7 +71,7 @@ design / walkthrough / merge-review 三軸常常從不同角度撞到**同一個
 ### 步驟
 
 1. **備自檢 packet**（之後塞進每個 reviewer 的 prompt）：issue 重點（目標 / 範圍 / 驗收 / 非目標）、作者自述意圖（branch 模式改讀 alignment comment / `02-plan.md` / commit log）、diff 摘要與檔案清單、最近的 `AGENTS.md` 規則，以及 **作者已拍板決策清單**（從 alignment comment / `02-plan.md` / PR body 整理出的定案與已知取捨 —— 這份就是 (c) 規則的比對基準）。
-2. **跑 merge-review**：跑一輪 `verify`（核心 reviewer〔含 code 6 軸、純文件 / 設定依 §1.4 右尺寸化〕+ 條件式 + finding-validator）。把 (c) 硬規則原文加進每個 reviewer 的 prompt。
+2. **跑 merge-review**：跑一輪 `verify`（核心 reviewer〔依 §1.4 4 級風險梯右尺寸化〕+ 條件式 + finding-validator）。把 (c) 硬規則原文加進每個 reviewer 的 prompt。
 3. **跑 design + walkthrough + ownership**：跑一次 `explain`，拿三段理解包。
 4. **收斂**：先套 (c) 過濾（把誤把作者定案當問題的 finding 整條剔除）→ 再做 (b) 跨關去重 → 出 (a) 單一判定。
 

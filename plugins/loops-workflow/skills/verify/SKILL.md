@@ -52,10 +52,12 @@ description: Fans out reviewers right-sized to change risk (4-tier ladder SKIP/L
 
 | 級別 | 觸發（rubric 判定，判準見 `verify-triage.md`） | 最小**核心**軸下界 |
 |---|---|---|
-| **SKIP** | docs / 註解 / 純格式 / test-only / 死碼移除 / SemVer patch 升版 / **<5 行且語意明確的邏輯改動** —— **且 SKIP 護欄全成立**（CI 綠 + 單一領域 + 不碰高風險路徑 + 無夾帶） | 0（quality-gate 綠即過、不派 reviewer） |
+| **SKIP** | docs / 註解 / 純格式 / test-only / 死碼移除 / SemVer patch 升版 —— **且 SKIP 護欄全成立**（CI 綠 + 單一領域 + 不碰高風險路徑 + 無夾帶）。**含執行語意的 code（含 <5 行邏輯改動）一律 ≥ LIGHT、不進 SKIP** | 0 **核心**軸；§1.5 條件式仍正交（碰對外契約/CLI/setup 文件 → 帶 docs-devex；純內部 typo/格式/test-only 則真 0） |
 | **LIGHT** | 小、孤立、低 blast-radius 的 code（少 caller、易回滾、已有測試覆蓋、單一領域；LIGHT 判準全成立） | `code-quality`(correctness) + `product-contract` + `tests`＝**3 軸**，全並行 |
 | **STANDARD** | 一般 code 改動（**預設**） | 核心 **6 軸**，全並行 |
-| **DEEP** | **高風險硬閘**（見 `verify-triage.md` 清單：auth/authz、加密/密鑰/機敏、金流、DB schema/migration、對外 API/契約、並發/非同步、IaC）或大 blast-radius 或大量 AI 生成 code | **§1.6 stage-0 tripwire → 過了才放** 6 軸 + 必帶條件式 + **§2.5 holistic 交叉軸 pass**，全並行 |
+| **DEEP** | **高風險硬閘**（見 `verify-triage.md` 清單：auth/authz、加密/密鑰/機敏、金流、DB schema/migration、對外 API/契約、並發/非同步、IaC）或大 blast-radius 或大量 AI 生成 code | **§1.6 stage-0 tripwire → 過了才放完整 6 軸**（product-contract 併入不重跑、code-quality 仍跑完整軸）+ **對應領域條件式**（§1.5 觸及才加；auth/加密/金流等無對應條件式者由核心 security 軸承接）+ **§2.5 holistic 交叉軸 pass**，全並行 |
+
+> **這 4 級梯以 code 風險為主軸。非 code 改動（純 docs / 設定）**：受護欄保護的瑣碎面（typo / 格式 / test-only / 死碼 / SemVer patch）→ SKIP（0 核心）；**有驗收契約的實質文件 / 設定** → `product-contract`（驗收）+ §1.5 領域（docs-devex 等），即 #8 既有的文件右尺寸化（不套 LIGHT/STANDARD/DEEP）。
 
 > **fail-safe（向嚴）**：風險級拿不準、或一份 diff **混了 code 與文件 / 混多領域**、或 SKIP/LIGHT 護欄有一條不確定 → **升一級**（縮錯＝漏審，漏審成本 >> 多派成本）。**含 code 至少 LIGHT、預設 STANDARD；碰高風險硬閘清單一律 DEEP，不論行數多小**（「小 ≠ 安全」）。
 
@@ -77,14 +79,14 @@ description: Fans out reviewers right-sized to change risk (4-tier ladder SKIP/L
 
 ### 1.6 DEEP 的 stage-0 tripwire（只在 DEEP 級啟動）
 
-DEEP 級的軸最貴（威脅建模 / 實測 / holistic），fan-out 最大。**先派一個便宜的 stage-0 smoke**：用既有 `product-contract-reviewer` + `code-quality-reviewer`(correctness) **兩軸**先審「契約符合 + 核心正確性」（不是另開一輪全 review）。
+DEEP 級的軸最貴（威脅建模 / 實測 / holistic），fan-out 最大。**先派一個便宜的 stage-0 smoke**：`product-contract-reviewer`（完整軸）+ 一個 **correctness smoke**（`code-quality-reviewer` 的 correctness 切片）先審「契約符合 + 核心正確性」（不是另開一輪全 review）。
 
-- **皆過**（兩軸都無 validated P0/P1）→ 放行完整並行 fan-out；**這兩軸的結果併入正式 fan-out、不重跑**（省一輪）。
-- **catastrophic miss**（任一回 validated P0/P1：解錯問題 / partial 當完成 / 核心驗收落空 / happy-path 崩壞）→ **直接 bounce 回 build**，**不啟動整套昂貴 fan-out**（那些軸在註定要大改的 code 上跑會半作廢）。
+- **皆過** → 放行完整並行 fan-out：**product-contract 不重跑**（tripwire 已是完整軸）；**code-quality 仍在 fan-out 跑完整軸**（correctness smoke 只是便宜前哨、不取代完整 code-quality 的錯誤處理 / typing / smells / 重用）；其餘 4 軸照常。**DEEP 因此仍得完整 6 軸覆蓋、絕不因 tripwire 縮水**。
+- **catastrophic miss**（tripwire 任一軸出**確證**〔reviewer 直接證明 / coordinator 當場驗證，非 §3 validator 專稱〕的 P0/P1：解錯問題 / partial 當完成 / 核心驗收落空 / happy-path 崩壞）→ **直接 bounce 回 build**，**不啟動整套昂貴 fan-out**（那些軸在註定要大改的 code 上跑會半作廢）。放行後併入 fan-out 的 finding 一樣照 §3 finding-validator 二輪。
 
 > **LIGHT/STANDARD 不加 tripwire** —— shift-left 常態下 verify 找不到東西，順序短路只多延遲、零省；tripwire 的期望收益只在「軸貴 + fan-out 大 + 早 blocker 機率高」的 DEEP 才為正。
 
-### 1.8 跑真 app + 本機 /code-review（把 `not measured` 變實測）
+### 1.7 跑真 app + 本機 /code-review（把 `not measured` 變實測）
 
 靜態 review 之外，**Claude 親自代跑**、不推託「需使用者 / 瀏覽器」：
 
@@ -101,7 +103,7 @@ DEEP 級的軸最貴（威脅建模 / 實測 / holistic），fan-out 最大。**
 
 coordinator 去重後，派 `holistic-reviewer`（fresh context）看 **findings 全集 + 契約**，專抓「**沒有單一 reviewer 看得到的跨維度 / 架構級衝突 / 級聯效應**」——例如一個同時是 correctness 又是 security 的問題、或數條 finding 合起來才暴露的設計缺陷。它是「敢縮 reviewer」的對價安全網（補右尺寸化後可能的交叉軸漏審）。
 
-- **DEEP 必跑**（軸多、交叉面大）；**STANDARD 可選**（改到共用元件 / 跨切面才值得）；**LIGHT / SKIP 不跑**（面窄、無交叉軸可漏，跑了是噪音）。
+- **DEEP 必跑**（軸多、交叉面大）；**STANDARD 可選** —— 改到**局部共用元件**（中等 fan-in、未達 `verify-triage.md` 的「廣泛 import」DEEP 門檻）/ 跨切面才值得；**LIGHT / SKIP 不跑**（面窄、無交叉軸可漏，跑了是噪音）。
 - holistic 產出的 finding 走**同一套** P0–P3 + Confidence + Route + 雙視角，併入 coordinator 一起進 §3 finding-validator 二輪（不特權、一樣要被驗）。
 
 ### 3. finding-validator 二輪

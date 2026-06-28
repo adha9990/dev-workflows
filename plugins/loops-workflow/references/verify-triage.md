@@ -2,7 +2,7 @@
 
 > verify §1.4 用的明文判準：orchestrator 看 build 的 Change Summaries + 改動檔案清單，把這次改動歸到 **SKIP / LIGHT / STANDARD / DEEP**，決定核心 reviewer 的下界。**判準可逐條核對，存疑一律向上升級**（fail-safe 向嚴）。這份只定「核心軸下界」；領域 reviewer 由 `optional-reviewers.md`（§1.5）觸及才加派、去重疊加。
 
-## 判定順序（由嚴到寬，命中即定級）
+## 判定順序（先攔升級觸發，再依護欄由寬到嚴落點；命中即定級）
 
 ```
 1. 碰「高風險硬閘清單」任一？           → DEEP（不論行數多小）
@@ -30,19 +30,22 @@
 
 ## 大 blast-radius / 大量 AI 生成（→ DEEP）
 
-- **大 blast-radius**：改到**被廣泛 import 的共用元件 / 核心型別 / 跨多模組的契約**（改一處波及面大）。
-- **大量 AI 生成**：單次大批 AI 生成的 code（業界資料：缺人類審的大批生成 code 缺陷率較高）。
+> 門檻是**啟發式代理、非精準**（拿不準一律向嚴升 DEEP）。
 
-## SKIP 條件（受護欄保護的瑣碎面 → 不派 reviewer）
+- **大 blast-radius**：改到**被廣泛 import 的共用元件 / 核心型別 / 跨多模組的契約**（改一處波及面大）。代理：被 **≥ ~5 處** import、或在 **public barrel / index 匯出**、或屬**核心型別 / 共用 schema**。
+- **大量 AI 生成**：單次大批 AI 生成的 code（缺人類審的大批生成缺陷率較高）。代理：單次 **> ~100 行** AI 生成。
+
+## SKIP 條件（受護欄保護的瑣碎面 → 不派核心 reviewer；§1.5 條件式仍正交）
 
 **改動類別**屬下列之一：
 
-- 純 docs / 註解 / 純 markdown 敘述。
+- 純 docs / 註解（瑣碎文字、**無驗收契約**）。
 - 純格式 / 排版（無語意改動）。
 - test-only（只加 / 改測試，不動被測 code）。
 - 死碼 / 未用 import / 未用方法移除。
 - 依賴 **SemVer patch** 升版（非 minor / major）。
-- **<5 行且語意明確**的邏輯改動（如改一個常數、補一個明顯 guard）。
+
+> **含執行語意的 code 不進 SKIP**（含 <5 行邏輯改動，如改常數 / 補 guard → 走 LIGHT 3 軸便宜審，不是 0）。**有驗收契約的實質文件 / 設定**（一張 docs issue 的內容、對外契約文件）→ 也不走 SKIP，派 `product-contract`（驗收）+ §1.5 `docs-devex`（#8 文件右尺寸化）。
 
 ### SKIP 護欄（**全成立**才可 SKIP，缺一即向上升級）
 
@@ -56,11 +59,11 @@
 **全部成立**才走 LIGHT，任一存疑 → STANDARD：
 
 1. **單一領域** —— diff confined 在一個模組 / 關注點。
-2. **低 blast-radius** —— 動到的 symbol fan-in 低（不是被廣泛 import 的共用元件 / 核心型別 / 跨切面）。
+2. **低 blast-radius** —— 動到的 symbol fan-in 低（代理：**< ~5 caller**、非 public barrel / index 匯出、非核心型別 / 跨切面）。
 3. **有測試覆蓋** —— 被改的 code 已有既有測試守。
 4. **不碰高風險硬閘路徑**。
 5. **無夾帶（tangling）**。
-6. **規模小** —— 單一 concern、約數十行內。
+6. **規模小** —— 單一 concern、約 **≤ 數十行**。
 
 ## tangling 判準（夾帶偵測，veto SKIP/LIGHT）
 
@@ -72,20 +75,21 @@
 
 ## catastrophic miss 判準（DEEP §1.6 tripwire 的 bounce 門檻）
 
-stage-0 tripwire（product-contract + correctness 兩軸）**任一回 validated P0/P1** 即 catastrophic miss → bounce 回 build、不啟動完整 fan-out。典型：
+stage-0 tripwire（product-contract + correctness 兩軸）**任一回確證的 P0/P1**（reviewer 直接證明 / coordinator 當場驗證，**非** §3 finding-validator 的 `validated` 專稱）即 catastrophic miss → bounce 回 build、不啟動完整 fan-out。典型：
 
 - **解錯問題** —— 做的根本不是 issue 要的（product-contract）。
 - **partial 當完成** —— 核心驗收標準未達卻當完工（product-contract）。
 - **核心契約落空** —— 對外形狀 / DoD 契約破壞（product-contract）。
 - **happy-path 崩壞** —— 核心正確流程跑不起來 / 明顯狀態流錯誤（correctness）。
 
-> 兩軸**皆無 validated P0/P1** → 放行，且**兩軸結果併入正式 fan-out、不重跑**（tripwire 不是額外一輪全 review，是把 6 軸裡的這 2 軸先跑當 gate）。
+> 兩軸**皆無確證 P0/P1** → 放行；**product-contract 併入不重跑、correctness smoke 由 fan-out 的完整 code-quality 軸補跑**（tripwire 不是額外一輪全 review：product-contract 是把該完整軸先跑當 gate、correctness 只是便宜前哨，DEEP 仍得完整 6 軸覆蓋）。放行後的 finding 一樣進 §3 finding-validator。
 
 ## 範例
 
 | 改動 | 判定 | 級 |
 |---|---|---|
-| README 補一段、改錯字 | SKIP 條件 + 護欄全成立 | SKIP |
+| README 改錯字（純文字、無驗收契約） | SKIP 條件 + 護欄全成立 | SKIP 核心（§1.5 視內容帶 docs-devex） |
+| 一張 docs issue 的實質文件內容 | 有驗收契約 → 非 SKIP | product-contract + §1.5 docs-devex |
 | 某 util 函式加一個邊界 guard、有測試、單檔、非高風險 | LIGHT 判準全成立 | LIGHT |
 | 新增一個一般 service 方法 + 前端呼叫 | 一般 code、混前後端 → 向嚴 | STANDARD |
 | 改 2 行 auth middleware 的權限判斷 | 碰 auth 高風險硬閘 | DEEP |
