@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 import {
-  parseStages, supersetMissing, subsetExtra, unorderedEqual, orderViolations, checkTrajectory,
+  parseStages, supersetMissing, subsetExtra, unorderedEqual, orderViolations, checkTrajectory, readReference,
 } from './eval-trajectory.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // .../scripts
@@ -140,6 +140,90 @@ function writeLoop(stagesJournal) {
   const res = run(['check', '--observed', 'nope']); // 缺 --reference
   assert(res.status === 2, 'E2E：缺必要旗標 → exit 2（誤用）[E2E-misuse]');
   assert(/usage/i.test(res.stderr || ''), 'E2E：誤用 stderr 含 usage [E2E-misuse]');
+}
+
+// ── REF-contract：committed issue-lifecycle.json 的契約值（防 reference 被悄悄改弱 → 工具假綠）──
+{
+  const ref = readReference(REF);
+  assert(Array.isArray(ref.required) && ['goal', 'plan', 'build', 'verify', 'iterate'].every((s) => ref.required.includes(s)),
+    'REF-contract：committed required 含核心五階段 [REF]');
+  assert(Array.isArray(ref.forbidden) && ref.forbidden.includes('scaffold'),
+    'REF-contract：committed forbidden 含 scaffold [REF]');
+  assert(Array.isArray(ref.order) && ref.order.every((s) => ref.required.includes(s)),
+    'REF-contract：committed order ⊆ required [REF]');
+}
+
+// ── CT-allowed：顯式 allowed 蓋過 required∪optional（在 required 卻不在 allowed → extra）──
+{
+  const r = checkTrajectory(['goal', 'plan'], { required: ['goal', 'plan'], optional: ['x'], allowed: ['goal'] });
+  assert(eq(r.extra, ['plan']) && r.ok === true,
+    'checkTrajectory：顯式 allowed=[goal] → plan 列 extra（不影響 ok）[CT-allowed]');
+}
+
+// ── PS-robust：markdown 連結不被誤抽成階段（防假 ok）；ASCII -> 箭頭展開 ──
+{
+  assert(eq(parseStages('- 參考 [verify](http://x) 的設計'), []),
+    'parseStages：敘述行 markdown 連結 [verify](url) 不抽成階段 [PS-robust]');
+  assert(eq(parseStages('- E3 [verify] 見 [PR](http://x)'), ['verify']),
+    'parseStages：標記在前、連結在後 → 只抽標記 [PS-robust]');
+  assert(eq(parseStages('- E2 [plan->build] x'), ['plan', 'build']),
+    'parseStages：ASCII -> 箭頭展開 [PS-robust]');
+}
+
+// ── E2E-scope：Journal 外的 [verify](url) 連結不遮蔽「Journal 內漏 verify」→ 仍報漏、exit 1 ──
+{
+  const dir = mkdtempSync(join(tmpdir(), 'traj-scope-'));
+  const file = join(dir, 'loop.md');
+  writeFileSync(file, '# loop\n見 [verify](http://x) 設計\n## Journal\n- E1 [goal] x\n- E2 [plan→build] x\n- E3 [iterate] x\n');
+  try {
+    const res = run(['check', '--observed', file, '--reference', REF]);
+    assert(res.status === 1 && /verify/.test(res.stderr || ''),
+      'E2E-scope：Journal 外連結不遮蔽 → 仍報漏 verify、exit 1 [E2E-scope]');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
+// ── E2E-forbidden / order / extra / json：CLI 端三種 exit-1 成因 + 多餘步不擋 + json ──
+{
+  const { dir, file } = writeLoop('- E1 [dispatch→goal] x\n- E2 [scaffold] x\n- E3 [plan→build] x\n- E4 [verify] x\n- E5 [iterate] x');
+  try {
+    const res = run(['check', '--observed', file, '--reference', REF]);
+    assert(res.status === 1 && /scaffold/.test(res.stderr || ''), 'E2E：含 forbidden scaffold → exit 1 + stderr 點 scaffold [E2E-forbidden]');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+{
+  const { dir, file } = writeLoop('- E1 [goal] x\n- E2 [build] x\n- E3 [plan] x\n- E4 [verify] x\n- E5 [iterate] x');
+  try {
+    const res = run(['check', '--observed', file, '--reference', REF]);
+    assert(res.status === 1 && /順序|order/i.test(res.stderr || ''), 'E2E：順序違反（plan 在 build 後）→ exit 1 [E2E-order]');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+{
+  const { dir, file } = writeLoop('- E1 [goal] x\n- E2 [plan→build] x\n- E3 [hack] x\n- E4 [verify] x\n- E5 [iterate] x');
+  try {
+    const res = run(['check', '--observed', file, '--reference', REF]);
+    assert(res.status === 0 && /hack/.test(res.stdout || ''), 'E2E：多餘步 hack → exit 0（不擋）+ stdout 列多餘步 [E2E-extra]');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+{
+  const { dir, file } = writeLoop('- E1 [dispatch→goal] x\n- E2 [plan→build] x\n- E3 [verify] x\n- E4 [iterate] x');
+  try {
+    const res = run(['check', '--observed', file, '--reference', REF, '--json']);
+    let out = null; try { out = JSON.parse(res.stdout); } catch { out = null; }
+    assert(out && out.ok === true && Array.isArray(out.missing) && Array.isArray(out.observed) && out.reference === 'issue-lifecycle',
+      'E2E-json：--json 輸出 ok/missing/observed/reference 欄位齊全且型別對 [E2E-json]');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
+// ── E2E-badref：reference 不存在 / 壞 JSON → exit 3（與 not-ok exit 1 區隔，設定 bug 不偽裝成 eval 結果）──
+{
+  const { dir, file } = writeLoop('- E1 [goal] x');
+  try {
+    const res = run(['check', '--observed', file, '--reference', join(dir, 'nope.json')]);
+    assert(res.status === 3, 'E2E-badref：reference 不存在 → exit 3（IO 錯，非 not-ok 1）[E2E-badref]');
+    const bad = join(dir, 'bad.json'); writeFileSync(bad, '{not json');
+    const res2 = run(['check', '--observed', file, '--reference', bad]);
+    assert(res2.status === 3, 'E2E-badref：reference 壞 JSON → exit 3 [E2E-badref]');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);

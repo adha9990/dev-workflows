@@ -3,7 +3,8 @@
 // 把「必經階段 / 允許階段 / 相對順序 / 禁止階段」存成 reference，對 observed 階段序列做四種比對：
 //   superset：required ⊆ observed？—— 漏關鍵階段（跳了該走的關卡）→ 失敗。
 //   subset：observed ⊆ allowed？—— 多餘步 / step efficiency（走了 reference 沒列的步）→ 警示（不失敗）。
-//   unordered：集合等價（順序無關）。
+//   unordered：集合等價（順序無關）—— 獨立 comparator（unorderedEqual，供 order-agnostic 比對的呼叫者）；
+//     checkTrajectory 本身用更嚴的 order 檢查、不呼叫它（#31 acceptance 要的三 comparator 之一，獨立可測）。
 //   order：reference.order 規定的相對先後是否被破壞（如 verify 在 build 之前）→ 失敗。
 //   forbidden：不該出現的階段是否出現 → 失敗。
 // 抓「最終看似對、但流程走錯 / 漏階段」的退化（純規則、無 judge；judge 維度走 E4）。
@@ -29,9 +30,12 @@ const NON_STAGE_MARKERS = new Set(['outcome']);
 export function parseStages(journalText) {
   const stages = [];
   for (const line of String(journalText ?? '').split('\n')) {
-    const bracket = line.match(/\[([^\]\n]+)\]/);
-    if (!bracket) continue;
-    for (const part of bracket[1].split(/→|->/)) {
+    const m = /\[([^\]\n]+)\]/.exec(line);
+    if (!m) continue;
+    // 跳過 markdown 連結 `[text](url)`：`]` 後緊接 `(` 視為連結、非階段標記
+    // （否則敘述行的連結文字會被誤抽成階段，遮蔽真正的漏階段 → 假 ok）。
+    if (line[m.index + m[0].length] === '(') continue;
+    for (const part of m[1].split(/→|->/)) {
       const s = part.trim().toLowerCase();
       if (s && /^[a-z][a-z0-9-]*$/.test(s) && !NON_STAGE_MARKERS.has(s)) stages.push(s);
     }
@@ -114,9 +118,14 @@ export function readReference(file) {
   return JSON.parse(readFileSync(file, 'utf8'));
 }
 
-/** 讀 observed：loop.md（或任意含 Journal 標記的文字）→ parseStages。 */
+/**
+ * 讀 observed：loop.md → parseStages。**只掃 `## Journal` 區段**（避免上半部 metadata / 敘述 / 連結
+ * 被誤抽成階段）；無 Journal 標題則退回掃全文。
+ */
 export function readObservedStages(file) {
-  return parseStages(readFileSync(file, 'utf8'));
+  const text = readFileSync(file, 'utf8');
+  const idx = text.indexOf('## Journal');
+  return parseStages(idx >= 0 ? text.slice(idx) : text);
 }
 
 function parseArgs(argv) {
@@ -139,8 +148,14 @@ function main(argv) {
     console.error(USAGE);
     return 2; // 誤用
   }
-  const reference = readReference(opts.reference);
-  const observed = readObservedStages(opts.observed);
+  let reference, observed;
+  try {
+    reference = readReference(opts.reference);
+    observed = readObservedStages(opts.observed);
+  } catch (err) {
+    console.error(`eval-trajectory: 讀取/解析失敗 — ${err?.message ?? err}`);
+    return 3; // IO / parse 錯（設定問題）—— 與「檢查跑完但 not ok（1）」明確區隔，避免設定 bug 偽裝成 eval 結果
+  }
   const result = checkTrajectory(observed, reference);
   if (opts.json) {
     console.log(JSON.stringify({ ...result, observed, reference: reference.name ?? null }, null, 2));

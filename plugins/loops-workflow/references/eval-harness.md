@@ -157,4 +157,4 @@ node plugins/loops-workflow/scripts/eval-metrics.mjs check [--metrics-file <path
 node plugins/loops-workflow/scripts/eval-trajectory.mjs check --observed <loop.md> --reference plugins/loops-workflow/evals/trajectories/issue-lifecycle.json [--json]
 ```
 
-失敗（漏 / 禁止 / 順序）exit 1、多餘步仍 exit 0、誤用 exit 2。零 LLM judge、純 node。
+exit code：**ok exit 0**（多餘步仍 0）、**漏/禁止/順序 exit 1**、**誤用（缺旗標）exit 2**、**reference/observed 讀取失敗或壞 JSON exit 3**（設定錯不偽裝成 eval 結果）。observed 解析只掃 `## Journal` 區段、且排除 markdown 連結 `[text](url)`（避免敘述行連結被誤抽成階段而遮蔽漏階段）。`allowed: []`（顯式空陣列）＝不判多餘步（要禁所有額外步請列具體 `allowed`）。`unorderedEqual` 為獨立 comparator（order-agnostic），checkTrajectory 本身用更嚴的 `order`。零 LLM judge、純 node。
