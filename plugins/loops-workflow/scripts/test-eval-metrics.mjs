@@ -629,6 +629,12 @@ const TAGS_SCRIPT = join(HERE, 'eval-tags.mjs');
     assert(res.status === 0, 'E-record-report-tolerant：report 寫檔失敗仍 exit 0（永不擋路）[E-record-report-tolerant]');
     assert(existsSync(metricsFile) && readJsonl(metricsFile).length === 1,
       'E-record-report-tolerant：report 失敗不連坐 record 主結果（metric row 仍寫 1 行）[E-record-report-tolerant]');
+    // F1：exit 0 + metric row 在，無法分辨 writeReport 自身有沒有 catch（被 main 外層 try/catch + 先寫的
+    //   appendEvalRow 遮蔽）。釘「writeReport 失敗須出聲診斷」契約：stderr 含 "failed to write report"。
+    //   現 impl 未寫 report（無此診斷）→ 先紅；加上 report 寫檔且 writeReport 自身 catch 出聲後才綠
+    //   （若失敗被外層 try/catch 靜默吞、無此訊息，本條仍紅 → 抓出「假綠容錯」）。
+    assert(/failed to write report/i.test(res.stderr || ''),
+      'E-record-report-tolerant：writeReport 失敗有出聲診斷（stderr 含 "failed to write report"；釘 writeReport 自身 catch，非被外層吞）[E-record-report-tolerant]');
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }

@@ -27,6 +27,7 @@ import { readEditsForSession, clearEditsState } from './edit-accumulator.mjs';
 
 const GATE_TIMEOUT_MS = 120000; // check 很便宜（讀 JSONL）；上限 2 分鐘，逾時視為 spawn 失敗 → no-op
 const MAX_INJECTION_CHARS = 10000; // 注入回 context 的摘要上限，過長截斷
+const MAX_TAG_CHARS = 80; // 單 tag 名注入上限：file-derived 字串截斷，防超長 corpus tag 名灌爆 context
 
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
 
@@ -65,8 +66,24 @@ function parseJsonOrNull(text) {
 }
 
 /**
+ * 消毒 file-derived 的 tag 名後才注入 LLM context：換行 / 控制字元（C0 控制碼 + DEL）壓成單一空白、
+ * 再截到 MAX_TAG_CHARS——防惡意 tag 名偽造額外行（prompt-injection / 偽造行面）或灌爆注入長度。
+ * 只動 tag 名這個外部字串；同段的 failed / total 是數字、無需消毒。
+ */
+function sanitizeTag(tag) {
+  // 消毒策略：逐 code point 檢查——C0 控制碼（< 0x20，含換行 / 歸位 / Tab / BEL / ESC）與 DEL（0x7F）
+  // 換成空白、其餘（含非 ASCII tag 名）原樣保留；再把連續空白壓成單一格，最後截到 MAX_TAG_CHARS。
+  const collapsed = [...String(tag ?? '')]
+    .map((ch) => (ch.charCodeAt(0) < 0x20 || ch.charCodeAt(0) === 0x7f ? ' ' : ch))
+    .join('')
+    .replace(/ +/g, ' ');
+  return collapsed.slice(0, MAX_TAG_CHARS);
+}
+
+/**
  * eval-tags by-tag 輸出 → 有失敗 tag 才注入。exitCode !== 0（誤用 2 / 讀檔失敗 3 / spawn 異常 null）→ null
  * （出錯不拿非法輸出當注入、永不擋）；parse 失敗 / byTag 非陣列 / 無失敗 tag → null（無事不擾）。
+ * tag 名來自 corpus 資料（file-derived），拼進注入前先 sanitizeTag 消毒；總量仍受 MAX_INJECTION_CHARS cap。
  */
 export function buildTagsGateInjection(stdout, exitCode) {
   if (exitCode !== 0) return null;
@@ -74,7 +91,7 @@ export function buildTagsGateInjection(stdout, exitCode) {
   if (!Array.isArray(byTag)) return null;
   const fails = byTag.filter((t) => t?.failed > 0);
   if (fails.length === 0) return null;
-  const detail = fails.map((t) => `${t.tag} ${t.failed}/${t.total}`).join('、');
+  const detail = fails.map((t) => `${sanitizeTag(t.tag)} ${t.failed}/${t.total}`).join('、');
   return `★ eval-tags（改檔回合）：有 eval 失敗的 tag — ${detail}。建議查對應 task 類別。`.slice(0, MAX_INJECTION_CHARS);
 }
 
@@ -185,10 +202,14 @@ function main() {
     );
   }
 
-  // accumulator 清理：任一訊號真的跑過閘（ranAny）才消費 edits，且只在 stop-gate 未啟用時由本 hook 清
-  //   （stop-gate 開時由它清、本 hook 先跑不清）；全短路未跑閘 → 不清，分辨「短路 vs 跑空閘」。
+  // accumulator 清理：任一訊號真的跑過閘（ranAny）才消費 edits；只在 stop-gate「真的會跑並清」時才 defer
+  //   給它清（本 hook 排在 stop-gate 之前、先跑不清，避免互踩）。stop-gate 的執行前置是 cwd 下
+  //   .loops/gate.config.json 存在——缺 config 時 stop-gate 會早退不清，故此時不可盲 defer，否則 edits 沒人清
+  //   → 每次 Stop 重觸發（洩漏）；改由本 hook 自己清。全短路未跑閘 → 不清，分辨「短路 vs 跑空閘」。
+  //   殘留窄洞（誠實註明）：stop-gate config 在但其 spawn 罕見失敗時，本 hook 已 defer 不清 → 該回合 edits 仍可能殘留。
   const ranAny = gate.ran || tags.ran || poll.ran;
-  if (ranAny && process.env.LOOPS_STOP_GATE !== '1') clearEditsState(sessionId);
+  const deferToStopGate = process.env.LOOPS_STOP_GATE === '1' && existsSync(join(cwd, '.loops', 'gate.config.json'));
+  if (ranAny && !deferToStopGate) clearEditsState(sessionId);
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
