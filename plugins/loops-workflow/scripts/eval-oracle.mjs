@@ -14,9 +14,10 @@
 // 用法：node eval-oracle.mjs --dir <tasks-dir> [--task <id>] [--json]
 
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, resolve, dirname, isAbsolute, sep } from 'node:path';
+import { join, resolve, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { isWithinRoot } from './path-containment.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // .../scripts
 const PROJECT_ROOT = dirname(HERE); // plugin root：workspace 的信任邊界（不得 spawn 到此之外）
@@ -269,15 +270,11 @@ function resolveWorkspace(requested, tasksDir) {
     return { ok: false, reason: `workspace "${requested}" is an absolute path (rejected; must stay inside project root) — not evaluated` };
   }
   const workspace = resolve(tasksDir, requested);
-  if (!isInside(PROJECT_ROOT, workspace)) {
+  // 詞法 containment 走共用安全原語（與 eval-sandbox 同一真相源，語意完全一致）。
+  if (!isWithinRoot(workspace, PROJECT_ROOT)) {
     return { ok: false, reason: `workspace "${requested}" resolves outside project root (path traversal / escape rejected) — not evaluated` };
   }
   return { ok: true, workspace };
-}
-
-/** target 是否在 base 之內（base 自身或其子路徑）。用平台 sep 卡界線，避免 prefix 假命中。 */
-function isInside(base, target) {
-  return target === base || target.startsWith(base + sep);
 }
 
 function formatTextReport(report) {

@@ -28,7 +28,13 @@
 - **建議**：小語料庫（5–15 task）+ N=3–5；只在「要量可靠度」時跑（日常回歸用 E1 固定候選 oracle 即可，便宜）。
 - pass^k 的 N 取 3–5 已能抓出明顯不穩；N 越大越準但成本線性增。
 
-## 沙箱/信任邊界（⚠️ 跑候選＝執行任意碼）
-- 每個候選 workspace 的 oracle 評分＝以當前權限跑該 workspace 的 `scripts.test`（**任意程式碼**），沿用 `eval-oracle.mjs` 的信任邊界：**只在信任來源的語料庫上跑、勿對外來/未審語料庫直接 eval**。
-- 候選由 Claude 重生 → 內容受語料庫 task 約束，但仍應視為**需審的產物**；真要在 CI 自動跑，建議加容器/沙箱隔離（**本票只給邊界文件，容器化實作 out-of-scope**）。
+## 沙箱/信任邊界（⚠️ 跑候選＝執行任意碼）—— 雙層隔離（#52 已落地）
+跑候選 workspace 的 `scripts.test`＝**任意程式碼**。兩層防護：
+
+- **第一層：詞法 containment（既有、可確定性測）**。`eval-oracle.mjs` 只評落在 plugin 專案根內的 `task.workspace`，`../` / 絕對逃逸 → errored 不 spawn。`eval-sandbox.mjs` 的 `checkContainment(workspace, root)` 把這條形式化（CLI `eval-sandbox.mjs check --workspace <p> --root <r>`：root 內 exit 0 / 逃逸 exit 1）。
+- **第二層：容器隔離（#52 新增）**。`eval-sandbox.mjs` 的 `buildSandboxCommand`/`validateSandboxPolicy` 構造並驗證受限執行指令：`--network none`（網路隔離）、`--read-only` rootfs + `--tmpfs`（FS 受限）、`--memory`/`--pids-limit`/`--cpus`（資源上限）、`--cap-drop ALL` + `--security-opt no-new-privileges`（越權被擋）。runtime 由 `LOOPS_SANDBOX_RUNNER`（docker/podman）選、未設 → `none`（fail-closed：policy `isolated:false`、明確 violation，只剩第一層詞法）。
+  - **CLI `eval-sandbox.mjs plan --workspace <p> --root <plugin-root> --runner docker [--memory … --test-cmd "<容器內評分命令>"]`** 印 would-run argv + policy JSON、**不執行容器**（建構 + 驗證，真跑留 CI runtime）。**判 `valid` 欄、非 exit code 心態**——但 CLI 已 fail-closed：`valid:false`（含未設 runner 的 none 模式）→ **exit 1**；要無容器跑須顯式 `--allow-unsandboxed`（none 模式才 exit 0）。**省略 `--root` 會退到 cwd**（邊界較寬）→ 範例一律帶 `--root plugins/loops-workflow` 對齊 oracle plugin-root 邊界。
+  - **⚠️ 沙箱涵蓋的是哪次執行**：`plan` 容器跑的命令預設 `npm test`；**真正算分的 oracle/quality-gate 預設在主機跑、不在容器內**。不完全信任候選時，要把評分命令本身用 `--test-cmd` 指進容器（見 `eval-live-candidate.md` 步驟 3），否則 layer-2 只隔離了另跑一次的 test、算分那次仍裸跑主機。
+  - **⚠️ Metric-Honesty**：script 交付「**建構 + 驗證隔離指令/policy**」與「**詞法 containment 阻擋**」（可確定性測）；**真跑容器 + 真逃逸/越權測試需 CI container runtime**（本機無 runtime 不可確定性測容器逃逸、未在 CI 實跑過）→ 第二層的執行與逃逸驗證屬 recipe/CI（見 `references/eval-live-candidate.md`），未在 script 內實測。
+  - 仍守原則：**只在信任來源語料庫上跑**；候選雖受 task 約束仍視為需審產物。
 - oracle 完整性：候選**只能改實作、不可改 test 定義**（否則可塞必過的同名 test 偽造 failToPass）——語料庫須自擁/釘死 test patch（見 `eval-harness.md` E1 oracle 完整性註）。
