@@ -1,0 +1,8 @@
+[
+  { "id": "gold-clear-pr-body", "dimension": "explanation-quality", "goldPass": true, "goldScore": 5, "note": "PR body 逐條對應 diff、附可跑驗證指令、不熟領域者讀完即懂 — 清楚可驗" },
+  { "id": "gold-good-with-minor-gap", "dimension": "explanation-quality", "goldPass": true, "goldScore": 4, "note": "解釋清楚、大致完整，僅一處小缺漏不影響理解/驗證 — pass 下限" },
+  { "id": "gold-missing-evidence", "dimension": "explanation-quality", "goldPass": false, "goldScore": 3, "note": "可懂但只說『我測過了』無讀者可自行跑的驗證證據 — 缺可驗證性" },
+  { "id": "gold-misleading", "dimension": "explanation-quality", "goldPass": false, "goldScore": 2, "note": "描述與 artifact 實際行為不符、讀者需回頭問才能動工 — 誤導" },
+  { "id": "gold-vague-optimize", "dimension": "explanation-quality", "goldPass": false, "goldScore": 1, "note": "只寫『優化效能 / 改善穩定度』無具體改了什麼/為什麼/影響誰 — 空泛無法據以理解" },
+  { "id": "gold-verbose-no-signal", "dimension": "explanation-quality", "goldPass": false, "goldScore": 2, "note": "冗長但未提升理解（verbosity 不加分）— 長度不是品質" }
+]

@@ -196,6 +196,10 @@ const RUBRIC_OK = [
   const forced = buildJudgeRecord({ ...validated, track: 'measured' }, { judgeId: 'j', model: 'm' });
   assert(forced.track === 'judge-estimate',
     'buildJudgeRecord：外部塞 track:measured 無效（永遠 judge-estimate）[T4]');
+  // caseId（#33 連結欄）：給則透傳、不給則 null（向後相容）
+  assert(rec.caseId === null, 'buildJudgeRecord：無 caseId → null [T4]');
+  assert(buildJudgeRecord(validated, { judgeId: 'j', model: 'm', caseId: 'case-7' }).caseId === 'case-7',
+    'buildJudgeRecord：透傳 caseId [T4]');
   const recDm = buildJudgeRecord({ ...validated, dimensionMismatch: true }, { judgeId: 'j', model: 'm' });
   assert(recDm.dimensionMismatch === true, 'buildJudgeRecord：透傳 dimensionMismatch [T4]');
 

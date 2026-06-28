@@ -18,7 +18,7 @@
 // 依賴：僅 node 內建（fs / path / url），零外部套件。
 // 用法：
 //   node eval-judge.mjs validate-rubric <rubric.md>
-//   node eval-judge.mjs parse --rubric <rubric.md> --output <judge-out.json|-> [--judge-file <path>] [--judge-id <id>] [--model <name>]
+//   node eval-judge.mjs parse --rubric <rubric.md> --output <judge-out.json|-> [--judge-file <path>] [--judge-id <id>] [--model <name>] [--case-id <id>]
 
 import { readFileSync, appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -229,6 +229,7 @@ export function buildJudgeRecord(validated, meta) {
     ts: m.ts ?? null,
     dimension: v.dimension ?? null,
     judgeId: m.judgeId ?? null,
+    caseId: m.caseId ?? null, // 被評 item 識別：供 #33 PoLL 分組 / κ 配對金標（無則 null，向後相容）
     model: m.model ?? null,
     score: v.score ?? null,
     pass: v.pass === true,
@@ -279,11 +280,11 @@ export function appendJudgeRecord(file, record, cap = MAX_JUDGE_ROWS) {
 const USAGE = [
   'usage:',
   '  node eval-judge.mjs validate-rubric <rubric.md>',
-  '  node eval-judge.mjs parse --rubric <rubric.md> --output <judge-out.json|-> [--judge-file <path>] [--judge-id <id>] [--model <name>]',
+  '  node eval-judge.mjs parse --rubric <rubric.md> --output <judge-out.json|-> [--judge-file <path>] [--judge-id <id>] [--model <name>] [--case-id <id>]',
 ].join('\n');
 
 function parseArgs(argv) {
-  const opts = { rubric: null, output: null, judgeFile: null, judgeId: 'judge', model: 'unknown' };
+  const opts = { rubric: null, output: null, judgeFile: null, judgeId: 'judge', model: 'unknown', caseId: null };
   for (let i = 0; i < argv.length; i += 1) {
     const f = argv[i];
     if (f === '--rubric') opts.rubric = argv[++i] ?? null;
@@ -291,6 +292,7 @@ function parseArgs(argv) {
     else if (f === '--judge-file') opts.judgeFile = argv[++i] ?? null;
     else if (f === '--judge-id') opts.judgeId = argv[++i] ?? opts.judgeId;
     else if (f === '--model') opts.model = argv[++i] ?? opts.model;
+    else if (f === '--case-id') opts.caseId = argv[++i] ?? null;
   }
   return opts;
 }
@@ -327,7 +329,7 @@ function cmdParse(argv) {
   const validated = validateVerdict(verdict, {
     scaleMin: meta.scaleMin, scaleMax: meta.scaleMax, threshold: meta.threshold, dimension: meta.dimension,
   });
-  const record = buildJudgeRecord(validated, { judgeId: opts.judgeId, model: opts.model, ts: new Date().toISOString() });
+  const record = buildJudgeRecord(validated, { judgeId: opts.judgeId, model: opts.model, caseId: opts.caseId, ts: new Date().toISOString() });
 
   // 落檔（拍板：parse 也落檔）。落檔失敗不擋路：仍印 record + exit 0，但 stderr 診斷（永不擋路 ≠ 永不出聲）。
   const judgeFile = opts.judgeFile ? resolve(opts.judgeFile) : resolve(...DEFAULT_JUDGE_PATH);
