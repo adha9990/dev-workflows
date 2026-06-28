@@ -24,7 +24,9 @@ export function groupByTag(items, { field = 'tags' } = {}) {
   const groups = Object.create(null);
   for (const item of Array.isArray(items) ? items : []) {
     const tags = Array.isArray(item?.[field]) ? item[field] : [];
-    for (const tag of tags) {
+    // 同一 item 內去重 tag（new Set）——否則 tags:['x','x'] 會讓該 item 在 x 組計兩次、灌大 summarizeByTag；
+    // 與 crossLink 的 Set 語意一致。
+    for (const tag of new Set(tags)) {
       if (typeof tag !== 'string') continue;
       (groups[tag] ??= []).push(item);
     }
@@ -32,7 +34,7 @@ export function groupByTag(items, { field = 'tags' } = {}) {
   return groups;
 }
 
-/** per-tag pass/fail 聚合（用 result.p===true）→ [{tag, total, passed, failed}]，依 tag 字典序。 */
+/** per-tag pass/fail 聚合（用 result.pass===true）→ [{tag, total, passed, failed}]，依 tag 字典序。 */
 export function summarizeByTag(results) {
   const groups = groupByTag(results);
   return Object.keys(groups).sort().map((tag) => {
@@ -129,6 +131,11 @@ function cmdLink(argv) {
   catch (e) { console.error(`link: eval 讀取失敗 ${opts.eval}: ${e?.message ?? e}`); process.exit(3); }
   try { findings = readJson(opts.findings); }
   catch (e) { console.error(`link: findings 讀取失敗 ${opts.findings}: ${e?.message ?? e}`); process.exit(3); }
+  // findings 必須是陣列：傳錯檔（如把 oracle report 物件當 findings）→ 明確報錯，不靜默回空連結（misuse vs 真無連結要可區分）。
+  if (!Array.isArray(findings)) {
+    console.error(`link: --findings 須為 JSON 陣列（收到 ${typeof findings}）— 別把 oracle report 當 findings`);
+    process.exit(2);
+  }
   console.log(JSON.stringify({
     ...crossLink(tasksOf(report), findings, {}),
     note: 'eval↔verify 依共享 tag/axis 雙向索引（onlyFailures）',

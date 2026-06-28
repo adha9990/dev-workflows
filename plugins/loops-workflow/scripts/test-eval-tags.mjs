@@ -36,6 +36,11 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   // __proto__ 安全（Object.create(null)）
   const gp = groupByTag([{ id: 'p', tags: ['__proto__'] }]);
   assert(gp['__proto__'] && gp['__proto__'].length === 1, 'groupByTag：__proto__ 當一般 tag 安全 [T1]');
+  // 同 item 重複 tag 去重（與 crossLink Set 一致，不灌大計數）
+  assert(groupByTag([{ id: 'd', tags: ['x', 'x'] }]).x.length === 1, 'groupByTag：同 item 重複 tag 去重 [T1]');
+  // 非字串 tag 跳過
+  const gmix = groupByTag([{ id: 'm', tags: ['x', 1, null, {}] }]);
+  assert(gmix.x.length === 1 && Object.keys(gmix).length === 1, 'groupByTag：非字串 tag 跳過 [T1]');
 
   const results = [
     { id: 'a', pass: true, tags: ['x', 'sec'] },
@@ -94,15 +99,38 @@ function run(args) {
       { id: 'c', pass: true, tags: ['sec'] },
     ],
   }));
+  // finding f1 axis 'x' → 與失敗 task b（tags['x']）交集，link 才驗得到雙向 wiring（非空）。
   const findingsFile = join(dir, 'findings.json');
-  writeFileSync(findingsFile, JSON.stringify([{ id: 'f1', axis: 'sec' }]));
+  writeFileSync(findingsFile, JSON.stringify([{ id: 'f1', axis: 'x' }]));
 
   const byTag = run(['by-tag', '--results', report]);
   assert(byTag.status === 0 && /sec/.test(byTag.stdout), 'CLI by-tag：exit 0 + 印 per-tag [T3]');
-  assert(run(['link', '--eval', report, '--findings', findingsFile]).status === 0, 'CLI link：exit 0 [T3]');
+
+  // link 端到端：失敗 b(tags x) ↔ f1(axis x)，雙向輸出非假綠
+  const linkRes = run(['link', '--eval', report, '--findings', findingsFile]);
+  let linkOut = null; try { linkOut = JSON.parse(linkRes.stdout); } catch { /* leave null */ }
+  assert(linkRes.status === 0 && linkOut
+    && linkOut.evalToVerify.find((e) => e.evalId === 'b').findings.includes('f1')
+    && linkOut.verifyToEval.find((f) => f.findingId === 'f1').evals.includes('b'),
+    'CLI link：失敗 b ↔ f1 雙向 wiring（非假綠）[T3]');
+
   assert(run(['by-tag']).status === 2, 'CLI by-tag：缺 --results → exit 2 [T3]');
   assert(run(['bogus']).status === 2, 'CLI：未知命令 → exit 2 [T3]');
   assert(run(['by-tag', '--results', join(dir, 'nope.json')]).status === 3, 'CLI by-tag：讀檔失敗 → exit 3 [T3]');
+
+  // by-tag 容受裸陣列 report（tasksOf fallback）
+  const bareArr = join(dir, 'bare.json');
+  writeFileSync(bareArr, JSON.stringify([{ id: 'z', pass: true, tags: ['only'] }]));
+  assert(/only/.test(run(['by-tag', '--results', bareArr]).stdout), 'CLI by-tag：裸陣列 report → tasksOf fallback [T3]');
+
+  // link 錯誤路徑：缺 --findings exit 2、eval/findings 讀檔失敗 exit 3、錯形狀 findings exit 2
+  assert(run(['link', '--eval', report]).status === 2, 'CLI link：缺 --findings → exit 2 [T3]');
+  assert(run(['link', '--eval', join(dir, 'nope.json'), '--findings', findingsFile]).status === 3,
+    'CLI link：eval 讀檔失敗 → exit 3 [T3]');
+  assert(run(['link', '--eval', report, '--findings', join(dir, 'nope.json')]).status === 3,
+    'CLI link：findings 讀檔失敗 → exit 3 [T3]');
+  assert(run(['link', '--eval', report, '--findings', report]).status === 2,
+    'CLI link：findings 非陣列（傳成 report 物件）→ exit 2 [T3]');
   rmSync(dir, { recursive: true, force: true });
 }
 
