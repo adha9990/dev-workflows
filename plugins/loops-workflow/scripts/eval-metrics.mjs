@@ -164,6 +164,8 @@ export function appendEvalRow(file, row, cap = MAX_METRIC_ROWS) {
     mkdirSync(dirname(file), { recursive: true });
     appendFileSync(file, `${JSON.stringify(row)}\n`);
     if (cap > 0) {
+      // rotation：非原子 read→rewrite，但 append 已先成功故新 row 不丟；這是 advisory 本地檔，
+      // 容忍偶發崩潰截斷（parseEvalRows 逐行容錯、壞末行跳過），不為它引入 temp+rename 複雜度。
       const lines = readFileSync(file, 'utf8').split('\n').filter((ln) => ln.trim());
       if (lines.length > cap) writeFileSync(file, `${rotateLines(lines, cap).join('\n')}\n`);
     }

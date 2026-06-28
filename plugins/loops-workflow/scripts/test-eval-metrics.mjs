@@ -511,5 +511,14 @@ function readJsonl(file) {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
+// ── ROT-writefail：appendEvalRow 寫檔失敗（路徑為既有目錄）→ 不丟例外（catch 吞、永不擋路）[契約 寫檔容錯] ──
+{
+  const dir = mkdtempSync(join(tmpdir(), 'em-wf-'));
+  try {
+    const r = callSafe(() => appendEvalRow(dir, { corpus: 'W', passRate: 1.0 }, 3)); // file=目錄 → append/write 失敗
+    assert(!r.threw, 'appendEvalRow：寫檔失敗（路徑為目錄）→ 不丟例外 [ROT-writefail]');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
 process.exit(failed.length > 0 ? 1 : 0);

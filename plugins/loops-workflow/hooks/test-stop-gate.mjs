@@ -66,6 +66,7 @@ function runHook(scriptAbs, payload, extraEnv = {}) {
   const env = { ...process.env };
   delete env.LOOPS_CONFIG_PROTECTION; // 確保「未設」情境真的未設（不被外層環境污染）
   delete env.LOOPS_STOP_GATE;
+  delete env.LOOPS_EVAL_GATE; // #35：accumulator 現也認 eval-gate flag，須一併隔離才能測「兩 flag 都關 → no-op」
   Object.assign(env, extraEnv);
   return spawnSync(process.execPath, [scriptAbs], {
     input: JSON.stringify(payload),

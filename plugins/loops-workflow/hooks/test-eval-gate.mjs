@@ -14,6 +14,7 @@ import { editsStateFile, readEditsForSession, writeEditsState } from './edit-acc
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const EVAL_GATE_SCRIPT = join(HERE, 'eval-gate.mjs');
+const ACCUMULATOR_SCRIPT = join(HERE, 'edit-accumulator.mjs'); // 整合測試：真跑 producer
 
 let passed = 0;
 const failed = [];
@@ -93,6 +94,7 @@ const STABLE = [{ corpus: 'X', passRate: 1.0 }, { corpus: 'X', passRate: 1.0 }];
   try {
     const res = runHook({ session_id: sessionId, cwd }, { LOOPS_EVAL_GATE: '1' });
     assert(res.status === 0 && (res.stdout || '').trim() === '', 'S2：flag 開但無 eval-results.jsonl → no-op [S2]');
+    assert(readEditsForSession(sessionId).length === 1, 'S2：無歷史檔 → 未進閘門、不清 accumulator（seed 仍在；分辨「短路 vs 跑空閘」）[S2]');
   } finally { rmSync(editsStateFile(sessionId), { force: true }); rmSync(cwd, { recursive: true, force: true }); }
 }
 
@@ -118,6 +120,8 @@ const STABLE = [{ corpus: 'X', passRate: 1.0 }, { corpus: 'X', passRate: 1.0 }];
     let out = null; try { out = JSON.parse(res.stdout); } catch { out = null; }
     const ctx = out?.hookSpecificOutput?.additionalContext;
     assert(typeof ctx === 'string' && ctx.length > 0, 'S4：退化 → 注入 hookSpecificOutput.additionalContext [S4]');
+    assert(out?.hookSpecificOutput?.hookEventName === 'Stop', 'S4：注入帶 hookEventName===Stop（CC 才認）[S4]');
+    assert(/退化|regression|passRate/i.test(ctx || ''), 'S4：注入內容反映真退化（含 退化/regression/passRate）非空殼 [S4]');
     assert(readEditsForSession(sessionId).length === 0, 'S4：stop-gate 關 → 本 hook 清 accumulator（readEditsForSession === []）[S4]');
   } finally { rmSync(editsStateFile(sessionId), { force: true }); rmSync(cwd, { recursive: true, force: true }); }
 }
@@ -146,6 +150,45 @@ const STABLE = [{ corpus: 'X', passRate: 1.0 }, { corpus: 'X', passRate: 1.0 }];
     assert(!(res.stdout || '').includes('additionalContext'), 'S6：無退化 → 無注入（靜默）[S6]');
     assert(readEditsForSession(sessionId).length === 0, 'S6：跑完清 accumulator（stop-gate 關）[S6]');
   } finally { rmSync(editsStateFile(sessionId), { force: true }); rmSync(cwd, { recursive: true, force: true }); }
+}
+
+// ── S7（整合）：只開 LOOPS_EVAL_GATE → 真 edit-accumulator 累積 → eval-gate 端到端跑（producer→consumer 接線；守 P1 回歸）──
+{
+  const sessionId = freshSession('eg-integ');
+  const cwd = makeMetricsCwd('eg-integ-', REGRESSED);
+  rmSync(editsStateFile(sessionId), { force: true });
+  try {
+    const accEnv = { ...process.env }; delete accEnv.LOOPS_STOP_GATE; accEnv.LOOPS_EVAL_GATE = '1';
+    const acc = spawnSync(process.execPath, [ACCUMULATOR_SCRIPT], {
+      input: JSON.stringify({ session_id: sessionId, tool_input: { file_path: join(tmpdir(), `f-${sessionId}.ts`) } }),
+      env: accEnv, encoding: 'utf8',
+    });
+    assert(acc.status === 0, 'S7：edit-accumulator exit 0 [S7]');
+    assert(readEditsForSession(sessionId).length === 1, 'S7：只開 LOOPS_EVAL_GATE → accumulator 仍累積（producer 認 eval-gate；守 P1）[S7]');
+    const res = runHook({ session_id: sessionId, cwd }, { LOOPS_EVAL_GATE: '1' });
+    let out = null; try { out = JSON.parse(res.stdout); } catch { out = null; }
+    assert(typeof out?.hookSpecificOutput?.additionalContext === 'string', 'S7：accumulator 有編輯 → eval-gate 端到端跑並注入退化 [S7]');
+  } finally { rmSync(editsStateFile(sessionId), { force: true }); rmSync(cwd, { recursive: true, force: true }); }
+}
+
+// ── S8：flag 開但 payload 壞（非 JSON）→ no-op exit 0、無輸出（永不擋路）──
+{
+  const cwd = makeMetricsCwd('eg-badpay-', REGRESSED);
+  try {
+    const res = spawnSync(process.execPath, [EVAL_GATE_SCRIPT], { input: 'not-json', env: { ...process.env, LOOPS_EVAL_GATE: '1' }, encoding: 'utf8' });
+    assert(res.status === 0 && (res.stdout || '').trim() === '', 'S8：payload 壞 → exit 0、無輸出（永不擋路）[S8]');
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
+}
+
+// ── S9：flag 開但 payload 缺 cwd（已 seed edits）→ no-op、不清 accumulator（早退在清之前）──
+{
+  const sessionId = freshSession('eg-nocwd');
+  writeEditsState(sessionId, [join(tmpdir(), `e-${sessionId}.ts`)]);
+  try {
+    const res = runHook({ session_id: sessionId }, { LOOPS_EVAL_GATE: '1' }); // 無 cwd
+    assert(res.status === 0 && (res.stdout || '').trim() === '', 'S9：缺 cwd → exit 0、無輸出 [S9]');
+    assert(readEditsForSession(sessionId).length === 1, 'S9：缺 cwd 早退 → 不清 accumulator（seed 仍在）[S9]');
+  } finally { rmSync(editsStateFile(sessionId), { force: true }); }
 }
 
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
