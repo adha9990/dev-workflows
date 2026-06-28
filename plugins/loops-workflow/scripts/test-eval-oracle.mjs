@@ -403,6 +403,11 @@ function findResult(tasks, name) {
   assert(res.error == null, 'E2：node 啟動成功 [E2]');
   assert(json && json.total === 1 && json.passed === 1 && json.failed === 0, 'E2：--task 過濾 → 只跑 et-pass、全綠 [E2]');
   assert(res.status === 0, 'E2：無 fail → 程序 exit code===0 [E2]');
+  // #34 passthrough：結果帶 task 的 tags/version/verifyAxes（供 eval-tags 分組 / eval↔verify 互指）
+  const t = json?.tasks?.[0];
+  assert(t && JSON.stringify(t.tags) === JSON.stringify(['arithmetic', 'regression'])
+    && t.version === '1.0' && JSON.stringify(t.verifyAxes) === JSON.stringify(['tests']),
+    'E2：result passthrough tags/version/verifyAxes [E2]');
 }
 
 // ════════════════════════════════════════════════════════════════════════════

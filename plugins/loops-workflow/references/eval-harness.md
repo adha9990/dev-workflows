@@ -52,7 +52,9 @@ node plugins/loops-workflow/scripts/run-eval.mjs <path-to-scenarios.json>
     "failToPass": ["add returns sum"],             // 改後該綠的 test 名（改前應 fail）
     "passToPass": ["sub returns diff"]             // 既有綠、不准轉紅的 test 名
   },
-  "tags": ["regression", "build"]
+  "version": "1.0",                                // E6：scenario 版本，改了能追溯舊 run
+  "tags": ["regression", "build"],                 // E6：聚合分組鍵 + eval↔verify 連結脊椎
+  "verifyAxes": ["tests"]                          // E6：此 eval 關聯的 verify 軸（crossLink 用；省略則僅靠 tags）
 }
 ```
 
@@ -215,4 +217,34 @@ node plugins/loops-workflow/scripts/eval-poll.mjs poll --records <judge-results.
 exit code：產出 0（advisory 永不擋路）/ 缺旗標·未知命令·**未知 `--score-method`** 2 / 讀檔失敗 3。輸出含 `loaded/skipped`（揭露跳過的壞行數）。**`poll` 需 record 帶 `caseId` 才有意義**——缺 caseId 的 record 會被併為單一 null 群、印 stderr 警示。panel fan-out（派 N judge、各帶 `--case-id` 落 record）由上層做；`eval-poll.mjs` 只聚合。
 
 ## 範圍邊界
-單票只交付**確定性聚合 + 金標 schema**。真派 judge panel / 真標 50–100 筆金標＝留 operator/上層。scenario 版本 tag + eval↔verify 銜接＝#34；live-candidate 真跑＝#36。
+單票只交付**確定性聚合 + 金標 schema**。真派 judge panel / 真標 50–100 筆金標＝留 operator/上層。scenario 版本 tag + eval↔verify 銜接＝**E6（已落地，見下）**；live-candidate 真跑＝#36。
+
+---
+
+# E6 — eval↔verify 銜接 + scenario 版本/tag（`eval-tags.mjs`）
+
+> **tags 是統一連結脊椎**：同一組 tag 同時驅動「跨 run 結果分組」與「eval↔verify 互指」——不造兩套機制。task 加 `version`（改版可追溯舊 run）+ `verifyAxes`（該 eval 關聯的 verify 軸）。
+
+## 純函式（`eval-tags.mjs`）
+- `groupByTag(items, {field:'tags'})` → `{tag: items[]}`（一 item 多 tag 各入組；無 tags 不入；`Object.create(null)` → `__proto__` 等 tag 名安全）。
+- `summarizeByTag(results)` → `[{tag, total, passed, failed}]`（字典序、用 `pass===true`）——依 tag 看哪類最常退化。
+- `crossLink(evalResults, verifyFindings, {onlyFailures:true})` → 依**共享 tag/axis** 雙向索引：eval key＝`(tags ∪ verifyAxes)`、finding key＝`([axis] ∪ tags)`、交集非空即連。`onlyFailures` 只取 `pass!==true` 的 eval（呼應「eval 失敗情境 ↔ finding」）。回 `{evalToVerify, verifyToEval}`。
+
+## passthrough
+`eval-oracle.mjs` 的 per-task 結果現帶 `tags/version/verifyAxes`（來自 task），讓 `summarizeByTag(report.tasks)` / `crossLink` 能直接吃 oracle 報告。
+
+## 互指是純函式 + 慣例
+`crossLink` 是可測純函式；**「verify 把 findings 寫到哪供 eval 讀」＝上層慣例**（finding 物件帶 `axis`/`tags` 即可餵入），本 script 不硬接 verify 流程。與 `eval-metrics` 回歸 gate 分離——tag 分組是另一個 cut，不動回歸主判準。
+
+## 跑
+```bash
+# 依 tag 聚合 oracle 報告（先 eval-oracle --json 產報告）
+node plugins/loops-workflow/scripts/eval-oracle.mjs --dir plugins/loops-workflow/evals/build --json > /tmp/report.json
+node plugins/loops-workflow/scripts/eval-tags.mjs by-tag --results /tmp/report.json
+# eval 失敗 ↔ verify findings 雙向互指（findings 為帶 axis/tags 的 JSON 陣列）
+node plugins/loops-workflow/scripts/eval-tags.mjs link --eval /tmp/report.json --findings <findings.json>
+```
+exit code：產出 0 / 缺旗標·未知命令 2 / 讀檔失敗 3。
+
+## 範圍邊界
+單票交付 schema 擴充 + 分組/互指純函式。**真把 verify 流程的 findings 持久化成檔讓 eval 自動讀＝留上層慣例**；不動 eval-metrics 回歸主判準；live-candidate 真跑＝#36。

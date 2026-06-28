@@ -242,11 +242,22 @@ function evaluateTask(task, tasksDir) {
     return {
       id: task?.id,
       stage: task?.stage,
+      ...taskMeta(task),
       ...erroredResult(toNameList(task?.oracle?.failToPass), toNameList(task?.oracle?.passToPass), null, containment.reason),
     };
   }
   const scored = scoreTask(spawnGate(containment.workspace), task?.oracle);
-  return { id: task?.id, stage: task?.stage, ...scored };
+  return { id: task?.id, stage: task?.stage, ...taskMeta(task), ...scored };
+}
+
+// passthrough：把 task 的 tags/version/verifyAxes 帶進結果，供下游（eval-tags）依 tag 分組 / eval↔verify 互指。
+// 只帶有定義的欄（不憑空塞 undefined），不與 scored 欄（pass/errored…）撞名。
+function taskMeta(task) {
+  const m = {};
+  if (task?.tags !== undefined) m.tags = task.tags;
+  if (task?.version !== undefined) m.version = task.version;
+  if (task?.verifyAxes !== undefined) m.verifyAxes = task.verifyAxes;
+  return m;
 }
 
 /**
