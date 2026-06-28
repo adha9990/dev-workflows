@@ -25,6 +25,7 @@ const SCHEMA_VERSION = 2; // metric row schema 版本；v2 起含 versions（常
 const NO_VERSION_BUCKET = '(none)'; // groupRowsByVersion：versions 缺欄 / 非陣列 / 空 的歸屬桶（向後相容舊 row）
 const MAX_ORACLE_STDOUT = 16 * 1024 * 1024; // oracle --json 報告上限，避免無上限緩衝
 const DEFAULT_METRICS_PATH = ['.loops', '.metrics', 'eval-results.jsonl']; // 相對 cwd 的預設歷史檔
+const DEFAULT_REPORT_NAME = 'eval-report.json'; // record 落盤的 per-task report 檔名（與 metrics 檔同目錄，供 eval-tags by-tag 吃）
 const MAX_METRIC_ROWS = 1000; // eval-results.jsonl rotation 上限：超過保留最後 N 行（避免無界成長）
 const USAGE = [
   'usage:',
@@ -210,6 +211,20 @@ export function appendEvalRow(file, row, cap = MAX_METRIC_ROWS) {
   }
 }
 
+/**
+ * 落盤 per-task report（整份 oracle aggregate）供 eval-tags by-tag 消費。enabling seam：tags 閘的輸入。
+ * 寫檔失敗（權限 / 路徑被佔成目錄 / 磁碟）→ 出聲診斷但不丟例外：report 是 advisory 旁路，
+ * 失敗不得連坐 record 主結果（metric row 已先寫），record 恆 exit 0、永不擋路（≠ 永不出聲）。
+ */
+export function writeReport(file, aggregate) {
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify(aggregate, null, 2));
+  } catch (err) {
+    console.error(`eval-metrics: failed to write report to "${file}" — ${err?.message ?? err}`);
+  }
+}
+
 /** spawn 同目錄 eval-oracle.mjs 跑語料庫 → tolerant parse 其 --json aggregate；失敗回 null（不丟）。 */
 function runOracle(corpusDir) {
   const oracleScript = join(HERE, 'eval-oracle.mjs');
@@ -241,8 +256,10 @@ function runRecord(opts) {
     console.error(`eval-metrics: record skipped — oracle produced no usable report for --dir "${opts.dir}"`);
     return EXIT_OK;
   }
+  const metricsFile = resolveMetricsFile(opts.metricsFile);
   const row = buildEvalRow(aggregate, { corpus: opts.dir, ts: new Date().toISOString() });
-  appendEvalRow(resolveMetricsFile(opts.metricsFile), row);
+  appendEvalRow(metricsFile, row); // 先寫 metric row（主結果）——report 落盤失敗不得連坐它
+  writeReport(join(dirname(metricsFile), DEFAULT_REPORT_NAME), aggregate); // per-task report：tags 閘的輸入
   return EXIT_OK;
 }
 
