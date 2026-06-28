@@ -12,7 +12,7 @@ preflight 的三道關，loops-workflow 既有階段**已經做掉大半**，本
 
 | preflight 關卡 | loops-workflow 既有對應 | 覆蓋程度 |
 |---|---|---|
-| Merge-readiness（合併安全） | `verify`：核心 reviewer fan-out（依 §1.4 4 級風險梯右尺寸化：STANDARD 預設 6 軸 product / architecture / security / performance / code-quality / tests；LIGHT 小孤立 code 3 軸；DEEP 高風險加 tripwire + holistic；SKIP 護欄保護的瑣碎面）+ 條件式 reviewer + `finding-validator` 二輪 | **完全等價**。verify 就是 merge-review 引擎本身，連 finding 驗證、P0–P3 分級、Ready/Not ready 收斂都有 |
+| Merge-readiness（合併安全） | `verify`：核心 reviewer fan-out（依 §1.4 4 級風險梯右尺寸化：STANDARD 預設 6 軸 product / architecture / security / performance / code-quality / tests；LIGHT 小孤立 code 3 軸；DEEP 高風險加 holistic；SKIP 護欄保護的瑣碎面）+ 條件式 reviewer + `finding-validator` 二輪 | **完全等價**。verify 就是 merge-review 引擎本身，連 finding 驗證、P0–P3 分級、Ready/Not ready 收斂都有 |
 | Implementation walkthrough（實作導讀） | `explain` 第 1 段：進入點 / 責任盒 / 介面邊 / payload 流動 + mermaid 圖 + `file:line` 證據錨點 | **完全等價** |
 | Ownership rehearsal（面談預演） | `explain` 第 2 段：5 題 ownership 自測（需求 / 設計取捨 / 實作流程 / API 用法 / 防呆驗證）+ 參考解答 | **完全等價** |
 | Design-direction（設計方向） | `explain` 第 3 段：一句話講工程方向 + 指出有沒有偏離 issue 契約 | 有 recap，但**不是 pass/fail 關卡**（見下節缺口 a） |
