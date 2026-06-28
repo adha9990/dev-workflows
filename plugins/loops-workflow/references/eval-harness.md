@@ -171,8 +171,8 @@ exit code：**ok exit 0**（多餘步仍 0）、**漏/禁止/順序 exit 1**、*
 扁平 YAML frontmatter（機讀，`eval-judge.mjs` 驗）：`dimension` / `scale_min` / `scale_max` / `threshold` / `schema`；body 的 `## Evaluation steps` ≥3 條編號步驟（**鎖死**、judge 逐步照走防分數漂移）。`validateRubric` 驗：dimension 非空 ＆ 整數 scaleMin<scaleMax ＆ scaleMin≤threshold≤scaleMax ＆ stepCount≥3。
 
 ## verdict 解析 + 驗證（純函式，永不擋路）
-- `parseVerdict(raw)`：tolerant 三段降級（fenced ```json → 直接 parse → 首個平衡 `{...}`）→ `{score, pass, reasoning, dimension?, parseOk}`；壞到底 `parseOk:false`（不丟例外）。score 僅接受真數字（字串/缺 → null）。
-- `validateVerdict(verdict, {scaleMin,scaleMax,threshold})`：加 `scoreInRange`、`pass`（**門檻推導 `score≥threshold`，覆蓋 judge 自報**，把分數→pass 變確定）、`passMismatch`（自報非 null 且 ≠ 推導，留痕供 #33 κ 校準）、`valid`（parseOk ＆ scoreInRange）。
+- `parseVerdict(raw)`：tolerant 三段降級（**fenced 線性掃描、優先 ```json 標籤** → 直接 parse → 首個平衡 `{...}`）→ `{score, pass, reasoning, dimension?, parseOk}`；壞到底 `parseOk:false`（不丟例外）。score 僅接受真數字（字串/缺 → null）。
+- `validateVerdict(verdict, {scaleMin,scaleMax,threshold,dimension})`：加 `scoreInRange`、`pass`（**門檻推導且須先界內 `scoreInRange ＆ score≥threshold`，覆蓋 judge 自報**——越界分數不可能 pass，把分數→pass 變確定）、`passMismatch`（自報非 null 且 ≠ 推導，留痕供 #33 κ 校準）、`dimension`（**rubric 為權威**）+ `dimensionMismatch`（judge 自報 ≠ rubric——dimension 是 #33 聚合分組鍵）、`valid`（parseOk ＆ scoreInRange）。
 
 ## 分軌（Metric-Honesty，核心不變量）
 `buildJudgeRecord` 產的 record **硬帶 `track:'judge-estimate'`**（永不採信外部塞的 track）+ `judgeId`/`model`（forward-compat 給 #33 PoLL/κ 在陣列上聚合）。落**獨立** `<cwd>/.loops/.metrics/judge-results.jsonl`（`appendJudgeRecord` append-then-rotate、cap 1000）。`partitionByTrack` 把 measured/judge-estimate 分開。

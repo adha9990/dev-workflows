@@ -3,7 +3,7 @@
 // 用法（cwd = plugins/loops-workflow）：node scripts/test-eval-judge.mjs
 // 全綠 → exit 0；任一斷言失敗或 import 失敗 → exit 1。
 
-import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -70,6 +70,22 @@ const RUBRIC_OK = [
   const nul = parseVerdict(null);
   assert(!nul.parseOk && nul.score === null,
     'parseVerdict：null → parseOk:false（不丟例外）[T1]');
+
+  // reasoning 內含 } —— 平衡器跳過字串內括號（firstBalancedObject 存在的理由）
+  const brace = parseVerdict('note: {"score":4,"pass":true,"reasoning":"close } brace"} end');
+  assert(brace.parseOk && brace.score === 4 && brace.reasoning === 'close } brace',
+    'parseVerdict：reasoning 含 } → 平衡器跳過字串內括號 [T1]');
+
+  // 多物件取首個；無閉合 → parseOk:false
+  assert(parseVerdict('a {"score":1,"reasoning":"x"} b {"score":5}').score === 1,
+    'parseVerdict：多物件取首個平衡物件 [T1]');
+  assert(!parseVerdict('prefix {"score":4 no close').parseOk,
+    'parseVerdict：無閉合 { → parseOk:false [T1]');
+
+  // fenced 優先 ```json 標籤：先非 json fence、後 json verdict → 抽到後者
+  const preferJson = parseVerdict('```\nplain text block\n```\n```json\n{"score":5,"reasoning":"v"}\n```');
+  assert(preferJson.parseOk && preferJson.score === 5,
+    'parseVerdict：先非 json fence、後 ```json → 抽 json 那塊 [T1]');
 }
 
 // ── T2 parseRubricMeta + validateRubric ───────────────────────────────────────
@@ -94,6 +110,15 @@ const RUBRIC_OK = [
   const badScale = validateRubric(parseRubricMeta(
     RUBRIC_OK.replace('scale_min: 1', 'scale_min: 5').replace('scale_max: 5', 'scale_max: 2')));
   assert(!badScale.valid, 'validateRubric：scaleMin≥scaleMax → invalid [T2]');
+
+  // threshold 邊界：==scaleMin / ==scaleMax 皆 valid（含界）；<scaleMin invalid
+  assert(validateRubric(parseRubricMeta(RUBRIC_OK.replace('threshold: 4', 'threshold: 1'))).valid,
+    'validateRubric：threshold==scaleMin → valid [T2]');
+  assert(validateRubric(parseRubricMeta(RUBRIC_OK.replace('threshold: 4', 'threshold: 5'))).valid,
+    'validateRubric：threshold==scaleMax → valid [T2]');
+  assert(!validateRubric(parseRubricMeta(
+    RUBRIC_OK.replace('scale_min: 1', 'scale_min: 2').replace('threshold: 4', 'threshold: 1'))).valid,
+    'validateRubric：threshold<scaleMin → invalid [T2]');
 }
 
 // ── T3 validateVerdict：門檻為準 + passMismatch ────────────────────────────────
@@ -118,6 +143,31 @@ const RUBRIC_OK = [
   const noScore = validateVerdict({ score: null, pass: null, reasoning: '', parseOk: false }, params);
   assert(!noScore.valid && noScore.pass === false,
     'validateVerdict：parseOk false / score null → valid:false pass:false [T3]');
+
+  // derivedPass gate：越界 score 不可能 pass（不只 valid:false）
+  assert(oob.pass === false,
+    'validateVerdict：越界 score → pass:false（gate on scoreInRange）[T3]');
+
+  // score 邊界：==scaleMin / ==scaleMax 仍界內
+  const lo = validateVerdict({ score: 1, pass: false, reasoning: 'r', parseOk: true }, params);
+  assert(lo.scoreInRange && lo.valid, 'validateVerdict：score==scaleMin 界內 valid [T3]');
+  const hi = validateVerdict({ score: 5, pass: true, reasoning: 'r', parseOk: true }, params);
+  assert(hi.scoreInRange && hi.pass === true && hi.valid, 'validateVerdict：score==scaleMax 界內 pass valid [T3]');
+
+  // passMismatch：self pass 缺(null) → 不算 mismatch
+  const np = validateVerdict({ score: 4, pass: null, reasoning: 'r', parseOk: true }, params);
+  assert(np.pass === true && np.passMismatch === false, 'validateVerdict：self pass null → passMismatch false [T3]');
+
+  // dimensionMismatch：judge 自報 ≠ rubric → 標旗標 + rubric 為權威；一致 → false
+  const dm = validateVerdict(
+    { score: 4, pass: true, reasoning: 'r', parseOk: true, dimension: 'other' },
+    { ...params, dimension: 'explanation-quality' });
+  assert(dm.dimensionMismatch === true && dm.dimension === 'explanation-quality',
+    'validateVerdict：dimension 自報≠rubric → dimensionMismatch + rubric 權威 [T3]');
+  const dm2 = validateVerdict(
+    { score: 4, pass: true, reasoning: 'r', parseOk: true, dimension: 'explanation-quality' },
+    { ...params, dimension: 'explanation-quality' });
+  assert(dm2.dimensionMismatch === false, 'validateVerdict：dimension 一致 → dimensionMismatch false [T3]');
 }
 
 // ── T4 buildJudgeRecord / partitionByTrack / rotateLines / appendJudgeRecord ───
@@ -134,6 +184,8 @@ const RUBRIC_OK = [
   const forced = buildJudgeRecord({ ...validated, track: 'measured' }, { judgeId: 'j', model: 'm' });
   assert(forced.track === 'judge-estimate',
     'buildJudgeRecord：外部塞 track:measured 無效（永遠 judge-estimate）[T4]');
+  const recDm = buildJudgeRecord({ ...validated, dimensionMismatch: true }, { judgeId: 'j', model: 'm' });
+  assert(recDm.dimensionMismatch === true, 'buildJudgeRecord：透傳 dimensionMismatch [T4]');
 
   const part = partitionByTrack([
     { track: 'measured', id: 1 }, { track: 'judge-estimate', id: 2 },
@@ -144,6 +196,7 @@ const RUBRIC_OK = [
 
   assert(eq(rotateLines(['a', 'b', 'c', 'd'], 2), ['c', 'd']), 'rotateLines：超 cap 保留末 N [T4]');
   assert(eq(rotateLines(['a'], 5), ['a']), 'rotateLines：未超 cap 原樣 [T4]');
+  assert(eq(rotateLines(['a', 'b'], 0), ['a', 'b']), 'rotateLines：cap<=0 不旋轉（視為停用）[T4]');
 
   const dir = mkdtempSync(join(tmpdir(), 'evaljudge-'));
   const file = join(dir, 'judge-results.jsonl');
@@ -155,6 +208,8 @@ const RUBRIC_OK = [
   for (let i = 0; i < 5; i += 1) appendJudgeRecord(file, { a: 100 + i }, 3);
   const lines2 = readFileSync(file, 'utf8').split('\n').filter((l) => l.trim());
   assert(lines2.length === 3, 'appendJudgeRecord：cap=3 rotation 後僅 3 行 [T4]');
+  assert(lines2.map((l) => JSON.parse(l).a).join(',') === '102,103,104',
+    'appendJudgeRecord：rotation 保留最新 N（非最舊）[T4]');
   rmSync(dir, { recursive: true, force: true });
 }
 
@@ -196,6 +251,24 @@ function run(args) {
   assert(run(['bogus']).status === 2, 'CLI：未知命令 → exit 2 [T5]');
   assert(run(['parse', '--rubric', join(dir, 'nope.md'), '--output', outFile, '--judge-file', judgeFile]).status === 3,
     'CLI parse：rubric 讀檔失敗 → exit 3 [T5]');
+  // output 讀檔失敗（rubric ok）→ exit 3（與 rubric-read-fail 為不同分支）
+  assert(run(['parse', '--rubric', rubricFile, '--output', join(dir, 'nope.json'), '--judge-file', judgeFile]).status === 3,
+    'CLI parse：output 讀檔失敗 → exit 3 [T5]');
+
+  // --output - 從 stdin 讀
+  const pStdin = spawnSync(process.execPath,
+    [SCRIPT, 'parse', '--rubric', rubricFile, '--output', '-', '--judge-file', judgeFile],
+    { encoding: 'utf8', input: '{"score":4,"pass":true,"reasoning":"r"}' });
+  let recStdin = null; try { recStdin = JSON.parse(pStdin.stdout); } catch { /* leave null */ }
+  assert(pStdin.status === 0 && recStdin && recStdin.score === 4,
+    'CLI parse：--output - 從 stdin 讀 [T5]');
+
+  // 落檔失敗仍 exit 0 + 印 record + stderr 診斷（--judge-file 指向目錄 → EISDIR）
+  const dirAsFile = join(dir, 'isdir'); mkdirSync(dirAsFile);
+  const pWf = run(['parse', '--rubric', rubricFile, '--output', outFile, '--judge-file', dirAsFile]);
+  let recWf = null; try { recWf = JSON.parse(pWf.stdout); } catch { /* leave null */ }
+  assert(pWf.status === 0 && recWf && recWf.track === 'judge-estimate' && /落檔失敗/.test(pWf.stderr),
+    'CLI parse：落檔失敗仍 exit 0 + 印 record + stderr 診斷（永不擋路≠永不出聲）[T5]');
 
   rmSync(dir, { recursive: true, force: true });
 }

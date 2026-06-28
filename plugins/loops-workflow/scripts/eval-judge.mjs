@@ -52,18 +52,41 @@ export function parseVerdict(raw) {
 
 function extractJsonObject(text) {
   if (!text) return null;
-  // 1) fenced ```json ... ```（judge 常包 code fence）
-  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence) {
-    const fromFence = tryParseObject(fence[1]);
-    if (fromFence) return fromFence;
-  }
+  // 1) fenced code block：線性 indexOf 掃描（避開 regex 的 `\s*`+lazy 回溯），且**優先 ```json 標籤**
+  //    的 fence，再退無標籤 fence —— judge 若先吐非 json fence、後吐真 verdict，仍抓到 json 那塊。
+  const fromFence = extractFromFences(text);
+  if (fromFence) return fromFence;
   // 2) 直接 parse 全文（clean JSON）
   const direct = tryParseObject(text);
   if (direct) return direct;
   // 3) 首個平衡 {...}（prose 包夾）
   const balanced = firstBalancedObject(text);
   return balanced ? tryParseObject(balanced) : null;
+}
+
+/** 線性掃出所有 ``` fence；先試帶 `json` 標籤者、全失敗再試無標籤者。O(n)、無 regex 回溯。 */
+function extractFromFences(text) {
+  const tagged = [];
+  const untagged = [];
+  let i = 0;
+  for (;;) {
+    const open = text.indexOf('```', i);
+    if (open < 0) break;
+    const afterTicks = open + 3;
+    const close = text.indexOf('```', afterTicks);
+    if (close < 0) break; // 無閉合 fence → 不再有完整區塊可抽
+    const nl = text.indexOf('\n', afterTicks);
+    const hasLangLine = nl >= 0 && nl < close;
+    const lang = (hasLangLine ? text.slice(afterTicks, nl) : '').trim().toLowerCase();
+    const content = text.slice(hasLangLine ? nl + 1 : afterTicks, close);
+    (lang === 'json' ? tagged : untagged).push(content);
+    i = close + 3;
+  }
+  for (const content of [...tagged, ...untagged]) {
+    const obj = tryParseObject(content);
+    if (obj) return obj;
+  }
+  return null;
 }
 
 function tryParseObject(s) {
@@ -169,19 +192,26 @@ export function validateRubric(meta) {
  */
 export function validateVerdict(verdict, params) {
   const v = verdict || {};
-  const { scaleMin, scaleMax, threshold } = params || {};
+  const { scaleMin, scaleMax, threshold, dimension } = params || {};
   const score = typeof v.score === 'number' && Number.isFinite(v.score) ? v.score : null;
   const scoreInRange = score !== null
     && Number.isFinite(scaleMin) && Number.isFinite(scaleMax)
     && score >= scaleMin && score <= scaleMax;
-  const derivedPass = score !== null && Number.isFinite(threshold) ? score >= threshold : false;
+  // pass 必須先「分數落在量表內」才談門檻——越界分數（如 1–5 量表給 99）不可能 pass。
+  // 不這樣 gate 的話 record 會出現 pass:true 但 valid:false 的自相矛盾，下游若只 filter(pass) 漏看 valid 就算進垃圾。
+  const derivedPass = scoreInRange && Number.isFinite(threshold) && score >= threshold;
   const selfPass = typeof v.pass === 'boolean' ? v.pass : null;
+  // dimension 比照 pass：**rubric 為權威**；judge 自報不一致 → 標 dimensionMismatch 留痕（dimension 是 #33 聚合的分組鍵，不能靜默信 judge）。
+  const judgeDim = typeof v.dimension === 'string' && v.dimension ? v.dimension : null;
+  const rubricDim = typeof dimension === 'string' && dimension ? dimension : null;
   return {
     ...v,
+    dimension: rubricDim ?? judgeDim ?? null, // rubric 權威優先；無 rubric dimension 時才退 judge 自報
     score,
     scoreInRange,
     pass: derivedPass,
     passMismatch: selfPass !== null && selfPass !== derivedPass,
+    dimensionMismatch: judgeDim !== null && rubricDim !== null && judgeDim !== rubricDim,
     valid: v.parseOk === true && scoreInRange,
   };
 }
@@ -202,6 +232,7 @@ export function buildJudgeRecord(validated, meta) {
     pass: v.pass === true,
     scoreInRange: v.scoreInRange === true,
     passMismatch: v.passMismatch === true,
+    dimensionMismatch: v.dimensionMismatch === true,
     reasoning: typeof v.reasoning === 'string' ? v.reasoning : '',
     parseOk: v.parseOk === true,
     valid: v.valid === true,
@@ -230,7 +261,10 @@ export function rotateLines(lines, cap) {
 
 /**
  * append 一行 JSON 進 judge-results.jsonl，再 append-then-rotate 保留最後 cap 行。
- * 非原子（讀-改-寫；單機 dev-tool 可接受，與 eval-metrics 同取捨）。
+ * 非原子（讀-改-寫；單機 dev-tool 可接受，與 eval-metrics 同取捨——此處「仿 eval-metrics」指 rotation 模式）。
+ * **錯誤契約（與孿生 appendEvalRow 不同，注意）**：本函式**會把 IO 失敗往外丟**（不自吞），由 caller 決定是否擋路；
+ * CLI `cmdParse` 用 try/catch 接住 → 落檔失敗仍印 record + exit 0（達成 advisory 永不擋路）。
+ * 未來 importer（如 #33）若需「永不丟」語意，請自行包 try/catch。
  */
 export function appendJudgeRecord(file, record, cap = MAX_JUDGE_ROWS) {
   mkdirSync(dirname(file), { recursive: true });
@@ -287,10 +321,10 @@ function cmdParse(argv) {
 
   const meta = parseRubricMeta(rubricText);
   const verdict = parseVerdict(outputText);
-  const validated = validateVerdict(
-    { ...verdict, dimension: verdict.dimension ?? meta.dimension },
-    { scaleMin: meta.scaleMin, scaleMax: meta.scaleMax, threshold: meta.threshold },
-  );
+  // dimension 走 params 由 validateVerdict 以 rubric 為權威解析（並標 dimensionMismatch），不在此 pre-merge。
+  const validated = validateVerdict(verdict, {
+    scaleMin: meta.scaleMin, scaleMax: meta.scaleMax, threshold: meta.threshold, dimension: meta.dimension,
+  });
   const record = buildJudgeRecord(validated, { judgeId: opts.judgeId, model: opts.model, ts: new Date().toISOString() });
 
   // 落檔（拍板：parse 也落檔）。落檔失敗不擋路：仍印 record + exit 0，但 stderr 診斷（永不擋路 ≠ 永不出聲）。
