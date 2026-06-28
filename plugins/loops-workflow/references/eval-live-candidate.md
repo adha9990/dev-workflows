@@ -7,16 +7,25 @@
 
 1. **獨立重生 N 個候選**（N 建議 3–5）：每次讓 Claude / workflow **從乾淨起點**重跑該 task → 產候選實作。**每次必須獨立**（不同 session/隨機性），否則退化成固定候選、pass^k≡pass@1。
 2. **把候選就地覆寫進 task 宣告的 `workspace`**（⚠️ 關鍵接縫，見 #36 protocol）：`eval-oracle` 只評 task JSON 的固定 `task.workspace`、且須落在 plugin 根內（過 containment），**無 `--workspace` 覆寫旗標**。候選只能改實作、不可動 test 定義。**每輪覆寫前清掉前一候選殘留**（或用乾淨候選夾再覆寫）——否則上一輪新增的檔殘留會污染本輪評分。
-3. **（CI / 不完全信任候選時）先過沙箱隔離**（#52，opt-in）：在 spawn oracle 前用 `eval-sandbox.mjs` 構造隔離執行指令，把候選 `scripts.test` 包進容器跑：
+3. **（CI / 不完全信任候選時）沙箱隔離 + 在容器內評分**（#52，opt-in）：用 `eval-sandbox.mjs plan` 構造隔離執行指令，**且讓容器跑的是「評分命令」而非預設 `npm test`**（用 `--test-cmd`），這樣**真正算分的那次執行**才在沙箱內：
    ```bash
    # 第一層詞法 containment（root 內才放行）+ 第二層容器 policy/指令（不執行，印 would-run argv）
    node plugins/loops-workflow/scripts/eval-sandbox.mjs plan \
      --workspace plugins/loops-workflow/evals/<stage>/<workspace> --root plugins/loops-workflow \
-     --runner docker --memory 512m   # → {argv, policy, valid, containment}；valid 才往下
+     --runner docker --memory 512m \
+     --test-cmd "node /work/oracle-in-container.mjs"   # 容器內跑評分；省略則預設 npm test
+   # → {argv, policy, valid, containment}；valid:true（且非逃逸）才往下；exit 1＝valid:false（fail-closed）
    ```
-   - **CI 接線**：取 `plan` 輸出的 `argv`（`docker run --network none --read-only --memory … --cap-drop ALL --security-opt no-new-privileges -v <ws>:/work …`）由 **CI runner 實際執行**該隔離容器跑候選評分（script 只建構/驗證、不執行容器）。
-   - `LOOPS_SANDBOX_RUNNER` 未設 → `none`（policy `isolated:false`、只第一層詞法）；CI 自動跑前務必設 docker/podman 並確認 `valid:true`。
-   - **⚠️ 真容器逃逸/越權阻擋需 CI runtime 實測**（本機 script 只驗 policy 結構 + 詞法 containment，見 README-protocol 沙箱段）。
+   - **⚠️ 沙箱涵蓋範圍（重要）**：`plan` 只**建構/驗證、不執行容器**。步驟 4 的 `eval-runs record → eval-oracle → quality-gate` **預設在主機上跑候選 `scripts.test`、不在容器內**——若候選不完全信任，**務必**讓步驟 4 的評分命令本身跑進步驟 3 的沙箱容器（把 `--test-cmd` 指向容器內可跑 oracle/quality-gate 的入口、或讓 CI 把整條評分鏈包進容器），否則 layer-2 容器只隔離了「另跑一次的 npm test」、真正算分那次仍裸跑主機。
+   - **CI 接線（可消費契約）**：`plan` 的 `argv` 是 CI 可直接執行的指令。最小 GitHub Actions step：
+     ```yaml
+     - run: |
+         PLAN=$(node plugins/loops-workflow/scripts/eval-sandbox.mjs plan \
+           --workspace "$WS" --root plugins/loops-workflow --runner docker --memory 512m --test-cmd "$SCORE_CMD")
+         echo "$PLAN" | node -e 'const p=JSON.parse(require("fs").readFileSync(0));if(!p.valid)process.exit(1);require("child_process").spawnSync(p.argv[0],p.argv.slice(1),{stdio:"inherit"})'
+     ```
+   - `LOOPS_SANDBOX_RUNNER` 未設 → `none`（policy `isolated:false`、`plan` exit 1 fail-closed；要無容器跑須顯式 `--allow-unsandboxed`）；CI 自動跑前務必設 docker/podman 並確認 `valid:true`。
+   - **⚠️ 真容器逃逸/越權阻擋需 CI runtime 實測**（本機 script 只驗 policy 結構 + 詞法 containment、**未在 CI 實跑過**，見 README-protocol 沙箱段）。實際 CI job 執行屬 operator 接線（上方 step 為可貼範例、非已驗管線）。
 4. **跑 `eval-runs record` 收一行 run**（spawn oracle 評當前 workspace → append 一行）：
    ```bash
    node plugins/loops-workflow/scripts/eval-runs.mjs record \

@@ -15,8 +15,9 @@
 //   node eval-sandbox.mjs check --workspace <path> --root <root>
 //   node eval-sandbox.mjs plan  --workspace <path> [--root <root>] [--runner docker|podman] [--image --memory --pids --cpus]
 
-import { resolve, isAbsolute, sep } from 'node:path';
+import { resolve, isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { isWithinRoot } from './path-containment.mjs';
 
 // ── 預設值（具名常數，無裸魔法值）─────────────────────────────────────────────────
 const DEFAULT_RUNNER = 'docker';
@@ -29,10 +30,17 @@ const DEFAULT_TMPFS = '/tmp';
 const WORK_DIR = '/work';                              // 容器內掛載點 + 工作目錄
 const SUPPORTED_RUNNERS = new Set(['docker', 'podman']);
 const CLI_DEFAULT_MEMORY = '512m';                    // CLI 便利預設：plan 不強制使用者帶 --memory（純函式仍必填）
+const MEMORY_UNLIMITED = '0';                         // docker：--memory 0 等同無上限（fail-open）
+// image allowlist：只放行合法 image 字元；前導 - 另擋（會被 docker 當旗標 → argument injection）。
+const IMAGE_PATTERN = /^[A-Za-z0-9._:/@-]+$/;
 
 const isNonEmptyString = (v) => typeof v === 'string' && v.length > 0;
-const hasValue = (v) => v !== undefined && v !== null && v !== '';
 const withDefault = (v, d) => (v === undefined ? d : v);
+// image 是否安全可放進 argv：非空、合法樣式、且不以 - 開頭（避免被當 docker 旗標）。
+const isSafeImageRef = (v) => isNonEmptyString(v) && IMAGE_PATTERN.test(v) && !v.startsWith('-');
+// 資源上限「有意義」判定（非只檢查 presence）。
+const isMeaningfulMemory = (v) => isNonEmptyString(v) && v !== MEMORY_UNLIMITED;
+const isMeaningfulPids = (v) => Number.isFinite(v) && v > 0;
 
 // ── 純函式 ───────────────────────────────────────────────────────────────────────
 
@@ -50,8 +58,8 @@ export function checkContainment(workspacePath, projectRoot) {
   }
   const rootResolved = resolve(projectRoot);
   const resolved = isAbsolute(workspacePath) ? resolve(workspacePath) : resolve(rootResolved, workspacePath);
-  // 用平台 sep 卡界線，避免 prefix 假命中（/root-evil 不算在 /root 內）。
-  const contained = resolved === rootResolved || resolved.startsWith(rootResolved + sep);
+  // 詞法 containment 走共用安全原語（單一真相源，與 eval-oracle 一致）。
+  const contained = isWithinRoot(resolved, rootResolved);
   if (!contained) {
     return {
       contained: false,
@@ -76,6 +84,11 @@ export function buildSandboxCommand(workspaceAbs, opts = {}) {
   // 邊界先擋（guard clause）：寧可拒絕，也不靜默放行無上限/無映像的沙箱。
   if (!isNonEmptyString(runner)) throw new Error('buildSandboxCommand: runner must be a non-empty string');
   if (!isNonEmptyString(image)) throw new Error('buildSandboxCommand: image must be a non-empty string');
+  // image 消毒（fail-closed）：擋前導 - / 含空白 / 非法字元——否則 image 會被 docker 當成
+  // 額外旗標（--privileged、-v /:/host…）造成 argument injection，整套隔離形同虛設。
+  if (!isSafeImageRef(image)) {
+    throw new Error(`buildSandboxCommand: image "${image}" is not a valid image reference (argument injection rejected)`);
+  }
   if (!Array.isArray(testCmd)) throw new Error('buildSandboxCommand: testCmd must be an array of command tokens');
   if (!isNonEmptyString(memory)) {
     throw new Error('buildSandboxCommand: memory limit is required (no default) — refuse to build an unbounded sandbox');
@@ -103,16 +116,17 @@ export function buildSandboxCommand(workspaceAbs, opts = {}) {
     return { argv: [...testCmd], policy };
   }
 
-  // argv 一律用陣列形式（不拼 shell 字串）→ workspaceAbs 等值不會被當 shell 解析，無注入面。
+  // argv 一律用陣列形式（不拼 shell 字串）→ 無 shell 注入；argument injection 由 image 驗證擋。
   const mount = `${workspaceAbs}:${WORK_DIR}${workspaceMount === 'ro' ? ':ro' : ''}`;
+  // 隔離旗標依 opts 條件式輸出，確保 argv ↔ policy 一致（policy 欄位反映實際 argv）。
   const argv = [
     runner, 'run', '--rm',
     '--network', network,
     '--memory', memory,
     '--pids-limit', String(pids),
     '--cpus', String(cpus),
-    '--cap-drop', 'ALL',
-    '--security-opt', 'no-new-privileges',
+    ...(dropCaps ? ['--cap-drop', 'ALL'] : []),
+    ...(noNewPrivileges ? ['--security-opt', 'no-new-privileges'] : []),
     ...(readOnlyRoot ? ['--read-only'] : []),
     '--tmpfs', tmpfs,
     '-v', mount,
@@ -131,8 +145,9 @@ export function validateSandboxPolicy(policy) {
   const p = policy ?? {};
   const violations = [];
   if (p.network !== 'none') violations.push(`network not isolated: must be 'none' (got ${JSON.stringify(p.network)})`);
-  if (!hasValue(p.memory)) violations.push('memory limit missing (unbounded memory)');
-  if (!hasValue(p.pids)) violations.push('pids limit missing (unbounded process count)');
+  // 資源上限要「有意義」、非只檢查 presence：'0'/'' 的 memory 與 0/負/NaN 的 pids 形同無上限。
+  if (!isMeaningfulMemory(p.memory)) violations.push(`memory limit missing or unbounded (got ${JSON.stringify(p.memory)})`);
+  if (!isMeaningfulPids(p.pids)) violations.push(`pids limit missing or unbounded (must be a finite count > 0, got ${JSON.stringify(p.pids)})`);
   if (p.capsDropped !== true) violations.push('Linux capabilities not dropped (cap-drop ALL required)');
   if (p.noNewPrivileges !== true) violations.push('no-new-privileges not set (privilege escalation possible)');
   if (p.readOnlyRoot !== true) violations.push('root filesystem not read-only');
@@ -156,12 +171,23 @@ export function resolveRunner(env = {}) {
 const USAGE = [
   'usage:',
   '  node eval-sandbox.mjs check --workspace <path> --root <root>',
-  '  node eval-sandbox.mjs plan  --workspace <path> [--root <root>] [--runner docker|podman] [--image <img>] [--memory <m>] [--pids <n>] [--cpus <n>]',
-  '  （check：詞法 containment 守門；plan：建構並驗證沙箱指令，只印不執行容器）',
+  '  node eval-sandbox.mjs plan  --workspace <path> [--root <root>] [--runner docker|podman] [--image <img>] [--memory <m>] [--pids <n>] [--cpus <n>] [--test-cmd "<cmd>"] [--allow-unsandboxed]',
+  '  （check：詞法 containment 守門；plan：建構並驗證沙箱指令，只印不執行容器；--allow-unsandboxed：顯式放行無 runtime 的非隔離執行）',
 ].join('\n');
 
+// 把 --test-cmd 的整串依空白拆成 token 陣列（operator 可讓容器跑評分命令而非預設 npm test）。
+function splitTestCmd(raw) {
+  if (!isNonEmptyString(raw)) return undefined;
+  const tokens = raw.trim().split(/\s+/);
+  return tokens.length > 0 ? tokens : undefined;
+}
+
 function parseArgs(argv) {
-  const opts = { workspace: null, root: null, runner: null, image: undefined, memory: undefined, pids: undefined, cpus: undefined };
+  const opts = {
+    workspace: null, root: null, runner: null, image: undefined,
+    memory: undefined, pids: undefined, cpus: undefined,
+    testCmd: undefined, allowUnsandboxed: false,
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const f = argv[i];
     if (f === '--workspace') opts.workspace = argv[++i] ?? null;
@@ -171,6 +197,8 @@ function parseArgs(argv) {
     else if (f === '--memory') opts.memory = argv[++i];
     else if (f === '--pids') opts.pids = Number.parseInt(argv[++i] ?? '', 10);
     else if (f === '--cpus') opts.cpus = argv[++i];
+    else if (f === '--test-cmd') opts.testCmd = splitTestCmd(argv[++i]);
+    else if (f === '--allow-unsandboxed') opts.allowUnsandboxed = true;
   }
   return opts;
 }
@@ -207,6 +235,7 @@ function cmdPlan(argv) {
     memory: opts.memory ?? CLI_DEFAULT_MEMORY,
     pids: opts.pids,
     cpus: opts.cpus,
+    testCmd: opts.testCmd,
   });
   const { valid, violations } = validateSandboxPolicy(built.policy);
   // stdout 維持純 JSON（警告走 stderr），讓下游可直接 parse。
@@ -214,8 +243,10 @@ function cmdPlan(argv) {
 
   if (runner === 'none') {
     console.error('plan: ⚠️ no container runtime configured — lexical-only containment (set LOOPS_SANDBOX_RUNNER=docker|podman to isolate); tests will run WITHOUT a sandbox');
-    process.exit(0);
+    // 顯式 opt-in（--allow-unsandboxed）才放行無沙箱執行；否則照 fail-closed 退非 0。
+    if (opts.allowUnsandboxed) process.exit(0);
   }
+  // fail-closed：policy 無效（含 none 模式 isolated:false → valid:false）→ exit 1，仍印 plan 供診斷。
   process.exit(valid ? 0 : 1);
 }
 

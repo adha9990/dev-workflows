@@ -2,13 +2,13 @@
 // test-eval-sandbox.mjs —— eval-sandbox.mjs 的紅綠斷言（自帶 harness，#52 sandbox isolation）。
 // 用法（cwd = plugins/loops-workflow）：node scripts/test-eval-sandbox.mjs
 //
-// 注意：eval-sandbox.mjs 尚未實作。用「動態 import + callSafe」讓：
+// 注意：eval-sandbox.mjs 實作已存在（本檔為回歸守門）。用「動態 import + callSafe」讓：
 //   (a) 整個模組缺檔 → 不是 link-time 連坐爆掉，仍印出每條斷言的紅；
 //   (b) 個別 export 缺 → 細粒度紅（該函式那幾條紅，其它照跑）。
 // callSafe 區分「export 根本不是 function（notFn）」與「呼叫時丟例外（threw）」，
 // 這樣「非法輸入應 throw」一類斷言不會因為「函式根本不存在也會 throw」而假綠。
 
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -61,6 +61,14 @@ function containsSubseq(argv, sub) {
   outer: for (let i = 0; i + sub.length <= argv.length; i++) {
     for (let j = 0; j < sub.length; j++) if (argv[i + j] !== sub[j]) continue outer;
     return true;
+  }
+  return false;
+}
+// flagFollowedBy：flag 後「緊接」的值需匹配 re（釘相鄰，比 hasFlag+someEl 嚴：值散落他處不算）。
+function flagFollowedBy(argv, flag, re) {
+  if (!Array.isArray(argv)) return false;
+  for (let i = 0; i < argv.length - 1; i++) {
+    if (argv[i] === flag && re.test(String(argv[i + 1]))) return true;
   }
   return false;
 }
@@ -125,6 +133,18 @@ try {
     const rBadRoot = callSafe(S.checkContainment, insideAbs, '');
     assert(!rBadRoot.notFn && !rBadRoot.threw && rBadRoot.value && rBadRoot.value.contained === false,
       'checkContainment：非字串 / 空 root → contained:false（不丟例外）[#1]');
+
+    // prefix 同層假陽性（layer-1 安全、最關鍵）：共享前綴的兄弟目錄，刻意不用 join。
+    // mutation Prove-It：若 impl 把 startsWith(root + sep) 退化成 startsWith(root)，此條由綠轉紅。
+    const siblingShared = root + 'X-evil'; // 例：/tmp/sbx-contain-abcX-evil，與 root 共享前綴但非子目錄
+    const rSibling = callSafe(S.checkContainment, siblingShared, root);
+    assert(rSibling.ok && rSibling.value && rSibling.value.contained === false,
+      'checkContainment：共享前綴兄弟目錄(root+\'X-evil\') → contained:false（防 startsWith(root) 假陽性 mutation）[#1]');
+
+    // 正向：root 內相對路徑（相對 root 解析）→ contained:true。
+    const rRelIn = callSafe(S.checkContainment, 'evals/build', root);
+    assert(rRelIn.ok && rRelIn.value && rRelIn.value.contained === true,
+      'checkContainment：root 內相對路徑 evals/build → contained:true [#1]');
   }
 
   // ── T2 buildSandboxCommand（純邏輯，建構 docker argv）────────────────────────────────
@@ -145,8 +165,10 @@ try {
     assert(hasFlag(argv, '--pids-limit'), 'buildSandboxCommand(docker) → argv 含 --pids-limit [#2]');
     assert(hasFlag(argv, '--cpus'), 'buildSandboxCommand(docker) → argv 含 --cpus [#2]');
     assert(hasFlagValue(argv, '--cap-drop', 'ALL'), 'buildSandboxCommand(docker) → argv 含 --cap-drop ALL [#2]');
-    assert(hasFlag(argv, '--security-opt') && someEl(argv, (e) => /no-new-privileges/.test(e)),
-      'buildSandboxCommand(docker) → argv 含 --security-opt no-new-privileges [#2]');
+    assert(flagFollowedBy(argv, '--security-opt', /no-new-privileges/),
+      'buildSandboxCommand(docker) → argv --security-opt 緊接 no-new-privileges（相鄰 subseq，非分散）[#2]');
+    assert(hasFlag(argv, '--tmpfs'),
+      'buildSandboxCommand(docker) → argv 含 --tmpfs（唯讀 root 下的可寫暫存；拿掉轉紅）[#2]');
     assert(hasFlag(argv, '-v') && someEl(argv, (e) => e.includes(WS)),
       'buildSandboxCommand(docker) → argv 含 -v 掛載 workspaceAbs [#2]');
     assert(hasFlagValue(argv, '-w', '/work'), 'buildSandboxCommand(docker) → argv 含 -w /work [#2]');
@@ -183,6 +205,39 @@ try {
       'buildSandboxCommand：testCmd 非陣列 → 拒絕 [#2]');
     assert(isRejected(callSafe(S.buildSandboxCommand, WS, { runner: 'docker', image: IMAGE, testCmd: TESTCMD })),
       'buildSandboxCommand：缺 memory → 拒絕 [#2]');
+
+    // image argument injection：消毒注入字元（前導 -、旗標+空白、/ 開頭旗標樣）→ 拒絕。
+    assert(isRejected(callSafe(S.buildSandboxCommand, WS, { runner: 'docker', image: '--privileged', testCmd: TESTCMD, memory: '512m' })),
+      'buildSandboxCommand：image=\'--privileged\'（前導 - 旗標注入）→ 拒絕 [#2]');
+    assert(isRejected(callSafe(S.buildSandboxCommand, WS, { runner: 'docker', image: '-v /:/host', testCmd: TESTCMD, memory: '512m' })),
+      'buildSandboxCommand：image=\'-v /:/host\'（旗標+空白掛載注入）→ 拒絕 [#2]');
+
+    // argv↔policy 一致：dropCaps:false → argv 不含 --cap-drop 且 policy.capsDropped:false（兩者一致）。
+    const rNoCap = callSafe(S.buildSandboxCommand, WS, { runner: 'docker', image: IMAGE, testCmd: TESTCMD, memory: '512m', dropCaps: false });
+    const argvNoCap = rNoCap.value && rNoCap.value.argv;
+    assert(rNoCap.ok && !hasFlag(argvNoCap, '--cap-drop'),
+      'buildSandboxCommand：dropCaps:false → argv 不含 --cap-drop [#2]');
+    assert(rNoCap.value && rNoCap.value.policy && rNoCap.value.policy.capsDropped === false,
+      'buildSandboxCommand：dropCaps:false → policy.capsDropped:false（與 argv 一致）[#2]');
+
+    // 預設（dropCaps 未給→true）：argv 含 --cap-drop ALL 且 policy.capsDropped:true（一致）。
+    const rDefCap = callSafe(S.buildSandboxCommand, WS, { runner: 'docker', image: IMAGE, testCmd: TESTCMD, memory: '512m' });
+    assert(rDefCap.ok && hasFlagValue(rDefCap.value && rDefCap.value.argv, '--cap-drop', 'ALL')
+      && rDefCap.value.policy && rDefCap.value.policy.capsDropped === true,
+      'buildSandboxCommand：預設 → argv 含 --cap-drop ALL 且 policy.capsDropped:true（一致）[#2]');
+
+    // noNewPrivileges:false → argv 不含 no-new-privileges 且 policy.noNewPrivileges:false（一致）。
+    const rNoNNP = callSafe(S.buildSandboxCommand, WS, { runner: 'docker', image: IMAGE, testCmd: TESTCMD, memory: '512m', noNewPrivileges: false });
+    const argvNoNNP = rNoNNP.value && rNoNNP.value.argv;
+    assert(rNoNNP.ok && !someEl(argvNoNNP, (e) => /no-new-privileges/.test(e)),
+      'buildSandboxCommand：noNewPrivileges:false → argv 不含 no-new-privileges security-opt [#2]');
+    assert(rNoNNP.value && rNoNNP.value.policy && rNoNNP.value.policy.noNewPrivileges === false,
+      'buildSandboxCommand：noNewPrivileges:false → policy.noNewPrivileges:false（與 argv 一致）[#2]');
+
+    // workspaceMount:'ro' → -v 掛載值含 :ro（唯讀掛載）。
+    const rRo = callSafe(S.buildSandboxCommand, WS, { runner: 'docker', image: IMAGE, testCmd: TESTCMD, memory: '512m', workspaceMount: 'ro' });
+    assert(rRo.ok && flagFollowedBy(rRo.value && rRo.value.argv, '-v', /:ro\b/),
+      'buildSandboxCommand：workspaceMount:\'ro\' → -v 掛載值含 :ro [#2]');
   }
 
   // ── T3 validateSandboxPolicy（純邏輯）─────────────────────────────────────────────
@@ -218,6 +273,18 @@ try {
       'validateSandboxPolicy：readOnlyRoot:false → violation、valid:false [#3]');
     expectViolation((p) => { p.isolated = false; }, /lexical|container|isolat/i,
       'validateSandboxPolicy：isolated:false（runner none）→ lexical-only / no-container violation、valid:false [#3]');
+
+    // 資源上限要「有意義」（非只檢查存在）：memory '0'/'' = 無上限 fail-open；pids 0/負/NaN 無效。
+    expectViolation((p) => { p.memory = '0'; }, /memory/i,
+      'validateSandboxPolicy：memory=\'0\'（等同無上限 fail-open）→ memory violation、valid:false [#3]');
+    expectViolation((p) => { p.memory = ''; }, /memory/i,
+      'validateSandboxPolicy：memory=\'\'（空字串）→ memory violation、valid:false [#3]');
+    expectViolation((p) => { p.pids = 0; }, /pids?/i,
+      'validateSandboxPolicy：pids=0（無 fork 上限）→ pids violation、valid:false [#3]');
+    expectViolation((p) => { p.pids = -1; }, /pids?/i,
+      'validateSandboxPolicy：pids=-1（負值無意義）→ pids violation、valid:false [#3]');
+    expectViolation((p) => { p.pids = NaN; }, /pids?/i,
+      'validateSandboxPolicy：pids=NaN（非數）→ pids violation、valid:false [#3]');
   }
 
   // ── T4 resolveRunner（純邏輯，讀 env 物件）────────────────────────────────────────
@@ -284,19 +351,61 @@ try {
     assert(jd && jd.containment && jd.containment.contained === true && jd.valid === true,
       'CLI plan(docker)：containment.contained:true、valid:true [#5]');
 
-    // plan 無 --runner → none：policy.isolated:false + lexical-only 警告、exit 0
+    // plan 無 --runner → none：fail-closed（valid:false）→ exit 1，但仍印 plan/policy 供診斷 + lexical-only 警告。
     const pNone = runCli(['plan', '--workspace', inside, '--root', root]);
     const jn = parseJsonLoose(pNone.stdout);
-    assert(pNone.status === 0, 'CLI plan(none)：exit 0 [#5]');
+    assert(pNone.status === 1, 'CLI plan(none)：valid:false fail-closed → exit 1（未顯式 opt-in 不放行）[#5]');
     assert(jn && jn.policy && jn.policy.isolated === false,
-      'CLI plan(none)：policy.isolated:false [#5]');
+      'CLI plan(none)：policy.isolated:false（仍印出 plan 供診斷）[#5]');
+    assert(jn && jn.valid === false,
+      'CLI plan(none)：valid:false（fail-closed 之因）[#5]');
     assert(/lexical/i.test(combined(pNone)),
       'CLI plan(none)：印 lexical-only 警告（none 退化可辨識）[#5]');
+
+    // --allow-unsandboxed：顯式 opt-in → exit 0，policy.isolated:false 仍印出。
+    const pAllow = runCli(['plan', '--workspace', inside, '--root', root, '--allow-unsandboxed']);
+    const ja = parseJsonLoose(pAllow.stdout);
+    assert(pAllow.status === 0, 'CLI plan(none) --allow-unsandboxed：顯式 opt-in → exit 0 [#5]');
+    assert(ja && ja.policy && ja.policy.isolated === false,
+      'CLI plan(none) --allow-unsandboxed：policy.isolated:false 仍印出 [#5]');
+
+    // docker + 顯式 --memory → valid:true → exit 0（fail-closed 只在 invalid 觸發）。
+    const pDockerMem = runCli(['plan', '--workspace', inside, '--root', root, '--runner', 'docker', '--memory', '512m']);
+    const jdm = parseJsonLoose(pDockerMem.stdout);
+    assert(pDockerMem.status === 0 && jdm && jdm.valid === true,
+      'CLI plan(docker --memory 512m)：valid:true → exit 0 [#5]');
+
+    // --test-cmd custom → argv 尾端反映自訂命令（覆寫預設 npm test）。
+    const pCustom = runCli(['plan', '--workspace', inside, '--root', root, '--runner', 'docker', '--test-cmd', 'my-custom-test --x']);
+    const jc = parseJsonLoose(pCustom.stdout);
+    assert(pCustom.status === 0 && jc && Array.isArray(jc.argv) && someEl(jc.argv, (e) => e.includes('my-custom-test')),
+      'CLI plan --test-cmd custom：argv 尾端反映自訂命令、覆寫預設 npm test [#5]');
 
     // plan + 逃逸 → exit 1（逃逸先擋，建構之前）+ reason 文字
     const pEsc = runCli(['plan', '--workspace', escape, '--root', root]);
     assert(pEsc.status === 1 && REASON_RE.test(combined(pEsc)),
       'CLI plan：逃逸路徑 → exit 1（逃逸先擋）且提 reason [#5]');
+  }
+
+  // ── T6 build-not-execute 靜態守（讀原始碼，釘住「plan = 建構不執行容器」契約）──────────
+  // 契約#6（靜態）：未來有人在 eval-sandbox.mjs 加 spawn / exec 會由綠轉紅。
+  {
+    let src = '';
+    let readOk = false;
+    try { src = readFileSync(SCRIPT, 'utf8'); readOk = true; } catch { readOk = false; }
+    assert(readOk, 'build-not-execute：能讀取 eval-sandbox.mjs 原始碼 [#6]');
+    // 只剝除區塊註解與整行 // 註解（避免文件式註解誤觸）；不碰字串 / 行尾註解，以免漏放真正的 exec。
+    const code = String(src)
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/^\s*\/\/.*$/gm, ' ');
+    assert(readOk && !/child_process/.test(code),
+      'build-not-execute：原始碼不得引用 child_process（絕不執行容器）[#6]');
+    assert(readOk && !/spawnSync/.test(code),
+      'build-not-execute：原始碼不得用 spawnSync [#6]');
+    assert(readOk && !/execSync/.test(code),
+      'build-not-execute：原始碼不得用 execSync [#6]');
+    assert(readOk && !/\bexec\s*\(/.test(code),
+      'build-not-execute：原始碼不得呼叫 exec( [#6]');
   }
 } finally {
   for (const d of cleanup) { try { rmSync(d, { recursive: true, force: true }); } catch { /* idempotent */ } }
