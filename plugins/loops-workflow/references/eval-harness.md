@@ -132,6 +132,7 @@ node plugins/loops-workflow/scripts/eval-oracle.mjs --dir plugins/loops-workflow
 
 ```bash
 # 跑一輪 corpus 並記一行（--metrics-file 可改輸出檔，預設 .loops/.metrics/eval-results.jsonl）
+# 副作用（#49）：record 另把 per-task eval-report.json 落在 metrics 檔同目錄，供 LOOPS_EVAL_TAGS_GATE 的 by-tag 閘讀
 node plugins/loops-workflow/scripts/eval-metrics.mjs record --dir plugins/loops-workflow/evals/build [--metrics-file <path>]
 # 回歸判定（相對 baseline 退化 → exit≠0）
 node plugins/loops-workflow/scripts/eval-metrics.mjs check [--metrics-file <path>] [--baseline <n>] [--tolerance <Δ>]
@@ -140,6 +141,11 @@ node plugins/loops-workflow/scripts/eval-metrics.mjs versions [--metrics-file <p
 ```
 
 > MVP 交付為 CLI；自動掛回歸檢查已由 **#35 的 `eval-gate` Stop hook**（opt-in `LOOPS_EVAL_GATE`、改檔回合自動跑 `check`、退化注入）落地；`eval-results.jsonl` 由 `appendEvalRow` 內建 rotation（上限 1000 行）防無界成長。
+>
+> **多訊號 eval-gate（#49）**：同一個 Stop hook 另含兩條獨立 opt-in 訊號，共用「改檔回合（edit-accumulator）」前置、各讀已持久化 artifact、注入合併進單一 `additionalContext`、皆永不擋路（缺輸入檔/壞輸出/spawn 失敗 → 該訊號不注入、exit 0）：
+> - **`LOOPS_EVAL_TAGS_GATE=1`** → 讀 `.loops/.metrics/eval-report.json`（per-task report，**由 `eval-metrics record` 持久化**：record 跑 oracle 時順手把 report 寫在 metrics 檔同目錄）→ `eval-tags by-tag` → 只注入**本次** `failed>0` 的 tag 類別（看哪類有 eval 失敗；讀 latest-overwrite 單份快照、非跨 run 頻率；全綠靜默）。
+> - **`LOOPS_EVAL_POLL_GATE=1`** 且有 `.loops/.metrics/judge-results.jsonl`（上層 panel recipe 產）→ `eval-poll poll --score-method median` → 注入 judge panel 共識計數（judge-estimate advisory、非回歸 gate；無共識靜默）。
+> 三 flag（GATE/TAGS/POLL）獨立、可組合；注入精簡（讀摘要非全量：tags 只列失敗類別、poll 只列計數）。
 
 ---
 

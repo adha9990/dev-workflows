@@ -91,7 +91,7 @@ ECC 是「agent harness performance optimization system」（271 skill、67 agen
 
 - **7 個 hook / 4 事件**（除 SessionStart 的「浮 active 迴圈」恆跑外，其餘皆 opt-in 預設關；皆永不擋路；eval-gate 為 eval #35 新增、其餘 6 個源自 ECC）：
   - **SessionStart**：浮 active 迴圈 ＋ `LOOPS_INSTINCT_INJECT` instinct 注入（ECC #18）
-  - **Stop**：`LOOPS_COST_TRACKER` 成本記帳 ＋ `LOOPS_EVAL_GATE` 自動 eval 回歸檢查（eval #35）＋ `LOOPS_STOP_GATE` 自動 quality-gate（ECC #15/#17）
+  - **Stop**：`LOOPS_COST_TRACKER` 成本記帳 ＋ eval-gate 改檔回合多訊號（`LOOPS_EVAL_GATE` 回歸檢查 eval #35／`LOOPS_EVAL_TAGS_GATE` eval-tags 失敗 tag・`LOOPS_EVAL_POLL_GATE` eval-poll 共識 eval #49，三 flag 獨立）＋ `LOOPS_STOP_GATE` 自動 quality-gate（ECC #15/#17）
   - **PostToolUse**：`edit-accumulator` 改檔累積（ECC #17）
   - **PreToolUse**：`LOOPS_COMPACT_HINT` compact 提醒 ＋ `LOOPS_CONFIG_PROTECTION` 防作弊閘（ECC #15/#17）
 - **quality-gate 腳本**（ODW #2/#3）：測試輸出壓縮 ~60×、build 確認點讀精簡摘要、條件式 fixer。

@@ -8,7 +8,7 @@
 // e2e smoke 真 spawn `scripts/eval-metrics.mjs`（同樣未實作 → 子程序非 0 / 無輸出），
 // 補齊純函式 + CLI(record/check) 後，下方斷言才有機會逐條轉綠。
 
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -562,6 +562,81 @@ function readJsonl(file) {
     assert(readJsonl(metricsFile).length === 0, 'E-record-fail：metrics 檔未被寫入垃圾（不存在或 0 行）[E-record-fail]');
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  record 持久化 per-task report（#49）—— record 除了 append metric row，還落盤
+//  .loops/.metrics/eval-report.json（per-task，供 eval-tags by-tag 吃）。現 impl 未寫此檔 → 先紅。
+//  以 cwd=tmp + 絕對 --dir corpus + --metrics-file 指向 tmp 的 .loops/.metrics/ → report（不論
+//  「sibling of metrics-file」或「cwd 相對 .loops/.metrics/」設計）都落在同一 tmp 路徑、不污染 repo。
+//  （workspace 由 task 檔相對解析，cwd 改 tmp 不影響 corpus 跑分 —— 既有 E-record 由 cwd=ROOT 跑得通即證。）
+// ════════════════════════════════════════════════════════════════════════════
+const METRICS_SCRIPT = join(HERE, 'eval-metrics.mjs');
+const TAGS_SCRIPT = join(HERE, 'eval-tags.mjs');
+
+// ── E-record-report：record 落盤 eval-report.json，可 parse、含 tasks 陣列，且真能餵給 eval-tags by-tag
+//    （整條 oracle→buildReport→落盤→eval-tags 鏈通；現 impl 未寫此檔 → 先紅）[#49 record 持久化 report]
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'em-report-'));
+  const metricsDir = join(cwd, '.loops', '.metrics');
+  mkdirSync(metricsDir, { recursive: true });
+  const metricsFile = join(metricsDir, 'eval-results.jsonl');
+  const reportFile = join(metricsDir, 'eval-report.json');
+  const corpus = join(ROOT, 'evals', 'build'); // 絕對路徑：cwd 改 tmp 仍讀得到 corpus
+  try {
+    const res = spawnSync(process.execPath, [METRICS_SCRIPT, 'record', '--dir', corpus, '--metrics-file', metricsFile], {
+      cwd, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout: 120000,
+    });
+    assert(res.error == null, 'E-record-report：node 啟動成功（spawn 無 error）[E-record-report]');
+    assert(res.status === 0, 'E-record-report：record exit 0 [E-record-report]');
+    assert(existsSync(reportFile), 'E-record-report：record 落盤 .loops/.metrics/eval-report.json（供 eval-tags 吃；現 impl 未寫 → 先紅）[E-record-report]');
+    const parsed = callSafe(() => JSON.parse(readFileSync(reportFile, 'utf8')));
+    assert(!parsed.threw, 'E-record-report：eval-report.json 可 JSON.parse [E-record-report]');
+    assert(parsed.val && Array.isArray(parsed.val.tasks), 'E-record-report：含 tasks 陣列（per-task）[E-record-report]');
+    assert(parsed.val && Array.isArray(parsed.val.tasks) && parsed.val.tasks.length === 5,
+      'E-record-report：committed evals/build → tasks 5 筆 [E-record-report]');
+    // 整條鏈 Prove-It：record 落盤的 report 真能餵給 eval-tags by-tag，且反映 corpus 真實 per-task tags/pass。
+    //   不靠猜內部欄名 —— 直接用真 eval-tags 驗 report「可被消費」。'build' tag 在 5 task 全帶。
+    const tagsRes = spawnSync(process.execPath, [TAGS_SCRIPT, 'by-tag', '--results', reportFile], { cwd: ROOT, encoding: 'utf8' });
+    assert(tagsRes.status === 0, 'E-record-report：eval-tags by-tag 能讀 record 落盤的 report → exit 0（report 形狀真被 eval-tags 接受）[E-record-report]');
+    let byTagOut = null; try { byTagOut = JSON.parse(tagsRes.stdout); } catch { byTagOut = null; }
+    const buildTag = byTagOut && Array.isArray(byTagOut.byTag) ? byTagOut.byTag.find((t) => t && t.tag === 'build') : null;
+    assert(buildTag && buildTag.total === 5,
+      "E-record-report：report→eval-tags 鏈通——'build' tag total===5（5 task 全帶 build；證 report 真帶 per-task tags）[E-record-report]");
+    assert(buildTag && buildTag.passed === 5 && buildTag.failed === 0,
+      "E-record-report：5/5 全綠 → 'build' tag passed===5/failed===0（per-task pass 真實落盤）[E-record-report]");
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
+// ── E-record-report-tolerant（guard）：report 目標路徑被佔成「目錄」→ 寫 report 必失敗，但 record 仍 exit 0
+//    且 metric row 仍照常寫入（report 失敗不連坐 record 主結果）。現 impl 未寫 report → 本條現為綠 guard，
+//    一旦加上 report 寫檔，未做容錯（未 catch）的實作會在此處 throw → exit !=0 → 本條轉紅抓出 [#49 report 寫檔容錯]
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'em-report-tol-'));
+  const metricsDir = join(cwd, '.loops', '.metrics');
+  mkdirSync(metricsDir, { recursive: true });
+  const metricsFile = join(metricsDir, 'eval-results.jsonl');
+  mkdirSync(join(metricsDir, 'eval-report.json'), { recursive: true }); // 佔成目錄 → 寫同名檔必失敗
+  const corpus = join(ROOT, 'evals', 'build');
+  try {
+    const res = spawnSync(process.execPath, [METRICS_SCRIPT, 'record', '--dir', corpus, '--metrics-file', metricsFile], {
+      cwd, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout: 120000,
+    });
+    assert(res.error == null, 'E-record-report-tolerant：node 啟動成功 [E-record-report-tolerant]');
+    assert(res.status === 0, 'E-record-report-tolerant：report 寫檔失敗仍 exit 0（永不擋路）[E-record-report-tolerant]');
+    assert(existsSync(metricsFile) && readJsonl(metricsFile).length === 1,
+      'E-record-report-tolerant：report 失敗不連坐 record 主結果（metric row 仍寫 1 行）[E-record-report-tolerant]');
+    // F1：exit 0 + metric row 在，無法分辨 writeReport 自身有沒有 catch（被 main 外層 try/catch + 先寫的
+    //   appendEvalRow 遮蔽）。釘「writeReport 失敗須出聲診斷」契約：stderr 含 "failed to write report"。
+    //   現 impl 未寫 report（無此診斷）→ 先紅；加上 report 寫檔且 writeReport 自身 catch 出聲後才綠
+    //   （若失敗被外層 try/catch 靜默吞、無此訊息，本條仍紅 → 抓出「假綠容錯」）。
+    assert(/failed to write report/i.test(res.stderr || ''),
+      'E-record-report-tolerant：writeReport 失敗有出聲診斷（stderr 含 "failed to write report"；釘 writeReport 自身 catch，非被外層吞）[E-record-report-tolerant]');
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
   }
 }
 

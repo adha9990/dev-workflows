@@ -20,6 +20,10 @@ import { sanitizeSessionId } from './suggest-compact.mjs';
 
 export { sanitizeSessionId };
 
+// accumulator 的消費端旗標：任一開啟就代表有下游 gate 需要「這趟改了哪些檔」，producer 才記 edit。
+// stop-gate（LOOPS_STOP_GATE）與 eval-gate 三訊號（LOOPS_EVAL_GATE / _TAGS_GATE / _POLL_GATE）皆消費同一份 state。
+const ACCUMULATOR_FLAGS = ['LOOPS_STOP_GATE', 'LOOPS_EVAL_GATE', 'LOOPS_EVAL_TAGS_GATE', 'LOOPS_EVAL_POLL_GATE'];
+
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
 
 /** append 一筆編輯路徑：回「新」陣列（不就地改入參）；已存在則去重不重覆加。 */
@@ -97,9 +101,9 @@ export function clearEditsState(sessionId) {
  * 安全 / 永不擋路：env 預設關 / payload 壞掉 / 無檔路徑 → no-op；state 只落在 os.tmpdir()；任何例外 exit 0。
  */
 function main() {
-  // accumulator 的消費者是 stop-gate 與 eval-gate（任一 flag 開才需要「這趟改了哪些檔」）；
-  // 兩 flag 都關時真 no-op、不寫 tmp——避免「opt-in 預設關卻仍每次寫 state」的 footprint 不一致。
-  if (process.env.LOOPS_STOP_GATE !== '1' && process.env.LOOPS_EVAL_GATE !== '1') return;
+  // accumulator 的消費者是 stop-gate 與 eval-gate（含其 tags / poll 訊號）；ACCUMULATOR_FLAGS 任一開
+  // 才需要「這趟改了哪些檔」。全關時真 no-op、不寫 tmp——避免「opt-in 預設關卻仍每次寫 state」的 footprint 不一致。
+  if (!ACCUMULATOR_FLAGS.some((f) => process.env[f] === '1')) return;
 
   let payload;
   try {
