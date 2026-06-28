@@ -2,7 +2,7 @@
 // test-eval-runs.mjs —— eval-runs.mjs 的紅綠斷言（自帶 harness）。
 // 用法（cwd = plugins/loops-workflow）：node scripts/test-eval-runs.mjs
 
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -44,13 +44,18 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     'extractRunResult：task 不在 report → found false [T1]');
   assert(extractRunResult(null, 't1').found === false && extractRunResult({}, 't1').found === false,
     'extractRunResult：null/無 tasks → found false [T1]');
+  // 嚴格 ===：非 boolean pass:1 / errored:'yes' → false（殺 truthy 弱化）
+  const strict = extractRunResult({ tasks: [{ id: 'tx', pass: 1, errored: 'yes' }] }, 'tx');
+  assert(strict.found === true && strict.pass === false && strict.errored === false,
+    'extractRunResult：非 boolean pass/errored → false（嚴格 ===）[T1]');
 
-  assert(eq(buildRunLine('t1', true, 0), { taskId: 't1', pass: true, runIndex: 0 }),
-    'buildRunLine：完整 [T1]');
-  assert(eq(buildRunLine('t1', false), { taskId: 't1', pass: false, runIndex: null }),
-    'buildRunLine：缺 runIndex → null [T1]');
-  assert(buildRunLine('t1', 1, 1.5).pass === true && buildRunLine('t1', 1, 1.5).runIndex === null,
-    'buildRunLine：pass !! 強制 boolean、非整數 runIndex → null [T1]');
+  assert(eq(buildRunLine('t1', true, false, 0), { taskId: 't1', pass: true, errored: false, runIndex: 0 }),
+    'buildRunLine：完整（含 errored）[T1]');
+  assert(eq(buildRunLine('t1', false, true), { taskId: 't1', pass: false, errored: true, runIndex: null }),
+    'buildRunLine：errored true + 缺 runIndex → null [T1]');
+  assert(buildRunLine('t1', 1, 0, 1.5).pass === true && buildRunLine('t1', 1, 0, 1.5).runIndex === null
+    && buildRunLine('t1', 0, 'x').errored === true,
+    'buildRunLine：pass/errored !! 強制 boolean、非整數 runIndex → null [T1]');
 }
 
 // ── T2 CLI record integration（真 spawn eval-oracle 既有 fixtures）─────────────────
@@ -77,9 +82,24 @@ function run(args) {
   assert(readFileSync(runsFile, 'utf8').split('\n').filter((l) => l.trim()).length === 2,
     'CLI record：累積第二行 run [T2]');
 
-  // task 不在語料 → exit 3（不偽裝成 pass:false）
+  // et-errored：oracle 跑了但沒驗到（required test 不存在）→ 記 run pass false + errored true（exit 0、非 infra exit 3）
+  const re = run(['record', '--dir', FIXTURES, '--task', 'et-errored', '--runs-file', runsFile, '--run-index', '0']);
+  let lineE = null; try { lineE = JSON.parse(re.stdout); } catch { /* leave null */ }
+  assert(re.status === 0 && lineE && lineE.pass === false && lineE.errored === true,
+    'CLI record：et-errored → run pass false + errored true（exit 0、非 infra）[T2]');
+  const before = readFileSync(runsFile, 'utf8').split('\n').filter((l) => l.trim()).length;
+
+  // task 不在語料 → exit 3 且 **不寫** disguised fail run（infra 錯不偽裝）
   assert(run(['record', '--dir', FIXTURES, '--task', 'no-such-task', '--runs-file', runsFile]).status === 3,
     'CLI record：task 不在語料 → exit 3 [T2]');
+  const after = readFileSync(runsFile, 'utf8').split('\n').filter((l) => l.trim()).length;
+  assert(after === before, 'CLI record：infra 錯（exit 3）不 append disguised fail run [T2]');
+
+  // append 失敗（--runs-file 指目錄 EISDIR）→ exit 3
+  const dirAsFile = join(dir, 'isdir'); mkdirSync(dirAsFile);
+  assert(run(['record', '--dir', FIXTURES, '--task', 'et-pass', '--runs-file', dirAsFile]).status === 3,
+    'CLI record：append 失敗 → exit 3 [T2]');
+
   // 缺旗標 → exit 2
   assert(run(['record', '--dir', FIXTURES, '--task', 'et-pass']).status === 2, 'CLI record：缺 --runs-file → exit 2 [T2]');
   assert(run(['bogus']).status === 2, 'CLI：未知命令 → exit 2 [T2]');

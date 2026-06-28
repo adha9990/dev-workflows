@@ -32,9 +32,11 @@ export function extractRunResult(oracleReport, taskId) {
   return { taskId, pass: t.pass === true, errored: t.errored === true, found: true };
 }
 
-/** 組一行 runs.jsonl（與 #36 schema 對齊）：pass 強制 boolean、runIndex 非整數 → null。 */
-export function buildRunLine(taskId, pass, runIndex) {
-  return { taskId, pass: !!pass, runIndex: Number.isInteger(runIndex) ? runIndex : null };
+/** 組一行 runs.jsonl（與 #36 schema 對齊 + `errored`）：pass/errored 強制 boolean、runIndex 非整數 → null。
+ *  保留 `errored` 是為了**不丟訊號**——errored run（oracle 沒驗到：缺 required test / workspace 被 containment 拒 /
+ *  gate flaky 沒跑）雖計 pass:false，但標 errored 讓下游/operator 能辨識「這不是候選真的把測試跑爛」、別當候選可靠度讀。 */
+export function buildRunLine(taskId, pass, errored, runIndex) {
+  return { taskId, pass: !!pass, errored: !!errored, runIndex: Number.isInteger(runIndex) ? runIndex : null };
 }
 
 // ── 薄 IO ────────────────────────────────────────────────────────────────────────
@@ -91,9 +93,11 @@ function cmdRecord(argv) {
     console.error(`record: task "${opts.task}" 不在 oracle 報告（語料/任務 id 不符）— 不偽裝成 fail run`);
     process.exit(3);
   }
-  const line = buildRunLine(opts.task, rr.pass, opts.runIndex);
+  const line = buildRunLine(opts.task, rr.pass, rr.errored, opts.runIndex);
   try { appendRunLine(resolve(opts.runsFile), line); }
   catch (e) { console.error(`record: append runs 失敗 ${opts.runsFile}: ${e?.message ?? e}`); process.exit(3); }
+  // errored run（oracle 沒驗到）出聲提醒——別把「harness/語料沒驗到」當「候選不可靠」讀。
+  if (rr.errored) console.error(`record: ⚠️ task "${opts.task}" 此候選 errored（oracle 沒驗到，非候選把測試跑爛）— 記為 pass:false/errored:true，請查語料/環境`);
   console.log(JSON.stringify(line));
   process.exit(0);
 }

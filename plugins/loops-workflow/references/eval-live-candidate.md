@@ -6,13 +6,15 @@
 對語料庫每個 task（`evals/<stage>/*.json`，含 oracle failToPass/passToPass）：
 
 1. **獨立重生 N 個候選**（N 建議 3–5）：每次讓 Claude / workflow **從乾淨起點**重跑該 task → 產候選實作。**每次必須獨立**（不同 session/隨機性），否則退化成固定候選、pass^k≡pass@1。
-2. **把候選就地覆寫進 task 宣告的 `workspace`**（⚠️ 關鍵接縫，見 #36 protocol）：`eval-oracle` 只評 task JSON 的固定 `task.workspace`、且須落在 plugin 根內（過 containment），**無 `--workspace` 覆寫旗標**。候選只能改實作、不可動 test 定義。
+2. **把候選就地覆寫進 task 宣告的 `workspace`**（⚠️ 關鍵接縫，見 #36 protocol）：`eval-oracle` 只評 task JSON 的固定 `task.workspace`、且須落在 plugin 根內（過 containment），**無 `--workspace` 覆寫旗標**。候選只能改實作、不可動 test 定義。**每輪覆寫前清掉前一候選殘留**（或用乾淨候選夾再覆寫）——否則上一輪新增的檔殘留會污染本輪評分。
 3. **跑 `eval-runs record` 收一行 run**（spawn oracle 評當前 workspace → append 一行）：
    ```bash
    node plugins/loops-workflow/scripts/eval-runs.mjs record \
-     --dir plugins/loops-workflow/evals/<stage> --task <id> --runs-file .loops/.metrics/runs.jsonl --run-index <0..N-1>
+     --dir plugins/loops-workflow/evals/<stage> --task <id> --runs-file .loops/.metrics/runs.jsonl [--run-index <0..N-1>]
    ```
-   → 印並 append `{taskId, pass, runIndex}`。oracle 取不到 / task 不在報告 → exit 3（不偽裝成 fail run）。
+   → 印並 append `{taskId, pass, errored, runIndex}`。
+   - exit code：成功 0 / 缺旗標·未知命令 2 / **oracle 取不到結果 · task 不在語料 · append 失敗 3**（infra 錯不偽裝成 fail run、也不 append）。
+   - **errored run**（`errored:true`）＝oracle 跑了但**沒驗到**（語料缺 required test / workspace 被 containment 拒 / gate flaky）——記為 `pass:false` 但標 `errored`、stderr 出聲。**別把它當「候選不可靠」讀**；若某 task **每輪都 errored**，多半是語料/環境設定問題（workspace 路徑、required test 名），先修設定再看 pass^k。
 4. **重複 1–3 共 N 次**（每次重生覆寫 + record），跨 task 也累積進同一 `runs.jsonl`。
 5. **算真 pass@1 + pass^k**（既有引擎）：
    ```bash
