@@ -15,6 +15,9 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 import { buildEvalRow, readEvalRows, parseEvalRows, computeRegression, rotateLines, appendEvalRow } from './eval-metrics.mjs';
+// #51 新 export（summarizeVersions / groupRowsByVersion）尚未實作。用 namespace import 取用：
+// 缺 export 時是 undefined（非 link-time crash），既有測仍綠，新斷言透過 callSafe 逐條轉紅。
+import * as EM from './eval-metrics.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // .../scripts
 const ROOT = dirname(HERE); // plugin root（契約：record/check e2e 的 cwd；committed 語料庫在 evals/build）
@@ -60,7 +63,7 @@ function callSafe(fn) {
   assert(row && row.passRate === 1, 'buildEvalRow：5/5 → passRate===1 [R-allpass/(a)]');
   assert(row && row.passK === 1, 'buildEvalRow：passK===passRate===1（MVP 確定性）[R-allpass/(a)]');
   assert(row && row.errored === 0, 'buildEvalRow：tasks 無 errored → errored===0 [R-allpass/(a)]');
-  assert(row && row.schema === 1, 'buildEvalRow：schema===1（常數）[R-allpass/(a)]');
+  assert(row && row.schema === 2, 'buildEvalRow：schema===2（契約 bump v1→v2，#51）[R-allpass/(a)]');
   assert(row && row.runs === 1, 'buildEvalRow：runs===1 [R-allpass/(a)]');
   assert(row && row.total === 5, 'buildEvalRow：total 透傳===5 [R-allpass/(a)]');
   assert(row && row.passed === 5, 'buildEvalRow：passed 透傳===5 [R-allpass/(a)]');
@@ -114,6 +117,98 @@ function callSafe(fn) {
   assert(row && row.passed === 0 && Number.isFinite(row.passed), 'buildEvalRow：passed=undefined → passed===0 且有限 [R-toFinite]');
   assert(row && row.failed === 0 && Number.isFinite(row.failed), 'buildEvalRow：failed=NaN → failed===0 且有限 [R-toFinite]');
   assert(row && row.passRate === 0 && Number.isFinite(row.passRate), 'buildEvalRow：壞輸入 → passRate===0 且有限（非 NaN / Infinity）[R-toFinite]');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  summarizeVersions(tasks) -> string[]（#51 契約1，新 export）—— 純函式 (unit)
+//  非陣列 → []；tasks 中 version != null 者取 String(version)、去重、升冪排序（穩定可重現）；
+//  全無 version → []；數值 version 也經 String() 納入。新 export → callSafe 包覆，缺函式時轉紅而非中斷整檔。
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── SV-nonarray：非陣列輸入（null/undefined/物件/數字/字串）→ [] [契約1 非陣列防呆]
+{
+  for (const bad of [null, undefined, {}, 42, 'x']) {
+    const r = callSafe(() => EM.summarizeVersions(bad));
+    assert(!r.threw && Array.isArray(r.val) && r.val.length === 0,
+      `summarizeVersions：非陣列(${JSON.stringify(bad)}) → [] [SV-nonarray]`);
+  }
+}
+
+// ── SV-dedup-sort：契約範例 [1.1,1.0,1.0] → ['1.0','1.1']（去重 + 升冪排序）[契約1 去重排序]
+{
+  const r = callSafe(() => EM.summarizeVersions([{ version: '1.1' }, { version: '1.0' }, { version: '1.0' }]));
+  assert(!r.threw && JSON.stringify(r.val) === JSON.stringify(['1.0', '1.1']),
+    "summarizeVersions：[1.1,1.0,1.0] → ['1.0','1.1'] [SV-dedup-sort]");
+}
+
+// ── SV-sort-stable：亂序 + 重複 → 升冪去重；重複呼叫逐位元相同（穩定可重現）[契約1 穩定排序]
+{
+  const input = [{ version: '1.2' }, { version: '1.0' }, { version: '1.1' }, { version: '1.0' }, { version: '1.2' }];
+  const r1 = callSafe(() => EM.summarizeVersions(input));
+  const r2 = callSafe(() => EM.summarizeVersions(input));
+  assert(!r1.threw && JSON.stringify(r1.val) === JSON.stringify(['1.0', '1.1', '1.2']),
+    "summarizeVersions：亂序去重 → ['1.0','1.1','1.2'] [SV-sort-stable]");
+  assert(!r2.threw && JSON.stringify(r1.val) === JSON.stringify(r2.val),
+    'summarizeVersions：同輸入重複呼叫逐位元相同（可重現）[SV-sort-stable]');
+}
+
+// ── SV-allnull：全部 task 無 version（undefined/null/缺欄）→ [] [契約1 全無 version]
+{
+  const r = callSafe(() => EM.summarizeVersions([{ version: undefined }, { version: null }, {}]));
+  assert(!r.threw && Array.isArray(r.val) && r.val.length === 0,
+    'summarizeVersions：全部無 version（undefined/null/缺欄）→ [] [SV-allnull]');
+}
+
+// ── SV-numeric：數值 version 經 String() 納入（2 → '2'），與字串 '2' 跨型去重 [契約1 String() 納入]
+{
+  const r = callSafe(() => EM.summarizeVersions([{ version: 2 }, { version: '2' }]));
+  assert(!r.threw && JSON.stringify(r.val) === JSON.stringify(['2']),
+    "summarizeVersions：數值 2 與字串 '2' → String() 後去重 → ['2'] [SV-numeric]");
+}
+
+// ── SV-zero（Prove-It：!=null 非 truthy）：version 0 → '0'（0 != null 為真須納入；truthy 過濾會漏 → 紅）[契約1 version!=null]
+{
+  const r = callSafe(() => EM.summarizeVersions([{ version: 0 }]));
+  assert(!r.threw && JSON.stringify(r.val) === JSON.stringify(['0']),
+    "summarizeVersions：version 0 → '0'（!= null 而非 truthy 過濾）[SV-zero]");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  buildEvalRow 擴充（#51 契約2）—— schema 1→2 bump、新增 versions 欄（= summarizeVersions(aggregate.tasks)）。
+//  既有欄（ts/corpus/runs/total/passed/failed/errored/passRate/passK）語意與值完全不變。
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── BV-schema2：schema 常數 bump 為 2 [契約2 schema:2]
+{
+  const row = buildEvalRow({ total: 1, passed: 1, failed: 0, tasks: [{ errored: false }] }, { corpus: 'c', ts: 't', runs: 1 });
+  assert(row && row.schema === 2, 'buildEvalRow：schema===2（契約 bump）[BV-schema2]');
+}
+
+// ── BV-versions：tasks 帶 version → row.versions = 去重排序版本；且既有欄值不變（versions 不污染既有計算）[契約2 versions 欄]
+{
+  const aggregate = {
+    total: 3, passed: 3, failed: 0,
+    tasks: [
+      { errored: false, version: '1.0' },
+      { errored: false, version: '1.1' },
+      { errored: false, version: '1.0' },
+    ],
+  };
+  const row = buildEvalRow(aggregate, { corpus: 'evals/build', ts: 'T', runs: 1 });
+  assert(row && JSON.stringify(row.versions) === JSON.stringify(['1.0', '1.1']),
+    "buildEvalRow：tasks 帶 version → row.versions===['1.0','1.1'] [BV-versions]");
+  assert(row && row.passRate === 1 && row.passed === 3 && row.total === 3 && row.errored === 0,
+    'buildEvalRow：新增 versions 欄後既有欄（passRate/passed/total/errored）值不變 [BV-versions]');
+}
+
+// ── BV-versions-empty：空 tasks / 無 tasks 欄 → row.versions===[]（不丟）[契約2 無 tasks/空→[]]
+{
+  const a = callSafe(() => buildEvalRow({ total: 0, passed: 0, failed: 0, tasks: [] }, { corpus: 'c', ts: 't' }));
+  assert(!a.threw && a.val && Array.isArray(a.val.versions) && a.val.versions.length === 0,
+    'buildEvalRow：空 tasks → versions===[] [BV-versions-empty]');
+  const b = callSafe(() => buildEvalRow({ total: 0, passed: 0, failed: 0 }, { corpus: 'c', ts: 't' }));
+  assert(!b.threw && b.val && Array.isArray(b.val.versions) && b.val.versions.length === 0,
+    'buildEvalRow：無 tasks 欄 → versions===[]（不丟）[BV-versions-empty]');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -307,6 +402,85 @@ const rowsOf = (...rates) => rates.map((p) => ({ passRate: p }));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  groupRowsByVersion(rows) -> { [versionKey]: row[] }（#51 契約3，新 export）—— 純函式 (unit)
+//  非陣列 → {}；每 row 依其 versions 陣列「每個」version 各歸一桶（多 version → 出現於多桶）；
+//  versions 缺欄 / 非陣列 / 空陣列 → '(none)' 桶（向後相容舊 row，不 crash、不丟棄）；
+//  proto 安全：用 Object.create(null)，版本鍵 '__proto__' 不污染原型。
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── GR-nonarray：非陣列輸入 → {} [契約3 非陣列防呆]
+{
+  for (const bad of [null, undefined, {}, 7, 'x']) {
+    const r = callSafe(() => EM.groupRowsByVersion(bad));
+    assert(!r.threw && r.val && typeof r.val === 'object' && !Array.isArray(r.val) && Object.keys(r.val).length === 0,
+      `groupRowsByVersion：非陣列(${JSON.stringify(bad)}) → {} [GR-nonarray]`);
+  }
+}
+
+// ── GR-multibucket：多 version 的 row 同時進多桶；單 version row 只在其桶 [契約3 每 version 各歸一桶]
+{
+  const r1 = { id: 'r1', versions: ['1.0'] };
+  const r2 = { id: 'r2', versions: ['1.0', '1.1'] };
+  const out = callSafe(() => EM.groupRowsByVersion([r1, r2]));
+  assert(!out.threw && out.val, 'groupRowsByVersion：多 version rows 不丟例外 [GR-multibucket]');
+  const g = out.val || {};
+  assert(Array.isArray(g['1.0']) && g['1.0'].includes(r1) && g['1.0'].includes(r2),
+    "groupRowsByVersion：'1.0' 桶含 r1 與 r2（多 version row 進多桶）[GR-multibucket]");
+  assert(Array.isArray(g['1.1']) && g['1.1'].includes(r2) && !g['1.1'].includes(r1),
+    "groupRowsByVersion：'1.1' 桶只含 r2 [GR-multibucket]");
+}
+
+// ── GR-none（向後相容）：versions 缺欄 / 非陣列 / 空陣列 → 全歸 '(none)' 桶，不丟不丟棄（模擬舊 jsonl row）[契約3 向後相容]
+{
+  const noField = { id: 'a' };               // 舊 eval-results.jsonl row：無 versions 欄
+  const nonArr = { id: 'b', versions: null };
+  const empty = { id: 'c', versions: [] };
+  const out = callSafe(() => EM.groupRowsByVersion([noField, nonArr, empty]));
+  assert(!out.threw, 'groupRowsByVersion：舊 row（無/非陣列/空 versions）不丟例外 [GR-none]');
+  const none = (out.val || {})['(none)'] || [];
+  assert(none.includes(noField) && none.includes(nonArr) && none.includes(empty),
+    "groupRowsByVersion：versions 缺/非陣列/空 → 全歸 '(none)' 桶（舊 row 不丟棄）[GR-none]");
+}
+
+// ── GR-proto（proto 安全）：版本鍵 '__proto__' 不污染原型；結果為 Object.create(null) [契約3 proto 安全]
+{
+  const row = { id: 'p', versions: ['__proto__'] };
+  const out = callSafe(() => EM.groupRowsByVersion([row]));
+  assert(!out.threw && out.val, "groupRowsByVersion：版本鍵 '__proto__' 不丟例外 [GR-proto]");
+  const g = out.val || {};
+  assert(Object.getPrototypeOf(g) === null,
+    'groupRowsByVersion：結果為 Object.create(null)（null 原型）[GR-proto]');
+  assert(Object.prototype.hasOwnProperty.call(g, '__proto__') && Array.isArray(g['__proto__']) && g['__proto__'].includes(row),
+    "groupRowsByVersion：'__proto__' 成為自身屬性桶（含該 row），未污染原型鏈 [GR-proto]");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  computeRegression 回歸不變（#51 契約4）—— row 多 versions 欄後，退化判定逐位元不變。
+//  computeRegression 只讀 corpus/passRate；拿含 versions 與不含的同組 rows 比，結果須完全相同。
+//  （此為相容守則 guard：正確實作下從一開始即綠，誤把 versions 接進退化判定才會轉紅。）
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── CR-versions-invariant：含 versions vs 不含 versions 同組 rows → regressed/delta/baseline/current 逐位元相同 [契約4 回歸不變]
+{
+  const withV = [
+    { corpus: 'A', passRate: 1.0, versions: ['1.0'] },
+    { corpus: 'A', passRate: 0.8, versions: ['1.1', '1.2'] },
+  ];
+  const withoutV = [
+    { corpus: 'A', passRate: 1.0 },
+    { corpus: 'A', passRate: 0.8 },
+  ];
+  const a = computeRegression(withV, { tolerance: 0 });
+  const b = computeRegression(withoutV, { tolerance: 0 });
+  assert(a && b && a.regressed === b.regressed, 'computeRegression：versions 欄不影響 regressed [CR-versions-invariant]');
+  assert(a && b && a.delta === b.delta, 'computeRegression：versions 欄不影響 delta（逐位元）[CR-versions-invariant]');
+  assert(a && b && a.baselineRate === b.baselineRate && a.currentRate === b.currentRate,
+    'computeRegression：versions 欄不影響 baselineRate/currentRate [CR-versions-invariant]');
+  assert(a && a.regressed === true && near(a.delta, -0.2),
+    'computeRegression：含 versions 的 [1.0→0.8] 仍 regressed=true、delta≈-0.2（語意一致）[CR-versions-invariant]');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 //  e2e smoke —— 真 spawn `scripts/eval-metrics.mjs`（cwd = plugin root），驗檔案最終狀態 / exit code。
 //  record：跑 committed 語料庫 evals/build（5/5）→ 寫一行 metric row。
 //  為避免污染 plugin repo，一律以 --metrics-file <暫存路徑> 指定輸出檔，跑完 rmSync 清掉。
@@ -347,6 +521,11 @@ function readJsonl(file) {
     assert(row && row.passRate === 1, 'E-record：committed 語料庫 5/5 → passRate===1 [E-record]');
     assert(row && row.passed === 5, 'E-record：passed===5 [E-record]');
     assert(row && row.errored === 0, 'E-record：5/5 全綠 → errored===0 [E-record]');
+    // committed corpus：5 task 中僅 b1-add.json 帶 version:"1.0"，其餘 4 task 無 version。
+    // summarizeVersions 去重 → ['1.0']。此條釘整條 oracle report → buildEvalRow → 落盤 鏈
+    // 真把 corpus 的 version 攤進 row.versions（鏈中任一環沒帶過 version 就會紅）。
+    assert(JSON.stringify(row && row.versions) === JSON.stringify(['1.0']),
+      'E-record：record 把 corpus 真實 version 寫進 row.versions（整條 oracle passthrough→buildEvalRow→落盤鏈）[E-record]');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -518,6 +697,76 @@ function readJsonl(file) {
     const r = callSafe(() => appendEvalRow(dir, { corpus: 'W', passRate: 1.0 }, 3)); // file=目錄 → append/write 失敗
     assert(!r.threw, 'appendEvalRow：寫檔失敗（路徑為目錄）→ 不丟例外 [ROT-writefail]');
   } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  CLI versions 子命令 smoke（#51 契約5）—— 真 spawn `scripts/eval-metrics.mjs versions`（薄 IO）。
+//  寫含「部分帶 versions、部分不帶」的暫存 jsonl → versions → exit 0、stdout 含各 version 摘要 + '(none)'。
+//  暫存檔放 os.tmpdir()、測完 rmSync 清掉（冪等）。
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── E-versions：多筆 row（含/不含 versions）→ versions → exit 0；新 CLI 契約＝每行
+//    `<version>  records <N>  avgPassRate <X>`（label 為 records 非 runs；avgPassRate 4 位小數），
+//    且版本鍵升冪輸出、'(none)' 殿後。fixture 刻意「亂序寫入」（1.1 先於 1.0）讓排序斷言有 teeth [契約5 versions 摘要]
+{
+  const dir = mkdtempSync(join(tmpdir(), 'em-versions-'));
+  const metricsFile = join(dir, 'eval-results.jsonl');
+  try {
+    // 可預測 fixture（每筆 runs:1，桶內 record 數 ≠ runs 欄值 → 驗 label 為 records）：
+    //   1.0 桶 = rowB(1.0) + rowC(0.5) → records 2、avgPassRate (1.0+0.5)/2 = 0.7500
+    //   1.1 桶 = rowA(1.0)            → records 1、avgPassRate 1.0000
+    //   (none) 桶 = rowD(無 versions)  → records 1、avgPassRate 1.0000
+    // 寫入序刻意亂（rowA=1.1 先、rowB/rowC=1.0 後、rowD=(none) 最後）：
+    //   不排序的 impl（Object.keys 插入序）會印成 1.1 先於 1.0 → 排序斷言先紅。
+    writeFileSync(metricsFile, [
+      JSON.stringify({ ts: 'T1', corpus: 'evals/build', schema: 2, runs: 1, total: 5, passed: 5, failed: 0, errored: 0, passRate: 1.0, passK: 1.0, versions: ['1.1'] }), // rowA
+      JSON.stringify({ ts: 'T2', corpus: 'evals/build', schema: 2, runs: 1, total: 5, passed: 5, failed: 0, errored: 0, passRate: 1.0, passK: 1.0, versions: ['1.0'] }), // rowB
+      JSON.stringify({ ts: 'T3', corpus: 'evals/build', schema: 2, runs: 1, total: 4, passed: 2, failed: 2, errored: 0, passRate: 0.5, passK: 0.5, versions: ['1.0'] }), // rowC
+      JSON.stringify({ ts: 'T4', corpus: 'evals/build', schema: 1, runs: 1, total: 5, passed: 5, failed: 0, errored: 0, passRate: 1.0, passK: 1.0 }), // rowD：舊 row 無 versions → (none)
+    ].join('\n') + '\n', 'utf8');
+    const res = runMetrics(['versions', '--metrics-file', metricsFile]);
+    assert(res.error == null, 'E-versions：node 啟動成功（spawn 無 error）[E-versions]');
+    assert(res.status === 0, 'E-versions：versions 子命令被識別 → exit 0（非未知命令 exit 2）[E-versions]');
+    const out = res.stdout || '';
+    assert(out.includes('1.0'), "E-versions：stdout 含版本 '1.0' 摘要 [E-versions]");
+    assert(out.includes('1.1'), "E-versions：stdout 含版本 '1.1' 摘要 [E-versions]");
+    assert(out.includes('(none)'), "E-versions：stdout 含 '(none)' 那組（舊無 versions row）[E-versions]");
+
+    // 版本鍵在行首；用 \s 邊界避免把 avg 值裡的 '1.0000' 當成 '1.0' 行首誤吃。
+    const lines = out.split('\n').map((l) => l.trim());
+    const idx10 = lines.findIndex((l) => /^1\.0\s/.test(l));
+    const idx11 = lines.findIndex((l) => /^1\.1\s/.test(l));
+    const idxNone = lines.findIndex((l) => /^\(none\)\s/.test(l));
+    const v10 = idx10 >= 0 ? lines[idx10] : '';
+
+    // (1) label rename：1.0 桶含 2 record → 印 `records 2`（現 impl 印 `runs 2` → 先紅）
+    assert(v10.includes('records 2'),
+      "E-versions：'1.0' 桶印 records 2（label 由 runs 改 records；row 自身 runs 欄語意不同）[E-versions]");
+    // (2) avgPassRate 數值：1.0 桶 (1.0+0.5)/2 = 0.7500（4 位小數）。改壞平均（錯分母/漏項/回 0）→ 紅
+    assert(v10.includes('avgPassRate 0.7500'),
+      "E-versions：'1.0' 桶 avgPassRate===0.7500（兩筆 1.0/0.5 平均、4 位小數）[E-versions]");
+    // (3) 排序：版本鍵升冪、'(none)' 殿後（1.0 < 1.1 < (none)）。亂序寫入下不排序則紅
+    assert(idx10 >= 0 && idx11 >= 0 && idxNone >= 0,
+      'E-versions：三個版本桶摘要行皆出現於 stdout [E-versions]');
+    assert(idx10 < idx11 && idx11 < idxNone,
+      "E-versions：版本桶升冪輸出、'(none)' 殿後（1.0 < 1.1 < (none)）；亂序寫入(1.1 先) → 不排序則紅 [E-versions]");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// ── E-versions-missing：--metrics-file 不存在 → exit 0 + 空摘要不炸（永不擋路）[契約5 缺檔 graceful]
+{
+  const dir = mkdtempSync(join(tmpdir(), 'em-versions-miss-'));
+  const metricsFile = join(dir, 'no-such-eval-results.jsonl');
+  try {
+    const res = runMetrics(['versions', '--metrics-file', metricsFile]);
+    assert(res.error == null, 'E-versions-missing：node 啟動成功 [E-versions-missing]');
+    assert(res.status === 0, 'E-versions-missing：缺檔 → exit 0（空摘要不炸）[E-versions-missing]');
+    assert(!(res.stdout || '').includes('1.0'), 'E-versions-missing：缺檔 → stdout 無版本資料（空摘要）[E-versions-missing]');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);

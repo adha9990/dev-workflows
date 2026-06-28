@@ -13,6 +13,7 @@
 // 用法：
 //   node eval-metrics.mjs record --dir <corpus> [--metrics-file <path>]
 //   node eval-metrics.mjs check [--metrics-file <path>] [--baseline <n>] [--tolerance <Δ>]
+//   node eval-metrics.mjs versions [--metrics-file <path>]
 
 import { readFileSync, appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -20,7 +21,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // .../scripts —— 解析同目錄的 eval-oracle.mjs
-const SCHEMA_VERSION = 1; // metric row schema 版本（常數，隨格式演進才升）
+const SCHEMA_VERSION = 2; // metric row schema 版本；v2 起含 versions（常數，隨格式演進才升）
+const NO_VERSION_BUCKET = '(none)'; // groupRowsByVersion：versions 缺欄 / 非陣列 / 空 的歸屬桶（向後相容舊 row）
 const MAX_ORACLE_STDOUT = 16 * 1024 * 1024; // oracle --json 報告上限，避免無上限緩衝
 const DEFAULT_METRICS_PATH = ['.loops', '.metrics', 'eval-results.jsonl']; // 相對 cwd 的預設歷史檔
 const MAX_METRIC_ROWS = 1000; // eval-results.jsonl rotation 上限：超過保留最後 N 行（避免無界成長）
@@ -28,6 +30,7 @@ const USAGE = [
   'usage:',
   '  node eval-metrics.mjs record --dir <corpus> [--metrics-file <path>]',
   '  node eval-metrics.mjs check [--metrics-file <path>] [--baseline <n>] [--tolerance <Δ>]',
+  '  node eval-metrics.mjs versions [--metrics-file <path>]',
 ].join('\n');
 
 const EXIT_OK = 0; // 成功 / 無退化 / 無事可做
@@ -57,7 +60,23 @@ export function buildEvalRow(aggregate, { corpus, ts, runs = 1 } = {}) {
     errored: countErroredTasks(aggregate?.tasks),
     passRate,
     passK: passRate,
+    versions: summarizeVersions(aggregate?.tasks), // schema v2：該 run 涵蓋的版本（去重排序），不參與既有計算
   };
+}
+
+/**
+ * 把 tasks 的 version 欄攤平成「去重、字典序排序」的字串陣列（schema v2 起 row.versions 的來源）。
+ * 非陣列 → []；只收 version != null 者（含 version:0，故用 != null 而非 truthy 過濾）；
+ * 經 String() 正規化做跨型去重（數值 2 與字串 '2' 視為同一版本）；
+ * .sort() 預設字典序，純函式同輸入同輸出 → 穩定可重現。
+ */
+export function summarizeVersions(tasks) {
+  if (!Array.isArray(tasks)) return [];
+  const seen = new Set();
+  for (const task of tasks) {
+    if (task?.version != null) seen.add(String(task.version));
+  }
+  return [...seen].sort();
 }
 
 /**
@@ -115,6 +134,23 @@ export function computeRegression(rows, { baseline = 0, tolerance = 0 } = {}) {
 
   const regressed = currentRate < baselineRate - safeTolerance;
   return { regressed, currentRate, baselineRate, delta, reason: describeRegression({ regressed, baselineRate, currentRate, delta, tolerance: safeTolerance }) };
+}
+
+/**
+ * 把 row 陣列依 row.versions 分桶：每個 version 各成一桶，多 version 的 row 會出現在多桶。
+ * versions 缺欄 / 非陣列 / 空陣列 → 歸 '(none)' 桶（向後相容 schema v1 舊 row，不丟棄不 crash）。
+ * 回 Object.create(null)：版本鍵（如使用者資料中的 '__proto__'）不污染原型鏈，故不用物件字面量 {}。
+ */
+export function groupRowsByVersion(rows) {
+  const out = Object.create(null);
+  if (!Array.isArray(rows)) return out;
+  for (const row of rows) {
+    const versions = Array.isArray(row?.versions) && row.versions.length ? row.versions : [NO_VERSION_BUCKET];
+    for (const version of versions) {
+      (out[version] ??= []).push(row);
+    }
+  }
+  return out;
 }
 
 // ── 純函式的內部小工具 ──────────────────────────────────────────────────────────
@@ -222,6 +258,33 @@ function runCheck(opts) {
   return EXIT_OK;
 }
 
+/**
+ * versions：讀歷史 → 依 versions 分桶 → 每桶印一行摘要（version / records＝桶內 row 數 / avgPassRate）。
+ * label 用 records（非 runs）：row 自身另有語意不同的 runs 欄（oracle 重跑次數），桶計數叫 runs 會撞名誤導。
+ * 版本鍵升冪輸出（字典序）、NO_VERSION_BUCKET 桶永遠殿後（不論字典序），確保亂序寫入下輸出穩定可重現。
+ * 純唯讀報表（不寫檔、非 gate），恆 exit 0；缺檔 → readEvalRows 回 [] → 桶為空 → 印 (no records)。
+ */
+function runVersions(opts) {
+  const buckets = groupRowsByVersion(readEvalRows(resolveMetricsFile(opts.metricsFile)));
+  const versions = orderVersionBuckets(Object.keys(buckets));
+  if (versions.length === 0) {
+    console.log('eval-metrics: (no records)');
+    return EXIT_OK;
+  }
+  for (const version of versions) {
+    const rows = buckets[version];
+    const avgPassRate = rows.length > 0 ? rows.reduce((sum, row) => sum + passRateOf(row), 0) / rows.length : 0;
+    console.log(`  ${version}  records ${rows.length}  avgPassRate ${avgPassRate.toFixed(4)}`);
+  }
+  return EXIT_OK;
+}
+
+/** 版本鍵升冪（字典序）排序，NO_VERSION_BUCKET 桶永遠殿後（不論字典序）。 */
+function orderVersionBuckets(keys) {
+  const named = keys.filter((key) => key !== NO_VERSION_BUCKET).sort();
+  return keys.includes(NO_VERSION_BUCKET) ? [...named, NO_VERSION_BUCKET] : named;
+}
+
 function parseArgs(argv) {
   const opts = { command: argv[0] ?? null, dir: null, metricsFile: null, baseline: 0, tolerance: 0 };
   for (let i = 1; i < argv.length; i += 1) {
@@ -239,6 +302,7 @@ function main(argv) {
   const opts = parseArgs(argv);
   if (opts.command === 'record') return runRecord(opts);
   if (opts.command === 'check') return runCheck(opts);
+  if (opts.command === 'versions') return runVersions(opts);
   console.error(`unknown command "${opts.command ?? ''}"\n${USAGE}`);
   return EXIT_USAGE;
 }
