@@ -164,9 +164,16 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    S1[① 選軸：依風險定 0~6 核心 + N conditional<br/>瑣碎0 / 小孤立3 / 一般·高風險6] --> S2[② 並行審：同一回合派出、各審一軸<br/>反偏見·只給 artifact+契約 ＋ 跑真 app]
-    S2 --> S3[③ 驗 findings：coordinator 去重 ＋ finding-validator 二輪]
-    S3 --> S4{④ acceptance 閘<br/>每條 criterion 收斂到 已滿足/descoped?}
+    S1[① 選軸：依風險定 0~6 核心 + N conditional<br/>瑣碎0 / 小孤立3 / 一般·高風險6] --> S2[② 同一回合並行派出<br/>各審一軸·反偏見·只給 artifact+契約]
+    S2 --> R1[product-contract<br/>issue 驗收 / 範圍 / 非目標]
+    S2 --> R2[code-quality<br/>正確性·錯誤處理·typing·重用]
+    S2 --> R3[tests<br/>覆蓋·邊界·migration]
+    S2 --> R4[architecture<br/>分層·import·契約·設計模式]
+    S2 --> R5[security<br/>auth·注入·敏感資料·威脅建模]
+    S2 --> R6[performance<br/>query·N+1·index·transaction]
+    S2 -.觸及領域才加派.-> COND[N conditional：frontend-ui·a11y·web-perf<br/>observability·ci-cd·migration<br/>processing-reliability·root-cause·docs-devex]
+    R1 & R2 & R3 & R4 & R5 & R6 & COND --> CO[③ coordinator 去重 + 跑真 app/本機 code-review<br/>→ finding-validator 二輪：真實?本次?已防護?對症?]
+    CO --> S4{④ acceptance 閘<br/>每條 criterion 收斂到 已滿足/descoped?}
     S4 -->|是·全收斂| S5[⑤ Ready → 04-verify.md → iterate]
     S4 -.否·未收斂 / 確證根本做錯.-> ITER[Not ready → iterate 依錯在哪<br/>路由 goal / explore / plan / build]
 ```
