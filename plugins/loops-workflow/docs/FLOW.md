@@ -240,7 +240,7 @@ flowchart TD
 
 | | |
 |---|---|
-| **skill** | 13（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **agents-md-maintainer** 側用文檔維運 / **distill** 側用跨 loop 萃取 instinct） |
+| **skill** | 12（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **agents-md-maintainer** 側用文檔維運）。〔`distill` 已降為文件 `docs/distill.md`、不再可呼叫〕 |
 | **agent** | 20 = build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + eval-judge（eval E4，無 oracle 維度評分、主迴圈/Workflow 派）+ 9 條件式領域 reviewer（accessibility / ci-cd / docs-devex / frontend-ui / migration / observability / processing-reliability / root-cause / web-performance，視改動面加派）。explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose（不計入此數） |
 | **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 9 條件式）+ N validator |
 | **reference** | 46 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + 8 份 per-axis 審查判準 + verify-triage 風險分級 + operation-first-move + instinct-schema + eval-judge-rubric 無 oracle 維度評分卡 + eval-judge-panel / eval-live-candidate Phase 3 活流程 recipe）｜**command** loop / resume / status / explain / install-statusline｜**hook** 7 個 / 4 事件（SessionStart 恆跑、其餘 6 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈 + instinct 注入 opt-in) + Stop(cost-tracker 估成本 + eval-gate 改檔回合多訊號注入〔eval-metrics check 退化 LOOPS_EVAL_GATE／eval-tags by-tag 失敗 tag LOOPS_EVAL_TAGS_GATE／eval-poll poll 共識 LOOPS_EVAL_POLL_GATE，三 flag 獨立〕 + stop-gate 改檔回合自動跑 quality-gate) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
@@ -262,7 +262,6 @@ flowchart TD
 | iterate | 1 | 0（+cross-model 選用） | 卡關時 |
 | explain（側） | 1 | 0 | 唯讀 |
 | agents-md-maintainer（側） | 1 | 0 | 維護 AGENTS.md（不入迴圈） |
-| distill（側） | 1 | 0 | 手動萃取跨 loop instinct（不入迴圈） |
 | scaffold-fullstack（前置） | 1 | 0 | 完全乾淨空專案建骨架 |
 
 ---

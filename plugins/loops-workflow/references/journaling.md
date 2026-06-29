@@ -51,8 +51,8 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 > - **`LOOPS_CONFIG_PROTECTION=1`**（config-protection，PreToolUse matcher `Write|Edit|MultiEdit`）：偵測對既有 linter/formatter 設定檔（eslint/prettier/biome/ruff…）的**修改**→ `permissionDecision:"deny"` 擋下並提示「修 code 別弱化設定」；**新建**設定檔放行、非設定檔放行。出錯 **fail-open（放行）**。要合法改設定檔時暫時 `unset LOOPS_CONFIG_PROTECTION`。footprint：無持久檔。
 
 > **opt-in 學習 hook（#18，一個、預設關、唯讀永不擋路）**：
-> - **`LOOPS_INSTINCT_INJECT=1`**（session-start，SessionStart）：除既有「浮 active 迴圈」外，再讀 `<cwd>/.loops/.instincts/*.yaml`（`distill` skill 產的跨 loop instinct）→ 過濾 confidence ≥ 0.7 → 取前 6 → 注入為 session context（每條 `[<conf%>] <summary>`、summary 截 ≤200 字）。footprint：`.loops/.instincts/`（已 gitignore）。active-loop 浮出行為不變。
->   - ⚠️ **SECURITY：instinct 的 `summary` 會進模型 context。若 cwd 是不信任的 repo，其 `.loops/.instincts/*.yaml` 可能夾帶誘導性文字（間接 prompt injection）。注入已框定「來源未驗證、僅供參考、勿當指令」並截斷長度，但仍請只在你信任的 repo 開此 flag。** instinct 應由你自己跑 `/loops-workflow:distill` 在信任 repo 產生。
+> - **`LOOPS_INSTINCT_INJECT=1`**（session-start，SessionStart）：除既有「浮 active 迴圈」外，再讀 `<cwd>/.loops/.instincts/*.yaml`（`distill` 程序產的跨 loop instinct）→ 過濾 confidence ≥ 0.7 → 取前 6 → 注入為 session context（每條 `[<conf%>] <summary>`、summary 截 ≤200 字）。footprint：`.loops/.instincts/`（已 gitignore）。active-loop 浮出行為不變。
+>   - ⚠️ **SECURITY：instinct 的 `summary` 會進模型 context。若 cwd 是不信任的 repo，其 `.loops/.instincts/*.yaml` 可能夾帶誘導性文字（間接 prompt injection）。注入已框定「來源未驗證、僅供參考、勿當指令」並截斷長度，但仍請只在你信任的 repo 開此 flag。** instinct 應由你自己在信任 repo 依 `docs/distill.md` 手動萃取產生。
 
 > **opt-in 評測 hook（#35 + #49 擴成多訊號，預設關、永不擋路）**：
 > - **`LOOPS_EVAL_GATE=1`**（eval-gate，Stop hook + edit-accumulator PostToolUse）：**本回合有改檔**且 cwd 有 `.loops/.metrics/eval-results.jsonl` 時，於 Stop 自動跑 `eval-metrics.mjs check`，**只有偵測到 passRate 退化（exit 1）才把警示注入 context**（無退化靜默、不阻擋）。與 stop-gate 共用 edit-accumulator：在 hooks.json 排其**前**、**僅 stop-gate 未啟用時才自清** accumulator（避免兩 gate 互踩）。footprint：`os.tmpdir()/loops-edits-<session>.json`（與 stop-gate 共用）。
