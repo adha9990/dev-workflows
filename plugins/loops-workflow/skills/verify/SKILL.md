@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Right-size how many reviewers to change risk, dispatch them in one parallel turn (fresh context, anti-bias), validate findings in a second pass, then gate on "did we actually do the issue" — bounce to build if fundamentally wrong, else Ready / Not ready. Use at the verify stage of a loops-workflow run, or for merge-readiness review before iterate.
+description: Right-size how many reviewers to change risk, dispatch them in one parallel turn (fresh context, anti-bias), validate findings in a second pass, then gate on "did we actually do the issue" — if fundamentally wrong, bounce the whole thing back (iterate routes to goal/explore/plan/build); else Ready / Not ready. Use at the verify stage of a loops-workflow run, or for merge-readiness review before iterate.
 ---
 
 # verify — 驗證（5 步）
@@ -61,7 +61,7 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 **findings 全清 ≠ 做到 issue 要的每一件事**：步驟 2-3 問「有沒有引入問題」，這道閘問「**該交付的交付了沒**」，兩者正交、都不能省。判 Ready 前必過（任何 issue 都適用，只有無驗收契約的瑣碎改動不適用）：
 
 - **逐條勾稽**：`product-contract` 對 issue **每一條** acceptance criterion 列 `references/acceptance-review.md` 的五態（已滿足 / 部分滿足 / 缺失 / 證據不足 / 被反證）；每條要收斂到「**已滿足（有可信證據）**」或「**明確 descoped（作者在 plan/issue/PR 留痕）**」。任一條還停在 部分滿足 / 缺失 / 證據不足 / 被反證 且沒 descoped → **Not ready**，回 iterate。
-- **做錯就整個退回**：若確證「**做的不是 issue 要的** / **核心沒做到卻當完工** / **最基本流程跑不起來**」→ **整個退回 build 重做，不要對其他 finding 逐條 iterate**（在註定要大改的東西上修小問題是白工）。
+- **做錯就整個退回**：若確證「**做的不是 issue 要的** / **核心沒做到卻當完工** / **最基本流程跑不起來**」→ 判 Not ready、**整個退回、不對其他 finding 逐條修**；由 **iterate 依「錯在哪」路由回對的階段**：解錯問題 / 方向錯 → **goal / explore**、設計或拆解缺陷 → **plan**、單純實作 bug → **build**（別在註定要重想 / 重做的東西上修小問題）。
 
 ### 5. 判 Ready / 退回 — 分級輸出
 
@@ -80,7 +80,7 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 - tests-reviewer 被餵「作者說已過」；或把作者辯護餵給 reviewer 當框架（只給 artifact + 契約）。
 - blocking finding 沒過 finding-validator 就進報告；或出現未實測的效能 / 覆蓋率數字。
 - 判 Ready 卻沒對 issue 逐條勾稽 acceptance（findings 清完 ≠ 做到 issue）。
-- 確證「根本做錯」卻還對其他 finding 逐條修，而非整個退回 build。
+- 確證「根本做錯」卻還對其他 finding 逐條修，而非整個退回（交 iterate 路由回 goal/explore/plan/build）。
 - 連 2+ 輪 reviewer 都出 substantive finding 卻 **0 條 actionable** = 在背書不是審查（rubber-stamp），停下重看 validator 是不是把該修的都 rationalize 掉了。
 
 ## Verification
@@ -88,5 +88,5 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 - [ ] **步驟 1**：依風險定軸（瑣碎 / 小孤立 / 一般 / 高風險），拿不準 / 混 code / 碰高風險向嚴升級。
 - [ ] **步驟 2**：同一回合並行派出、各一軸；只給 artifact + 契約（不給作者辯護）、tests-reviewer 不被告知已過；跑真 app + 本機 `/code-review` 或據實標 `not measured`；參考檔絕對路徑已塞進 reviewer prompt。
 - [ ] **步驟 3**：每個 blocking finding 有 finding-validator 結果；高風險跑了 holistic。
-- [ ] **步驟 4**：acceptance 閘 —— 每條 criterion 收斂到 已滿足（有證據）/ 明確 descoped（留痕）才判 Ready；確證根本做錯 → 整個退回 build。
+- [ ] **步驟 4**：acceptance 閘 —— 每條 criterion 收斂到 已滿足（有證據）/ 明確 descoped（留痕）才判 Ready；確證根本做錯 → 整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）。
 - [ ] **步驟 5**：每條 finding 有 P0–P3 + Confidence + Route + Metric-Honesty；結論 Ready / Not ready 進 iterate（只 P0 才停下問）；回環修完再驗一輪。
