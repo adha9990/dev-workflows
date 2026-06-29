@@ -257,5 +257,38 @@ function runProgress(args, cwd, env = {}) {
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 }
 
+// =============================================================================
+// SMOKE — hooks/progress-render.mjs（真 spawn hook，驗只寫檔不注入 context）
+// =============================================================================
+const RENDER_HOOK = join(HERE, '..', 'hooks', 'progress-render.mjs');
+
+// ── H1：Stop hook 對本 session loop 寫出 PROGRESS.md、stdout 無 additionalContext ──
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'prog-hook-'));
+  try {
+    const dir = seedLoop(cwd, '137-trash-delete-permanent', SAMPLE_LOOP_MD);
+    const res = spawnSync(process.execPath, [RENDER_HOOK], {
+      cwd, encoding: 'utf8',
+      input: JSON.stringify({ session_id: 'sess-abc', cwd }),
+      env: { ...process.env, CLAUDE_CODE_SESSION_ID: 'sess-abc' },
+    });
+    assert(res.status === 0, 'H1：hook exit 0 [H1]');
+    assert(existsSync(join(dir, 'PROGRESS.md')), 'H1：hook 寫出 PROGRESS.md [H1]');
+    assert(!String(res.stdout).includes('additionalContext'), 'H1：hook 不注入 context [H1]');
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
+}
+
+// ── H2：無 .loops/ → hook no-op、exit 0、不丟 ──
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'prog-hook-empty-'));
+  try {
+    const res = spawnSync(process.execPath, [RENDER_HOOK], {
+      cwd, encoding: 'utf8', input: JSON.stringify({ session_id: 'sess-abc', cwd }),
+      env: { ...process.env, CLAUDE_CODE_SESSION_ID: 'sess-abc' },
+    });
+    assert(res.status === 0, 'H2：無 .loops/ → hook exit 0 [H2]');
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
+}
+
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
 process.exit(failed.length > 0 ? 1 : 0);
