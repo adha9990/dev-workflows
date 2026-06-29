@@ -80,7 +80,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 > 這些只在「完工」這條分支產；回環途中不產。
 
-完工後把 `loop.md` 的「當前階段」設為「**完工**」（statusline 即不再顯示此 loop），**並在 Journal 末尾 append 一行 outcome 度量** —— 依 `references/journaling.md`〈完工 outcome 度量〉的格式（`★[outcome] 結果 ｜ token≈估算(級距)est ｜ sub-agent 數 ｜ 回環 圈 ｜ findings validated→剩餘 ｜ 交付：交付物`），從本 loop Journal 回推各欄、**token 標粗估（規則 5）**，給這條 loop 留下可回顧的成本 / 規模輪廓（落實規則 10 成本意識可觀測）。中止（descoped / aborted）收尾同樣 append 一行。格式定義以 `journaling.md` 為**單一來源**，這裡只引用、不另立第二份。
+完工後把 `loop.md` 的「當前階段」設為「**完工**」（progress / hook 即不再顯示此 loop），**並在 Journal 末尾 append 一行 outcome 度量** —— 依 `references/journaling.md`〈完工 outcome 度量〉的格式（`★[outcome] 結果 ｜ token≈估算(級距)est ｜ sub-agent 數 ｜ 回環 圈 ｜ findings validated→剩餘 ｜ 交付：交付物`），從本 loop Journal 回推各欄、**token 標粗估（規則 5）**，給這條 loop 留下可回顧的成本 / 規模輪廓（落實規則 10 成本意識可觀測）。中止（descoped / aborted）收尾同樣 append 一行。格式定義以 `journaling.md` 為**單一來源**，這裡只引用、不另立第二份。
 
 **收尾清理 —— loop 結束的標準環節，不是選項。分兩個時機：**
 
