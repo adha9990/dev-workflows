@@ -53,3 +53,10 @@
 - [ ] 外部能力走 port + adapter，相依用注入、不在內層 `new`。
 - [ ] 新 code 對齊既有分層 / 落點，沒憑空開頂層資料夾。
 - [ ] in-scope 品質照最高標準（規模 / 並發），但沒做 YAGNI 的投機抽象。
+
+## Domain-Driven 詞彙（右尺寸，只在碰領域概念時）
+
+- **Ubiquitous Language**：同一個領域概念，在 issue / DoD 場景 / glossary / code identifier / PR comment **用同一個名詞**。命名漂移＝缺陷（architecture-reviewer 會抓）。
+- **Entity / Value Object / Aggregate**：設計動到領域物件時顯式分類——Entity（有 ID、可變、生命週期）/ Value Object（無 ID、不可變、以值相等）/ Aggregate（一致性邊界 + root，外部只透過 root 操作、不變式在邊界內維持）。
+- **Bounded Context（BC）**：同一名詞在不同脈絡可能意義不同；跨 BC 邊界要明確（探索時辨識，見 explore）。
+- **右尺寸**：瑣碎 / 純 refactor / 不碰領域的改動**跳過**這些；新功能命名動到的物件即可，高風險 / 核心領域才完整建模。不對小任務加 ceremony（規則 10）。

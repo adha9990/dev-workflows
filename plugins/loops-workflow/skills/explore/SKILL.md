@@ -36,6 +36,8 @@ description: Surveys the internal codebase for reusable approaches, and searches
 
 動手探索前先建立架構認知：**文檔優先** —— 讀 `CLAUDE.md` / `AGENTS.md`（最高優先）、`README` / `docs/` / ADR；文檔已說明架構就以文檔為準，只在文檔有缺口才爬 code。**文檔有缺口且 repo 已索引 `codebase-memory-mcp` → 用 `get_architecture`（package / 分層 / Leiden cluster 全貌）快速補**，比逐檔爬快。輸出 2–4 行 project context 寫進 `01-explore.md` 開頭。詳見 `references/onboarding.md`。
 
+**辨識 bounded context / 既有 domain model**：摸架構時先確認這次改動落在哪個領域脈絡、有沒有既有的 domain model 可重用（reuse 優先，見 `reuse-check.md`）；跨 BC 邊界要標出來。右尺寸：瑣碎改動跳過。產出的領域名詞交給 plan 的 §3 glossary。
+
 ### 1. 先掃內部（重用優先）
 
 找：既有可重用的實作 / 模式 / 類似功能。**兩條路，優先用 graph、不行才派 agent**：
