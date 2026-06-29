@@ -54,6 +54,8 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 | Constraint | 邊界 / 不可違反的限制 |
 | Out of scope | 明確不做什麼（防範圍蔓延） |
 
+DoD 的「Success / 停止條件」用 **GWT 場景（帶 ID `S1…`，見 `references/bdd-scenarios.md`）** 表達，讓完工定義可被 verify 逐條回核；沿用 issue 既有場景 ID、不重新編號。右尺寸同 `bdd-scenarios.md`（小任務不堆場景）。
+
 ### 4. 停止條件 + 直接進 explore（不問 DoD 確認）
 
 - **95% 信心**就停止訪談，不無止境追問。

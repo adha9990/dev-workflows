@@ -32,6 +32,7 @@
 ## 填寫守則
 
 - **Success 必須可驗證**：寫「上傳 10MB 圖片 3 秒內出縮圖」，不寫「縮圖體驗變好」。
+- 停止條件以**場景 ID 對應的 checkbox**呈現（`- [ ] S1 …`），ID 與 issue/`bdd-scenarios.md` 一致——成為 verify acceptance 閘逐條勾稽、與 test 追溯的單一錨點。
 - **Out of scope 不可空**：想不到要排除什麼，代表訪談還沒夠深。
 - HYPOTHESIS + CONFIDENCE 是訪談留痕：每問記下當時猜測與把握，優先打 confidence 最低、影響最大的點。
 - **should-want 偵測**：使用者用「應該 / 好的工程會」這種表演式、對外交代的措辭時，追問一次「不用對任何人交代，你真正要的是什麼」—— 別把表演式答案當需求填進六欄。
