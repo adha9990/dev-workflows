@@ -90,7 +90,7 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 ## Verification
 
 - [ ] **步驟 1**：依風險定軸（瑣碎 / 小孤立 / 一般 / 高風險），拿不準 / 混 code / 碰高風險向嚴升級。
-- [ ] **步驟 2**：同一回合並行派出、各一軸；只給 artifact + 契約（不給作者辯護）、tests-reviewer 不被告知已過；跑真 app + 本機 `/code-review` 或據實標 `not measured`；參考檔絕對路徑已塞進 reviewer prompt。
+- [ ] **步驟 2**：同一回合並行派出、各一軸；只給 artifact + 契約（不給作者辯護）、tests-reviewer 不被告知已過；跑真 app + 本機 `/code-review` 或據實標 `not measured`；參考檔絕對路徑 + `code-retrieval.md` 路徑 + **本次改動檔清單（含 stale 提醒）**已塞進 reviewer prompt。
 - [ ] **步驟 3**：coordinator 去重後，每個 blocking finding 有 finding-validator 結果。
 - [ ] **步驟 4**：acceptance 閘 —— 每條 criterion 收斂到 已滿足（有證據）/ 明確 descoped（留痕）才判 Ready；確證根本做錯 → 整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）。
 - [ ] **步驟 5**：每條 finding 有 P0–P3 + Confidence + Route + Metric-Honesty；結論 Ready / Not ready 進 iterate（只 P0 才停下問）；回環修完再驗一輪。
