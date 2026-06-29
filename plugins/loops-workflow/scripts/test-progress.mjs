@@ -14,6 +14,7 @@ import {
   pickLoopField, journalEntries, lastJournalLine, currentStage, isDone,
   collectLoopRoots, collectLoopEntries, pickActiveLoop,
 } from './loops-scan.mjs';
+import { extractProgress, renderChat, renderMarkdown } from './progress.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROGRESS_SCRIPT = join(HERE, 'progress.mjs');
@@ -132,6 +133,128 @@ function seedLoop(cwd, slug, md) {
   assert(pickActiveLoop([e2], 'sess-abc', 1000) === null, 'pickActiveLoop：完工的不算 active → null [A7]');
   assert(pickActiveLoop([e1, e3], '', 1000).slug === 'other' || pickActiveLoop([e1, e3], '', 1000).slug === 'mine',
     'pickActiveLoop：無 sid → 近期活躍取 mtime 最新 [A7]');
+}
+
+// =============================================================================
+// B) progress.mjs — 純函式（extractProgress / renderChat / renderMarkdown）
+// =============================================================================
+
+// ── B1 extractProgress：階段管線狀態（build 為 now、其前 done、其後 pending）──
+{
+  const p = extractProgress({ slug: '137-trash-delete-permanent', dir: '', md: SAMPLE_LOOP_MD, mtime: 1 });
+  assert(p.slug === '137-trash-delete-permanent', 'extractProgress slug [B1]');
+  assert(p.type === 'issue' && p.operation === 'bug-fix' && p.mode === 'auto', 'extractProgress 類型/operation/模式 [B1]');
+  const byName = Object.fromEntries(p.stages.map((s) => [s.name, s.state]));
+  assert(byName.plan === 'done' && byName.build === 'now' && byName.verify === 'pending',
+    'extractProgress：plan=done / build=now / verify=pending [B1]');
+  assert(p.done === false, 'extractProgress：未完工 done=false [B1]');
+}
+
+// ── B2 extractProgress：圈數 / findings / nextStep / maxRounds ──
+{
+  const p = extractProgress({ slug: 's', dir: '', md: SAMPLE_LOOP_MD, mtime: 1 });
+  assert(p.round === 1 && p.maxRounds === 3, 'extractProgress：回環 #1 → round=1, maxRounds=3 [B2]');
+  assert(/1\s*[→\-]+>?\s*0/.test(p.findings), 'extractProgress：findings 抓到 1→0 [B2]');
+  assert(p.nextStep === 'verify', 'extractProgress：build 的下一步 = verify [B2]');
+  assert(p.recentJournal.length >= 1 && p.recentJournal.length <= 5, 'extractProgress：recentJournal 1~5 筆 [B2]');
+}
+
+// ── B3 extractProgress：完工 loop → done=true、全階段 done、有 outcome ──
+{
+  const doneMd = SAMPLE_LOOP_MD.replace('當前階段 | build（任務 3/4）', '當前階段 | 完工')
+    + '\n- ★[outcome] 完工 ｜ token≈120K(中)est ｜ sub-agent 3 ｜ 回環 1 圈 ｜ findings 1→0 ｜ 交付：PR #6 merged\n';
+  const p = extractProgress({ slug: 's', dir: '', md: doneMd, mtime: 1 });
+  assert(p.done === true, 'extractProgress：完工 → done=true [B3]');
+  assert(p.stages.every((s) => s.state === 'done'), 'extractProgress：完工 → 全階段 done [B3]');
+  assert(p.outcome.includes('★[outcome]') && p.outcome.includes('PR #6'), 'extractProgress：抓到 outcome 行 [B3]');
+  assert(p.nextStep === '完工', 'extractProgress：完工 → nextStep="完工" [B3]');
+}
+
+// ── B4 extractProgress：缺欄不編造（無 findings / 無回環 → 空字串 / round 0）──
+{
+  const lean = `| 類型 | design |\n| 當前階段 | explore |\n\n## Journal\n- [E1] 進入 explore\n`;
+  const p = extractProgress({ slug: 's', dir: '', md: lean, mtime: 1 });
+  assert(p.findings === '' && p.head === '', 'extractProgress：無 findings/commit → 空字串 [B4]');
+  assert(p.round === 0, 'extractProgress：無回環 → round 0 [B4]');
+  const byName = Object.fromEntries(p.stages.map((s) => [s.name, s.state]));
+  assert(byName.explore === 'now' && byName.goal === 'done' && byName.plan === 'pending', 'extractProgress：explore=now [B4]');
+}
+
+// ── B5 renderChat：含 slug、階段符號、圈數、下一步 ──
+{
+  const p = extractProgress({ slug: '137-trash-delete-permanent', dir: '', md: SAMPLE_LOOP_MD, mtime: 1 });
+  const chat = renderChat(p);
+  assert(chat.includes('137-trash-delete-permanent'), 'renderChat 含 slug [B5]');
+  assert(chat.includes('build ●') && chat.includes('plan ✓') && chat.includes('verify ○'), 'renderChat 階段符號 [B5]');
+  assert(chat.includes('圈 1/3'), 'renderChat 含圈數 [B5]');
+  assert(/下一步.*verify/.test(chat), 'renderChat 含下一步 [B5]');
+}
+
+// ── B6 renderMarkdown：標題、checkbox、mermaid、勿手改註記 ──
+{
+  const p = extractProgress({ slug: '137-trash-delete-permanent', dir: '', md: SAMPLE_LOOP_MD, mtime: 1 });
+  const mdOut = renderMarkdown(p);
+  assert(mdOut.includes('# ⟳ 137-trash-delete-permanent'), 'renderMarkdown 標題 [B6]');
+  assert(mdOut.includes('```mermaid'), 'renderMarkdown 含 mermaid [B6]');
+  assert(mdOut.includes('- [x] plan') && mdOut.includes('- [ ] **build'), 'renderMarkdown checkbox（build 標現在）[B6]');
+  assert(/自動產生.*勿/.test(mdOut), 'renderMarkdown 含「自動產生請勿手改」註記 [B6]');
+}
+
+// =============================================================================
+// SMOKE — progress.mjs（真 spawn，驗 stdout / PROGRESS.md / no-op / --write-only）
+// =============================================================================
+function runProgress(args, cwd, env = {}) {
+  return spawnSync(process.execPath, [PROGRESS_SCRIPT, ...args], {
+    cwd, encoding: 'utf8', env: { ...process.env, ...env },
+  });
+}
+
+// ── S1：給 slug → 寫出 PROGRESS.md（內容含 mermaid + slug）且 stdout 含儀表板 ──
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'prog-slug-'));
+  try {
+    const dir = seedLoop(cwd, '137-trash-delete-permanent', SAMPLE_LOOP_MD);
+    const res = runProgress(['137-trash-delete-permanent'], cwd);
+    assert(res.status === 0, 'S1：exit 0 [S1]');
+    const pmd = join(dir, 'PROGRESS.md');
+    assert(existsSync(pmd), 'S1：寫出 .loops/<slug>/PROGRESS.md [S1]');
+    const content = readFileSync(pmd, 'utf8');
+    assert(content.includes('```mermaid') && content.includes('137-trash-delete-permanent'),
+      'S1：PROGRESS.md 內容含 mermaid + slug [S1]');
+    assert(res.stdout.includes('137-trash-delete-permanent') && res.stdout.includes('圈 1/3'), 'S1：stdout 含儀表板 [S1]');
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
+}
+
+// ── S2：--write-only → 不印 stdout、只寫檔 ──
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'prog-wo-'));
+  try {
+    const dir = seedLoop(cwd, '137-trash-delete-permanent', SAMPLE_LOOP_MD);
+    const res = runProgress(['137-trash-delete-permanent', '--write-only'], cwd);
+    assert(res.status === 0, 'S2：exit 0 [S2]');
+    assert(res.stdout.trim() === '', 'S2：--write-only 不印 stdout [S2]');
+    assert(existsSync(join(dir, 'PROGRESS.md')), 'S2：--write-only 仍寫檔 [S2]');
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
+}
+
+// ── S3：無 slug + 設 CLAUDE_CODE_SESSION_ID → 挑本 session loop ──
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'prog-sid-'));
+  try {
+    const dir = seedLoop(cwd, '137-trash-delete-permanent', SAMPLE_LOOP_MD); // session=sess-abc
+    const res = runProgress([], cwd, { CLAUDE_CODE_SESSION_ID: 'sess-abc' });
+    assert(res.status === 0 && existsSync(join(dir, 'PROGRESS.md')), 'S3：本 session loop 被挑中並寫檔 [S3]');
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
+}
+
+// ── S4：無 .loops/ → no-op、exit 0、無輸出、不丟 ──
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'prog-empty-'));
+  try {
+    const res = runProgress([], cwd, { CLAUDE_CODE_SESSION_ID: 'sess-abc' });
+    assert(res.status === 0, 'S4：無 .loops/ → exit 0 [S4]');
+    assert(res.stdout.trim() === '', 'S4：無 loop → 無輸出 [S4]');
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
 }
 
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
