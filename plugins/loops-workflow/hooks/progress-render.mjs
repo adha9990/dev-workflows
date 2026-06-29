@@ -2,7 +2,7 @@
 // progress-render.mjs —— loops-workflow Stop hook（恆跑）。
 // 每回合結束跑 scripts/progress.mjs --write-only，對本 session active loop 重生 PROGRESS.md。
 // 不注入任何 context（只做檔案 side-effect）、無 .loops/ → no-op、永不擋路 exit 0。
-// stdin 的 hook payload 讀掉即丟（不需要）。
+// 不讀 stdin（payload 用不到）；只 spawn 子程序（其 stdio 全 ignore）。
 
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';

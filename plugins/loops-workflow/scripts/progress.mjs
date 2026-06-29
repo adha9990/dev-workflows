@@ -46,8 +46,9 @@ export function extractProgress(entry) {
   // findings「X→Y」/ commit SHA：從 journal 由後往前找
   const findingsLine = findLast(journal, /findings?\s*[:：]?\s*\d+\s*[→\-]+>?\s*\d+/i);
   const findingsText = (findingsLine.match(/findings?\s*[:：]?\s*\d+\s*[→\-]+>?\s*\d+/i) || [''])[0];
-  const headLine = findLast(journal, /\b[0-9a-f]{7,40}\b/);
-  const head = headLine ? (headLine.match(/\b([0-9a-f]{7,40})\b/) || [])[1] || '' : '';
+  // 至少含一個 a–f 字母才算 commit SHA：純十進位數字（token 估算 / 日期 / 大號碼）不誤判成 HEAD（Metric-Honesty）
+  const headLine = findLast(journal, /\b(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b/);
+  const head = headLine ? (headLine.match(/\b((?=[0-9a-f]*[a-f])[0-9a-f]{7,40})\b/) || [])[1] || '' : '';
 
   // 當前任務：journal 最後一筆含「任務」的；下一步：階段順序映射
   const currentTask = stripEventTag(findLast(journal, /任務/) || '');
@@ -157,7 +158,11 @@ function main() {
   if (!entry) return; // no-op
 
   const p = extractProgress(entry);
-  try { writeFileSync(join(entry.dir, 'PROGRESS.md'), renderMarkdown(p), 'utf8'); } catch { /* 寫檔失敗不擋路 */ }
+  // 只把 PROGRESS.md 寫進主 repo 的 .loops/（entry.main）；worktree 來源的 loop 不寫進 worktree
+  // —— 避免被 git clean / worktree remove 連坐刪掉（見 AGENTS 規則 9）。chat 仍可顯示。
+  if (entry.main) {
+    try { writeFileSync(join(entry.dir, 'PROGRESS.md'), renderMarkdown(p), 'utf8'); } catch { /* 寫檔失敗不擋路 */ }
+  }
   if (!writeOnly) process.stdout.write(renderChat(p) + '\n');
 }
 

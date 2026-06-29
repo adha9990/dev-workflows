@@ -106,6 +106,7 @@ function seedLoop(cwd, slug, md) {
     const entries = collectLoopEntries(cwd);
     assert(entries.length === 1 && entries[0].slug === '137-trash-delete-permanent', 'collectLoopEntries 抓到該 loop [A5]');
     assert(entries[0].md.includes('當前階段') && typeof entries[0].mtime === 'number', 'entry 帶 md + mtime [A5]');
+    assert(entries[0].main === true, 'collectLoopEntries：主 repo .loops 的 entry main===true [A5]');
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 }
 
@@ -118,6 +119,8 @@ function seedLoop(cwd, slug, md) {
     writeFileSync(join(wtDir, 'loop.md'), SAMPLE_LOOP_MD, 'utf8');
     const entries = collectLoopEntries(cwd);
     assert(entries.some((e) => e.slug === 'x-slug'), 'collectLoopEntries 掃到 worktree 下 .loops/ [A6]');
+    const wtEntry = entries.find((e) => e.slug === 'x-slug');
+    assert(wtEntry && wtEntry.main === false, 'collectLoopEntries：worktree 來源 entry main===false [A6]');
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 }
 
@@ -131,8 +134,8 @@ function seedLoop(cwd, slug, md) {
 
   assert(pickActiveLoop([e1, e2, e3], 'sess-abc', 1000).slug === 'mine', 'pickActiveLoop：sid 命中本 session [A7]');
   assert(pickActiveLoop([e2], 'sess-abc', 1000) === null, 'pickActiveLoop：完工的不算 active → null [A7]');
-  assert(pickActiveLoop([e1, e3], '', 1000).slug === 'other' || pickActiveLoop([e1, e3], '', 1000).slug === 'mine',
-    'pickActiveLoop：無 sid → 近期活躍取 mtime 最新 [A7]');
+  assert(pickActiveLoop([e1, e3], '', 1000).slug === 'other',
+    'pickActiveLoop：無 sid → 近期活躍取 mtime 最新（other 250 > mine 200）[A7]');
 }
 
 // =============================================================================
@@ -200,6 +203,15 @@ function seedLoop(cwd, slug, md) {
   assert(/自動產生.*勿/.test(mdOut), 'renderMarkdown 含「自動產生請勿手改」註記 [B6]');
 }
 
+// ── B7 extractProgress：純數字不被誤判成 HEAD；真 SHA（含字母）仍抓到（Metric-Honesty）──
+{
+  const md = `| 類型 | issue |\n| 當前階段 | build |\n\n## Journal\n- [E1] 進入 build：估 token 1200000\n- [E2] 於 20260629 推進\n`;
+  const p = extractProgress({ slug: 's', dir: '', md, mtime: 1 });
+  assert(p.head === '', 'extractProgress：純十進位數字（1200000 / 20260629）不被當 HEAD（head 為空）[B7]');
+  const p2 = extractProgress({ slug: 's', dir: '', md: SAMPLE_LOOP_MD, mtime: 1 });
+  assert(p2.head === 'a1b2c3d', 'extractProgress：真 SHA（含字母）仍被抓到 head=a1b2c3d [B7]');
+}
+
 // =============================================================================
 // SMOKE — progress.mjs（真 spawn，驗 stdout / PROGRESS.md / no-op / --write-only）
 // =============================================================================
@@ -254,6 +266,21 @@ function runProgress(args, cwd, env = {}) {
     const res = runProgress([], cwd, { CLAUDE_CODE_SESSION_ID: 'sess-abc' });
     assert(res.status === 0, 'S4：無 .loops/ → exit 0 [S4]');
     assert(res.stdout.trim() === '', 'S4：無 loop → 無輸出 [S4]');
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
+}
+
+// ── S5：worktree 來源 loop → 不在 worktree 寫 PROGRESS.md（守 AGENTS 規則 9），chat 仍顯示 ──
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'prog-wt-write-'));
+  try {
+    const wtLoopDir = join(cwd, '.claude', 'worktrees', 'wt1', '.loops', 'x-slug');
+    mkdirSync(wtLoopDir, { recursive: true });
+    writeFileSync(join(wtLoopDir, 'loop.md'), SAMPLE_LOOP_MD, 'utf8');
+    const res = runProgress(['x-slug'], cwd);
+    assert(res.status === 0, 'S5：exit 0 [S5]');
+    assert(existsSync(join(wtLoopDir, 'PROGRESS.md')) === false,
+      'S5：worktree 來源 loop → 不在 worktree 寫 PROGRESS.md [S5]');
+    assert(res.stdout.includes('x-slug'), 'S5：worktree loop 仍能在 chat 顯示 [S5]');
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 }
 

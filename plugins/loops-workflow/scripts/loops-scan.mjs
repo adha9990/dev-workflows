@@ -14,9 +14,10 @@ const FALLBACK_WINDOW_MS = 4 * 60 * 60 * 1000; // 無 session id 時的「近期
 /** loop.md 欄位：先試 markdown 表格列「label … | value |」，再試「label：value」行；無 → ''。 */
 export function pickLoopField(md, label) {
   const text = String(md || '');
-  const tableRow = text.match(new RegExp(`${label}[^\\n|]*\\|\\s*([^|\\n]+?)\\s*\\|`));
+  const esc = String(label).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // escape label 的 regex 特殊字元（防禦）
+  const tableRow = text.match(new RegExp(`${esc}[^\\n|]*\\|\\s*([^|\\n]+?)\\s*\\|`));
   if (tableRow) return tableRow[1].trim();
-  const inlineLine = text.match(new RegExp(`${label}[：:]\\s*([^\\n]+)`));
+  const inlineLine = text.match(new RegExp(`${esc}[：:]\\s*([^\\n]+)`));
   return inlineLine ? inlineLine[1].trim() : '';
 }
 
@@ -62,16 +63,18 @@ export function collectLoopRoots(cwd) {
   return roots;
 }
 
-/** 掃所有根目錄下含 loop.md 的子目錄 → [{slug, dir, mdPath, md, mtime}]。 */
+/** 掃所有根目錄下含 loop.md 的子目錄 → [{slug, dir, main, mdPath, md, mtime}]。 */
 export function collectLoopEntries(cwd) {
   const entries = [];
+  const mainRoot = join(cwd, '.loops');
   for (const root of collectLoopRoots(cwd)) {
+    const main = root === mainRoot; // 主 repo 的 .loops（true）vs worktree 掃來的（false）
     for (const slug of safeReaddir(root)) {
       try {
         const dir = join(root, slug);
         const mdPath = join(dir, 'loop.md');
         if (statSync(dir).isDirectory() && existsSync(mdPath)) {
-          entries.push({ slug, dir, mdPath, md: safeReadFile(mdPath), mtime: statSync(mdPath).mtimeMs });
+          entries.push({ slug, dir, main, mdPath, md: safeReadFile(mdPath), mtime: statSync(mdPath).mtimeMs });
         }
       } catch { /* 單一子目錄失敗 → 跳過、續掃其餘 */ }
     }
