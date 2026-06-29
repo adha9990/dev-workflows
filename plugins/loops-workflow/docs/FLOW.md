@@ -186,6 +186,8 @@ flowchart TD
 
 > **5 步**（詳見 `skills/verify/SKILL.md`）：**①選軸**——「fan-out」＝同一回合一次派出多審查員各審一軸並行；依風險定核心軸（0~6）：瑣碎 0 / 小孤立 3 / 一般·高風險 6（高風險一律滿、不准縮）；再依領域加派 9 個條件式（碰到才加）。非 code 實質文件→product-contract + docs-devex（不入 code 級梯）。**②並行審**——同一回合派出、各一軸、反偏見（只給 artifact+契約）、跑真 app。**③驗 findings**——coordinator 去重 + finding-validator 四問二輪。**④acceptance 閘（所有級通用）**——issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足（有證據）/ 明確 descoped（留痕）才放行；任一條 partial 當完成在**任何級**都擋回 iterate；確證「根本做錯」（做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞）就**整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）、不逐條修**。**⑤判 Ready/退回**——P0–P3+Confidence+Route，出 P0 才停下問你、否則直接進 iterate。
 
+> **reviewer code 探索**：各 reviewer 收到改動檔清單 + graph project id（若已索引）。改動檔（diff）一律直接 `Read`（審查對象、graph 對此最不可信）；「誰呼叫這個函式 / 它依賴誰 / 落在哪層」→ 用 codebase-memory-mcp 查穩定周邊（見 `references/code-retrieval.md`）。
+
 ---
 
 ## 7. iterate — 迭代（triage + 收口）✋
