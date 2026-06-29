@@ -66,13 +66,13 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 
 ### 6. 送出計畫 + 拍板 gate
 
-**在 plan 階段就把計畫草稿送出**（不是等 loop 結束）：issue-driven → 依 `references/comment-policy.md` 寫暫存 tmp 草稿校稿後 post 成 issue 對齊 comment（留 audit trail，**post 後刪 tmp**）；非 issue → 呈現給使用者。
+**在 plan 階段就把計畫草稿送出**（不是等 loop 結束）：issue-driven → 依 **`references/plan-comment-template.md`（完整版：系統全貌 + 套件清單含版本 + ADR + 機制圖 + 施工圖 + 契約 + out-of-scope）** 寫暫存 tmp 草稿校稿後 post 成 issue 對齊 comment（留 audit trail，**post 後刪 tmp**；更新既有 comment 用 `gh api --method PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<tmp>`）；非 issue → 呈現給使用者。**這則 comment 是 living as-built 摘要**，build 偏離時回來同步更新（含已 post 的版本）。
 
-**拍板前一定把第 3 步的機制圖直接渲染在 chat 給使用者看** —— 每機制貼出「一段白話 + 運作流程圖（mermaid）+ 注入 / 接線圖（mermaid）」，讓使用者看懂**怎麼跑 + 怎麼接線**再拍板。alignment comment 是 terse 對齊紀錄（套件 / 決策 / out-of-scope，刻意不含圖），**圖不在那裡** —— 所以**不能只丟精煉 comment 就要使用者拍板**；要看更細的指到 `02-plan.md`。
+**拍板前一定把第 3 步的機制圖直接渲染給使用者看** —— 每機制「一段白話 + 運作流程圖（mermaid）+ 注入 / 接線圖（mermaid）」。**機制圖直接放進對齊 comment**（GitHub 原生渲染 mermaid，所以圖就在 comment 裡，不再只躺 `02-plan.md`）；更深的逐 cycle 細節才指到 `02-plan.md`。
 
 **同時攤一份「我做的假設 → 現在糾正我」清單**：把技術 / 架構 / 範圍 / 平台層面那些**沒問、但默默假設**的事編號列出給使用者看。這跟內部的 HYPOTHESIS+CONFIDENCE 不同 —— 是把藏在決策底下的假設**顯式**攤出來，趁拍板前糾正；比 build 到一半才發現假設錯便宜得多（對齊規則 10 成本意識）。
 
-然後停在 `plan → build` 拍板 gate（`AskUserQuestion` 確認方案 + 任務拆解，每選項標推薦）。
+然後**一定停在 `plan → build` 拍板 gate**（`AskUserQuestion`）—— **進 build 前務必先問使用者、不可自行跨入 build**（即使 routine 也要在此 gate 停）。gate 要把使用者要拍板的點顯式列出並**標推薦**：方案 + 任務拆解、**所有新增套件（逐一列出名稱+版本+用途，附推薦，使用者核可後才裝）**、以及任何需要使用者定奪的決策。**新套件 / 新決策一律先問 + 推薦，不先斬後奏**；build 中途若冒出計畫外的新套件或新決策，也停下回此 gate 問。
 
 > **`02-plan.md` 是 living source of truth**：實作階段若偏離（決策變、任務拆法變），**回去更新它**（並同步已 post 的版本），保持 as-built —— 不是放到 loop 結束才補。完工時這份 as-built plan 提煉成 PR body（見 `references/pr-spec.md`）。
 
@@ -91,8 +91,9 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 - 引入新套件沒有 ≥3 候選比較表。
 - 任務的 Verification 欄不是可執行指令。
 - 任務命中「該再拆」訊號卻沒拆。
-- 拍板 gate 只給精煉 comment / 文字摘要，**沒把機制圖（運作流程 + 注入接線）渲染給使用者看** —— 等於要使用者盲拍設計。
-- 沒拍板就往 build 跑。
+- 對齊 comment **沒用完整版樣板**（缺套件清單 / ADR / 機制圖 / 施工圖）、或機制圖沒放進 comment —— 等於要使用者盲拍設計。
+- **沒在 `plan → build` gate 問使用者就自行跨入 build**（即使 routine 轉場也要在此停下問）。
+- **新增套件沒逐一列出（名稱+版本+用途）+ 標推薦 + 等使用者核可就先裝**；或 build 中途冒出計畫外套件/決策卻沒停下回 gate 問。
 
 ## Verification
 
@@ -102,4 +103,6 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 - [ ] 每個任務有可執行的 Verification 指令。
 - [ ] 沒有任務命中「該再拆」四訊號還未拆。
 - [ ] 計畫草稿已在 **plan 階段送出**（issue→post 對齊 comment / 否則呈現），不是留到 loop 結束。
+- [ ] 對齊 comment 用**完整版樣板**（`references/plan-comment-template.md`：系統全貌+套件清單+ADR+機制圖+施工圖+契約+out-of-scope），機制圖直接放進 comment。
+- [ ] **進 build 前在 gate 問了使用者**（沒自行跨入），且**所有新增套件已逐一列出+推薦+取得核可**，新決策已先問+推薦。
 - [ ] 使用者已拍板，停在 `plan → build` gate。

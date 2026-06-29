@@ -1,6 +1,8 @@
 # 對外溝通規範（comment policy）
 
 > 所有**面向人**的書面溝通共用：AskUserQuestion、issue / PR 回覆、驗收報告、端給使用者的決策、reviewer 回覆。把散在各階段的溝通規則統整在這裡。
+>
+> **每型對外訊息對到哪個樣板**：見 **`outbound-templates.md`**（統一索引：issue 建立 / plan 對齊 comment / verify 驗收報告 / iterate 修正回覆 / PR body / AskUserQuestion）。本檔是這些樣板共用的 house-style + §7/§8 兩個版型本體。
 
 ## 1. 語言
 

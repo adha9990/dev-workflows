@@ -33,11 +33,21 @@ description: Surveys the internal codebase for reusable approaches, and searches
 
 ### 0. 先摸架構（文檔優先）
 
-動手探索前先建立架構認知：**文檔優先** —— 讀 `CLAUDE.md` / `AGENTS.md`（最高優先）、`README` / `docs/` / ADR；文檔已說明架構就以文檔為準，只在文檔有缺口才爬 code。輸出 2–4 行 project context 寫進 `01-explore.md` 開頭。詳見 `references/onboarding.md`。
+動手探索前先建立架構認知：**文檔優先** —— 讀 `CLAUDE.md` / `AGENTS.md`（最高優先）、`README` / `docs/` / ADR；文檔已說明架構就以文檔為準，只在文檔有缺口才爬 code。**文檔有缺口且 repo 已索引 `codebase-memory-mcp` → 用 `get_architecture`（package / 分層 / Leiden cluster 全貌）快速補**，比逐檔爬快。輸出 2–4 行 project context 寫進 `01-explore.md` 開頭。詳見 `references/onboarding.md`。
 
 ### 1. 先掃內部（重用優先）
 
-派內建 `Explore` agent（Haiku、read-only，天生適合摸 codebase）找：既有可重用的實作 / 模式 / 類似功能。**出入口稍異不等於要另造** —— 預設擴充或參數化既有方法。回精煉 digest 給主線（不是整檔貼回）。
+找：既有可重用的實作 / 模式 / 類似功能。**兩條路，優先用 graph、不行才派 agent**：
+
+**(A) 優先：`codebase-memory-mcp`（若該 repo 已索引）—— 比 agent 逐檔讀更快更準**：`search_graph`（找 function/class/route）、`get_code_snippet`（取確切 source range）、`trace_path`（呼叫鏈 / 資料流 / 跨服務）、`search_code`（graph-augmented grep）、`get_architecture`（package / 分層 / cluster 全貌）。
+
+> **先驗新鮮度（關鍵 —— graph 是快照，可能 stale）**：
+> 1. `list_projects` / `index_status` 確認已索引且 `ready`；**未索引 → 先 `index_repository`（mode `fast`/`moderate` 省時）或直接走 (B) fallback**。
+> 2. `detect_changes` 看自索引以來改了什麼。**graph 是「已索引 baseline」的權威，但下列三類 code 很可能還沒進 graph，不可只信 graph**：(a) **worktree / 另一條 branch 的 code**（graph 只索引主 repo 路徑）；(b) **未提交 / 你剛改的 code**（除非該專案開了 `auto_index` 背景 watcher 做增量刷新）；(c) `detect_changes` 列出的 `changed_files`。**這三類一律直接 `Read`/`Grep` 驗證，或先 `index_repository` 刷新該區，別拿 stale graph 當真**（背景 watcher 是否在跑、刷新延遲多少都不保證，所以「你正在改的那塊」永遠以實檔為準）。
+
+**(B) Fallback：派內建 `Explore` agent**（Haiku、read-only，天生適合摸 codebase）—— 用於 **repo 未索引 / `codebase-memory-mcp` 不可用 / 你要查的正好是剛改或在 worktree 的那塊**。
+
+兩條路都一樣：**出入口稍異不等於要另造** —— 預設擴充或參數化既有方法。回精煉 digest 給主線（不是整檔貼回）。
 
 ### 2. 夠了沒？—— 內部 + 需求是否已足夠定案
 
@@ -111,6 +121,7 @@ description: Surveys the internal codebase for reusable approaches, and searches
 - 框架 API 沒查證就寫進 `01-explore.md`。
 - 把推薦寫成「已決定採用」越過使用者的選擇 gate。
 - 多個方法都走得通，卻沒做多維評估、隨便挑一個能用的。
+- **拿 `codebase-memory-mcp` graph 查「剛改 / worktree / 未提交」那塊就直接採信**（沒 `detect_changes` 驗新鮮度、沒回頭 `Read` 實檔）—— graph 只保證「已索引 baseline」，正在動的那塊以實檔為準。
 
 ## Verification
 
@@ -119,4 +130,5 @@ description: Surveys the internal codebase for reusable approaches, and searches
 - [ ] 有明確推薦 + 理由，且措辭是「待你拍板」不是「已決定」。
 - [ ] 框架 API 來源已 CITE，查不到的標 UNVERIFIED。
 - [ ] deep-research（若用）有先經同意。
+- [ ] 內部掃描**優先用 `codebase-memory-mcp`**（repo 已索引時）；**剛改 / worktree / 未提交**的 code 已用 `detect_changes` + 直接 `Read` 驗證、未採信 stale graph；未索引 / 工具不可用則 fallback 派 `Explore` agent。
 - [ ] 已停在對應 gate：**收斂式** `explore → plan`（選方法）／**發散式** `explore → define`（確認 backlog 範圍 + 優先序）。
