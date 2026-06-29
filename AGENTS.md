@@ -16,7 +16,7 @@
 - **規模 = 單一迴圈（預設）**：一個主線跑完整條；解法空間寬 / 長任務時 opt-in **Fleet 編隊**（plan·explore·verify 派多 subagent 並行各做子任務再收斂，見 `references/fleet.md`）。
 - **目標的脈絡 = VISION / ARCHITECTURE / RULES**：VISION＝issue / `00-goal.md` 完工定義；ARCHITECTURE＝`02-plan.md` 設計書（§0–§9）+ repo 既有架構（onboarding 文檔優先讀）；RULES＝本檔 + 專案 `AGENTS.md` / `CLAUDE.md`。三者就是每個 subagent 該拿到、且只拿到的脈絡。
 - **方法論鏈（DDD/BDD/TDD/SDD 各擁一個轉換、不重複，見對應 reference）**：loops 是一條 **Spec-Driven（SDD）** 的閉環——詞彙與結構由 **Domain-Driven（DDD，`references/clean-architecture.md` 的 Ubiquitous Language / entity·VO·aggregate / bounded context）** 塑形、驗收以 **Behavior-Driven（BDD，`references/bdd-scenarios.md` 的 Given-When-Then 場景）** 表達、實作由 **Test-Driven（TDD，build 紅綠 + `references/test-rubric.md`）** 保證。一條產物鏈：`領域語言(DDD) → 規格(SDD) → 行為情境 GWT(BDD) → 紅燈測試(TDD) → 實作 → 驗收回核(BDD+SDD)`；`.loops/` 的產物本身就是逐階提高解析度的規格（issue → `00-goal.md` → `02-plan.md` → tasks）。
-  - **右尺寸鐵則**：方法論嚴格度隨 **operation（`references/operation-first-move.md`）× size（XS–XL）** 縮放——瑣碎 / 純 refactor 免建模免場景、bug-fix 的重現測試即場景、高風險 / 動到核心領域才完整 glossary + 場景集。**小任務不加 ceremony**（呼應規則 10 carve-out：砍非必要 ceremony、不砍 mandatory gate）。各階段 skill 依此框定、不各自重述。
+  - **右尺寸鐵則**：方法論嚴格度隨 **operation（`references/operation-first-move.md`）× size（XS–XL）** 縮放——瑣碎 / 純 refactor 免建模免場景、bug-fix 的重現測試即場景、高風險 / 動到核心領域才完整 glossary + 場景集。**小任務不加 ceremony**（呼應規則 10 carve-out：砍非必要 ceremony、不砍 mandatory gate）。各階段 skill 依此框定、各不重複框定細節、以一句指回本節。
 
 ---
 

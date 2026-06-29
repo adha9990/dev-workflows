@@ -234,7 +234,6 @@ flowchart TD
 | **技能** | 13 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
 | **自動化** | `dispatch auto`、`/loop`·`/schedule`、statusline HUD | Automations |
-| **方法論鏈** | SDD（`.loops/` 逐階規格）/ DDD（`clean-architecture` Ubiquitous Language·Aggregate·BC）/ BDD（`bdd-scenarios` GWT，define/goal 寫·build 推測試·verify 核）/ TDD（build 紅綠） | 四者各擁產物鏈一個轉換、右尺寸縮放 |
 
 **兩座標 + 一總綱**（見 `AGENTS.md`）：
 - **類型**：Closed Loop（預設，人類框架內把關）/ opt-in Open（`auto` 連跑）。

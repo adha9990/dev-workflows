@@ -21,13 +21,13 @@
 | `security-checklist` | 威脅建模 + STRIDE + OWASP / LLM Top 10 + auth / 輸入 / 資料保護檢查表 | build（寫安全）· verify（security） |
 | `test-rubric` | 四層測試、Real > Fake > Stub > Mock、pyramid 80/15/5、DAMP > DRY、data-layer 清單 | build（test-author）· verify（tests） |
 | `contract-spec` | 跨介面契約規格（API / 資料 / 事件）+ 對到哪層測試 + Hyrum's Law | plan（跨介面才寫）· verify（product-contract） |
-| `bdd-scenarios` | BDD GWT 行為情境：Given-When-Then 輕量場景（連接 SDD↔TDD）、場景 ID 慣例（S1…）、右尺寸縮放（XS 免寫·高風險才完整）| define · goal（寫場景）· build（test-author）· verify（product-contract · acceptance） |
 
 ## 2. 各階段產出格式（schema）
 
 | reference | 處理什麼 | 主要用在 |
 |---|---|---|
 | `goal-restate-schema` | 完工定義六欄格式（Outcome / User / Why now / Success / Constraint / Out of scope）；可附 BDD 場景 ID（S1…）綁 acceptance criterion | goal（`00-goal.md`） |
+| `bdd-scenarios` | BDD GWT 行為情境：Given-When-Then 輕量場景（連接 SDD↔TDD）、場景 ID 慣例（S1…）、右尺寸縮放（XS 免寫·高風險才完整）| define · goal（寫場景）· build（test-author）· verify（product-contract · acceptance） |
 | `design-plan-schema` | §0–§9 設計書骨架：系統全貌 / 檔案職責表 / 機制圖 / 具名背書 / 三角驗證 / 成果展示；§3 含 glossary（Ubiquitous Language 術語） | plan（`02-plan.md`）· iterate（提煉 PR body） |
 | `machine-plan-schema` | 機器可驗證的 `loops-plan` JSON 塊格式（每任務可執行 verification、acceptance ≤3、依賴無環） | plan（可選）+ `validate-plan.mjs` |
 | `change-summaries` | build 產出的 Change Summaries 三段式格式 | build（`03-build.md`） |
