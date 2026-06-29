@@ -1,5 +1,6 @@
 ---
 name: goal
+user-invocable: false
 description: Turns a vague request or issue into an explicit definition-of-done and stop condition through one-question-at-a-time interview. Use when starting the goal stage of a loops-workflow run, or when requirements are unclear and need to be pinned down before exploring or planning.
 ---
 

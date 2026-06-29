@@ -1,5 +1,6 @@
 ---
 name: explore
+user-invocable: false
 description: Surveys the internal codebase for reusable approaches, and searches external sources only when internal evidence plus the requirement leave the approach uncertain, then lays the findings out with a recommendation. Use when starting the explore stage of a loops-workflow run, or when you need to research how to build something before planning it.
 ---
 

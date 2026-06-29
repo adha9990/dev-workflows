@@ -1,5 +1,6 @@
 ---
 name: clarify
+user-invocable: false
 description: Turns an engineer's vague / ambiguous one-liner into a clear, confirmed understanding (the problem, why now, rough scope, explicit non-goals, key assumptions) and decides the direction (ship → define/goal, research → explore, fix → iterate) before any building. Use when the request is a fuzzy idea rather than a concrete issue#/PR#. Routed to by dispatch only for vague intent; clear intent skips it.
 ---
 

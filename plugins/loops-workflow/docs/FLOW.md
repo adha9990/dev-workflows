@@ -6,6 +6,12 @@
 
 ---
 
+## 命令介面（誰是入口）
+
+使用者**唯一的 pipeline 入口是 `/loops-workflow:dispatch`**（別名 `/loops-workflow:loop`）。下面所有階段（goal / define / explore / clarify / plan / build / verify / iterate）都標 **`user-invocable: false`** —— **不出現在 `/` 選單**，由 dispatch（及階段彼此）用 Skill tool **內部驅動**。這讓「dispatch 自己判類型、分流到對的起點」成為唯一進入方式，使用者不必（也不能）手動挑階段。side / opt-in 命令仍可直接喊：`explain`、`agents-md-maintainer`、`scaffold-fullstack`、`resume`、`status`、`install-statusline`。
+
+---
+
 ## 0. 總流程圖
 
 ```mermaid

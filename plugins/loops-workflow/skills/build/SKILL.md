@@ -1,5 +1,6 @@
 ---
 name: build
+user-invocable: false
 description: Implements each planned task via red-green-refactor with separate test-author and impl-author agents to prevent tests bending to the implementation. Use when starting the build stage of a loops-workflow run, or when a confirmed plan is ready to be coded task by task.
 ---
 

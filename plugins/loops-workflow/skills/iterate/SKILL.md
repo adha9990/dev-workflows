@@ -1,5 +1,6 @@
 ---
 name: iterate
+user-invocable: false
 description: Triages verify findings or PR feedback, decides which stage to loop back to (max 3 rounds), and finishes when the stop condition is met. Use when starting the iterate stage of a loops-workflow run, or when a PR has reviewer feedback to act on.
 ---
 

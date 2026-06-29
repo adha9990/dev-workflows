@@ -1,6 +1,6 @@
 # references 目錄（各規範在處理什麼）
 
-> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **46 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
+> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **47 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
 >
 > 機制全貌（每階段怎麼跑）見 [`FLOW.md`](FLOW.md)；這份是「規範字典」。subagent 讀不到相對路徑 → orchestrator 把絕對路徑塞進 prompt（見 `AGENTS.md`〈參考檔路徑解析〉）。
 
@@ -62,6 +62,7 @@
 
 | reference | 處理什麼 | 主要用在 |
 |---|---|---|
+| `outbound-templates` | **對外訊息統一樣板索引**：每型對外訊息（issue 建立 / plan 對齊 comment / verify 驗收 / iterate 修正回覆 / PR body / AskUserQuestion）對到哪個樣板 + 共用 house-style + 統一 comment header | 所有對外發訊息前先查（define / plan / verify / iterate） |
 | `comment-policy` | 對外書面總綱：繁中白話、雙視角紀錄、AskUserQuestion 標推薦、tmp 草稿送出後刪、去客套；**§7 驗收報告版型 / §8 修正回覆版型（不@reviewer）** | 所有面向人的書面（verify post 驗收 → §7、iterate 修正回覆 → §8） |
 | `commit-spec` | commit 規範：繁中 title / body、主動分段、type / scope / footer 留英文 | build · iterate（commit） |
 | `pr-spec` | PR body 規範：as-built 設計書、`Closes #issue`、指派 `@me`、自動 merge master、edit-first | iterate（開 / 改 PR） |

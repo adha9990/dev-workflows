@@ -1,5 +1,6 @@
 ---
 name: plan
+user-invocable: false
 description: Locks design decisions and breaks work into independently verifiable tasks before any code. Use when starting the plan stage of a loops-workflow run, or when an explored approach needs to become a concrete, task-by-task implementation plan.
 ---
 
