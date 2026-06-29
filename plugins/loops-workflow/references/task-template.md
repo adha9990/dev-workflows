@@ -11,7 +11,6 @@
 - **Acceptance**：<做完的驗收條件，≤3 條；超過代表該拆>
   - [ ] <條件 1>
   - [ ] <條件 2>
-  > Acceptance 條件**引用對應的 GWT 場景 ID**（`滿足 S1、S2`），讓 `場景 ID → task → 測試名（test_S1_…）→ verify 閘` 串成一條可追溯的線（SDD traceability）。無場景的內部任務照舊寫 pass/fail。
 - **Verification**：<能複製貼上去跑的具體指令 + 預期結果>
   - 例：`npm test -- src/foo.test.ts` → 全綠
   - 例：`curl -s localhost:3000/api/x | jq .total` → 回 42
@@ -19,6 +18,8 @@
 - **Files**：<會建 / 改哪些檔（精確路徑）>
 - **Scope**：<明確不碰什麼，避免越界>
 ```
+
+> **Acceptance 與場景的追溯（SDD traceability）**：Acceptance 條件引用對應的 GWT 場景 ID（如「滿足 S1、S2」），讓 `場景 ID → task → 測試名（test_S1_…）→ verify 閘` 串成一條可追溯的線（見 `bdd-scenarios.md`）。無場景的內部任務照舊寫 pass/fail。
 
 ## 「該再拆」四訊號（命中任一就切小）
 
