@@ -11,7 +11,7 @@
 ```yaml
 id: docs-only-verify-rightsizing        # 穩定 kebab-case 主題名；同 id 一律更新、不重建
 trigger: 純文件 / docs-only 改動要 verify 時   # 什麼情境適用
-action: 依 §1.4 派 product-contract + docs-devex 2 軸即可、不必 6 軸全派  # 建議動作
+action: 依 verify 步驟 1（選軸）派 product-contract + docs-devex 2 軸即可、不必 6 軸全派  # 建議動作
 confidence: 0.85                        # 0–1，啟發式人工判斷（被幾條 loop 佐證）、非統計
 scope: project                          # 先只支援 project（不做 global）
 evidence: [8-verify-reviewer-rightsizing, 16-operation-first-move]  # 佐證的 loop slug（非原文）

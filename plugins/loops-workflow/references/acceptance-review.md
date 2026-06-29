@@ -27,7 +27,7 @@
 
 partial 要寫清楚：哪條路徑能 work、缺哪個狀態 / 入口 / 持久化。
 
-> **完整性 gate（餵給 verify §4.5 的出口判定）**：逐項 ledger **任一條停在 部分滿足 / 缺失 / 證據不足 / 被反證 且未明確 descoped → 判 Not ready**（partial 當完成是 P0/P1）。只有「每條都收斂到 已滿足（有證據）或 明確 descoped（留痕）」才放行。這道完整性檢查 **tier-independent**：凡 product-contract 有跑（任何 issue，LIGHT 起每級必跑）就生效，**不是只有高風險才做** —— 見 verify SKILL §4.5。
+> **完整性 gate（餵給 verify 步驟 4 acceptance 閘的出口判定）**：逐項 ledger **任一條停在 部分滿足 / 缺失 / 證據不足 / 被反證 且未明確 descoped → 判 Not ready**（partial 當完成是 P0/P1）。只有「每條都收斂到 已滿足（有證據）或 明確 descoped（留痕）」才放行。這道完整性檢查 **tier-independent**：凡 product-contract 有跑（任何 issue，LIGHT 起每級必跑）就生效，**不是只有高風險才做** —— 見 verify 步驟 4 acceptance 閘。
 
 ## 三、端到端鏈路 + 持久化驗證
 

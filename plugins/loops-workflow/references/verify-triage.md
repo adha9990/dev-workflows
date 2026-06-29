@@ -1,14 +1,14 @@
 # verify triage — 改動風險分級 rubric（4 級梯）
 
-> verify §1.4 用的明文判準：orchestrator 看 build 的 Change Summaries + 改動檔案清單，把這次改動歸到 **SKIP / LIGHT / STANDARD / DEEP**，決定核心 reviewer 的下界。**判準可逐條核對，存疑一律向上升級**（fail-safe 向嚴）。這份只定「核心軸下界」；領域 reviewer 由 `optional-reviewers.md`（§1.5）觸及才加派、去重疊加。
+> verify 步驟 1（選軸）用的明文判準：orchestrator 看 build 的 Change Summaries + 改動檔案清單，把這次改動歸到 **SKIP / LIGHT / STANDARD / DEEP**，決定核心 reviewer 的下界。**判準可逐條核對，存疑一律向上升級**（fail-safe 向嚴）。這份只定「核心軸下界」；領域 reviewer 由 `optional-reviewers.md`（領域加派層）觸及才加派、去重疊加。
 
 ## 判定順序（先攔升級觸發，再依護欄由寬到嚴落點；命中即定級）
 
 ```
 1. 碰「高風險硬閘清單」任一？           → DEEP（不論行數多小）
 2. 否則 大 blast-radius / 大量 AI 生成？  → DEEP
-3. 否則 符合「SKIP 條件」且「SKIP 護欄」全成立？ → SKIP（0 核心；§1.5 仍正交）
-4. 否則 非 code 的實質文件 / 設定（有驗收契約）？ → product-contract + §1.5 docs-devex（不入下面 code 級梯）
+3. 否則 符合「SKIP 條件」且「SKIP 護欄」全成立？ → SKIP（0 核心；領域加派仍正交）
+4. 否則 非 code 的實質文件 / 設定（有驗收契約）？ → product-contract + 領域加派 docs-devex（不入下面 code 級梯）
 5. 否則 符合「LIGHT 判準」全成立？        → LIGHT
 6. 否則（含任何 code 的一般改動）         → STANDARD（預設）
 ```
@@ -27,7 +27,7 @@
 - **並發 / 非同步 / 背景流程**：queue、background job、鎖、交易邊界、重試 / 冪等路徑。
 - **IaC / 部署設定**：CI/CD 發布、基礎設施、權限 / 網路設定。
 
-> 命中高風險硬閘的 DEEP 流程：完整 6 軸 + **對應領域條件式**（§1.5 觸及才加；auth/加密/金流等無對應條件式者由核心 security 軸承接）+ §2.5 holistic 全局交叉檢查，**全並行、一次跑完**（不再先拆一輪前置閘）。跑完若確證根本做錯 → 整個退回 build（見下「做錯東西就整個退回」）。
+> 命中高風險硬閘的 DEEP 流程：完整 6 軸 + **對應領域條件式**（領域加派觸及才加；auth/加密/金流等無對應條件式者由核心 security 軸承接）+ 步驟 3 holistic 全局交叉檢查，**全並行、一次跑完**（不再先拆一輪前置閘）。跑完若確證根本做錯 → 整個退回 build（見下「做錯東西就整個退回」）。
 
 ## 大 blast-radius / 大量 AI 生成（→ DEEP）
 
@@ -36,7 +36,7 @@
 - **大 blast-radius**：改到**被廣泛 import 的共用元件 / 核心型別 / 跨多模組的契約**（改一處波及面大）。代理：**fan-in ≥ ~5（import / caller 站點）**、或在 **public barrel / index 匯出**、或屬**核心型別 / 共用 schema**。
 - **大量 AI 生成**：單次大批 AI 生成的 code（缺人類審的大批生成缺陷率較高）。代理：單次 **> ~100 行** AI 生成。
 
-## SKIP 條件（受護欄保護的瑣碎面 → 不派核心 reviewer；§1.5 條件式仍正交）
+## SKIP 條件（受護欄保護的瑣碎面 → 不派核心 reviewer；領域加派仍正交）
 
 **改動類別**屬下列之一：
 
@@ -46,7 +46,7 @@
 - 死碼 / 未用 import / 未用方法移除。
 - 依賴 **SemVer patch** 升版（非 minor / major）。
 
-> **含執行語意的 code 不進 SKIP**（含 <5 行邏輯改動，如改常數 / 補 guard → 走 LIGHT 3 軸便宜審，不是 0）。**有驗收契約的實質文件 / 設定**（一張 docs issue 的內容、對外契約文件）→ 也不走 SKIP，派 `product-contract`（驗收）+ §1.5 `docs-devex`（#8 文件右尺寸化）。
+> **含執行語意的 code 不進 SKIP**（含 <5 行邏輯改動，如改常數 / 補 guard → 走 LIGHT 3 軸便宜審，不是 0）。**有驗收契約的實質文件 / 設定**（一張 docs issue 的內容、對外契約文件）→ 也不走 SKIP，派 `product-contract`（驗收）+ 領域加派 `docs-devex`（#8 文件右尺寸化）。
 
 ### SKIP 護欄（**全成立**才可 SKIP，缺一即向上升級）
 
@@ -87,15 +87,15 @@
 
 > **「整個退回」≠「逐項 acceptance ledger」（兩者都 tier-independent、互補）**：
 > - **本段「做錯東西就整個退回」**處理的是**根本性 miss**（做了別的東西 / 核心沒做到 / 最基本流程崩壞）—— 一旦確證，**整個退回 build、別逐條修**。
-> - **`acceptance-review.md` §二的逐項完整性 gate**處理的是**每條 acceptance criterion 有沒有收斂**（五態列完、無未處理項才准 Ready，餵 verify SKILL §4.5 出口 gate）。
+> - **`acceptance-review.md` §二的逐項完整性 gate**處理的是**每條 acceptance criterion 有沒有收斂**（五態列完、無未處理項才准 Ready，餵 verify 步驟 4 acceptance 閘）。
 > - 兩者同源（契約面的 P0 同時觸發兩者）、都**所有級適用**：partial 當完成在 LIGHT/STANDARD/DEEP 都該擋、都該退回，不是「只有高風險才做」。
 
 ## 範例
 
 | 改動 | 判定 | 級 |
 |---|---|---|
-| README 改錯字（純文字、無驗收契約） | SKIP 條件 + 護欄全成立 | SKIP 核心（§1.5 視內容帶 docs-devex） |
-| 一張 docs issue 的實質文件內容 | 有驗收契約 → 非 SKIP | product-contract + §1.5 docs-devex |
+| README 改錯字（純文字、無驗收契約） | SKIP 條件 + 護欄全成立 | SKIP 核心（領域加派視內容帶 docs-devex） |
+| 一張 docs issue 的實質文件內容 | 有驗收契約 → 非 SKIP | product-contract + 領域加派 docs-devex |
 | 某 util 函式加一個邊界 guard、有測試、單檔、非高風險 | LIGHT 判準全成立 | LIGHT |
 | 新增一個一般 service 方法 + 前端呼叫 | 一般 code、混前後端 → 向嚴 | STANDARD |
 | 改 2 行 auth middleware 的權限判斷 | 碰 auth 高風險硬閘 | DEEP |
