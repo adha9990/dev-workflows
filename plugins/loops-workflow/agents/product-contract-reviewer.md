@@ -15,6 +15,8 @@ tools: Read, Grep, Glob
 - 對照手法：逐句驗收 —— 把 issue（含散在 prose 的隱含項）拆成可勾選的子句，一條一條對 build 成果。
 - **驗收深度**：讀 orchestrator 在 prompt 提供的 `acceptance-review.md` 絕對路徑 —— 錯題偵測（是否在解對的問題，P0）、完成度五態（partial 算未完成）、端到端鏈路 + 持久化驗證、驗證證據強弱分級。
 
+若 issue / DoD 用 GWT 場景（`references/bdd-scenarios.md`），**逐條場景 ID 對照**「是否有對應測試 + 是否真被滿足」，而非只對散文句子；場景未被任何測試覆蓋＝缺口。
+
 ## 輸出
 
 每個缺口一筆，格式見 orchestrator 在 prompt 提供的 `reviewer-severity.md` 絕對路徑（你的 CWD 是使用者 repo，相對路徑讀不到；找不到就用以下欄位）：**P0–P3 + Confidence（50/75/100）+ Route**。並用**雙視角**寫：
