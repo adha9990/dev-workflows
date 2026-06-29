@@ -175,7 +175,7 @@ flowchart TD
     FAN --> C6[tests]
     FAN -.觸及領域才加派.-> COND[條件式 9 選:<br/>frontend-ui·accessibility·web-performance·observability·<br/>ci-cd·migration·processing-reliability·root-cause·docs-devex]
     C1 & C2 & C3 & C4 & C5 & C6 & COND --> CO[coordinator 主線<br/>去重 + 跑真 app + 本機 /code-review]
-    CO -.§1.6 確證根本做錯·整個退回.-> BUILD
+    CO -.確證根本做錯就整個退回.-> BUILD
     CO -.DEEP必/STANDARD可選.-> HOL[§2.5 holistic 全局交叉檢查]
     CO --> FV[finding-validator 二輪<br/>真實?本次?已防護?對症?]
     HOL --> FV
