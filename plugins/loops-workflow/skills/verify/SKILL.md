@@ -21,16 +21,16 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 
 看 build 的 Change Summaries + 改動檔，照 `references/verify-triage.md` 的明文 rubric 定**核心軸下界**（**拿不準 / 混 code / 碰高風險一律向上升級**，fail-safe；右尺寸化只浮動下界、不是給 code 開後門）：
 
-| 改動風險 | 派幾軸（核心下界） |
+| 改動風險 | 核心軸（0~6） |
 |---|---|
-| **瑣碎**（typo / 純格式 / test-only / 死碼 / SemVer patch，且護欄全成立、不碰高風險、無夾帶） | 0 核心軸（有對外契約的文件才帶 docs-devex） |
-| **小孤立 code**（少 caller、易回滾、有測試、單一領域） | 3 軸：`product-contract` + `code-quality`(correctness) + `tests` |
-| **一般 code**（**預設**） | 核心 **6 軸** |
-| **高風險**（auth/加密/金流/DB migration/對外 API/並發/IaC，或波及面大、或大批 AI 生成 code） | 核心 **6 軸**；coordinator 彙整後再加一道 **holistic 全局交叉檢查**（步驟 3） |
+| **瑣碎**（純文件 / 格式 / test-only / 死碼 / SemVer patch） | **0**（有對外契約的文件才帶 `docs-devex`） |
+| **小孤立 code**（少 caller、易回滾、有測試、單一領域） | **3**：`product-contract` + `code-quality`(correctness) + `tests` |
+| **一般 code**（**預設**） | 核心 **6** |
+| **高風險**（auth/加密/金流/DB migration/對外 API/並發/IaC，或波及面大、或大批 AI 生成 code） | 核心 **6**，**一律滿、不准縮**（碰高風險一律向上、不論行數多小） |
 
-**再依領域加派**（與上表正交、碰到才加，清單見 `references/optional-reviewers.md`）：前端/UI→`frontend-ui`/`accessibility`/`web-performance`、bug fix→`root-cause`、docs/對外契約/CLI/config→`docs-devex`、schema migration→`migration`、queue/背景/長流程→`processing-reliability`、CI/CD→`ci-cd`、關鍵後端流程→`observability`。
+**再依領域加派 N 個 conditional**（與上表正交、碰到才加，清單見 `references/optional-reviewers.md`）：前端/UI→`frontend-ui`/`accessibility`/`web-performance`、bug fix→`root-cause`、docs/對外契約/CLI/config→`docs-devex`、schema migration→`migration`、queue/背景/長流程→`processing-reliability`、CI/CD→`ci-cd`、關鍵後端流程→`observability`。
 
-> **名詞**：**波及面（blast-radius）**＝改動影響到多少別處（誰 import / 呼叫被改的）；**holistic 全局交叉檢查**＝多派一個審查員看 finding 全集，抓單一審查員看不到的跨維度問題。非 code 的實質文件 / 設定（有驗收契約）走 `product-contract` + `docs-devex`，不套這張 code 級梯。
+> **名詞**：**波及面（blast-radius）**＝改動影響到多少別處（誰 import / 呼叫被改的）。非 code 的實質文件 / 設定（有驗收契約）走 `product-contract` + `docs-devex`，不套這張 code 級梯。
 
 ### 2. 並行審 — 同一回合派出、各審一軸、反偏見
 
@@ -48,13 +48,12 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 - **同一回合一次發出**所有 Agent call 才真並行；subagent 不能再派 subagent；維度**不排成序列**（順序化會交叉漏審 + 後者錨定前者偏誤；唯一的「先後」只剩 build 前那道便宜的 quality-gate：型別/lint/測試）。
 - **反偏見**：只給 reviewer **artifact + 契約**（issue / `02-plan.md` 契約 / diff），**不給作者的理由/辯護**（`03-build.md` 的 concerns 不轉發）。
 - **跑真 app**：能跑就 `/run` 起服務 + `/verify` 逐條玩 `00-goal.md` 需求 + 本機 `/code-review`（**不跑 ultra 計費版**），把宣稱從 `not measured` 變實測；純 lib 無 app 則據實標 `not measured`。
-- **參考檔路徑（必做）**：subagent 讀不到相對路徑 → 從本 skill base 上兩層推出 plugin root，組**絕對路徑**塞進各 reviewer prompt：全 reviewer ← `reviewer-severity.md` + `review-dispositions.md` + `preflight.md`「作者已留痕的決定不算 finding」原文；`product-contract` ← `acceptance-review.md`；`code-quality` ← `correctness-review.md`/`clean-code.md`/`refactoring.md`/`code-simplification.md`/`reuse-check.md`；`architecture` ← `architecture-review.md`/`clean-architecture.md`/`design-patterns.md`；`security` ← `security-checklist.md`；`performance` ← `performance-review.md`；`tests` ← `test-rubric.md`；`holistic` ← `reviewer-severity.md`；條件式各 ← 對應 review 檔（`ui-interaction-review.md`/`root-cause-review.md`/`docs-devex-review.md`…）；`finding-validator` ← `finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
+- **參考檔路徑（必做）**：subagent 讀不到相對路徑 → 從本 skill base 上兩層推出 plugin root，組**絕對路徑**塞進各 reviewer prompt：全 reviewer ← `reviewer-severity.md` + `review-dispositions.md` + `preflight.md`「作者已留痕的決定不算 finding」原文；`product-contract` ← `acceptance-review.md`；`code-quality` ← `correctness-review.md`/`clean-code.md`/`refactoring.md`/`code-simplification.md`/`reuse-check.md`；`architecture` ← `architecture-review.md`/`clean-architecture.md`/`design-patterns.md`；`security` ← `security-checklist.md`；`performance` ← `performance-review.md`；`tests` ← `test-rubric.md`；條件式各 ← 對應 review 檔（`ui-interaction-review.md`/`root-cause-review.md`/`docs-devex-review.md`…）；`finding-validator` ← `finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
 
 ### 3. 驗 findings — 去重 + 二輪確認
 
 - **coordinator（主線）**去重、濾純 style / 低信心雜訊；併入本機 `/code-review` 的 findings。
-- **高風險加 holistic**：派 `holistic-reviewer`（fresh context）看 **finding 全集 + 契約**，抓跨維度 / 級聯 / 架構級衝突（一個同時是 correctness 又是 security 的問題、或數條 finding 合起來才現形的設計缺陷）——這是「敢縮 reviewer」的對價安全網。高風險必跑、一般視波及面可選、小/瑣碎不跑。
-- **finding-validator 二輪**：每個 blocking finding 確認 是否真實 / 是否本次引入 / 是否已被 caller·middleware·既有防護處理 / 修法是否對症 → `validated` / `rejected` / `degraded`（判準見 `references/finding-validation.md`）。holistic 的 finding 一樣要被驗、不特權。
+- **finding-validator 二輪**：每個 blocking finding 確認 是否真實 / 是否本次引入 / 是否已被 caller·middleware·既有防護處理 / 修法是否對症 → `validated` / `rejected` / `degraded`（判準見 `references/finding-validation.md`）。
 
 ### 4. acceptance 閘 — 有沒有做到 issue（所有級通用）
 
@@ -87,6 +86,6 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 
 - [ ] **步驟 1**：依風險定軸（瑣碎 / 小孤立 / 一般 / 高風險），拿不準 / 混 code / 碰高風險向嚴升級。
 - [ ] **步驟 2**：同一回合並行派出、各一軸；只給 artifact + 契約（不給作者辯護）、tests-reviewer 不被告知已過；跑真 app + 本機 `/code-review` 或據實標 `not measured`；參考檔絕對路徑已塞進 reviewer prompt。
-- [ ] **步驟 3**：每個 blocking finding 有 finding-validator 結果；高風險跑了 holistic。
+- [ ] **步驟 3**：coordinator 去重後，每個 blocking finding 有 finding-validator 結果。
 - [ ] **步驟 4**：acceptance 閘 —— 每條 criterion 收斂到 已滿足（有證據）/ 明確 descoped（留痕）才判 Ready；確證根本做錯 → 整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）。
 - [ ] **步驟 5**：每條 finding 有 P0–P3 + Confidence + Route + Metric-Honesty；結論 Ready / Not ready 進 iterate（只 P0 才停下問）；回環修完再驗一輪。

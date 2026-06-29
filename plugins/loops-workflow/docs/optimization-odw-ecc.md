@@ -108,7 +108,7 @@ ECC 是「agent harness performance optimization system」（271 skill、67 agen
   - **PreToolUse**：`LOOPS_COMPACT_HINT` compact 提醒 ＋ `LOOPS_CONFIG_PROTECTION` 防作弊閘（ECC #15/#17）
 - **quality-gate 腳本**（ODW #2/#3）：測試輸出壓縮 ~60×、build 確認點讀精簡摘要、條件式 fixer。
 - **完工 outcome 度量**（cobus #7）：每條 loop 完工在 `loop.md` Journal append 一行 token/sub-agent/圈數/findings/gate（規則 10 可觀測），格式見 `references/journaling.md`。
-- **verify reviewer 右尺寸化**（cobus #8 → #38 → #59 → #61）：依改動風險定最小 reviewer 集（#8 二分 → **#38 4 級風險梯** → **#59 acceptance-completeness tier-independent 出口 gate** → **#61 tripwire 折進正常審查 + 白話化**，見 §2.4；其後 verify 本身再精簡成 5 步），見 `skills/verify/SKILL.md`。
+- **verify reviewer 右尺寸化**（cobus #8 → #38 → #59 → #61）：依改動風險定最小 reviewer 集（#8 二分 → **#38 4 級風險梯** → **#59 acceptance-completeness tier-independent 出口 gate** → **#61 tripwire 折進正常審查 + 白話化**，見 §2.4；其後 verify 再精簡成 5 步、移除 holistic 與 SKIP 護欄〔收斂成「依風險 0~6 核心 + N conditional」〕），見 `skills/verify/SKILL.md`。
 - **概念詞彙**（cobus #9）：comprehension-debt / cognitive-surrender 寫進 `AGENTS.md` 哲學段。
 - **operation-first-move 規則**（ECC #16）：build 紅燈起手式依任務性質分岔，見 `references/operation-first-move.md`。
 - **跨 loop instinct 學習**（ECC #18）：`/distill` + SessionStart 注入，見 `references/instinct-schema.md`。
