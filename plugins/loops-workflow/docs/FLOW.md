@@ -234,10 +234,12 @@ flowchart TD
 | **技能** | 13 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
 | **自動化** | `dispatch auto`、`/loop`·`/schedule`、statusline HUD | Automations |
+| **方法論鏈** | SDD（`.loops/` 逐階規格）/ DDD（`clean-architecture` Ubiquitous Language·Aggregate·BC）/ BDD（`bdd-scenarios` GWT，define/goal 寫·build 推測試·verify 核）/ TDD（build 紅綠） | 四者各擁產物鏈一個轉換、右尺寸縮放 |
 
 **兩座標 + 一總綱**（見 `AGENTS.md`）：
 - **類型**：Closed Loop（預設，人類框架內把關）/ opt-in Open（`auto` 連跑）。
 - **規模**：單一迴圈（預設）/ opt-in **Fleet** 編隊。
+- **方法論鏈（§1）**：各階段被哪個方法論強化見 `AGENTS.md §1` 方法論鏈框定。
 - **★ 成本意識（規則 10）**：迴圈很貴 → 全程**高上下文效率**、**便宜的先·貴的 gate**、**不重複勞動**、**fail-fast**。**carve-out：只砍非必要貴動作（deep-research/Fleet/真機/多餘 reviewer）+ 浪費,絕不砍 mandatory 流程（define/issue-first/human gate/verify）—— 跳流程的 rework 才最貴。**
 
 ---
