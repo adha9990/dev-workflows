@@ -45,7 +45,10 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 - **設計品質六維度**（簡潔 / 可維護 / 可靠 / 可擴展 / 安全 / 高併發高流量效能）+ **clean architecture 結構標準**（依賴向內 / 分層邊界 / port + 注入 / 落點對齊，見 `references/clean-architecture.md`）：in-scope 實作不以 MVP 設計，對可預見的規模退化預先用對的演算法**與結構**。
 - **設計模式對症選型**（見 `references/design-patterns.md`）：設計某機制時，若問題本來就是某模式的經典形狀（多變體 / 可替換演算法 / 解耦通知…）就用對的模式 —— **對症才用、不為套而套**（YAGNI）。
 - **重用檢查**（判準見 `references/reuse-check.md`）：拆任務前先確認沒有重複造輪子（含跨入口 / 跨 session 的隱蔽重複；稍異 ≠ 另造，優先參數化既有方法）。
-- **（風險大 / 不顯而易見的設計）派設計品質審查**：設計影響面大或方向沒把握時，**派 read-only agent 對 `02-plan.md` 的設計做「六維度 + 落點對齊 + 契約」品質審查**（像 verify 的寫 code 前縮小版），出「方向可行 / 要修 / 資訊不足」判定 —— 別等 build 完才在 verify 發現方向就錯。微小 / 一目了然的設計免派。
+- **設計品質審查（風險顯著 → 預設派，對齊 verify 的「寫 code 前縮小版」）**：命中下列任一就**預設派 read-only agent 審 `02-plan.md`**（不是可選）——**新基建 / 新架構接縫（新服務·port·跨層機制）/ 跨切面影響 / 動到資料模型或對外契約 / 方向沒把握**；唯**微小、一目了然、純既有模式套用**的設計免派（免派要在計畫註明理由）。審查對設計做「六維度 + 落點對齊（對照實檔 file:line）+ 契約」，出「方向可行 / 要修 / 資訊不足」判定 —— 把方向 / 落點錯擋在 code 之前，別等 build 完才在 verify 發現方向就錯。
+  - **判定「要修」→ 必修項折回 `02-plan.md` 才可進 gate**（逐條核對、非盲收，附 file:line 證據）。
+  - **bounded 複審「只在划算時」做，不為機械折回付費**：plan-verify 與 build-verify **不是同一回事**（前者審設計文件、能抓方向/落點/不可行假設，修＝改文字；後者審 code、抓實作 bug，修＝重寫），但在「架構/契約」維度**重疊**——所以複審只有在**折回引入了 build-verify 難以便宜抓到的新設計面**（新介面/契約/機制、或改了既有呼叫端的簽章與回傳）時才划算；**純機械式折回（補一句、改個值、改文案）→ 跳過複審，讓 build 後的 verify 當後盾，不重複付費**。
+  - 需要時做 **1 次 bounded 複審**（上限 1 次，**只查「必修項是否正確折回 + 折回有無引入新問題 / 殘留矛盾」，不重審全案**）才進 gate —— 對齊 iterate「修完再 verify」的閉環。複審再出必修且仍動核心 = 收斂有問題，停下 escalate 給使用者（別無限複審）。
 
 ### 5. 拆成可驗證任務
 
@@ -69,7 +72,7 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 
 **在 plan 階段就把計畫草稿送出**（不是等 loop 結束）：issue-driven → 依 **`references/plan-comment-template.md`（完整版：系統全貌 + 套件清單含版本 + ADR + 機制圖 + 施工圖 + 契約 + out-of-scope）** 寫暫存 tmp 草稿校稿後 post 成 issue 對齊 comment（留 audit trail，**post 後刪 tmp**；更新既有 comment 用 `gh api --method PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<tmp>`）；非 issue → 呈現給使用者。**這則 comment 是 living as-built 摘要**，build 偏離時回來同步更新（含已 post 的版本）。
 
-**拍板前一定把第 3 步的機制圖直接渲染給使用者看** —— 每機制「一段白話 + 運作流程圖（mermaid）+ 注入 / 接線圖（mermaid）」。**機制圖直接放進對齊 comment**（GitHub 原生渲染 mermaid，所以圖就在 comment 裡，不再只躺 `02-plan.md`）；更深的逐 cycle 細節才指到 `02-plan.md`。
+**拍板前一定把第 3 步的機制圖直接渲染給使用者看** —— 每機制「一段白話 + 運作流程圖（mermaid）+ 注入 / 接線圖（mermaid）」。**機制圖直接放進對齊 comment**（GitHub 原生渲染 mermaid，所以圖就在 comment 裡，不再只躺 `02-plan.md`）。**對齊 comment 必須 self-contained：絕不引用 `.loops/` 路徑**（`02-plan.md` 等是本地暫存、不上 GitHub、PR merge/close 後清除＝死連結）；要指更細只指 PR/commit/`file:line`/issue（見 `references/comment-policy.md §0`）。
 
 **同時攤一份「我做的假設 → 現在糾正我」清單**：把技術 / 架構 / 範圍 / 平台層面那些**沒問、但默默假設**的事編號列出給使用者看。這跟內部的 HYPOTHESIS+CONFIDENCE 不同 —— 是把藏在決策底下的假設**顯式**攤出來，趁拍板前糾正；比 build 到一半才發現假設錯便宜得多（對齊規則 10 成本意識）。
 
@@ -95,6 +98,7 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 - 對齊 comment **沒用完整版樣板**（缺套件清單 / ADR / 機制圖 / 施工圖）、或機制圖沒放進 comment —— 等於要使用者盲拍設計。
 - **沒在 `plan → build` gate 問使用者就自行跨入 build**（即使 routine 轉場也要在此停下問）。
 - **新增套件沒逐一列出（名稱+版本+用途）+ 標推薦 + 等使用者核可就先裝**；或 build 中途冒出計畫外套件/決策卻沒停下回 gate 問。
+- **風險顯著設計（新基建 / 接縫 / 跨切面 / 動契約）沒派設計審查就進 gate**；或審查判「要修」卻沒把必修項折回計畫；或必修項改了核心設計卻**沒做 bounded 複審**就進 build —— 等於把方向 / 落點錯留到 build 後才在 verify 撞到（最貴）。
 
 ## Verification
 
@@ -103,6 +107,7 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 - [ ] 新套件（若有）附 ≥3 候選比較 + 拍板結論。
 - [ ] 每個任務有可執行的 Verification 指令。
 - [ ] 沒有任務命中「該再拆」四訊號還未拆。
+- [ ] **風險顯著設計（新基建 / 接縫 / 跨切面 / 動契約）已派設計審查**，判定『要修』的**必修項已折回 `02-plan.md`**；必修項若改動核心設計，已做 ≤1 次 bounded 複審（trivial 免派則計畫已註明理由）。
 - [ ] 計畫草稿已在 **plan 階段送出**（issue→post 對齊 comment / 否則呈現），不是留到 loop 結束。
 - [ ] 對齊 comment 用**完整版樣板**（`references/plan-comment-template.md`：系統全貌+套件清單+ADR+機制圖+施工圖+契約+out-of-scope），機制圖直接放進 comment。
 - [ ] **進 build 前在 gate 問了使用者**（沒自行跨入），且**所有新增套件已逐一列出+推薦+取得核可**，新決策已先問+推薦。

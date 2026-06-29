@@ -10,8 +10,9 @@
 
 ## 連結 issue（關閉關鍵字，必做）
 
-issue-driven PR 的 **body 開頭必須放關閉關鍵字** `Closes #<issue>`（單獨一行、英文），例 `Closes #137`。
+issue-driven PR 的 **body 開頭必須放關閉關鍵字** `Closes #<issue>`（單獨一行、英文），例 Closes #137。
 
+- **必須是純文字、絕不可包在反引號 / code span 裡**（寫成 `` `Closes #137` `` 會被 GitHub 當程式碼、**不解析、不連結** —— 踩過：`closingIssuesReferences` 會是空陣列）。
 - 這才會讓 GitHub **正式連結 PR ↔ issue**（issue 的 Development 區塊顯示此 PR）+ **merge 時自動關閉 issue**。
 - 標題的 `(#137)` 與內文「修正 issue #137」**只是 mention** —— 只在 issue timeline 留一條 cross-reference，**不算連結、不會自動關閉**。
 - 關鍵字**必須英文**：`Closes` / `Fixes` / `Resolves`（中文「關閉 #137」無效）。多個 issue 各寫一行。
@@ -21,7 +22,7 @@ issue-driven PR 的 **body 開頭必須放關閉關鍵字** `Closes #<issue>`（
 
 把這次的「完工定義 + 實作計畫 + 真實成果」整合成 PR body 第一樓（**最開頭先放 `Closes #<issue>`**，見上節）：
 
-- 做了什麼、為什麼這樣設計（從 `.loops/` 的 goal / plan / build 提煉）。
+- 做了什麼、為什麼這樣設計 —— 把設計決策 / 機制圖（mermaid）**inline 寫進 body**（GitHub 渲染）。`.loops/` 的 goal/plan/build 是**提煉來源**，**絕不在 body 連結 `.loops/<doc>` 路徑**（`.loops/` 不上 GitHub、merge 後清除＝死連結；見 `comment-policy.md §0`）。要指更細只指 PR/commit/`file:line`/issue。
 - 成果展示（實際跑出來的證據：測試輸出、畫面、driver 結果）。
 - **不含** 內部設計更新流水帳 / commit 列表 / 後續迭代記錄 —— body 是「單一最新真相」。
 

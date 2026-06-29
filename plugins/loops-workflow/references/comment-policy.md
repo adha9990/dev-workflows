@@ -4,6 +4,14 @@
 >
 > **每型對外訊息對到哪個樣板**：見 **`outbound-templates.md`**（統一索引：issue 建立 / plan 對齊 comment / verify 驗收報告 / iterate 修正回覆 / PR body / AskUserQuestion）。本檔是這些樣板共用的 house-style + §7/§8 兩個版型本體。
 
+## 0. 對外訊息必須 self-contained —— 絕不引用 `.loops/` 路徑
+
+issue comment / PR body / reviewer 回覆等**任何 post 上 GitHub 的內容**，**絕不可引用 `.loops/<slug>/...` 路徑**（`02-plan.md` / `03-build.md` / `04-verify.md` / `00-goal.md` / `01-explore.md`）。
+
+- **為什麼**：`.loops/` 是 loops-engineering 的**本地暫存**——不 push、不上 GitHub、**PR merge/close 後就清除**。在 GitHub 內容裡指它＝**死連結**（讀者點不到、merge 後更不存在）。
+- **怎麼做**：把要講的（設計決策 / 機制圖 / 驗收結論 / ADR）**inline 寫進訊息本體**（GitHub 原生渲染 mermaid，圖直接放）。`.loops/<doc>` 是**草稿來源**、是「從它提煉進訊息」，**不是訊息裡的連結目標**。
+- 需要指向更細時，只指**會留在 GitHub 的東西**：PR 連結、commit SHA、`file:line`（程式碼）、相關 issue/PR 編號 —— 不指 `.loops/` 檔。
+
 ## 1. 語言
 
 敘述**一律繁體中文**；code identifier / 檔案路徑 / 指令 / 技術術語保留**英文原貌**。

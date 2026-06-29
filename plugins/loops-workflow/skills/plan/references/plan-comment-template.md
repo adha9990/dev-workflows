@@ -13,7 +13,7 @@
 ```markdown
 ## 📐 實作對齊（plan 階段）— <feature 名稱>
 
-> loops-workflow plan gate 對齊留痕。本 comment = **as-built 計畫摘要**（living，隨 build 同步）；逐 cycle 紅綠軌跡與完整施工圖在 `.loops/<slug>/{02-plan,03-build}.md`。<承接的研究/issue>
+> loops-workflow plan gate 對齊留痕。本 comment = **as-built 計畫摘要**（living，設計決策變動才更新）；**self-contained，不連 `.loops/` 路徑**（那是本地暫存、不上 GitHub）。<承接的研究/issue>
 
 ---
 
@@ -75,7 +75,8 @@
 ## 撰寫紀律
 
 - **機制圖一定進 comment**：每個關鍵機制畫「運作流程」+「注入/接線」兩張 mermaid，直接貼進 comment（GitHub 會渲染）。這同時滿足「拍板前把機制圖渲染給使用者看」。
-- **套件清單必列版本 + 狀態**：已裝標實際版本；待裝標 ⏳ 並在 ADR 說明為何選它（≥3 候選比較見 `02-plan.md`，comment 放結論）。
+- **套件清單必列版本 + 狀態**：已裝標實際版本；待裝標 ⏳ 並在 ADR 說明為何選它（≥3 候選比較的細節留本地過程，**comment 直接放結論、不外連 `.loops/`**）。
+- **絕不引用 `.loops/` 路徑**：comment 上 GitHub，`.loops/`（`02-plan.md`…）不上 GitHub 且 PR merge/close 後清除 → 指它＝死連結。內容 self-contained；要指更細只指 PR/commit/`file:line`/issue（見 `references/comment-policy.md §0`）。
 - **ADR 表含「最關鍵決策放第 0 列」**：排程/branch-base/相依這種會卡整盤的先講。
 - **mermaid 安全**：node 標籤用雙引號包；避免裸 `{{ }}`（用「變數佔位」描述）、避免標籤內未引號的 `()` `/` `:`。
 - **不記 session/cycle 進度**：comment 是**計畫 / 設計對齊**，**不寫「目前跑到第幾個 cycle / 哪些已完成 / 套件裝了沒」**這種 ephemeral 進度 —— 那是 `.loops/<slug>/03-build.md` 的事。讀者看 comment 是要懂「設計怎麼長」，不是追工程進度。
