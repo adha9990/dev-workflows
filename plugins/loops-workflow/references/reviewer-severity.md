@@ -53,5 +53,5 @@
 - Confidence `50` 通常降為 Non-blocking note 或未驗證區域；只有影響會是 P0 且不確定性講清楚時才可擋。
 - 單一 reviewer 的 finding 是原始輸入，不是最終決定 —— 進 Blocking 前要嘛 coordinator 直接從 code 驗證，要嘛走 `finding-validation.md` 跑一輪 finding-validator。
 - **核心行為缺測試 / 缺明確驗證證據，本身就是有效 blocker**，即使沒找到 code bug。
-- `holistic-reviewer`（verify §2.5 交叉軸 pass）的 finding 走**同一套**形狀與分級、併入一起進 finding-validator，不特權。
+- `holistic-reviewer`（verify 步驟 3 交叉軸 pass）的 finding 走**同一套**形狀與分級、併入一起進 finding-validator，不特權。
 - 套 **Metric-Honesty**：沒實跑的效能 / 覆蓋宣稱一律標 `not measured`。

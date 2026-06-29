@@ -158,13 +158,13 @@ flowchart LR
 
 | 項目 | 內容 |
 |---|---|
-| **skill** | `verify`（1）｜**agent** **依風險 0～6 核心（§1.4 4 級梯）+ 0～9 條件式 + holistic（DEEP必/STANDARD可選）+ N 個 finding-validator**（同一回合並行） |
+| **skill** | `verify`（1）｜**agent** **依風險 0～6 核心（步驟 1 風險梯）+ 0～9 條件式 + holistic（高風險必/一般可選）+ N 個 finding-validator**（同一回合並行） |
 | **處理什麼** | 合併前把關：多個獨立視角各審一軸，再二輪驗證 findings |
 | **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`）· **作者已留痕的決定不算 finding** · **獨立安全網非第一道品質關**（標準已在 build shift-left 套用，verify 複查 + 抓盲點） |
 
 ```mermaid
 flowchart TD
-    BUILD[build 成果 + 契約] --> TR{§1.4 風險分級<br/>SKIP/LIGHT/STANDARD/DEEP}
+    BUILD[build 成果 + 契約] --> TR{步驟1 選軸·風險分級<br/>SKIP/LIGHT/STANDARD/DEEP}
     TR -.SKIP·護欄保護瑣碎面.-> OUT
     TR -->|LIGHT 3軸 / STANDARD 6軸 / DEEP 6軸| FAN{同一回合一次派出多審查員<br/>該級軸集、全並行<br/>holistic 在 coordinator 之後才跑}
     FAN --> C1[product-contract]
@@ -176,17 +176,15 @@ flowchart TD
     FAN -.觸及領域才加派.-> COND[條件式 9 選:<br/>frontend-ui·accessibility·web-performance·observability·<br/>ci-cd·migration·processing-reliability·root-cause·docs-devex]
     C1 & C2 & C3 & C4 & C5 & C6 & COND --> CO[coordinator 主線<br/>去重 + 跑真 app + 本機 /code-review]
     CO -.確證根本做錯就整個退回.-> BUILD
-    CO -.DEEP必/STANDARD可選.-> HOL[§2.5 holistic 全局交叉檢查]
+    CO -.高風險必/一般可選.-> HOL[步驟3 holistic 全局交叉檢查]
     CO --> FV[finding-validator 二輪<br/>真實?本次?已防護?對症?]
     HOL --> FV
-    FV --> AC{§4.5 acceptance-completeness<br/>出口 gate（tier-independent）<br/>每條 criterion 收斂到 已滿足/descoped?}
+    FV --> AC{步驟4 acceptance 閘<br/>每條 criterion 收斂到<br/>已滿足/descoped?}
     AC -.否·partial 當完成 P0/P1.-> BUILD
     AC -->|是| OUT[P0–P3 + Confidence + Route<br/>→ Ready / Not ready → 04-verify.md]
 ```
 
-> **派幾軸由 §1.4 風險 4 級梯決定**（「fan-out」＝同一回合一次派出多個審查員、各審一軸、並行跑）：SKIP（護欄保護的瑣碎面，不派核心軸）/ LIGHT（小孤立 code，3 軸）/ STANDARD（一般 code，核心 6 軸）/ DEEP（高風險，核心 6 軸；coordinator 彙整後再加一道 §2.5 holistic 全局交叉檢查）。**四級的核心軸都是「同一回合一次派出、全並行跑完」**——不再像以前 DEEP 先拆一輪「契約+正確性」前置閘（已移除：shift-left＝品質在 build 邊寫邊做到位，根本做錯很少，先拆一輪只是多跑、多等、零省）。（holistic 不在這一波並行裡，它要等 coordinator 把所有 finding 彙整完才跑，因為它看的是 finding 全集。）**非 code 改動（純 docs/設定）**：瑣碎→SKIP、有驗收契約的實質文件→product-contract + docs-devex（不入 code 級梯）。條件式 9 個只在改動觸及該領域才加派（與核心軸正交，SKIP 仍可帶 docs-devex；含 bug-fix→root-cause、docs/契約→docs-devex）。每個 blocking finding 過 `finding-validator` 四問二輪才算數。
->
-> **Ready 前兩道與級別無關的閘（所有級通用）**：① **§1.6 做錯東西就整個退回** —— 審查跑完後若有人確證「做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞」，整個退回 build 重做、不對其他 finding 逐條修。② **§4.5 acceptance-completeness 出口 gate** —— issue 每條 acceptance criterion 都逐項列五態、收斂到 已滿足（有證據）或 明確 descoped（留痕）才放行，任一條 partial 當完成在**任何級**都擋回 iterate。出 P0 才停下問你，否則直接進 iterate。
+> **5 步**（詳見 `skills/verify/SKILL.md`）：**①選軸**——「fan-out」＝同一回合一次派出多審查員各審一軸並行；依風險定核心軸：SKIP（瑣碎不派）/ LIGHT（小孤立 3 軸）/ STANDARD（一般 6 軸）/ DEEP（高風險 6 軸 + 步驟3 holistic）；再依領域加派 9 個條件式（碰到才加）。非 code 實質文件→product-contract + docs-devex（不入 code 級梯）。**②並行審**——同一回合派出、各一軸、反偏見（只給 artifact+契約）、跑真 app。**③驗 findings**——coordinator 去重 + 高風險加 holistic（看 finding 全集、抓跨維度問題）+ finding-validator 四問二輪。**④acceptance 閘（所有級通用）**——issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足（有證據）/ 明確 descoped（留痕）才放行；任一條 partial 當完成在**任何級**都擋回 iterate；確證「根本做錯」（做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞）就**整個退回 build、不逐條修**。**⑤判 Ready/退回**——P0–P3+Confidence+Route，出 P0 才停下問你、否則直接進 iterate。
 
 ---
 
@@ -232,7 +230,7 @@ flowchart TD
 |---|---|---|
 | **記憶體** | `.loops/<slug>/`：`loop.md`（儀表板 + Journal）+ `0N-*.md`（各階段精煉產出） | Memory |
 | **隔離工作樹** | 會動 code 的迴圈在 `git worktree`（`<issue#>-<slug>` 同名 branch） | Worktrees |
-| **子代理** | build 紅綠 3 + verify 0～6 核心（§1.4 風險梯）+ holistic + 9 條件式 + validator | Subagents |
+| **子代理** | build 紅綠 3 + verify 0～6 核心（步驟 1 風險梯）+ holistic + 9 條件式 + validator | Subagents |
 | **技能** | 13 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
 | **自動化** | `dispatch auto`、`/loop`·`/schedule`、statusline HUD | Automations |
