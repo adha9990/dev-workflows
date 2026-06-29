@@ -164,21 +164,11 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    BUILD[build 成果 + 契約] --> TR{步驟1 選軸·依風險<br/>0~6 核心}
-    TR -->|瑣碎0 / 小孤立3 / 一般·高風險6| FAN{同一回合一次派出多審查員<br/>該級核心 0~6 軸、全並行}
-    FAN --> C1[product-contract]
-    FAN --> C2[architecture]
-    FAN --> C3[security]
-    FAN --> C4[performance]
-    FAN --> C5[code-quality]
-    FAN --> C6[tests]
-    FAN -.觸及領域才加派.-> COND[條件式 9 選:<br/>frontend-ui·accessibility·web-performance·observability·<br/>ci-cd·migration·processing-reliability·root-cause·docs-devex]
-    C1 & C2 & C3 & C4 & C5 & C6 & COND --> CO[coordinator 主線<br/>去重 + 跑真 app + 本機 /code-review]
-    CO -.確證根本做錯·整個退回.-> ITER
-    CO --> FV[finding-validator 二輪<br/>真實?本次?已防護?對症?]
-    FV --> AC{步驟4 acceptance 閘<br/>每條 criterion 收斂到<br/>已滿足/descoped?}
-    AC -.否·未收斂/根本做錯.-> ITER[Not ready → iterate 依錯在哪路由<br/>goal / explore / plan / build]
-    AC -->|是·全收斂| OUT[Ready → 04-verify.md → iterate]
+    S1[① 選軸：依風險定 0~6 核心 + N conditional<br/>瑣碎0 / 小孤立3 / 一般·高風險6] --> S2[② 並行審：同一回合派出、各審一軸<br/>反偏見·只給 artifact+契約 ＋ 跑真 app]
+    S2 --> S3[③ 驗 findings：coordinator 去重 ＋ finding-validator 二輪]
+    S3 --> S4{④ acceptance 閘<br/>每條 criterion 收斂到 已滿足/descoped?}
+    S4 -->|是·全收斂| S5[⑤ Ready → 04-verify.md → iterate]
+    S4 -.否·未收斂 / 確證根本做錯.-> ITER[Not ready → iterate 依錯在哪<br/>路由 goal / explore / plan / build]
 ```
 
 > **5 步**（詳見 `skills/verify/SKILL.md`）：**①選軸**——「fan-out」＝同一回合一次派出多審查員各審一軸並行；依風險定核心軸（0~6）：瑣碎 0 / 小孤立 3 / 一般·高風險 6（高風險一律滿、不准縮）；再依領域加派 9 個條件式（碰到才加）。非 code 實質文件→product-contract + docs-devex（不入 code 級梯）。**②並行審**——同一回合派出、各一軸、反偏見（只給 artifact+契約）、跑真 app。**③驗 findings**——coordinator 去重 + finding-validator 四問二輪。**④acceptance 閘（所有級通用）**——issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足（有證據）/ 明確 descoped（留痕）才放行；任一條 partial 當完成在**任何級**都擋回 iterate；確證「根本做錯」（做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞）就**整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）、不逐條修**。**⑤判 Ready/退回**——P0–P3+Confidence+Route，出 P0 才停下問你、否則直接進 iterate。
