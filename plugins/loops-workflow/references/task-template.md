@@ -19,6 +19,8 @@
 - **Scope**：<明確不碰什麼，避免越界>
 ```
 
+> **Acceptance 與場景的追溯（SDD traceability）**：Acceptance 條件引用對應的 GWT 場景 ID（如「滿足 S1、S2」），讓 `場景 ID → task → 測試名（test_S1_…）→ verify 閘` 串成一條可追溯的線（見 `bdd-scenarios.md`）。無場景的內部任務照舊寫 pass/fail。
+
 ## 「該再拆」四訊號（命中任一就切小）
 
 | 訊號 | 為什麼要拆 |

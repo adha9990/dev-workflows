@@ -13,7 +13,7 @@
 | reference | 處理什麼 | 主要用在 |
 |---|---|---|
 | `clean-code` | line / 函式級寫碼標準：命名揭意圖、小函式單一職責、guard clause、顯式錯誤、型別契約、無魔法值 | build（impl-author）· verify（code-quality） |
-| `clean-architecture` | 模組 / 依賴級結構標準：依賴規則向內、分層邊界、port + 注入、內聚 > 耦合、落點對齊、SOLID | plan（設計）· build（寫）· verify（architecture） |
+| `clean-architecture` | 模組 / 依賴級結構標準：依賴規則向內、分層邊界、port + 注入、內聚 > 耦合、落點對齊、SOLID；DDD Ubiquitous Language / Aggregate / BC 對齊 | plan（設計）· build（寫）· verify（architecture） |
 | `design-patterns` | GoF 三大類設計模式的對症時機 + pattern 上癮 / 過度設計反面 | plan（設計時選型）· build（refactor 引入）· verify（architecture） |
 | `refactoring` | code smells 目錄（Fowler 分類）→ 具名重構手法 → 設計模式引入時機 | build（Refactor step）· verify（code-quality） |
 | `code-simplification` | 安全簡化紀律：Chesterton's Fence、過度簡化四陷阱、清晰優先於精巧 | build（Refactor）· verify（code-quality） |
@@ -26,8 +26,9 @@
 
 | reference | 處理什麼 | 主要用在 |
 |---|---|---|
-| `goal-restate-schema` | 完工定義六欄格式（Outcome / User / Why now / Success / Constraint / Out of scope） | goal（`00-goal.md`） |
-| `design-plan-schema` | §0–§9 設計書骨架：系統全貌 / 檔案職責表 / 機制圖 / 具名背書 / 三角驗證 / 成果展示 | plan（`02-plan.md`）· iterate（提煉 PR body） |
+| `goal-restate-schema` | 完工定義六欄格式（Outcome / User / Why now / Success / Constraint / Out of scope）；可附 BDD 場景 ID（S1…）綁 acceptance criterion | goal（`00-goal.md`） |
+| `bdd-scenarios` | BDD GWT 行為情境：Given-When-Then 輕量場景（連接 SDD↔TDD）、場景 ID 慣例（S1…）、右尺寸縮放（XS 免寫·高風險才完整）| define · goal（寫場景）· build（test-author）· verify（product-contract · acceptance） |
+| `design-plan-schema` | §0–§9 設計書骨架：系統全貌 / 檔案職責表 / 機制圖 / 具名背書 / 三角驗證 / 成果展示；§3 含 glossary（Ubiquitous Language 術語） | plan（`02-plan.md`）· iterate（提煉 PR body） |
 | `machine-plan-schema` | 機器可驗證的 `loops-plan` JSON 塊格式（每任務可執行 verification、acceptance ≤3、依賴無環） | plan（可選）+ `validate-plan.mjs` |
 | `change-summaries` | build 產出的 Change Summaries 三段式格式 | build（`03-build.md`） |
 | `operation-first-move` | 4 operation 性質（new-feature/change-behavior/bug-fix/refactor）× test-author 紅燈第一步規則 + fail-safe（單一來源） | dispatch（寫 `operation` 欄）· build（讀欄派 test-author） |

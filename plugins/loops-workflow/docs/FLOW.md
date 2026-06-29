@@ -238,6 +238,7 @@ flowchart TD
 **兩座標 + 一總綱**（見 `AGENTS.md`）：
 - **類型**：Closed Loop（預設，人類框架內把關）/ opt-in Open（`auto` 連跑）。
 - **規模**：單一迴圈（預設）/ opt-in **Fleet** 編隊。
+- **方法論鏈（§1）**：各階段被哪個方法論強化見 `AGENTS.md §1` 方法論鏈框定。
 - **★ 成本意識（規則 10）**：迴圈很貴 → 全程**高上下文效率**、**便宜的先·貴的 gate**、**不重複勞動**、**fail-fast**。**carve-out：只砍非必要貴動作（deep-research/Fleet/真機/多餘 reviewer）+ 浪費,絕不砍 mandatory 流程（define/issue-first/human gate/verify）—— 跳流程的 rework 才最貴。**
 
 ---

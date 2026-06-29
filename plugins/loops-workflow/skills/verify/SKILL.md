@@ -60,6 +60,8 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 
 **findings 全清 ≠ 做到 issue 要的每一件事**：步驟 2-3 問「有沒有引入問題」，這道閘問「**該交付的交付了沒**」，兩者正交、都不能省。判 Ready 前必過（任何 issue 都適用，只有無驗收契約的瑣碎改動不適用）：
 
+acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `references/bdd-scenarios.md`）**：逐條場景列五態（已滿足（有證據）/ 部分 / 缺失 / 證據不足 / 被反證），並對到實作該場景的測試（測試名帶 ID）。無場景的 issue 退回逐句 AC（既有行為）。
+
 - **逐條勾稽**：`product-contract` 對 issue **每一條** acceptance criterion 列 `references/acceptance-review.md` 的五態（已滿足 / 部分滿足 / 缺失 / 證據不足 / 被反證）；每條要收斂到「**已滿足（有可信證據）**」或「**明確 descoped（作者在 plan/issue/PR 留痕）**」。任一條還停在 部分滿足 / 缺失 / 證據不足 / 被反證 且沒 descoped → **Not ready**，回 iterate。
 - **做錯就整個退回**：若確證「**做的不是 issue 要的** / **核心沒做到卻當完工** / **最基本流程跑不起來**」→ 判 Not ready、**整個退回、不對其他 finding 逐條修**；由 **iterate 依「錯在哪」路由回對的階段**：解錯問題 / 方向錯 → **goal / explore**、設計或拆解缺陷 → **plan**、單純實作 bug → **build**（別在註定要重想 / 重做的東西上修小問題）。
 

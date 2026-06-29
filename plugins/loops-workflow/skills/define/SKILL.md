@@ -57,7 +57,7 @@ description: Turns any new work without a GitHub issue into a structured, templa
 ### 3. Judgment framing（下筆前釐清三件事）
 
 - **問題定義**：誰 / 什麼受影響、今天的限制、造成什麼可觀察的傷害 / 摩擦 / 卡住的流程。
-- **成功準則**：要「算解決」需哪些變成真，再翻成 pass/fail 驗收。
+- **成功準則**：要「算解決」需哪些變成真，再翻成 pass/fail 驗收。驗收標準用 **Given-When-Then 場景**寫（見 `references/bdd-scenarios.md`），每條給 ID（`S1`、`S2`…）；**右尺寸**：瑣碎 / bug-fix 從簡（bug-fix 一條重現場景即可），高風險才寫完整場景集。這些場景之後是 test-author 的輸入、verify acceptance 閘的核對項。
 - **替代方案**（方向不明顯、或會動到架構 / API / 資料 / 權限 / 相容 / UX / 拆票時才要）：選的方向 + 至少一個合理替代 + 為何不選 + 哪些要人類拍板。
 
 ### 4. Template-first（target template 就是輸出契約）

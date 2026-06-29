@@ -66,6 +66,8 @@
 ### §3 名詞說明
 白話 glossary（什麼是 X / 什麼是 Y），讓非該領域的人讀得懂後面的決策。
 
+§3 是 **Ubiquitous Language glossary**：白話定義每個領域名詞，並（碰領域時）標 **〔Entity〕/〔VO〕/〔Aggregate〕**。這些名詞是 living 的單一真相源——issue / DoD 場景 / code identifier / PR 一律沿用同名（不一致由 architecture-reviewer 抓）。右尺寸：不碰領域的改動 §3 可從簡。
+
 ### §4 設計目標與原則
 北極星原則 + 驗收試金石。以**設計品質六維度**（簡潔／可維護／可靠／可擴展／安全／高併發高流量效能）為品質北極星，寫明本 feature 對可預見規模退化（資料量／流量成長）的最高標準做法 —— in-scope 不以 MVP 設計。重用優先的結論（為何不重複造輪子）也在此交代。
 
