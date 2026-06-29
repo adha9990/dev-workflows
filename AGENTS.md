@@ -26,13 +26,13 @@
    - **安全停（一定停 + 問）**：dispatch 分類模糊 / 危險不可逆操作 / verify 出 P0 / 規格講不清。
    - **絕不**用純文字「請回覆 yes / 要我接著進 X 嗎」要使用者打字 —— 要嘛 `AskUserQuestion`，要嘛直接往下。
    - **auto 模式**：連上面的決策也用推薦選項自動帶過，只剩安全停（見 `references/auto-mode.md`）。
-3. **`.loops/<slug>/` 是階段間記憶體**。每階段把結論寫成對應 markdown（`00-goal.md` / `01-explore.md` … 每階段一個），下一階段只讀精煉版、不重讀原始素材。任一階段被獨立呼叫時，**先讀 `loop.md`** 認領狀態。**進入一個階段時更新 `loop.md` 的「當前階段」+ append 一筆 Journal**（供 statusline / resume）；**完工時把「當前階段」設為「完工」**。每份檔保持 **< 2000 行**（context window ≠ attention budget）。
+3. **`.loops/<slug>/` 是階段間記憶體**。每階段把結論寫成對應 markdown（`00-goal.md` / `01-explore.md` … 每階段一個），下一階段只讀精煉版、不重讀原始素材。任一階段被獨立呼叫時，**先讀 `loop.md`** 認領狀態。**進入一個階段時更新 `loop.md` 的「當前階段」+ append 一筆 Journal**（供 progress / resume）；**完工時把「當前階段」設為「完工」**。每份檔保持 **< 2000 行**（context window ≠ attention budget）。
 4. **模糊就 surface，不要猜**。需求 / 分類 / 方案不清楚時停下來問，不自行假設往下做。
 5. **Metric-Honesty**：任何「效能 / 覆蓋率 / 通過」宣稱，沒有實際跑出來就標 `not measured`，不得憑感覺寫數字。
 6. **重用優先、不以 MVP、照 clean code / clean architecture 寫**：動手前先搜既有實作、避免重複造輪子（稍異 ≠ 另造，優先參數化既有方法，見 `references/reuse-check.md`）；in-scope 實作不以 MVP，照最高標準做（對可預見的規模退化預先用對演算法與結構）；**寫的當下就照 clean code（`references/clean-code.md`：命名 / 小函式 / guard clause / 顯式錯誤 / 型別契約）+ clean architecture（`references/clean-architecture.md`：依賴向內 / port + 注入 / 落點對齊）標準**，不是先寫爛再靠 refactor 救（refactor 精修見 `references/code-simplification.md`；異味 → 具名手法 → 設計模式時機見 `references/refactoring.md`）。
 7. **文件紀律**：完工前依 `references/docs-policy.md` 判斷 —— 新子系統 / 跨切面 / 不直觀設計寫 `docs/<topic>.md`（+ 維護 `docs/README.md` 索引）；慣例 / 規則改變才更新 `AGENTS.md` · `CLAUDE.md`；小功能不塞 docs。
 8. **對外溝通**：所有面向人的書面（AskUserQuestion / issue · PR 回覆 / 驗收報告 / 端決策）依 `references/comment-policy.md` —— 繁中白話、雙視角紀錄、AskUserQuestion 標推薦、對外內容先寫**暫存 tmp 草稿**校稿（不進專案 / 不進版控）+ **送出後刪 tmp**、不寫客套。
-9. **code 變更在 git worktree 裡做**（隔離工作目錄、不擾動使用者主 checkout）：會動 code 的迴圈（issue / fix）在 loop 啟動時開一個**獨立 worktree（自帶 branch）**、整條 loop 在裡面跑 —— **不在主 checkout 直接 `checkout -b`**。用環境的 worktree 能力（`EnterWorktree`）或 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`。**branch / worktree 名 = loop slug `<issue#>-<slug>`（例 `137-trash-delete-permanent`），不加 `fix/`/`feat/` 等 type 前綴**；修正型（PR 已存在）把該 PR branch checkout 進 worktree。純設計 / 研究（不動 code）免開、走到 build 再開。完工 merge 後 `git worktree remove` 清掉。**`.loops/<slug>/` 留在主 repo（session 起點 / 主 checkout）、不放進 worktree** —— worktree 只放 code。原因：未追蹤的 `.loops/` 若放 worktree，會在 worktree 被 `git clean` / refresh（`baseRef: fresh`）/ `remove` 時被**一起刪掉、毀掉 audit trail**（已踩過）；放主 repo 才不被 worktree 操作波及，主 repo 的 session 也直接讀得到。statusline / `status` / hook 仍會掃 `.claude/worktrees/*/.loops/` 當保險。
+9. **code 變更在 git worktree 裡做**（隔離工作目錄、不擾動使用者主 checkout）：會動 code 的迴圈（issue / fix）在 loop 啟動時開一個**獨立 worktree（自帶 branch）**、整條 loop 在裡面跑 —— **不在主 checkout 直接 `checkout -b`**。用環境的 worktree 能力（`EnterWorktree`）或 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`。**branch / worktree 名 = loop slug `<issue#>-<slug>`（例 `137-trash-delete-permanent`），不加 `fix/`/`feat/` 等 type 前綴**；修正型（PR 已存在）把該 PR branch checkout 進 worktree。純設計 / 研究（不動 code）免開、走到 build 再開。完工 merge 後 `git worktree remove` 清掉。**`.loops/<slug>/` 留在主 repo（session 起點 / 主 checkout）、不放進 worktree** —— worktree 只放 code。原因：未追蹤的 `.loops/` 若放 worktree，會在 worktree 被 `git clean` / refresh（`baseRef: fresh`）/ `remove` 時被**一起刪掉、毀掉 audit trail**（已踩過）；放主 repo 才不被 worktree 操作波及，主 repo 的 session 也直接讀得到。progress / `status` / hook 仍會掃 `.claude/worktrees/*/.loops/` 當保險。
    - **平行寫檔一律隔離 worktree**：若同一階段（尤其 build）**同時派多個會寫檔的 subagent**（跨任務 / 跨 DAG 層平行 fan-out），**每個平行 writer 各跑在自己的隔離 worktree**（`isolation: 'worktree'`，或各自 `git worktree add`），**不可共用同一工作目錄** —— 共用會讓它們的 `pnpm` / 檔案寫入交錯競態，且各自自報的「綠」反映的是不同時間點的半成品態、**不可採信**（已踩過）。平行子任務完成後**合併回 loop 主 worktree，由主線在合併態上重跑完整 gate（`typecheck`/`lint`/`test`）才算數**，不採信任一 subagent 的自報結果。read-only subagent（verify reviewer / explore 掃描）不寫檔，無此限制。
 10. **成本意識：迴圈很貴，要設計成「負擔得起」**。一條迴圈動輒 50–200K token、回環三輪 500K–2M —— Loop Engineering 的成敗在**負擔得起**，不是能不能跑。所以全程貫徹：
     - **高上下文效率**：下一階段只讀**精煉版**（`.loops/` 的 `0N-*.md`）、不重讀原始素材；每份 < 2000 行；subagent 只塞它**需要的那段**脈絡（VISION/ARCHITECTURE/RULES 對應段 + 該軸的絕對路徑 reference），不倒整包。
@@ -80,7 +80,7 @@
 | 不確定該從哪開始 | `/loops-workflow:dispatch <描述>`（會幫你判類型 + 建 loop.md） | dispatch 判斷 |
 | 想看懂一份改動 / 交給人前產導讀 | `/loops-workflow:explain <target>` | 側用（唯讀，不進迴圈） |
 | 維護 repo 的 agent-facing 文檔（`AGENTS.md`） | `/loops-workflow:agents-md-maintainer` | 側用（documentation-only，不被 dispatch 路由、不進迴圈） |
-| 想裝 statusline（顯示當前 loop / 階段） | `/loops-workflow:install-statusline` | 側用（一次性設定，patch settings.json） |
+| 想看單條 loop 的完整進度 | `/loops-workflow:progress <slug>` | 側用（唯讀，chat 儀表板 + 重生 PROGRESS.md） |
 
 > `dispatch` 很薄：只做「分類 + 建 `.loops/<slug>/loop.md`（+ 對 issue/fix 開 worktree）+ 進起點階段」，routine 轉場不問，但不替你把整條 loop 自動跑完。
 

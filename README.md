@@ -6,8 +6,6 @@
 |---|---|---|
 | **loops-workflow** | 7 階段閉環開發工作流（**既有專案**內加功能 / 設計 / 修問題）+ 內建 greenfield 專案 scaffold | `/loops-workflow:dispatch <一句話>` |
 
-> **greenfield 從零建全端 TS 專案骨架**（分層 Fastify + React SPA + Kysely + Vitest）已是 loops-workflow 的**內建 skill `scaffold-fullstack`**：dispatch 偵測到乾淨空專案會引導你用，也可直接 `/loops-workflow:scaffold-fullstack`。
-
 ## 安裝
 
 ```
@@ -24,9 +22,9 @@
 
 7 階段閉環開發工作流，呼叫帶 `loops-workflow:` 前綴。把開發拆成 `dispatch → goal → explore → plan → build → verify → iterate`（dispatch 視情況先走前置：`clarify` 釐清模糊需求 / `scaffold` 建骨架 / `define` 開 issue），`.loops/<slug>/` 的 markdown 當階段間記憶體。**只在真正要你選的決策點停（用 `AskUserQuestion`）**，routine 轉場直接往下；也支援 opt-in 自動連跑。
 
-> 📊 **完整流程圖**（每階段用幾個 skill / agent、在處理什麼、機制、策略 + mermaid 全貌）見 **[`docs/FLOW.md`](plugins/loops-workflow/docs/FLOW.md)**；**39 份共用規範的分類目錄**見 **[`docs/REFERENCES.md`](plugins/loops-workflow/docs/REFERENCES.md)**。下面是快速參考。
+> 📊 **完整流程圖**（每階段用幾個 skill / agent、在處理什麼、機制、策略 + mermaid 全貌）見 **[`docs/FLOW.md`](plugins/loops-workflow/docs/FLOW.md)**；**共用規範的分類目錄**見 **[`docs/REFERENCES.md`](plugins/loops-workflow/docs/REFERENCES.md)**。下面是快速參考。
 
-> **設計座標**：**Closed Loop**（人類在框架內把關）· **單一迴圈**預設、opt-in **Fleet** 編隊 · 目標脈絡＝**VISION**（goal）/ **ARCHITECTURE**（設計書 §0–§9）/ **RULES**（AGENTS）· **成本意識**（迴圈很貴 → 高上下文效率、便宜的先·貴的 gate、不重複勞動、fail-fast；**只砍非必要貴動作 + 浪費，不砍 define/gate/verify**；見 `AGENTS.md` 規則 10）。
+> **設計座標**：**Closed Loop**（人類在框架內把關）· **單一迴圈**預設、opt-in **Fleet** 編隊 · 目標脈絡＝**VISION**（goal）/ **ARCHITECTURE**（設計書 §0–§9）/ **RULES**（AGENTS）· **成本意識**（迴圈很貴 → 高上下文效率、便宜的先·貴的 gate、不重複勞動、fail-fast；**只砍非必要貴動作 + 浪費,不砍 define/gate/verify**；見 `AGENTS.md` 規則 10）。
 
 ## 工作流程
 
@@ -65,6 +63,18 @@ dispatch → goal → explore → plan → build → verify → iterate
 - **build 紅綠分離**：`test-author`（只看需求、看不到 impl）→ `impl-author`（只轉綠、不准改 test）→ Refactor → 衝突派 `referee` 裁決。讓測試不會遷就實作。
 - **verify fan-out**：主線同回合派 6 reviewer（product-contract / architecture / security / performance / code-quality / tests）各審一軸 + 條件式領域 reviewer + `finding-validator` 二輪，輸出 Ready / Not ready。
 
+## 看進度（`/progress` + `PROGRESS.md`）
+
+迴圈進度全寫在 `.loops/<slug>/` 的 `loop.md`（儀表板 + Journal 事件日誌）。要看「目前跑到哪、第幾圈、findings、下一步」，有三條路、**全部免安裝、零 token、跨平台**：
+
+| 看法 | 怎麼用 | 看到什麼 |
+|---|---|---|
+| **完整儀表板（chat）** | `/loops-workflow:progress [slug]` | 一條 loop 的階段管線（`plan ✓ build ● verify ○`）+ 圈數 + 當前任務 + findings + 最近 Journal + 下一步 |
+| **常駐預覽（編輯器）** | 開 `.loops/<slug>/PROGRESS.md` 的 **markdown preview** | 同一份儀表板的 markdown 版（mermaid 階段圖 + checkbox + Journal 時間軸）；由 Stop hook **每回合自動重生**、永遠最新 |
+| **列出全部 active loop** | `/loops-workflow:status` | 每條 loop 一行摘要（slug / 類型 / 當前階段 / 模式 / 最後一筆 Journal） |
+
+> 機制：`scripts/progress.mjs`（共用 renderer，吃 `loop.md` + `0N-*.md`）渲染兩種出口；恆跑的 Stop hook `hooks/progress-render.mjs` 每回合對「本 session 正在跑」的 loop 重生 `PROGRESS.md`（靠 `CLAUDE_CODE_SESSION_ID` 比對，已完工 / 別 session 不顯示）。`PROGRESS.md` 寫在主 repo 的 `.loops/`、被 `.loops` 規則 gitignore 涵蓋、不入庫。SessionStart hook 另會在開場浮出 active 迴圈。
+
 ## 進階（opt-in）
 
 | 能力 | 入口 |
@@ -73,39 +83,12 @@ dispatch → goal → explore → plan → build → verify → iterate
 | 競賽 / 投票式編隊（N 方案→評審） | plan / explore 說「用 Fleet」，見 `references/fleet.md` |
 | 跨 session 接續 | `/loops-workflow:resume <slug>`，見 `references/journaling.md` |
 | 機器可驗證計畫 + eval | 計畫塊 `scripts/validate-plan.mjs`（見 `references/machine-plan-schema.md`）/ dispatch 場景評測 `scripts/run-eval.mjs`（見 `references/eval-harness.md`） |
+| 看單條 loop 完整進度 | `/loops-workflow:progress <slug>`（chat 儀表板 + 重生 `PROGRESS.md`） |
 | 列出 active 迴圈 | `/loops-workflow:status`（SessionStart hook 也會自動浮出） |
 | 工程師理解包 | `/loops-workflow:explain <target>`（唯讀側用） |
-| session statusline 顯示 loops 進度（`⟳ <slug> · <stage>`） | `scripts/statusline.sh`（包 claude-hud `--extra-cmd`）→ 設成 statusLine；無 claude-hud 則只印 loops 進度 |
 | code 工作隔離 | 會動 code 的迴圈（issue / fix）在 **git worktree**（自帶 branch）裡做，不擾動主 checkout；`EnterWorktree` 或 `.claude/worktrees/<issue#>-<slug>`（例 `137-trash-delete-permanent`，**不加 `fix/` 前綴**） |
 
 intent→command 對照與全程操作規則見 plugin 內的 `AGENTS.md`（marketplace 根）。
-
-## statusline 進度（HUD）安裝
-
-讓 session 底下的 statusline 顯示「目前跑到哪個 loop / 哪個階段」（`⟳ <slug> · <stage>`）。靠 [claude-hud](https://github.com/jarrodwatts/claude-hud) 的 `--extra-cmd` 接 `scripts/hud-status.mjs`，`scripts/statusline.sh` 把整段接線包好（沒裝 claude-hud 也能用，退化成只印 loops 進度）。
-
-### 一鍵安裝（建議）
-
-```
-/loops-workflow:install-statusline
-```
-
-自動解析 `statusline.sh` 的絕對路徑、寫進 `settings.json`（冪等；若已有別的 `statusLine` 會先印出來、徵得同意才覆寫）。裝完**新開一個 session** 即生效。
-
-### 手動安裝（fallback）
-
-在 `~/.claude/settings.json` 把 `statusLine` 指向 wrapper（用**絕對路徑**最穩 —— `~` / `$HOME` 視執行 shell 不一定展開）：
-
-```json
-"statusLine": {
-  "type": "command",
-  "command": "bash \"<你的 .claude>/plugins/marketplaces/dev-workflows/plugins/loops-workflow/scripts/statusline.sh\""
-}
-```
-
-Windows 例：`bash "C:/Users/<你>/.claude/plugins/marketplaces/dev-workflows/plugins/loops-workflow/scripts/statusline.sh"`。
-
-設好後 statusline 每次 render 自動讀當前目錄的 `.loops/` **以及 `.claude/worktrees/*/.loops/`**（**在主 repo（master）開的 session 也看得到底下 worktree 在跑的 loop**），**只顯示「當下 session 正在跑」的那一個 loop**（靠 `CLAUDE_CODE_SESSION_ID` 比對 loop.md 的 `session` 欄；已完工 / 別 session / 歷史的 loop 都不顯示，也不堆疊）。要回退成只用 claude-hud，把 `statusLine.command` 改回 claude-hud 原本的指令即可。
 
 ## 結構
 
@@ -116,9 +99,9 @@ plugins/loops-workflow/
 │                 + agents-md-maintainer（側用：AGENTS.md 文檔維運）
 ├── agents/       build 紅綠分離 3（test-author / impl-author / referee）
 │                 + verify 6 核心 reviewer + finding-validator + 9 條件式領域 reviewer（含 root-cause / docs-devex）
-├── commands/     loop / resume / status / explain / install-statusline
-├── hooks/        SessionStart：浮出 active .loops/ 迴圈
-├── scripts/      validate-plan / run-eval / hud-status / statusline
+├── commands/     loop / resume / status / explain / progress
+├── hooks/        SessionStart：浮出 active .loops/ 迴圈；Stop：progress-render 重生 PROGRESS.md（恆跑）+ opt-in 觀測/閘
+├── scripts/      validate-plan / run-eval / loops-scan / progress
 └── references/   各階段規範 + 模板（clean-code / clean-architecture / design-patterns / refactoring / code-simplification /
                   security-checklist / reuse-check / docs-policy /
                   commit-spec / pr-spec / comment-policy / onboarding / reviewer-severity /

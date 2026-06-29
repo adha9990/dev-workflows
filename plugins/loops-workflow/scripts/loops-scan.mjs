@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // loops-scan.mjs —— 共用 .loops/ 掃描 + loop.md 欄位/Journal 解析。
-// scripts/progress.mjs 與 hooks/progress-render.mjs 共用（自被刪的 hud-status.mjs 救出）。
+// scripts/progress.mjs 與 hooks/progress-render.mjs 共用（自舊的進度狀態列腳本抽出共用）。
 // 純函式無 IO（測試直接 import）；IO 邊界容錯不丟。僅 node 內建。
 
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
