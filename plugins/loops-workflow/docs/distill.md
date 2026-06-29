@@ -1,19 +1,16 @@
----
-name: distill
-description: 跨 loop 自我學習——掃歷史 .loops/ 的 ★outcome/Journal，提煉可復用的方法論 instinct（YAML），供 SessionStart 注入。手動側用工具。
----
+# distill — 跨 loop 萃取 instinct（自我學習，手動程序）
 
-# distill — 跨 loop 萃取 instinct（自我學習）
+> **狀態**：本文件原為 `skills/distill` skill，已**降級為文件**——`/loops-workflow:distill` 不再可呼叫。內容完整保留作為**手動程序**：需要時在你信任的 repo，由你親自帶 Claude 依下方〈Process〉步驟執行（產出 instinct 供 `hooks/session-start.mjs` 的 opt-in 注入沿用）。
 
 ## Overview
 
 `distill` 是**閉環外的手動側用工具**：掃過歷史 `.loops/*/loop.md` 的 Journal 與 `★[outcome]` 度量行，由 **Claude 歸納 3–5 條跨 loop 的「方法論模式」**（不是專案內容），寫成 instinct YAML 存 `.loops/.instincts/`。下次 `hooks/session-start.mjs` 在 opt-in（`LOOPS_INSTINCT_INJECT=1`）時把高信心 instinct 注入新 session —— 讓 loops-workflow 從「孤立可接續迴圈」升級成**有跨 loop 記憶、會自我改進**的工具。
 
-> **簡化版（無 daemon）**：ECC 的 instinct 用 Pre/PostToolUse 逐 tool-call 觀察 + background Haiku observer 萃取。我們**刻意不做** background 基建（plugin 形態 + 成本/複雜度取捨），改用**已有的結構化素材**——loop.md 的 Journal（E1..En）+ `★[outcome]` 行（token 級距 / 回環圈數 / findings 數 / 推進模式 / 交付）——做 **on-demand** 萃取。萃取是**判斷**、不是確定性腳本，所以由 Claude（這隻 skill）做，不是 node。
+> **簡化版（無 daemon）**：ECC 的 instinct 用 Pre/PostToolUse 逐 tool-call 觀察 + background Haiku observer 萃取。我們**刻意不做** background 基建（plugin 形態 + 成本/複雜度取捨），改用**已有的結構化素材**——loop.md 的 Journal（E1..En）+ `★[outcome]` 行（token 級距 / 回環圈數 / findings 數 / 推進模式 / 交付）——做 **on-demand** 萃取。萃取是**判斷**、不是確定性腳本，所以由 Claude（依本手動程序）做，不是 node。
 
 ## When to Use
 
-**Use when**：累積了數條完工 loop、想把「哪類任務易回環 / 哪類 verify findings 最常出現 / 哪種推進模式最省 token / 哪種改動面 verify 派幾軸」這些跨 loop 經驗固化下來，讓未來 session 自動帶入。直接喊 `/loops-workflow:distill`。
+**Use when**：累積了數條完工 loop、想把「哪類任務易回環 / 哪類 verify findings 最常出現 / 哪種推進模式最省 token / 哪種改動面 verify 派幾軸」這些跨 loop 經驗固化下來，讓未來 session 自動帶入。**手動執行**：在信任 repo 由你親自帶 Claude 依下方〈Process〉四步走（已非可呼叫 skill）。
 
 **NOT for**：
 - 單一 loop 內的進度追蹤 —— 那是 loop.md Journal 的事。

@@ -111,9 +111,9 @@ ECC 是「agent harness performance optimization system」（271 skill、67 agen
 - **verify reviewer 右尺寸化**（cobus #8 → #38 → #59 → #61）：依改動風險定最小 reviewer 集（#8 二分 → **#38 4 級風險梯** → **#59 acceptance-completeness tier-independent 出口 gate** → **#61 tripwire 折進正常審查 + 白話化**，見 §2.4；其後 verify 再精簡成 5 步、移除 holistic 與 SKIP 護欄〔收斂成「依風險 0~6 核心 + N conditional」〕），見 `skills/verify/SKILL.md`。
 - **概念詞彙**（cobus #9）：comprehension-debt / cognitive-surrender 寫進 `AGENTS.md` 哲學段。
 - **operation-first-move 規則**（ECC #16）：build 紅燈起手式依任務性質分岔，見 `references/operation-first-move.md`。
-- **跨 loop instinct 學習**（ECC #18）：`/distill` + SessionStart 注入，見 `references/instinct-schema.md`。
+- **跨 loop instinct 學習**（ECC #18）：`distill` 程序（`docs/distill.md`，手動萃取）+ SessionStart 注入，見 `references/instinct-schema.md`。
 - **squash 合併政策**（cobus #11）：全部 squash 合併進 plugin master，每 PR master 一筆 commit。
-- **13 skills、46 references**；文件全同步（FLOW / REFERENCES / README / journaling）且經各 PR 的 docs-devex reviewer 查核一致。
+- **12 skills、46 references**（`distill` 已降為文件 `docs/distill.md`、不再可呼叫）；文件全同步（FLOW / REFERENCES / README / journaling）且經各 PR 的 docs-devex reviewer 查核一致。
 - 各 opt-in flag 的「怎麼開 / 行為 / footprint / SECURITY」目錄見 `references/journaling.md`。
 
 ### dogfood 實證（meta 閉環）
