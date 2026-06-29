@@ -158,15 +158,14 @@ flowchart LR
 
 | 項目 | 內容 |
 |---|---|
-| **skill** | `verify`（1）｜**agent** **依風險 0～6 核心（步驟 1 風險梯）+ 0～9 條件式 + holistic（高風險必/一般可選）+ N 個 finding-validator**（同一回合並行） |
+| **skill** | `verify`（1）｜**agent** **依風險 0～6 核心（步驟 1 風險梯）+ 0～9 條件式 + N 個 finding-validator**（同一回合並行） |
 | **處理什麼** | 合併前把關：多個獨立視角各審一軸，再二輪驗證 findings |
 | **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`）· **作者已留痕的決定不算 finding** · **獨立安全網非第一道品質關**（標準已在 build shift-left 套用，verify 複查 + 抓盲點） |
 
 ```mermaid
 flowchart TD
-    BUILD[build 成果 + 契約] --> TR{步驟1 選軸·風險分級<br/>SKIP/LIGHT/STANDARD/DEEP}
-    TR -.SKIP·護欄保護瑣碎面.-> OUT
-    TR -->|LIGHT 3軸 / STANDARD 6軸 / DEEP 6軸| FAN{同一回合一次派出多審查員<br/>該級軸集、全並行<br/>holistic 在 coordinator 之後才跑}
+    BUILD[build 成果 + 契約] --> TR{步驟1 選軸·依風險<br/>0~6 核心}
+    TR -->|瑣碎0 / 小孤立3 / 一般·高風險6| FAN{同一回合一次派出多審查員<br/>該級核心 0~6 軸、全並行}
     FAN --> C1[product-contract]
     FAN --> C2[architecture]
     FAN --> C3[security]
@@ -176,15 +175,13 @@ flowchart TD
     FAN -.觸及領域才加派.-> COND[條件式 9 選:<br/>frontend-ui·accessibility·web-performance·observability·<br/>ci-cd·migration·processing-reliability·root-cause·docs-devex]
     C1 & C2 & C3 & C4 & C5 & C6 & COND --> CO[coordinator 主線<br/>去重 + 跑真 app + 本機 /code-review]
     CO -.確證根本做錯·整個退回.-> ITER
-    CO -.高風險必/一般可選.-> HOL[步驟3 holistic 全局交叉檢查]
     CO --> FV[finding-validator 二輪<br/>真實?本次?已防護?對症?]
-    HOL --> FV
     FV --> AC{步驟4 acceptance 閘<br/>每條 criterion 收斂到<br/>已滿足/descoped?}
     AC -.否·未收斂/根本做錯.-> ITER[Not ready → iterate 依錯在哪路由<br/>goal / explore / plan / build]
     AC -->|是·全收斂| OUT[Ready → 04-verify.md → iterate]
 ```
 
-> **5 步**（詳見 `skills/verify/SKILL.md`）：**①選軸**——「fan-out」＝同一回合一次派出多審查員各審一軸並行；依風險定核心軸：SKIP（瑣碎不派）/ LIGHT（小孤立 3 軸）/ STANDARD（一般 6 軸）/ DEEP（高風險 6 軸 + 步驟3 holistic）；再依領域加派 9 個條件式（碰到才加）。非 code 實質文件→product-contract + docs-devex（不入 code 級梯）。**②並行審**——同一回合派出、各一軸、反偏見（只給 artifact+契約）、跑真 app。**③驗 findings**——coordinator 去重 + 高風險加 holistic（看 finding 全集、抓跨維度問題）+ finding-validator 四問二輪。**④acceptance 閘（所有級通用）**——issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足（有證據）/ 明確 descoped（留痕）才放行；任一條 partial 當完成在**任何級**都擋回 iterate；確證「根本做錯」（做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞）就**整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）、不逐條修**。**⑤判 Ready/退回**——P0–P3+Confidence+Route，出 P0 才停下問你、否則直接進 iterate。
+> **5 步**（詳見 `skills/verify/SKILL.md`）：**①選軸**——「fan-out」＝同一回合一次派出多審查員各審一軸並行；依風險定核心軸（0~6）：瑣碎 0 / 小孤立 3 / 一般·高風險 6（高風險一律滿、不准縮）；再依領域加派 9 個條件式（碰到才加）。非 code 實質文件→product-contract + docs-devex（不入 code 級梯）。**②並行審**——同一回合派出、各一軸、反偏見（只給 artifact+契約）、跑真 app。**③驗 findings**——coordinator 去重 + finding-validator 四問二輪。**④acceptance 閘（所有級通用）**——issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足（有證據）/ 明確 descoped（留痕）才放行；任一條 partial 當完成在**任何級**都擋回 iterate；確證「根本做錯」（做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞）就**整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）、不逐條修**。**⑤判 Ready/退回**——P0–P3+Confidence+Route，出 P0 才停下問你、否則直接進 iterate。
 
 ---
 
@@ -230,7 +227,7 @@ flowchart TD
 |---|---|---|
 | **記憶體** | `.loops/<slug>/`：`loop.md`（儀表板 + Journal）+ `0N-*.md`（各階段精煉產出） | Memory |
 | **隔離工作樹** | 會動 code 的迴圈在 `git worktree`（`<issue#>-<slug>` 同名 branch） | Worktrees |
-| **子代理** | build 紅綠 3 + verify 0～6 核心（步驟 1 風險梯）+ holistic + 9 條件式 + validator | Subagents |
+| **子代理** | build 紅綠 3 + verify 0～6 核心（步驟 1 風險梯）+ 9 條件式 + validator | Subagents |
 | **技能** | 13 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
 | **自動化** | `dispatch auto`、`/loop`·`/schedule`、statusline HUD | Automations |
@@ -247,8 +244,8 @@ flowchart TD
 | | |
 |---|---|
 | **skill** | 13（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **agents-md-maintainer** 側用文檔維運 / **distill** 側用跨 loop 萃取 instinct） |
-| **agent** | 21 = build 3（test-author / impl-author / referee）+ verify 6 核心 + holistic-reviewer + finding-validator + eval-judge（eval E4，無 oracle 維度評分、主迴圈/Workflow 派）+ 9 條件式領域 reviewer（accessibility / ci-cd / docs-devex / frontend-ui / migration / observability / processing-reliability / root-cause / web-performance，視改動面加派）。explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose（不計入此數） |
-| **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 9 條件式）+ holistic + N validator |
+| **agent** | 20 = build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + eval-judge（eval E4，無 oracle 維度評分、主迴圈/Workflow 派）+ 9 條件式領域 reviewer（accessibility / ci-cd / docs-devex / frontend-ui / migration / observability / processing-reliability / root-cause / web-performance，視改動面加派）。explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose（不計入此數） |
+| **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 9 條件式）+ N validator |
 | **reference** | 46 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + 8 份 per-axis 審查判準 + verify-triage 風險分級 + operation-first-move + instinct-schema + eval-judge-rubric 無 oracle 維度評分卡 + eval-judge-panel / eval-live-candidate Phase 3 活流程 recipe）｜**command** loop / resume / status / explain / install-statusline｜**hook** 7 個 / 4 事件（SessionStart 恆跑、其餘 6 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈 + instinct 注入 opt-in) + Stop(cost-tracker 估成本 + eval-gate 改檔回合多訊號注入〔eval-metrics check 退化 LOOPS_EVAL_GATE／eval-tags by-tag 失敗 tag LOOPS_EVAL_TAGS_GATE／eval-poll poll 共識 LOOPS_EVAL_POLL_GATE，三 flag 獨立〕 + stop-gate 改檔回合自動跑 quality-gate) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
 
 ---
@@ -264,7 +261,7 @@ flowchart TD
 | explore | 1 | **1 掃描 + N 評估** | 方法競爭時一候選一 agent |
 | plan | 1 | 0（+設計審查 / Fleet 選用） | 風險大才派 |
 | build | 1 | **2 / 任務**（test+impl）+ referee | 衝突時 referee |
-| verify | 1 | **1–6 + 0–9 + holistic + N** | 同回合並行 |
+| verify | 1 | **1–6 + 0–9 + N** | 同回合並行 |
 | iterate | 1 | 0（+cross-model 選用） | 卡關時 |
 | explain（側） | 1 | 0 | 唯讀 |
 | agents-md-maintainer（側） | 1 | 0 | 維護 AGENTS.md（不入迴圈） |

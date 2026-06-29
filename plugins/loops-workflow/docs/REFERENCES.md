@@ -42,7 +42,7 @@
 | `finding-validation` | finding-validator 二輪四問：真實 / 本次引入 / 已防護 / 對症 → validated / rejected / degraded | verify（finding-validator） |
 | `preflight` | 送審單一判定（可送審 / 建議先修 / 資訊不足）+ 硬規則「作者已留痕的決定不算 finding」 | verify（送審自檢 + 全 reviewer） |
 | `optional-reviewers` | 條件式領域 reviewer 對照（哪種改動加派哪個：前端 / a11y / 可觀測性 / CI-CD / migration / bug-fix / docs…） | verify（1.5 加派） |
-| `verify-triage` | verify 改動風險 4 級梯判準（SKIP/LIGHT/STANDARD/DEEP）：高風險硬閘清單 / SKIP·LIGHT 護欄 / tangling veto / 「做錯東西就整個退回」catastrophic-miss 判準（所有級、審查後 triage） | verify（步驟 1 選軸判級） |
+| `verify-triage` | verify 改動風險判準（定 0~6 核心軸）：高風險硬閘清單 / 小孤立·瑣碎判準 / tangling veto / 「做錯東西就整個退回」catastrophic-miss 判準（所有級、審查後 triage） | verify（步驟 1 選軸判級） |
 | `cross-model-review` | opt-in 換不同模型當對手 reviewer（卡關時升級對抗審查） | iterate（卡關）· verify（可選） |
 
 **per-axis 審查判準**（reviewer 出手前注入的判準 / 方法論，薄 agent 不重述）：
