@@ -48,8 +48,10 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 
 - **同一回合一次發出**所有 Agent call 才真並行；subagent 不能再派 subagent；維度**不排成序列**（順序化會交叉漏審 + 後者錨定前者偏誤；唯一的「先後」只剩 build 前那道便宜的 quality-gate：型別/lint/測試）。
 - **反偏見**：只給 reviewer **artifact + 契約**（issue / `02-plan.md` 契約 / diff），**不給作者的理由/辯護**（`03-build.md` 的 concerns 不轉發）。
+- **防 stale**：reviewer 審的是 build 剛寫、常在 worktree / 未提交的 code —— graph 對這塊最不可信。依 `references/code-retrieval.md`：graph 只查穩定周邊，改動檔一律讀實檔。
 - **跑真 app**：能跑就 `/run` 起服務 + `/verify` 逐條玩 `00-goal.md` 需求 + 本機 `/code-review`（**不跑 ultra 計費版**），把宣稱從 `not measured` 變實測；純 lib 無 app 則據實標 `not measured`。
 - **參考檔路徑（必做）**：subagent 讀不到相對路徑 → 從本 skill base 上兩層推出 plugin root，組**絕對路徑**塞進各 reviewer prompt：全 reviewer ← `reviewer-severity.md` + `review-dispositions.md` + `preflight.md`「作者已留痕的決定不算 finding」原文；`product-contract` ← `acceptance-review.md`；`code-quality` ← `correctness-review.md`/`clean-code.md`/`refactoring.md`/`code-simplification.md`/`reuse-check.md`；`architecture` ← `architecture-review.md`/`clean-architecture.md`/`design-patterns.md`；`security` ← `security-checklist.md`；`performance` ← `performance-review.md`；`tests` ← `test-rubric.md`；條件式各 ← 對應 review 檔（`ui-interaction-review.md`/`root-cause-review.md`/`docs-devex-review.md`…）；`finding-validator` ← `finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
+- **檢索接線**：派每個 reviewer 時，prompt 額外提供：①`references/code-retrieval.md` 的絕對路徑（orchestrator 從自己的 base directory 推出 plugin root 組絕對路徑，同既有 per-axis reference 做法）；②**本次改動檔清單**（reviewer 對這些一律讀實檔）；③ 若 repo 已索引，graph project id + 提醒「`detect_changes` 顯示這些 stale」。reviewer 依此用 graph 查穩定周邊、diff 讀實檔。
 
 ### 3. 驗 findings — 去重 + 二輪確認
 
