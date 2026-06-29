@@ -175,16 +175,16 @@ flowchart TD
     FAN --> C6[tests]
     FAN -.觸及領域才加派.-> COND[條件式 9 選:<br/>frontend-ui·accessibility·web-performance·observability·<br/>ci-cd·migration·processing-reliability·root-cause·docs-devex]
     C1 & C2 & C3 & C4 & C5 & C6 & COND --> CO[coordinator 主線<br/>去重 + 跑真 app + 本機 /code-review]
-    CO -.確證根本做錯就整個退回.-> BUILD
+    CO -.確證根本做錯·整個退回.-> ITER
     CO -.高風險必/一般可選.-> HOL[步驟3 holistic 全局交叉檢查]
     CO --> FV[finding-validator 二輪<br/>真實?本次?已防護?對症?]
     HOL --> FV
     FV --> AC{步驟4 acceptance 閘<br/>每條 criterion 收斂到<br/>已滿足/descoped?}
-    AC -.否·partial 當完成 P0/P1.-> BUILD
-    AC -->|是| OUT[P0–P3 + Confidence + Route<br/>→ Ready / Not ready → 04-verify.md]
+    AC -.否·未收斂/根本做錯.-> ITER[Not ready → iterate 依錯在哪路由<br/>goal / explore / plan / build]
+    AC -->|是·全收斂| OUT[Ready → 04-verify.md → iterate]
 ```
 
-> **5 步**（詳見 `skills/verify/SKILL.md`）：**①選軸**——「fan-out」＝同一回合一次派出多審查員各審一軸並行；依風險定核心軸：SKIP（瑣碎不派）/ LIGHT（小孤立 3 軸）/ STANDARD（一般 6 軸）/ DEEP（高風險 6 軸 + 步驟3 holistic）；再依領域加派 9 個條件式（碰到才加）。非 code 實質文件→product-contract + docs-devex（不入 code 級梯）。**②並行審**——同一回合派出、各一軸、反偏見（只給 artifact+契約）、跑真 app。**③驗 findings**——coordinator 去重 + 高風險加 holistic（看 finding 全集、抓跨維度問題）+ finding-validator 四問二輪。**④acceptance 閘（所有級通用）**——issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足（有證據）/ 明確 descoped（留痕）才放行；任一條 partial 當完成在**任何級**都擋回 iterate；確證「根本做錯」（做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞）就**整個退回 build、不逐條修**。**⑤判 Ready/退回**——P0–P3+Confidence+Route，出 P0 才停下問你、否則直接進 iterate。
+> **5 步**（詳見 `skills/verify/SKILL.md`）：**①選軸**——「fan-out」＝同一回合一次派出多審查員各審一軸並行；依風險定核心軸：SKIP（瑣碎不派）/ LIGHT（小孤立 3 軸）/ STANDARD（一般 6 軸）/ DEEP（高風險 6 軸 + 步驟3 holistic）；再依領域加派 9 個條件式（碰到才加）。非 code 實質文件→product-contract + docs-devex（不入 code 級梯）。**②並行審**——同一回合派出、各一軸、反偏見（只給 artifact+契約）、跑真 app。**③驗 findings**——coordinator 去重 + 高風險加 holistic（看 finding 全集、抓跨維度問題）+ finding-validator 四問二輪。**④acceptance 閘（所有級通用）**——issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足（有證據）/ 明確 descoped（留痕）才放行；任一條 partial 當完成在**任何級**都擋回 iterate；確證「根本做錯」（做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞）就**整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）、不逐條修**。**⑤判 Ready/退回**——P0–P3+Confidence+Route，出 P0 才停下問你、否則直接進 iterate。
 
 ---
 
