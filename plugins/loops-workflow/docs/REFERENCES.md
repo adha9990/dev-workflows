@@ -39,6 +39,7 @@
 
 | reference | 處理什麼 | 主要用在 |
 |---|---|---|
+| `code-retrieval` | 統一 code 檢索：codebase-memory-mcp graph 查穩定周邊 + staleness 鐵則（diff/worktree/未提交讀實檔）+ 分支複用 base 索引 | explore · verify（所有 reviewer） |
 | `reviewer-severity` | finding 分級格式：P0–P3 + Confidence（50/75/100）+ Route | verify（全 reviewer） |
 | `finding-validation` | finding-validator 二輪四問：真實 / 本次引入 / 已防護 / 對症 → validated / rejected / degraded | verify（finding-validator） |
 | `preflight` | 送審單一判定（可送審 / 建議先修 / 資訊不足）+ 硬規則「作者已留痕的決定不算 finding」 | verify（送審自檢 + 全 reviewer） |
