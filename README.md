@@ -41,7 +41,9 @@ dispatch → goal → explore → plan → build → verify → iterate
 
 **只在真正要你做選擇的決策點停下用 `AskUserQuestion` 問**（explore 選方法 / plan 拍板 / iterate 完工或回環 / 真正的 scope 取捨 / 安全停：分類模糊·危險操作·P0·規格不清）。**routine 轉場（進入下一階段）不問、直接往下**，產出寫進 `.loops/` + 摘要，你隨時可插話喊停 / 改。需要時可開 opt-in `auto` 模式（連決策也用推薦選項自動帶過，只剩安全停）。
 
-## Skill 清單（7 階段，各自可獨立呼叫）
+## Skill 清單（7 階段，全由 dispatch 內部驅動、不可直接呼叫）
+
+> 這些階段都是 `user-invocable: false`——**不可直接 `/loops-workflow:<階段>` 呼叫**，一律由 `/loops-workflow:dispatch`（別名 `loop`）判類型後內部驅動；接續中途的 loop 用 `/loops-workflow:resume <slug>`。可直接呼叫的只有 `dispatch` 與側用工具 `explain`/`resume`/`status`/`progress`/`scaffold-fullstack`/`agents-md-maintainer`。
 
 > 「停下問你？」欄：✋ = 真決策、一定停下用 `AskUserQuestion`；其餘只在列出的條件下才停，否則 routine 直接往下。
 

@@ -16,7 +16,7 @@ description: Turns an engineer's vague / ambiguous one-liner into a clear, confi
 
 ## When to Use
 
-**Use when**：dispatch 判定請求是**模糊想法 / 含糊一句話**（不是具體 issue# / PR#），要先釐清、對齊理解才知道往哪走；或使用者直接喊 `/loops-workflow:clarify <模糊想法>`。
+**Use when**：dispatch 判定請求是**模糊想法 / 含糊一句話**（不是具體 issue# / PR#），要先釐清、對齊理解才知道往哪走。（`user-invocable: false`：不由使用者直接喊，由 dispatch 判模糊時內部驅動。）
 
 **NOT for**：
 - 已有 issue# / PR# / 目標很明確 —— 直接 goal / iterate（那階段負責理解該具體目標）。

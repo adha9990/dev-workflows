@@ -68,7 +68,7 @@ flowchart TD
 
 | 項目 | 內容 |
 |---|---|
-| **skill** | `clarify`（1，可獨立呼叫 `/loops-workflow:clarify`）｜**agent** 0（主線一次一問） |
+| **skill** | `clarify`（1，`user-invocable: false`、由 dispatch 內部驅動）｜**agent** 0（主線一次一問） |
 | **何時** | dispatch 判請求是**模糊想法 / 含糊一句話**（非具體 issue#/PR#）才進；明確意圖跳過 |
 | **處理什麼** | 把模糊的話收斂成「**經確認的理解 + 方向**」—— 問題 / 為何 / 範圍 / 不做 / 關鍵假設，再判落地→define/goal · 研究→explore · 修既有→iterate |
 | **機制** | 一次一問（`AskUserQuestion` 標推薦、記 HYPOTHESIS+CONFIDENCE、should-want 偵測）→ restate + **一次確認** → 寫 `00-clarify.md` → 交棒。**不建 issue / 不釘 DoD / 不動 code** |
@@ -92,7 +92,7 @@ flowchart TD
 
 | 項目 | 內容 |
 |---|---|
-| **skill** | `define`（1，可獨立呼叫 `/loops-workflow:define`）｜**agent** 0 |
+| **skill** | `define`（1，`user-invocable: false`、由 dispatch 內部驅動）｜**agent** 0 |
 | **處理什麼** | 把**任何無 issue 的工作**變成 repo template-ready issue —— **建 issue 的唯一入口**。**無獨立研究 issue**：研究是功能 issue 的 explore 階段，或先研究再 define 開功能 issue |
 | **機制** | **Readiness Model**（分 Level 0–4、目標 Level 3）→ 用 repo 的 issue template → **一次一問 intake**（釐清問題定義 / 成功準則 / 替代方案）→ scope sizing（太大先拆票）→ 多步流程放 flowchart → 草稿校稿 → `gh issue create --assignee @me` → 進 goal |
 | **策略** | 先 inspect repo（template / 既有 issue）；寫作指示濾掉不寫進 ticket；含「審 / 重寫既有 ticket」模式。**每件要實作的工作都從 issue 起手（AGENTS 規則 12）—— 沒對應 issue 不直接 plan/build，一律先來這建一個** |

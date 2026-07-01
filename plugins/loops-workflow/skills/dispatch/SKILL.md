@@ -20,7 +20,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 - 使用者丟一句話描述 / issue 號 / PR 號，要判斷這是「處理 issue / 設計問題 / 修正問題」。
 
 **NOT for**：
-- 你已經知道要哪個階段 —— 直接喊那個階段（`/loops-workflow:goal` 等），別繞 dispatch 多花一圈 token。
+- 要**接續**一條既有 loop（不必重跑 dispatch）—— 用 `/loops-workflow:resume <slug>`（各階段 `user-invocable: false`、不能直接喊）。
 - 把所有階段一路自動跑完 —— 那違反 Closed Loop，dispatch 只送你到起點。
 - **側用工具不歸 dispatch 路由** —— `explain`（看懂改動）、`agents-md-maintainer`（維護 repo `AGENTS.md`，documentation-only）是閉環外側用，直接喊、不進決策樹。
 
