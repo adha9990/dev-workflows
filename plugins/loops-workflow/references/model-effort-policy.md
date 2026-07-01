@@ -1,6 +1,6 @@
 # model / effort 分層政策（cost-aware）
 
-> loops 各 agent 依角色**靜態**選 model + effort（frontmatter）；dispatch / build / verify 依風險**動態**覆寫 model。落實 `AGENTS.md` 規則 10（便宜的先、貴的後且要 gate）。**改分層＝改本表 + 對應 agent frontmatter 兩欄，兩者需一致。**
+> loops 各 agent 依角色**靜態**選 model + effort（frontmatter）；build / verify 依風險**動態**覆寫 model。落實 `AGENTS.md` 規則 10（便宜的先、貴的後且要 gate）。**改分層＝改本表 + 對應 agent frontmatter 兩欄，兩者需一致。**
 
 ## 能力邊界（Claude Code）
 - **model**：agent frontmatter 靜態設 + Task 派工時 per-dispatch 覆寫。優先序：env > per-dispatch > frontmatter > session。
@@ -16,7 +16,7 @@
 
 ## Phase 2：動態覆寫 model（派工時，只 model）
 - **verify**：步驟 1 風險梯判**高風險**時，該回合把風險相關軸（尤其 `security` / `architecture` / `code-quality`）的 reviewer 以 `model: opus` 派出（覆寫 frontmatter 的 sonnet）；瑣碎 / 一般維持 sonnet。
-- **build**：impl-author 遇 **XL / 標記高複雜**任務（見 `task-template`）時該次以 `model: opus` 派出；一般 sonnet。referee 已由 frontmatter opus。
+- **build**：impl-author 遇 **L / XL 尺寸、跨子系統、或新架構接縫**的任務（見 `task-template.md` 尺寸階梯；XL 照理應在 plan 拆掉、此為兜底）時該次以 `model: opus` 派出；一般 sonnet。referee 已由 frontmatter opus。
 - **effort 不覆寫**（無 per-dispatch）。
 
 ## 維護
