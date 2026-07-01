@@ -110,7 +110,7 @@ plugins/loops-workflow/
 │                 + scaffold-fullstack（前置：greenfield 骨架，自帶整棵模板樹）
 │                 + agents-md-maintainer（側用：AGENTS.md 文檔維運）
 ├── agents/       build 紅綠分離 3（test-author / impl-author / referee）
-│                 + verify 6 核心 reviewer + finding-validator + 9 條件式領域 reviewer（含 root-cause / docs-devex）
+│                 + verify 6 核心 reviewer + finding-validator + 10 條件式領域 reviewer（含 root-cause / docs-devex / multi-user-concurrency）
 ├── commands/     loop / resume / status / explain / progress
 ├── hooks/        SessionStart：浮出 active .loops/ 迴圈；Stop：progress-render 重生 PROGRESS.md（恆跑）+ opt-in 觀測/閘
 ├── scripts/      validate-plan / run-eval / loops-scan / progress

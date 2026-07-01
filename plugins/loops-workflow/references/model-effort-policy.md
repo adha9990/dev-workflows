@@ -10,7 +10,7 @@
 ## Phase 1：靜態分層（agent frontmatter）
 | tier | model | effort | agents |
 |---|---|---|---|
-| 廣度審查 / 一般實作 | `sonnet` | `medium` | 6 核心 reviewer（product-contract / architecture / security / performance / code-quality / tests）+ 9 條件式 reviewer（accessibility / ci-cd / docs-devex / frontend-ui / migration / observability / processing-reliability / root-cause / web-performance）+ test-author + impl-author |
+| 廣度審查 / 一般實作 | `sonnet` | `medium` | 6 核心 reviewer（product-contract / architecture / security / performance / code-quality / tests）+ 10 條件式 reviewer（accessibility / ci-cd / docs-devex / frontend-ui / migration / observability / processing-reliability / root-cause / web-performance / multi-user-concurrency）+ test-author + impl-author |
 | 窄任務 | `sonnet` | `low` | finding-validator、eval-judge |
 | 罕見高判斷 | `opus` | `high` | referee |
 

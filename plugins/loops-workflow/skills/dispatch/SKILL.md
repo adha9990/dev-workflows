@@ -76,7 +76,7 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 - **停止條件雛形**（goal 階段會精煉）
 - **Journal（append-only 事件日誌）**（空，每階段 append 一筆，見 `references/journaling.md`）
 
-**Worktree（會動 code 的迴圈才開）**：type 是 issue / fix → loop 啟動時開**隔離 worktree（自帶 branch）做 code**，**主 checkout 不動**：用 `EnterWorktree`，或 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`（**branch / worktree 名 = slug `<issue#>-<slug>`，例 `137-trash-delete-permanent`，不加 type 前綴**）；fix 型把該 PR branch checkout 進 worktree。**但 `.loops/<slug>/` 建在主 repo（dispatch 當下的 cwd / `git worktree list` 第一筆）、不放進 worktree** —— worktree 只放 code；未追蹤的 `.loops/` 放 worktree 會在 clean/refresh/remove 時被一起刪掉。各階段即使 cd 在 worktree 裡，也把 `.loops/` 寫回主 repo（用絕對路徑）。純設計 / 研究免開（走到 build 再開）。見 `AGENTS.md` 規則 9。
+**Worktree（會動 code 的迴圈才開）**：type 是 issue / fix → loop 啟動時開**隔離 worktree（自帶 branch）做 code**，**主 checkout 不動**：用 `EnterWorktree`，或 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`（**branch / worktree 名 = slug `<issue#>-<slug>`，例 `137-trash-delete-permanent`，不加 type 前綴**）；fix 型把該 PR branch checkout 進 worktree。**但 `.loops/<slug>/` 一律建在主 repo、絕不放進 worktree** —— **開 worktree 前先確定性錨定**：`LOOPS_ROOT="$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -1)"`（第一筆＝主 worktree 根、不隨 cwd 改變），loop 目錄一律用 `$LOOPS_ROOT/.loops/<slug>/` 的**絕對路徑**建立與寫入；worktree 只放 code。**即使之後 cd / `EnterWorktree` 進了 worktree，仍用這個絕對路徑寫回主 repo，嚴禁在 `.claude/worktrees/*/` 底下建立或寫入任何 `.loops/`**（未追蹤的 `.loops/` 放 worktree 會在 clean/refresh/remove 時被一起刪掉、且造成 loop 記憶體「有些在 worktree、有些在 master」的分裂）。純設計 / 研究免開（走到 build 再開）。見 `AGENTS.md` 規則 9。
 
 **Resume**：若 `.loops/<slug>/loop.md` 已存在 → 不覆蓋，走 resume 協定（讀 Journal 重建狀態 → 回報「停在哪個階段 / 哪個 gate、已完成 E1–En」→ 問使用者是否續跑，見 `references/journaling.md`）。
 
@@ -105,5 +105,5 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 - [ ] **意圖明確**（issue#/PR#）跳過 clarify 直進 goal/iterate；**模糊想法**先進 `clarify` 釐清再分流（dispatch 自己沒做訪談 / 複述確認）。
 - [ ] 目標若是**完全乾淨的空專案**，已先用 `AskUserQuestion` 確認 + scaffold 骨架（或使用者選跳過 / 要別的棧）才進 clarify / define / explore；既有 / 半成品專案不 scaffold。
 - [ ] **所有無 issue 的工作都先經 `define` 用 repo template 建 issue**——不 ad-hoc `gh issue create`、不無票直接 plan/build/explore（規則 12）。**研究不另開 issue**：是功能 issue 的 `explore` 階段、或先研究再 define 開功能 issue。
-- [ ] `.loops/<slug>/loop.md` 已建立（或既有的已認領），含類型 / 起點 / 停止條件雛形。
+- [ ] `.loops/<slug>/loop.md` 已建立（或既有的已認領），含類型 / 起點 / 停止條件雛形，**且落在主 repo 根 `$LOOPS_ROOT/.loops/`（絕對路徑錨定、不在任何 `.claude/worktrees/*/` 內）**。
 - [ ] 已進起點階段開始做（分類模糊時才停下用 `AskUserQuestion` 問），沒有用純文字問「要不要進 X」。

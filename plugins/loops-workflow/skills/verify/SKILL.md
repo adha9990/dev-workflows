@@ -31,6 +31,8 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 
 **再依領域加派 N 個 conditional**（與上表正交、碰到才加，清單見 `references/optional-reviewers.md`）：前端/UI→`frontend-ui`/`accessibility`/`web-performance`、bug fix→`root-cause`、docs/對外契約/CLI/config→`docs-devex`、schema migration→`migration`、queue/背景/長流程→`processing-reliability`、CI/CD→`ci-cd`、關鍵後端流程→`observability`。
 
+**另外讀「專案宣告條件」（以專案為主）**：選軸時**除了看改動領域，也讀目標專案的 `AGENTS.md` / `CLAUDE.md`（就近的也讀）有沒有宣告專案級 verify 條件** —— 例如**專案宣告「多人 / 併發 / 協作使用」→ 且改動觸及共享 / 持久化狀態、授權、或並發變更 path 時，加派 `multi-user-concurrency-reviewer`**（lost update / 跨帳號授權隔離 / 交易競態 / oplog 排序 / 冪等 / read-your-writes）。**專案沒宣告就不觸發**（單人 / 本機專案不加無關噪音）；判準與擴充方式見 `references/optional-reviewers.md`〈專案宣告條件〉。
+
 > **名詞**：**波及面（blast-radius）**＝改動影響到多少別處（誰 import / 呼叫被改的）。非 code 的實質文件 / 設定（有驗收契約）走 `product-contract` + `docs-devex`，不套這張 code 級梯。
 
 ### 2. 並行審 — 同一回合派出、各審一軸、反偏見
@@ -50,7 +52,7 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 - **反偏見**：只給 reviewer **artifact + 契約**（issue / `02-plan.md` 契約 / diff），**不給作者的理由/辯護**（`03-build.md` 的 concerns 不轉發）。
 - **防 stale**：reviewer 審的是 build 剛寫、常在 worktree / 未提交的 code —— graph 對這塊最不可信。依 `references/code-retrieval.md`：graph 只查穩定周邊，改動檔一律讀實檔。
 - **跑真 app**：能跑就 `/run` 起服務 + `/verify` 逐條玩 `00-goal.md` 需求 + 本機 `/code-review`（**不跑 ultra 計費版**），把宣稱從 `not measured` 變實測；純 lib 無 app 則據實標 `not measured`。
-- **參考檔路徑（必做）**：subagent 讀不到相對路徑 → 從本 skill base 上兩層推出 plugin root，組**絕對路徑**塞進各 reviewer prompt：全 reviewer ← `reviewer-severity.md` + `review-dispositions.md` + `preflight.md`「作者已留痕的決定不算 finding」原文；`product-contract` ← `acceptance-review.md`；`code-quality` ← `correctness-review.md`/`clean-code.md`/`refactoring.md`/`code-simplification.md`/`reuse-check.md`；`architecture` ← `architecture-review.md`/`clean-architecture.md`/`design-patterns.md`；`security` ← `security-checklist.md`；`performance` ← `performance-review.md`；`tests` ← `test-rubric.md`；條件式各 ← 對應 review 檔（`ui-interaction-review.md`/`root-cause-review.md`/`docs-devex-review.md`…）；`finding-validator` ← `finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
+- **參考檔路徑（必做）**：subagent 讀不到相對路徑 → 從本 skill base 上兩層推出 plugin root，組**絕對路徑**塞進各 reviewer prompt：全 reviewer ← `reviewer-severity.md` + `review-dispositions.md` + `preflight.md`「作者已留痕的決定不算 finding」原文；`product-contract` ← `acceptance-review.md`；`code-quality` ← `correctness-review.md`/`clean-code.md`/`refactoring.md`/`code-simplification.md`/`reuse-check.md`；`architecture` ← `architecture-review.md`/`clean-architecture.md`/`design-patterns.md`；`security` ← `security-checklist.md`；`performance` ← `performance-review.md`；`tests` ← `test-rubric.md`；條件式各 ← 對應 review 檔（`ui-interaction-review.md`/`root-cause-review.md`/`docs-devex-review.md`/`multi-user-review.md`…）；`finding-validator` ← `finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
 - **檢索接線**：派每個 reviewer 時，prompt 額外提供：①`references/code-retrieval.md` 的絕對路徑（orchestrator 從自己的 base directory 推出 plugin root 組絕對路徑，同既有 per-axis reference 做法）；②**本次改動檔清單**（reviewer 對這些一律讀實檔）；③ 若 repo 已索引，graph project id + 提醒「`detect_changes` 顯示這些 stale」。reviewer 依此用 graph 查穩定周邊、diff 讀實檔。
 - **model / effort 動態（成本，見 `references/model-effort-policy.md`）**：reviewer 預設用各自 frontmatter tier（多為 `sonnet`）。**當步驟 1 判為高風險**：`security` / `architecture` 軸**改派其 `-deep` 變體**（`security-reviewer-deep` / `architecture-reviewer-deep`，frontmatter 已 `opus`·`high`，做更深威脅建模 / 分層契約推敲；派 -deep 時注入與 base 相同的 per-axis reference）；`code-quality` 等其餘高風險軸維持 base、以 `model: opus` per-dispatch 覆寫。瑣碎 / 一般維持 frontmatter 預設。effort 無法 per-dispatch，故高 effort 只能透過 -deep 變體達成。
 
