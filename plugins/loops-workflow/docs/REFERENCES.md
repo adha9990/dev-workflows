@@ -1,6 +1,6 @@
 # references 目錄（各規範在處理什麼）
 
-> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **47 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
+> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **50 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
 >
 > 機制全貌（每階段怎麼跑）見 [`FLOW.md`](FLOW.md)；這份是「規範字典」。subagent 讀不到相對路徑 → orchestrator 把絕對路徑塞進 prompt（見 `AGENTS.md`〈參考檔路徑解析〉）。
 
