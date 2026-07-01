@@ -20,16 +20,32 @@
 
 # loops-workflow（plugin）
 
-7 階段閉環開發工作流，呼叫帶 `loops-workflow:` 前綴。把開發拆成 `dispatch → goal → explore → plan → build → verify → iterate`（dispatch 視情況先走前置：`clarify` 釐清模糊需求 / `scaffold` 建骨架 / `define` 開 issue），`.loops/<slug>/` 的 markdown 當階段間記憶體。**只在真正要你選的決策點停（用 `AskUserQuestion`）**，routine 轉場直接往下；也支援 opt-in 自動連跑。
+## 一句話
 
-> 📊 **完整流程圖**（每階段用幾個 skill / agent、在處理什麼、機制、策略 + mermaid 全貌）見 **[`docs/FLOW.md`](plugins/loops-workflow/docs/FLOW.md)**；**共用規範的分類目錄**見 **[`docs/REFERENCES.md`](plugins/loops-workflow/docs/REFERENCES.md)**。下面是快速參考。
+你打**一個**指令 `/loops-workflow:dispatch <想做的事>`，它就把這件事跑完一條「開發產線」：判斷你要做什麼 → 探索做法 → 拍板規劃 → 寫 code（測試先行）→ 獨立審查 → 修到好 → 開 PR。**全程只在真正該你拍板的地方停下問你**（選做法 / 拍板方案 / 完工），其餘自己往下；你隨時能插話喊停或改。各階段產出寫進 `.loops/<slug>/` 的 markdown 當「階段間記憶」，中斷了也接得回來。
 
-> **設計座標**：**Closed Loop**（人類在框架內把關）· **單一迴圈**預設、opt-in **Fleet** 編隊 · 目標脈絡＝**VISION**（goal）/ **ARCHITECTURE**（設計書 §0–§9）/ **RULES**（AGENTS）· **成本意識**（迴圈很貴 → 高上下文效率、便宜的先·貴的 gate、不重複勞動、fail-fast；**只砍非必要貴動作 + 浪費,不砍 define/gate/verify**；見 `AGENTS.md` 規則 10）。
+> 📊 想看每階段用哪些 agent / 機制的**完整流程圖**（含 mermaid）→ [`docs/FLOW.md`](plugins/loops-workflow/docs/FLOW.md)；**共用規範目錄** → [`docs/REFERENCES.md`](plugins/loops-workflow/docs/REFERENCES.md)。
 
-## 工作流程
+## 你只會用到這幾個指令
+
+**能直接打的就這些**（其餘全是 dispatch 內部自動跑的，見下節）：
+
+| 指令 | 什麼時候用 |
+|---|---|
+| **`/loops-workflow:dispatch <一句話 / issue# / PR#>`** | **唯一入口**——任何開發都從這起：判類型、開一條 loop、自動往下跑（別名 `/loops-workflow:loop`） |
+| `/loops-workflow:resume <slug>` | 接續一條中途停下的 loop |
+| `/loops-workflow:status` | 列出目前所有在跑的 loop |
+| `/loops-workflow:progress [slug]` | 看某條 loop 詳細跑到哪（階段 / 圈數 / findings / 下一步） |
+| `/loops-workflow:scaffold-fullstack` | 空資料夾從零建全端 TS 專案骨架 |
+| `/loops-workflow:explain <target>` | （側用、唯讀）把一塊 code 產成工程師理解包 |
+| `/loops-workflow:agents-md-maintainer` | （側用）維護 repo 的 `AGENTS.md` |
+
+## 內部怎麼跑（下面 7 個階段你不用打、dispatch 自動驅動）
+
+這些階段全標了 **`user-invocable: false`——不會出現在 `/` 選單、你也不能直接 `/loops-workflow:<階段>` 呼叫**，一律由 dispatch 內部用 Skill tool 驅動：
 
 ```
-前置（dispatch 視情況路由）：clarify 釐清模糊需求｜scaffold 建骨架｜define 開 issue
+前置（dispatch 視情況先走）：clarify 釐清模糊需求｜scaffold 建骨架｜define 開 issue
         │
 dispatch → goal → explore → plan → build → verify → iterate
                                                         │
@@ -37,28 +53,22 @@ dispatch → goal → explore → plan → build → verify → iterate
                                                         └──▶ 完工（交 PR / 收尾）
 ```
 
-> **修完一定再過一輪 verify**（fix delta + 波及面派 fresh reviewer；「測試綠 / typecheck 0」不算數）。**完工只在 verify 乾淨那輪才可達** —— 交給其他 reviewer 前先在內部把問題解到最少。
+> **只在真正該你選的決策點才停**（用 `AskUserQuestion`）：explore 選做法 / plan 拍板 / iterate 完工或回環 / 真正的 scope 取捨 / 安全停（分類模糊·危險操作·P0·規格不清）。**其餘 routine 轉場直接往下**，產出寫進 `.loops/`。**修完一定再過一輪 verify**（不是「測試綠」就算完）。需要時可開 opt-in `auto` 連跑。
 
-**只在真正要你做選擇的決策點停下用 `AskUserQuestion` 問**（explore 選方法 / plan 拍板 / iterate 完工或回環 / 真正的 scope 取捨 / 安全停：分類模糊·危險操作·P0·規格不清）。**routine 轉場（進入下一階段）不問、直接往下**，產出寫進 `.loops/` + 摘要，你隨時可插話喊停 / 改。需要時可開 opt-in `auto` 模式（連決策也用推薦選項自動帶過，只剩安全停）。
+### 每個階段在做什麼
 
-## Skill 清單（7 階段，全由 dispatch 內部驅動、不可直接呼叫）
+「停下問你？」欄：✋ = 一定停下用 `AskUserQuestion` 的真決策點；其餘只在列出的條件才停。**下表是階段名、不是指令**——你打的永遠是 `dispatch`，它才是唯一入口。
 
-> 這些階段都是 `user-invocable: false`——**不可直接 `/loops-workflow:<階段>` 呼叫**，一律由 `/loops-workflow:dispatch`（別名 `loop`）判類型後內部驅動；接續中途的 loop 用 `/loops-workflow:resume <slug>`。可直接呼叫的只有 `dispatch` 與側用工具 `explain`/`resume`/`status`/`progress`/`scaffold-fullstack`/`agents-md-maintainer`。
-
-> 「停下問你？」欄：✋ = 真決策、一定停下用 `AskUserQuestion`；其餘只在列出的條件下才停，否則 routine 直接往下。
-
-| Skill | 停下問你？ | 做什麼 |
+| 階段 | 停下問你？ | 做什麼 |
 |---|---|---|
-| `loops-workflow:dispatch` | 僅分類模糊 / scaffold 才停 | 決策樹分流（**乾淨空專案→scaffold 骨架** / issue→goal / 無 issue 待解決→define / 設計→explore / PR→iterate）+ 建 `loop.md` + 進起點階段 |
-| `loops-workflow:define` | 有 blocking 決策才停 | **前置**：模糊問題 / 點子 → Readiness Model + repo issue template + **一次一問 intake** + scope sizing + flowchart → 建 template-ready issue（草稿確認 → `gh issue create --assignee @me`）→ 再 goal |
-| `loops-workflow:goal` | 有 scope 取捨才停 | **逐句掃 issue 抽 requirement**（不只 AC 段）→ 一次一問訪談 → restate 六欄完工定義 + 可驗證停止條件 |
-| `loops-workflow:explore` | ✋ 選方法 | 內部找可重用 → **不夠才**搜外部（內部+需求已釘死就不搜、省資源）→ 攤開推薦；deep-research 升級要 gate；框架 API 查官方文件 |
-| `loops-workflow:plan` | ✋ 拍板方案 | decision record + 機制圖（**拍板 gate 渲染運作流程圖＋注入接線圖給你看**）+ ≥3 套件評估 + 拆成可獨立 verify 的任務；**計畫草稿在 plan 階段就送出**（living plan，實作偏離回去改） |
-| `loops-workflow:build` | 危險 / 卡關才停 | 逐任務**紅綠分離**（test-author 看不到 impl / impl-author 不准改 test）+ Refactor + 分段 commit |
-| `loops-workflow:verify` | 出 P0 才停 | **同回合派 6 reviewer** fan-out（+ 視領域加派條件式 reviewer）+ 跑真 app + 本機 /code-review + finding-validator 二輪 + P0–P3 分級 |
-| `loops-workflow:iterate` | ✋ 完工（回環自動） | 回饋四分類 + **actionable 一律自動全修（不論 P2/P3、不問「修多少」）** + Stop-the-Line 根因修 + **3 圈上限**；收尾交接物**依類型**（修正型只一份回覆 reviewer／完整迴圈才產 PR 收尾 comment + explain），草稿確認才送；**follow-up 留當前 issue、不另開** |
-
-另有兩個側用 skill（唯讀 / 不在迴圈裡）：`loops-workflow:explain <target>` 產工程師理解包（實作導讀 + 自測題 + 設計方向）；`loops-workflow:agents-md-maintainer` 漸進維護 repo 的 agent-facing 文檔（`AGENTS.md` + 覆蓋率追蹤表 + 各模組 `AGENTS.md`，documentation-only、不被 dispatch 路由）。
+| **dispatch**（入口） | 僅分類模糊 / 要 scaffold 才停 | 判類型分流：乾淨空專案→scaffold / issue→goal / 沒 issue 的待辦→define / 純研究→explore / PR 回饋→iterate。建 `loop.md`、進起點階段 |
+| **define**（前置） | 有 blocking 決策才停 | 模糊點子 → 一次一問釐清 → 用 repo 的 issue 模板開一張 template-ready issue → 再進 goal |
+| **goal** | 有 scope 取捨才停 | 逐句掃 issue 抽出需求（不只 AC 段）→ 訪談 → 寫成「六欄完工定義」+ 可驗證的停止條件 |
+| **explore** | ✋ 選做法 | 先找內部可重用的 → 不夠才搜外部（省資源）→ 攤開比較 + 推薦讓你選；框架 API 查官方文件 |
+| **plan** | ✋ 拍板方案 | 決策留痕 + 畫機制圖（拍板時渲染給你看）+ 新套件 ≥3 候選評估 + 拆成能各自驗證的任務 |
+| **build** | 危險 / 卡關才停 | 逐任務**紅綠分離**：test-author 只看需求寫測試（看不到實作）、impl-author 只負責轉綠（不准改測試）→ 重構 → 分段 commit |
+| **verify** | 出 P0 才停 | 同一回合派**多個獨立 reviewer** 各審一面（正確性 / 契約 / 安全 / 效能 / 測試…）+ 跑真 app + 二輪驗證 findings → 判 Ready / 退回 |
+| **iterate** | ✋ 完工 / 回環 | 把 verify 或 PR 回饋分類 → **真問題一律自動全修**（修根因 + 加回歸測試）→ 修完再驗一輪 → 乾淨才收尾開 PR。回環最多 3 圈 |
 
 ## 兩個引擎
 
