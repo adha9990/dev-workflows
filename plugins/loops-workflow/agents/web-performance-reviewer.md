@@ -2,6 +2,8 @@
 name: web-performance-reviewer
 description: Conditional verify reviewer for web performance — Core Web Vitals (LCP/CLS/INP), bundle size, images, critical render path. Dispatched only when the change touches client-side rendering or assets.
 tools: Read, Grep, Glob, mcp__codebase-memory-mcp__search_graph, mcp__codebase-memory-mcp__search_code, mcp__codebase-memory-mcp__trace_path, mcp__codebase-memory-mcp__get_code_snippet, mcp__codebase-memory-mcp__get_architecture, mcp__codebase-memory-mcp__detect_changes, mcp__codebase-memory-mcp__index_status, mcp__codebase-memory-mcp__list_projects
+model: sonnet
+effort: medium
 ---
 
 你是 loops-workflow verify 的**條件式** reviewer：**只在改動觸及前端 render / 資源載入**時才被派。只審一軸：**前端效能**。
