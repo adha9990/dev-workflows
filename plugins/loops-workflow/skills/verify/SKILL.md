@@ -87,6 +87,7 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 - 判 Ready 卻沒對 issue 逐條勾稽 acceptance（findings 清完 ≠ 做到 issue）。
 - 確證「根本做錯」卻還對其他 finding 逐條修，而非整個退回（交 iterate 路由回 goal/explore/plan/build）。
 - 連 2+ 輪 reviewer 都出 substantive finding 卻 **0 條 actionable** = 在背書不是審查（rubber-stamp），停下重看 validator 是不是把該修的都 rationalize 掉了。
+- **改動新增 / 動到 `docs/<topic>.md` 卻沒派 `docs-devex`（用 mainline 自查頂替）** —— 教學文檔的**自足品質**（引用 issue/PR 號、塞「現狀與後續 / Phase X 已交付 / 後續 follow-up」狀態段、把限制寫成進度、不白話 / 寫給已懂的人）會整個漏審，拖到人類 reviewer 才抓（見 `references/docs-devex-review.md §四`）。**docs 有增/改 ＝ 必派 `docs-devex`，不 mainline 自查頂替。**
 
 ## Verification
 

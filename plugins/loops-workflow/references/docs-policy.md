@@ -20,6 +20,15 @@
 
 **教學取向：怎麼用、有什麼限制 / 坑、怎麼擴充。** docs = 教學手冊（how-to），**不是決策紀錄** —— 「**為什麼這樣設計 / 取捨理由 / 被否決的方案**」屬於設計計畫（`design-plan-schema.md` §6 決策 / §8 三角驗證）與 PR body，不重複塞進 docs（docs 只在「不寫使用者會踩坑」時點到設計約定，不展開決策 audit）。不重貼 code、不寫成 API 字典。
 
+## docs 必須自足 —— 不引用 issue/PR、不含狀態 / roadmap 段
+
+`docs/<topic>.md` 是**獨立教學文檔**：讀者不必翻任何 issue/PR/loop 就能看懂「怎麼用 + 怎麼運作 + 有什麼限制」。把它想成「這系統已穩定存在很久」的教學手冊 —— 任何「這是最近做的 / 分幾期交付 / 見那張票」的痕跡都是雜訊，一律拿掉。
+
+- **絕不引用 issue / PR 號**（`#NNN`、「見 issue #X」「承 #Y 研究報告」「設計脈絡見 PR #Z」）。要講的知識**直接寫進 doc**；要指更細，指**會留在 repo 的自足文件**：其他 `docs/<topic>.md`、各層 `AGENTS.md`/`CLAUDE.md`、程式碼 `file:line` / 型別。issue/PR 是過程產物，不是教學來源。（同理不引用 `.loops/` 路徑。）
+- **不含狀態 / roadmap / 交付進度段**：「現狀與後續」「Phase 1/2（已交付）」「後續 follow-up」「roadmap」「里程碑」這類段落一律不進 docs —— 那是 PR body / plan / git history 的事。
+- **用「限制」表達，不用「進度」表達**：現在做不到什麼、有什麼坑，寫成 **Reference / 限制**（「interpolation 參數型別不在檢查範圍」「只有部分 UI 走 t()、其餘 fallback en」）；**不要**寫成「哪個 phase 交付了 / 哪些是後續」。限制是教學（讀者會踩），進度是過程（讀者不需要）。
+- **不寫里程碑名**（Phase 1 / Phase 2 / MVP…）—— doc 描述「系統現在怎樣」，不編年史。
+
 ## 格式範本：Diátaxis 四型（教學手冊的骨架）
 
 業界公認的文檔結構框架是 **Diátaxis**（diataxis.fr），把文檔分成四型、各答一個不同問題、**鐵則是分開不混**：
@@ -31,13 +40,13 @@
 | **Reference** | 事實 / 規格 / 查找 | 規格是什麼？ |
 | **Explanation** | 背景、脈絡、**為什麼** | 為什麼這樣設計？ |
 
-**本工作流家規 ＝ Diátaxis 減 Explanation**：本規範上一節已把「為什麼 / 取捨」排除到 plan / PR，那正是 Diátaxis 的 Explanation 型。所以 `docs/` 只放 **How-to + Reference + 輕量 Concept（+ 可選一段 Tutorial 走一遍）**，「為什麼」最多一句帶過並指向 PR。使用者嫌 docs「太像決策手冊」時，通常就是混進了過多 Explanation。
+**本工作流家規 ＝ Diátaxis 減 Explanation**：本規範上一節已把「為什麼 / 取捨」排除到 plan / PR，那正是 Diátaxis 的 Explanation 型。所以 `docs/` 只放 **How-to + Reference + 輕量 Concept（+ 可選一段 Tutorial 走一遍）**，「為什麼」最多一句帶過（**但不連 issue/PR 號** —— 見下方〈docs 必須自足〉）。使用者嫌 docs「太像決策手冊」時，通常就是混進了過多 Explanation。
 
 **單一內部 feature → 一份檔、Diátaxis 顯性分節**（不必為純度拆成四個檔，避免碎片化 / 跨檔重複 / 維護成本）。章節明標類型即可：
 
 ```
 # <功能>
-> 一句話這是什麼 +（可註明「依 Diátaxis 分節、why 在 PR」）
+> 一句話這是什麼（自足、教學取向；不引用 issue/PR、不寫交付進度）
 
 ## 概念｜心智模型（精簡的 Concept，建立理解用）
 ## 教學｜跟著一次真實操作走一遍（Tutorial，用真實資料流帶讀者穿過分層）
