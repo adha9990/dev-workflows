@@ -20,7 +20,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 - 使用者丟一句話描述 / issue 號 / PR 號，要判斷這是「處理 issue / 設計問題 / 修正問題」。
 
 **NOT for**：
-- 你已經知道要哪個階段 —— 直接喊那個階段（`/loops-workflow:goal` 等），別繞 dispatch 多花一圈 token。
+- 要**接續**一條既有 loop（不必重跑 dispatch）—— 用 `/loops-workflow:resume <slug>`（各階段 `user-invocable: false`、不能直接喊）。
 - 把所有階段一路自動跑完 —— 那違反 Closed Loop，dispatch 只送你到起點。
 - **側用工具不歸 dispatch 路由** —— `explain`（看懂改動）、`agents-md-maintainer`（維護 repo `AGENTS.md`，documentation-only）是閉環外側用，直接喊、不進決策樹。
 
@@ -69,7 +69,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-delete-permanent`）、無 issue 號的設計 / 研究用 `<kebab 描述>`（英文 / 數字 / 連字號）。**不加 `fix/`/`feat/` 等 type 前綴** —— 這個 slug 同時是 loop 目錄、worktree、branch 的名字。建立 `.loops/<slug>/loop.md`，寫入：
 - **類型**（issue / design / fix）
-- **operation 性質**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`）—— 依 issue 內容判定（非自動偵測程式），決定 **build 紅燈第一步**（見 `references/operation-first-move.md`）；與**類型正交**（類型決起點 stage、operation 決紅燈起手式）。**拿不準向嚴用 `new-feature`**（標準 TDD）並在 Journal 註明。**loop.md 的建立者寫 operation**：dispatch 建 loop.md 時寫（含 `issue# → 從 goal 起`，dispatch §2 一律先建 loop.md 才進 goal）；無 issue 工作經 `define` 建 loop.md 時由 define 寫（見 define §7）。**goal 兜底**：任何成因導致 loop.md 無此欄（含使用者直接喊 `/loops-workflow:goal` 未經 dispatch）→ goal step 1 讀到就補（見 `goal` skill）。
+- **operation 性質**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`）—— 依 issue 內容判定（非自動偵測程式），決定 **build 紅燈第一步**（見 `references/operation-first-move.md`）；與**類型正交**（類型決起點 stage、operation 決紅燈起手式）。**拿不準向嚴用 `new-feature`**（標準 TDD）並在 Journal 註明。**loop.md 的建立者寫 operation**：dispatch 建 loop.md 時寫（含 `issue# → 從 goal 起`，dispatch §2 一律先建 loop.md 才進 goal）；無 issue 工作經 `define` 建 loop.md 時由 define 寫（見 define §7）。**goal 兜底**：任何成因導致 loop.md 無此欄（含 goal 被單獨呼叫、未經 dispatch）→ goal step 1 讀到就補（見 `goal` skill）。
 - **起點階段** + **當前階段**（當前階段初始＝起點階段，每進一個階段就更新；供 progress / hook 顯示）
 - **session**（用 Bash 讀 `$CLAUDE_CODE_SESSION_ID` 填；progress / hook 靠它**只顯示「本 session」正在跑的 loop**，不被別 session / 歷史 loop 干擾）
 - **推進模式**（closed / auto，預設 closed）

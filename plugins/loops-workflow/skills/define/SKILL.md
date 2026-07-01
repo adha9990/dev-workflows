@@ -14,7 +14,7 @@ description: Turns any new work without a GitHub issue into a structured, templa
 
 ## When to Use
 
-**Use when**：要開始**任何還沒有 GitHub issue 的工作**（功能 / 修正）。define 是**所有 issue card 的唯一入口：一律經 define + repo template，不 ad-hoc 直接 `gh issue create`**（AGENTS 規則 12）。也可獨立呼叫：把想法變成 ticket、或審 / 重寫既有 ticket。**研究不是獨立 issue**：見下——研究是某功能 issue 的 explore 階段、或先研究再來 define 開功能 issue。
+**Use when**：要開始**任何還沒有 GitHub issue 的工作**（功能 / 修正）。define 是**所有 issue card 的唯一入口：一律經 define + repo template，不 ad-hoc 直接 `gh issue create`**（AGENTS 規則 12）。（`user-invocable: false`：由 dispatch 對無-issue 工作內部驅動，不由使用者直接喊）用途含把想法變成 ticket、或審 / 重寫既有 ticket。**研究不是獨立 issue**：見下——研究是某功能 issue 的 explore 階段、或先研究再來 define 開功能 issue。
 
 **NOT for**：
 - 已有 GitHub issue —— 直接 `goal` / `iterate`（define 是「建 issue」，不是精煉既有）。

@@ -66,20 +66,17 @@
 
 ## 3. Intent → command 對照表
 
-使用者可以走 `dispatch` 讓系統判類型，也可以**直接喊對應階段**跳過判斷。每個階段 skill 都能獨立呼叫。
+**使用者唯一的 pipeline 入口是 `/loops-workflow:dispatch`**（別名 `/loops-workflow:loop`）—— 它判類型、分流到對的起點階段。各階段（clarify / define / goal / explore / plan / build / verify / iterate）都是 `user-invocable: false`、**不可直接 `/loops-workflow:<階段>` 呼叫**，由 dispatch（及階段彼此）用 Skill tool 內部驅動；接續中途的 loop 用 `/loops-workflow:resume <slug>`。可直接喊的只有側用 / opt-in 工具：`explain` / `resume` / `status` / `progress` / `scaffold-fullstack` / `agents-md-maintainer`。下表「起點階段」欄只說明 dispatch 分流到哪、不代表可手動呼叫。
 
 | 你想做的事 | 進入點 | 起點階段 |
 |------|------|------|
-| 有 issue 號 / 「做這個 issue」（意圖明確，完整迴圈） | `/loops-workflow:dispatch <描述>` 或直接 `/loops-workflow:goal` | goal |
-| 丟一個**模糊想法 / 含糊一句話**（還不確定要實作還是研究、範圍不清） | `/loops-workflow:dispatch <描述>`（判模糊 → `clarify` 釐清 → 再分流）或直接 `/loops-workflow:clarify` | clarify → define/goal · explore · iterate |
-| 想解決 / 實作一個**還沒開 issue** 的問題 | `/loops-workflow:dispatch <描述>`（走 `define` 建 issue → 再 goal）或直接 `/loops-workflow:define` | define → goal |
-| 把一個點子 / 模糊問題寫成結構化 issue / ticket | `/loops-workflow:define <描述>` | define（前置，可獨立用） |
-| 從零開一個**全新空專案**（無 code / 空目錄） | `/loops-workflow:dispatch <描述>`（偵測乾淨 → 確認 → scaffold 骨架 → define → goal） | scaffold → define → goal |
-| 純設計 / 研究 / 技術評估（無 issue） | `/loops-workflow:dispatch <描述>` 或直接 `/loops-workflow:explore` | explore |
-| 收到 PR / reviewer 回饋要修正 | `/loops-workflow:dispatch <PR#>` 或直接 `/loops-workflow:iterate` | iterate |
-| 需求已清楚、只想把方法拆成可驗證任務（**前提：已有對應 issue**；沒有先 `define`，見規則 12） | 直接 `/loops-workflow:plan` | plan |
-| 計畫已拍板、要逐任務實作（**前提：已有對應 issue**） | 直接 `/loops-workflow:build` | build |
-| 改完了、要做 merge 前驗收 | 直接 `/loops-workflow:verify` | verify |
+| 有 issue 號 / 「做這個 issue」（意圖明確，完整迴圈） | `/loops-workflow:dispatch <issue# / 描述>` | goal |
+| 丟一個**模糊想法 / 含糊一句話**（還不確定要實作還是研究、範圍不清） | `/loops-workflow:dispatch <描述>` | clarify → define/goal · explore · iterate |
+| 想解決 / 實作**還沒開 issue** 的問題（含把點子寫成 ticket） | `/loops-workflow:dispatch <描述>` | define → goal |
+| 從零開一個**全新空專案**（無 code / 空目錄） | `/loops-workflow:dispatch <描述>` | scaffold → define → goal |
+| 純設計 / 研究 / 技術評估（無 issue） | `/loops-workflow:dispatch <描述>` | explore |
+| 收到 PR / reviewer 回饋要修正 | `/loops-workflow:dispatch <PR#>` | iterate |
+| 接續一條中途的 loop（跨 session；含要繼續到 plan / build / verify） | `/loops-workflow:resume <slug>` | 該 loop 停在的階段 |
 | 不確定該從哪開始 | `/loops-workflow:dispatch <描述>`（會幫你判類型 + 建 loop.md） | dispatch 判斷 |
 | 想看懂一份改動 / 交給人前產導讀 | `/loops-workflow:explain <target>` | 側用（唯讀，不進迴圈） |
 | 維護 repo 的 agent-facing 文檔（`AGENTS.md`） | `/loops-workflow:agents-md-maintainer` | 側用（documentation-only，不被 dispatch 路由、不進迴圈） |
