@@ -1,6 +1,6 @@
 # references 目錄（各規範在處理什麼）
 
-> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **50 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
+> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **51 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
 >
 > 機制全貌（每階段怎麼跑）見 [`FLOW.md`](FLOW.md)；這份是「規範字典」。subagent 讀不到相對路徑 → orchestrator 把絕對路徑塞進 prompt（見 `AGENTS.md`〈參考檔路徑解析〉）。
 
@@ -43,7 +43,7 @@
 | `reviewer-severity` | finding 分級格式：P0–P3 + Confidence（50/75/100）+ Route | verify（全 reviewer） |
 | `finding-validation` | finding-validator 二輪四問：真實 / 本次引入 / 已防護 / 對症 → validated / rejected / degraded | verify（finding-validator） |
 | `preflight` | 送審單一判定（可送審 / 建議先修 / 資訊不足）+ 硬規則「作者已留痕的決定不算 finding」 | verify（送審自檢 + 全 reviewer） |
-| `optional-reviewers` | 條件式領域 reviewer 對照（哪種改動加派哪個：前端 / a11y / 可觀測性 / CI-CD / migration / bug-fix / docs…） | verify（1.5 加派） |
+| `optional-reviewers` | 條件式領域 reviewer 對照（哪種改動加派哪個：前端 / a11y / 可觀測性 / CI-CD / migration / bug-fix / docs…）＋**專案宣告條件**（專案 AGENTS.md 宣告多人使用→multi-user-concurrency） | verify（1.5 加派） |
 | `verify-triage` | verify 改動風險判準（定 0~6 核心軸）：高風險硬閘清單 / 小孤立·瑣碎判準 / tangling veto / 「做錯東西就整個退回」catastrophic-miss 判準（所有級、審查後 triage） | verify（步驟 1 選軸判級） |
 | `cross-model-review` | opt-in 換不同模型當對手 reviewer（卡關時升級對抗審查） | iterate（卡關）· verify（可選） |
 | `model-effort-policy` | cost-aware：agent 依角色靜態選 model+effort、verify/build 依風險動態覆寫 model（effort 無法 per-dispatch） | 全 agent（frontmatter）· verify · build |
@@ -60,6 +60,7 @@
 | `ui-interaction-review` | 交互閉環：真實寫入 / 假成功回滾 / 快取同步 / 亂序 / 編輯 flush | verify（frontend-ui） |
 | `root-cause-review` | 根治性：症狀 vs 病根 / 因果鏈 / 同類入口 / 回歸測試撤 fix 必紅 | verify（root-cause，條件式） |
 | `docs-devex-review` | 文件同步 + PR body 驗證證據品質 | verify（docs-devex，條件式） |
+| `multi-user-review` | 多人併發：lost update / 跨帳號授權隔離 / 交易競態 / oplog 排序 / 冪等 / read-your-writes | verify（multi-user-concurrency，**專案宣告多人才派**） |
 
 ## 4. 對外溝通與產出
 

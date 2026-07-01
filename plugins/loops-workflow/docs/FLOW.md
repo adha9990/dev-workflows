@@ -59,7 +59,7 @@ flowchart TD
 |---|---|
 | **skill** | `dispatch`（1）｜**agent** 0 |
 | **處理什麼** | 判**意圖清晰度** → 建 `.loops/<slug>/loop.md` → 進起點階段（模糊先路由給 clarify） |
-| **機制** | 決策樹：**乾淨空專案→scaffold**／issue#（明確）→goal／PR#（明確）→iterate／**模糊想法→`clarify`**（釐清+判方向）／已釐清待解決→`define`→goal／**想先探索一塊空間→explore→產出經 `define` 開功能 issue**。建 loop.md（類型·**operation 性質**·session id·當前階段）。**所有 issue 一律經 define + repo template 建、不 ad-hoc；無獨立研究 issue**（規則 12）。**會動 code 的迴圈開 git worktree**，但 `.loops/` 留主 repo（免被 worktree 清掉） |
+| **機制** | 決策樹：**乾淨空專案→scaffold**／issue#（明確）→goal／PR#（明確）→iterate／**模糊想法→`clarify`**（釐清+判方向）／已釐清待解決→`define`→goal／**想先探索一塊空間→explore→產出經 `define` 開功能 issue**。建 loop.md（類型·**operation 性質**·session id·當前階段）。**所有 issue 一律經 define + repo template 建、不 ad-hoc；無獨立研究 issue**（規則 12）。**會動 code 的迴圈開 git worktree**，但 `.loops/` **一律確定性錨定在主 repo 根**（`git worktree list` 第一筆 = `$LOOPS_ROOT`，絕對路徑寫入、嚴禁落在 worktree 內，免被 worktree 清掉 + 免分裂，見 `AGENTS.md` 規則 9） |
 | **策略** | **只分流、不串接** —— routine 不問你；**dispatch 自己不做訪談 / 複述確認**（模糊路由給 `clarify`），只有分類衝突 / scaffold 大動作才停 |
 
 ---
@@ -127,11 +127,11 @@ flowchart TD
 
 | 項目 | 內容 |
 |---|---|
-| **skill** | `plan`（1）｜**agent** 0；**風險大的設計可派 read-only 設計品質審查 agent**；發想多方案 opt-in Fleet |
+| **skill** | `plan`（1）｜**agent** **一律派 1 read-only 設計品質審查（plan 前先 verify、不論風險）**；發想多方案 opt-in Fleet |
 | **處理什麼** | 動 code 前把設計拍板留痕、拆成可獨立 verify 的任務 |
-| **機制** | 決策留痕（**ADR 五欄**）→ 套件評估（**≥3 候選**）→ **機制圖**（每機制：白話 + 運作流程圖 + 注入接線圖）→ **契約規格**（跨 API/資料/事件介面才寫，含 Hyrum's Law）→ 品質六維度 + 重用 + 設計模式對症 →（風險大才）派設計品質審查 → **拆可驗證任務**（垂直切片 / risk-first / XS–XL 尺寸）→ 送對齊 comment + 拍板 gate |
+| **機制** | 決策留痕（**ADR 五欄**）→ 套件評估（**≥3 候選**）→ **機制圖**（每機制：白話 + 運作流程圖 + 注入接線圖）→ **契約規格**（跨 API/資料/事件介面才寫，含 Hyrum's Law）→ 品質六維度 + 重用 + 設計模式對症 → **一律派設計品質審查（plan 前先 verify、不論風險，拿掉 trivial 免派）** → **拆可驗證任務**（垂直切片 / risk-first / XS–XL 尺寸）→ 送對齊 comment + 拍板 gate |
 | **產出** | `02-plan.md` —— **§0–§9 完整施工圖**（系統全貌 + 檔案職責表 + 機制圖 + 名詞 + 決策含具名背書 + 三角驗證 + 成果展示） |
-| **策略** | **最高標準不以 MVP** · **living plan**（偏離回來改）· 拍板前**渲染機制圖 + 攤「我的假設」清單**給你看，不准盲拍 |
+| **策略** | **最高標準不以 MVP** · **living plan**（偏離回來改）· 拍板前**渲染機制圖 + 攤「我的假設」清單**給你看，不准盲拍 · **拍板前一律先過設計審查**（plan 前先 verify、不論風險高低、無 trivial 免派） |
 | **gate** | ✋ 拍板方案 |
 
 ---
@@ -164,7 +164,7 @@ flowchart LR
 
 | 項目 | 內容 |
 |---|---|
-| **skill** | `verify`（1）｜**agent** **依風險 0～6 核心（步驟 1 風險梯）+ 0～9 條件式 + N 個 finding-validator**（同一回合並行） |
+| **skill** | `verify`（1）｜**agent** **依風險 0～6 核心（步驟 1 風險梯）+ 0～10 條件式（含專案宣告觸發的 multi-user）+ N 個 finding-validator**（同一回合並行） |
 | **處理什麼** | 合併前把關：多個獨立視角各審一軸，再二輪驗證 findings |
 | **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`）· **作者已留痕的決定不算 finding** · **獨立安全網非第一道品質關**（標準已在 build shift-left 套用，verify 複查 + 抓盲點） |
 
@@ -177,14 +177,14 @@ flowchart TD
     S2 --> R4[architecture<br/>分層·import·契約·設計模式]
     S2 --> R5[security<br/>auth·注入·敏感資料·威脅建模]
     S2 --> R6[performance<br/>query·N+1·index·transaction]
-    S2 -.觸及領域才加派.-> COND[N conditional：frontend-ui·a11y·web-perf<br/>observability·ci-cd·migration<br/>processing-reliability·root-cause·docs-devex]
+    S2 -.觸及領域/專案宣告才加派.-> COND[N conditional：frontend-ui·a11y·web-perf<br/>observability·ci-cd·migration<br/>processing-reliability·root-cause·docs-devex<br/>multi-user-concurrency〔專案宣告多人才派〕]
     R1 & R2 & R3 & R4 & R5 & R6 & COND --> CO[③ coordinator 去重 + 跑真 app/本機 code-review<br/>→ finding-validator 二輪：真實?本次?已防護?對症?]
     CO --> S4{④ acceptance 閘<br/>每條 criterion 收斂到 已滿足/descoped?}
     S4 -->|是·全收斂| S5[⑤ Ready → 04-verify.md → iterate]
     S4 -.否·未收斂 / 確證根本做錯.-> ITER[Not ready → iterate 依錯在哪<br/>路由 goal / explore / plan / build]
 ```
 
-> **5 步**（詳見 `skills/verify/SKILL.md`）：**①選軸**——「fan-out」＝同一回合一次派出多審查員各審一軸並行；依風險定核心軸（0~6）：瑣碎 0 / 小孤立 3 / 一般·高風險 6（高風險一律滿、不准縮）；再依領域加派 9 個條件式（碰到才加）。非 code 實質文件→product-contract + docs-devex（不入 code 級梯）。**②並行審**——同一回合派出、各一軸、反偏見（只給 artifact+契約）、跑真 app。**③驗 findings**——coordinator 去重 + finding-validator 四問二輪。**④acceptance 閘（所有級通用）**——issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足（有證據）/ 明確 descoped（留痕）才放行；任一條 partial 當完成在**任何級**都擋回 iterate；確證「根本做錯」（做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞）就**整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）、不逐條修**。**⑤判 Ready/退回**——P0–P3+Confidence+Route，出 P0 才停下問你、否則直接進 iterate。
+> **5 步**（詳見 `skills/verify/SKILL.md`）：**①選軸**——「fan-out」＝同一回合一次派出多審查員各審一軸並行；依風險定核心軸（0~6）：瑣碎 0 / 小孤立 3 / 一般·高風險 6（高風險一律滿、不准縮）；再依領域加派 10 個條件式（碰到才加；其中 multi-user-concurrency 由**專案在 AGENTS.md 宣告多人使用**觸發、非改動領域觸發）。非 code 實質文件→product-contract + docs-devex（不入 code 級梯）。**②並行審**——同一回合派出、各一軸、反偏見（只給 artifact+契約）、跑真 app。**③驗 findings**——coordinator 去重 + finding-validator 四問二輪。**④acceptance 閘（所有級通用）**——issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足（有證據）/ 明確 descoped（留痕）才放行；任一條 partial 當完成在**任何級**都擋回 iterate；確證「根本做錯」（做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞）就**整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）、不逐條修**。**⑤判 Ready/退回**——P0–P3+Confidence+Route，出 P0 才停下問你、否則直接進 iterate。
 
 > **reviewer code 探索**：各 reviewer 收到改動檔清單 + graph project id（若已索引）。改動檔（diff）一律直接 `Read`（審查對象、graph 對此最不可信）；「誰呼叫這個函式 / 它依賴誰 / 落在哪層」→ 用 codebase-memory-mcp 查穩定周邊（見 `references/code-retrieval.md`）。
 
@@ -232,7 +232,7 @@ flowchart TD
 |---|---|---|
 | **記憶體** | `.loops/<slug>/`：`loop.md`（儀表板 + Journal）+ `0N-*.md`（各階段精煉產出） | Memory |
 | **隔離工作樹** | 會動 code 的迴圈在 `git worktree`（`<issue#>-<slug>` 同名 branch） | Worktrees |
-| **子代理** | build 紅綠 3 + verify 0～6 核心（步驟 1 風險梯）+ 9 條件式 + validator；各依角色靜態選 model/effort tier（見 `references/model-effort-policy.md`），高風險時 verify/build 派工才動態拉 `model: opus` | Subagents |
+| **子代理** | build 紅綠 3 + verify 0～6 核心（步驟 1 風險梯）+ 10 條件式 + validator；各依角色靜態選 model/effort tier（見 `references/model-effort-policy.md`），高風險時 verify/build 派工才動態拉 `model: opus` | Subagents |
 | **技能** | 13 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
 | **自動化** | `dispatch auto`、`/loop`·`/schedule`、progress（/progress + Stop hook 自動產 PROGRESS.md） | Automations |
@@ -250,9 +250,9 @@ flowchart TD
 | | |
 |---|---|
 | **skill** | 12（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **agents-md-maintainer** 側用文檔維運）。〔`distill` 已降為文件 `docs/distill.md`、不再可呼叫〕 |
-| **agent** | 20（+ 2 個 opt-in 高風險 -deep 變體：security-reviewer-deep / architecture-reviewer-deep，opus·high）= build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + eval-judge（eval E4，無 oracle 維度評分、主迴圈/Workflow 派）+ 9 條件式領域 reviewer（accessibility / ci-cd / docs-devex / frontend-ui / migration / observability / processing-reliability / root-cause / web-performance，視改動面加派）。explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose（不計入此數）。全 20 個 frontmatter 各帶 `model`+`effort` tier（`model-effort-policy.md`：多為 sonnet·medium，窄任務 sonnet·low，referee opus·high） |
-| **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 9 條件式）+ N validator |
-| **reference** | 50 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + bdd-scenarios / code-retrieval / model-effort-policy + 8 份 per-axis 審查判準 + verify-triage 風險分級 + operation-first-move + instinct-schema + eval-judge-rubric 無 oracle 維度評分卡 + eval-judge-panel / eval-live-candidate Phase 3 活流程 recipe）｜**command** loop / resume / status / explain / progress｜**hook** 8 個 / 4 事件（SessionStart 恆跑、其餘 6 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈 + instinct 注入 opt-in) + Stop(cost-tracker 估成本 + eval-gate 改檔回合多訊號注入〔eval-metrics check 退化 LOOPS_EVAL_GATE／eval-tags by-tag 失敗 tag LOOPS_EVAL_TAGS_GATE／eval-poll poll 共識 LOOPS_EVAL_POLL_GATE，三 flag 獨立〕 + stop-gate 改檔回合自動跑 quality-gate + progress-render（恆跑，每回合對本 session active loop 重生 PROGRESS.md、不注入、永不擋路）) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
+| **agent** | 21（+ 2 個 opt-in 高風險 -deep 變體：security-reviewer-deep / architecture-reviewer-deep，opus·high）= build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + eval-judge（eval E4，無 oracle 維度評分、主迴圈/Workflow 派）+ 10 條件式領域 reviewer（accessibility / ci-cd / docs-devex / frontend-ui / migration / observability / processing-reliability / root-cause / web-performance / **multi-user-concurrency〔專案宣告多人使用才派，非改動領域觸發〕**，視改動面 / 專案宣告加派）。explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose（不計入此數）。全 21 個 frontmatter 各帶 `model`+`effort` tier（`model-effort-policy.md`：多為 sonnet·medium，窄任務 sonnet·low，referee opus·high） |
+| **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 10 條件式）+ N validator |
+| **reference** | 51 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + bdd-scenarios / code-retrieval / model-effort-policy + 9 份 per-axis 審查判準（含 multi-user-review）+ verify-triage 風險分級 + operation-first-move + instinct-schema + eval-judge-rubric 無 oracle 維度評分卡 + eval-judge-panel / eval-live-candidate Phase 3 活流程 recipe）｜**command** loop / resume / status / explain / progress｜**hook** 8 個 / 4 事件（SessionStart 恆跑、其餘 6 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈 + instinct 注入 opt-in) + Stop(cost-tracker 估成本 + eval-gate 改檔回合多訊號注入〔eval-metrics check 退化 LOOPS_EVAL_GATE／eval-tags by-tag 失敗 tag LOOPS_EVAL_TAGS_GATE／eval-poll poll 共識 LOOPS_EVAL_POLL_GATE，三 flag 獨立〕 + stop-gate 改檔回合自動跑 quality-gate + progress-render（恆跑，每回合對本 session active loop 重生 PROGRESS.md、不注入、永不擋路）) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
 
 ---
 
@@ -265,9 +265,9 @@ flowchart TD
 | define | 1 | 0 | 無 issue 時 |
 | goal | 1 | 0 | 主線訪談 |
 | explore | 1 | **1 掃描 + N 評估** | 方法競爭時一候選一 agent |
-| plan | 1 | 0（+設計審查 / Fleet 選用） | 風險大才派 |
+| plan | 1 | **1 設計審查**（+Fleet 選用） | **一律必派**（plan 前先 verify、不論風險） |
 | build | 1 | **2 / 任務**（test+impl）+ referee | 衝突時 referee |
-| verify | 1 | **1–6 + 0–9 + N** | 同回合並行 |
+| verify | 1 | **1–6 + 0–10 + N** | 同回合並行（multi-user 由專案宣告觸發） |
 | iterate | 1 | 0（+cross-model 選用） | 卡關時 |
 | explain（側） | 1 | 0 | 唯讀 |
 | agents-md-maintainer（側） | 1 | 0 | 維護 AGENTS.md（不入迴圈） |
