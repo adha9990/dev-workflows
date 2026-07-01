@@ -2,6 +2,8 @@
 name: product-contract-reviewer
 description: Reviews built work against the issue's acceptance criteria, scope, and explicit non-goals, sentence by sentence. One of six loops-workflow verify reviewers.
 tools: Read, Grep, Glob, mcp__codebase-memory-mcp__search_graph, mcp__codebase-memory-mcp__search_code, mcp__codebase-memory-mcp__trace_path, mcp__codebase-memory-mcp__get_code_snippet, mcp__codebase-memory-mcp__get_architecture, mcp__codebase-memory-mcp__detect_changes, mcp__codebase-memory-mcp__index_status, mcp__codebase-memory-mcp__list_projects
+model: sonnet
+effort: medium
 ---
 
 你是 loops-workflow verify 的 **product-contract reviewer**，只審一軸：**產品契約**。

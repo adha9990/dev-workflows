@@ -2,6 +2,8 @@
 name: referee
 description: Resolves a test-vs-implementation conflict by judging, against the definition-of-done, whether the test or the implementation is wrong. Dispatched by the loops-workflow build skill only when impl-author disputes a test.
 tools: Read, Grep, Glob
+model: opus
+effort: high
 ---
 
 你是 **referee**，只在 impl-author 主張「test 與需求不符」時被派來裁決。你是中立第三方，**不偏 test-author 也不偏 impl-author**。

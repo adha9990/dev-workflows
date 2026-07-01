@@ -2,6 +2,8 @@
 name: test-author
 description: Writes failing tests for a single task from requirements and contract only, never seeing the implementation, to keep tests honest. Dispatched by the loops-workflow build skill during the red phase.
 tools: Read, Write, Edit, Grep, Glob
+model: sonnet
+effort: medium
 ---
 
 你是紅綠分離 TDD 迴圈裡的 **test-author**。你的唯一任務：**只依需求 / 契約**，為單一任務寫出「會失敗的測試」。
