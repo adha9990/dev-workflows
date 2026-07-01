@@ -19,6 +19,7 @@ import {
   RATE_TABLE,
   getRates,
   sumUsageFromTranscript,
+  sumUsageByStage,
   estimateCostUsd,
   buildCostRow,
 } from './cost-tracker.mjs';
@@ -183,9 +184,53 @@ function callSafe(fn) {
   assert(row && row.cache_read_input_tokens === 50300, 'buildCostRow：cacheReadTokens → cache_read_input_tokens [A5]');
   assert(row && row.cost_usd === 0.2292, 'buildCostRow：costUsd → cost_usd [A5]');
   assert(row && row.estimate === true, 'buildCostRow：estimate === true（常數）[A5]');
-  assert(row && row.schema === 1, 'buildCostRow：schema === 1（常數）[A5]');
+  assert(row && row.schema === 2, 'buildCostRow：schema === 2（by_stage 版；常數）[A5]');
+  assert(row && row.by_stage === undefined, 'buildCostRow：未給 byStage → 無 by_stage 欄（向後相容）[A5]');
   const nums = row ? [row.input_tokens, row.output_tokens, row.cache_creation_input_tokens, row.cache_read_input_tokens, row.cost_usd] : [];
   assert(nums.length === 5 && nums.every((n) => typeof n === 'number' && n >= 0), 'buildCostRow：所有數字欄皆 number 且 ≥ 0 [A5]');
+}
+
+// ── A6 sumUsageByStage：按 Skill(loops-workflow:<stage>) 邊界分段 + buildCostRow by_stage ──
+{
+  // A6a：(main)（首標記前）→ plan → build 三段；標記行的 usage 歸「新」stage。
+  const inline = [
+    '{"type":"assistant","message":{"model":"claude-opus-4-8","usage":{"input_tokens":10,"output_tokens":5}}}',
+    '{"type":"assistant","message":{"model":"claude-opus-4-8","content":[{"type":"tool_use","name":"Skill","input":{"skill":"loops-workflow:plan"}}],"usage":{"input_tokens":100,"output_tokens":20}}}',
+    '{"type":"user","message":{"role":"user","content":"x"}}',
+    '{"type":"assistant","message":{"model":"claude-opus-4-8","usage":{"input_tokens":100,"output_tokens":30}}}',
+    '{"type":"assistant","message":{"model":"claude-opus-4-8","content":[{"type":"tool_use","name":"Skill","input":{"skill":"loops-workflow:build"}}],"usage":{"input_tokens":1000,"output_tokens":200}}}',
+    '{"type":"assistant","message":{"model":"claude-opus-4-8","usage":{"input_tokens":1000,"output_tokens":300}}}',
+  ].join('\n');
+  const r = callSafe(() => sumUsageByStage(inline));
+  assert(!r.threw, 'sumUsageByStage：不丟例外 [A6a]');
+  const st = r.val || [];
+  assert(Array.isArray(st) && st.length === 3, 'sumUsageByStage：三段依出現序（(main)/plan/build）[A6a]');
+  assert(st[0] && st[0].stage === '(main)' && st[0].inputTokens === 10 && st[0].turns === 1,
+    'sumUsageByStage：首標記前 → (main)（10 in / 1 turn）[A6a]');
+  assert(st[1] && st[1].stage === 'plan' && st[1].inputTokens === 200 && st[1].outputTokens === 50 && st[1].turns === 2,
+    'sumUsageByStage：plan 段（標記行歸新 stage → 200 in / 50 out / 2 turns）[A6a]');
+  assert(st[2] && st[2].stage === 'build' && st[2].inputTokens === 2000 && st[2].turns === 2,
+    'sumUsageByStage：build 段（2000 in / 2 turns）[A6a]');
+}
+{
+  // A6b：空輸入 → 空陣列；無 stage 標記 → 全歸 (main)
+  assert(!callSafe(() => sumUsageByStage('')).threw, 'sumUsageByStage("") 不丟例外 [A6b]');
+  assert((sumUsageByStage('') || []).length === 0, 'sumUsageByStage：空輸入 → 空陣列 [A6b]');
+  const s2 = sumUsageByStage('{"type":"assistant","message":{"model":"claude-opus-4-8","usage":{"input_tokens":5}}}') || [];
+  assert(s2.length === 1 && s2[0].stage === '(main)' && s2[0].inputTokens === 5,
+    'sumUsageByStage：無 stage 標記 → 全歸 (main) [A6b]');
+}
+{
+  // A6c：buildCostRow(byStage) → row.by_stage 陣列、snake_case、各段自帶 cost_usd、schema 2
+  const byStage = sumUsageByStage(
+    '{"type":"assistant","message":{"model":"claude-opus-4-8","content":[{"name":"Skill","input":{"skill":"loops-workflow:build"}}],"usage":{"input_tokens":1000000}}}',
+  );
+  const row = buildCostRow({ sessionId: 's', usage: { inputTokens: 1000000 }, model: 'claude-opus-4-8', costUsd: 15, ts: 't', byStage });
+  assert(Array.isArray(row.by_stage) && row.by_stage.length === 1, 'buildCostRow：byStage → row.by_stage 陣列 [A6c]');
+  const seg = row.by_stage[0] || {};
+  assert(seg.stage === 'build' && seg.input_tokens === 1000000, 'buildCostRow：by_stage 段 snake_case（stage/input_tokens）[A6c]');
+  assert(near(seg.cost_usd, 15), 'buildCostRow：by_stage 段自帶 cost_usd（opus 1M in = $15）[A6c]');
+  assert(row.schema === 2, 'buildCostRow：帶 by_stage → schema === 2 [A6c]');
 }
 {
   // A5-neg（safeNonNeg）：負值 / NaN 輸入 → 對應數字欄一律落為 0（不可漏出髒值污染下游統計）。
@@ -319,7 +364,8 @@ function runHook(scriptAbs, payload, extraEnv = {}) {
     assert(row && typeof row === 'object', 'S-cost②：最後一行 JSON.parse 成功 [S-cost②]');
     assert(row && row.input_tokens > 0, 'S-cost②：input_tokens > 0（sample 加總 3000）[S-cost②]');
     assert(row && row.estimate === true, 'S-cost②：estimate === true [S-cost②]');
-    assert(row && row.schema === 1, 'S-cost②：schema === 1 [S-cost②]');
+    assert(row && row.schema === 2, 'S-cost②：schema === 2（by_stage 版）[S-cost②]');
+    assert(row && Array.isArray(row.by_stage), 'S-cost②：main 接線 byStage → row.by_stage 為陣列（sample 無 stage 標記 → (main) 一段）[S-cost②]');
     // row wiring：釘住 main() 的 payload→row 接線（session_id 不可漏帶、cost/model 不可斷線）。
     assert(row && row.session_id === 'smoke-1', 'S-cost②：row.session_id === payload.session_id("smoke-1")（main 接線）[S-cost②]');
     assert(row && row.cost_usd > 0, 'S-cost②：row.cost_usd > 0（sample 有用量 → 成本 > 0）[S-cost②]');

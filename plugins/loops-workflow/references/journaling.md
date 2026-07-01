@@ -40,7 +40,7 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 **鐵則**：不適用欄一律標 `—`，**不留空、不編造**；token 估算分支必帶 `≈`／級距／`est`，實測分支必帶 `measured`＋`$`、**兩種都不得宣稱精準值**（規則 5）。需要程式化彙總時日後再加 `--json`（不在預設）。
 
 > **opt-in 觀測 hook（#15，兩個、預設關、出錯一律 no-op exit 0、永不擋路）**：
-> - **`LOOPS_COST_TRACKER=1`**（cost-tracker，Stop hook）：每個 assistant 回應結束把該 session 累計 usage append 一行到 `<cwd>/.loops/.metrics/costs.jsonl`（per-session **取該 session_id 最後一行**；僅當 cwd 有 `.loops/` 才動作）。收尾若該檔有本 session 行→實測分支，否則（未開 flag／無此檔）→估算分支。footprint：`.loops/.metrics/costs.jsonl`（已被 `.loops/*` gitignore）。
+> - **`LOOPS_COST_TRACKER=1`**（cost-tracker，Stop hook）：每個 assistant 回應結束把該 session 累計 usage append 一行到 `<cwd>/.loops/.metrics/costs.jsonl`（per-session **取該 session_id 最後一行**；僅當 cwd 有 `.loops/` 才動作）。每行含 session 累計 **＋ `by_stage` 逐 loop-stage 拆解**（goal/explore/plan/build/verify/iterate…各自 token + `cost_usd`，schema 2）——逐階段成本可直接讀該欄，不必手估。收尾若該檔有本 session 行→實測分支，否則（未開 flag／無此檔）→估算分支。footprint：`.loops/.metrics/costs.jsonl`（已被 `.loops/*` gitignore）。**限制**：`by_stage` 按 Skill 邊界切，最後一個 stage 之後的收尾雜項會續記在該 stage 名下。
 > - **`LOOPS_COMPACT_HINT=1`**（suggest-compact，PreToolUse matcher `Edit|Write`）：估算真實 context 大小（transcript 最新 usage）跨門檻（~250k、之後每 +60k）時，在 Edit/Write 前注入一句「可考慮 `/compact`」**估算**提醒（**不阻擋**工具）；防洗版 state 落 `os.tmpdir()/loops-compact-<session>.json`、14 天 TTL。footprint：tmp state 檔。
 >
 > **outcome 度量格式以此為單一來源**，各 skill（iterate §6）引用此處、不另定義。
