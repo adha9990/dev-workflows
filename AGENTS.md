@@ -39,6 +39,7 @@
 10. **成本意識：迴圈很貴，要設計成「負擔得起」**。一條迴圈動輒 50–200K token、回環三輪 500K–2M —— Loop Engineering 的成敗在**負擔得起**，不是能不能跑。所以全程貫徹：
     - **高上下文效率**：下一階段只讀**精煉版**（`.loops/` 的 `0N-*.md`）、不重讀原始素材；每份 < 2000 行；subagent 只塞它**需要的那段**脈絡（VISION/ARCHITECTURE/RULES 對應段 + 該軸的絕對路徑 reference），不倒整包。
     - **便宜的先、貴的後且要 gate**：explore 內部夠就不外搜、外搜先便宜 `WebSearch` 再 gate 升級 deep-research；verify 條件式 reviewer 只在觸及領域才加派；Fleet / deep-research / 真機驗證這些貴動作預設不開、要才開。
+    - **model / effort 分層（見 `references/model-effort-policy.md`）**：subagent 依角色靜態選 model+effort（多為 `sonnet`·medium；窄任務 low；referee `opus`·high）——不跟 session 跑 xhigh；高風險時 verify/build 派工才 per-dispatch 拉 `model: opus`（effort 無法 per-dispatch）。
     - **不重複勞動**：reuse 優先（不重造輪子）、living plan（偏離回去改、不留到最後重做）、修完一定再 verify（一次驗到位、不靠人來回）。
     - **fail-fast 不空轉**：停止條件**看收斂**（findings 沒變少 / 同條 finding 復現就 escalate）、回環 3 圈上限當檢查點、**不過早放棄也不無限繞**。
     - **砍的是「非必要的貴動作 + 浪費」，不是 mandatory 流程**（carve-out，邊界明寫免被理性化為跳流程）：
