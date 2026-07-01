@@ -52,6 +52,7 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 - **跑真 app**：能跑就 `/run` 起服務 + `/verify` 逐條玩 `00-goal.md` 需求 + 本機 `/code-review`（**不跑 ultra 計費版**），把宣稱從 `not measured` 變實測；純 lib 無 app 則據實標 `not measured`。
 - **參考檔路徑（必做）**：subagent 讀不到相對路徑 → 從本 skill base 上兩層推出 plugin root，組**絕對路徑**塞進各 reviewer prompt：全 reviewer ← `reviewer-severity.md` + `review-dispositions.md` + `preflight.md`「作者已留痕的決定不算 finding」原文；`product-contract` ← `acceptance-review.md`；`code-quality` ← `correctness-review.md`/`clean-code.md`/`refactoring.md`/`code-simplification.md`/`reuse-check.md`；`architecture` ← `architecture-review.md`/`clean-architecture.md`/`design-patterns.md`；`security` ← `security-checklist.md`；`performance` ← `performance-review.md`；`tests` ← `test-rubric.md`；條件式各 ← 對應 review 檔（`ui-interaction-review.md`/`root-cause-review.md`/`docs-devex-review.md`…）；`finding-validator` ← `finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
 - **檢索接線**：派每個 reviewer 時，prompt 額外提供：①`references/code-retrieval.md` 的絕對路徑（orchestrator 從自己的 base directory 推出 plugin root 組絕對路徑，同既有 per-axis reference 做法）；②**本次改動檔清單**（reviewer 對這些一律讀實檔）；③ 若 repo 已索引，graph project id + 提醒「`detect_changes` 顯示這些 stale」。reviewer 依此用 graph 查穩定周邊、diff 讀實檔。
+- **model 動態（成本，見 `references/model-effort-policy.md`）**：reviewer 預設用各自 frontmatter tier（多為 `sonnet`）。**當步驟 1 判為高風險**，該回合把風險相關軸（尤其 `security` / `architecture` / `code-quality`）的 reviewer 於 Task 派工時以 `model: opus` 覆寫；瑣碎 / 一般維持 frontmatter 預設。effort 無法 per-dispatch，不覆寫。
 
 ### 3. 驗 findings — 去重 + 二輪確認
 
