@@ -15,9 +15,10 @@
 | 罕見高判斷 | `opus` | `high` | referee |
 
 ## Phase 2：動態覆寫 model（派工時，只 model）
-- **verify**：步驟 1 風險梯判**高風險**時，該回合把風險相關軸（尤其 `security` / `architecture` / `code-quality`）的 reviewer 以 `model: opus` 派出（覆寫 frontmatter 的 sonnet）；瑣碎 / 一般維持 sonnet。
+- **verify**：步驟 1 判**高風險**時——`security` / `architecture` 改派其 **`-deep` 變體**（`security-reviewer-deep` / `architecture-reviewer-deep`，frontmatter `opus`·`high`；因 effort 無法 per-dispatch，高 effort 只能靠變體）；`code-quality` 等其餘軸維持 base + `model: opus` per-dispatch 覆寫。瑣碎 / 一般維持 sonnet。
 - **build**：impl-author 遇 **L / XL 尺寸、跨子系統、或新架構接縫**的任務（見 `task-template.md` 尺寸階梯；XL 照理應在 plan 拆掉、此為兜底）時該次以 `model: opus` 派出；一般 sonnet。referee 已由 frontmatter opus。
 - **effort 不覆寫**（無 per-dispatch）。
 
 ## 維護
 改 tier：同步改本表與對應 agent 的 `model:`/`effort:` frontmatter。正本（本檔）是分層真相源。
+-deep 變體（security/architecture）body 逐字複製 base，base 改審查行為時須同步。
