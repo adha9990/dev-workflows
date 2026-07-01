@@ -7,7 +7,7 @@
 ```json
 {
   "stage": "dispatch",
-  "baseline": "使用者直接喊對應階段（不經 dispatch），結果應與 dispatch 路由一致",
+  "baseline": "直接呼叫階段 skill（不經 dispatch）的結果應與 dispatch 路由一致",
   "scenarios": [
     { "name": "issue 號", "input": "做 issue #5", "expect": "判 issue → 從 goal 起、建 loop.md、停在 gate" },
     { "name": "設計問題", "input": "設計一個範例功能 X", "expect": "判 design → 從 explore 起" },
