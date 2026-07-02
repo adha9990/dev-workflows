@@ -101,7 +101,7 @@ ECC 是「agent harness performance optimization system」（271 skill、67 agen
 
 ## 4. 合併後的 plugin 現況（三專案優化的疊加結果）
 
-- **7 個 hook / 4 事件**（除 SessionStart 的「浮 active 迴圈」恆跑外，其餘皆 opt-in 預設關；皆永不擋路；eval-gate 為 eval #35 新增、其餘 6 個源自 ECC）：
+- **7 個 hook / 4 事件（當時快照；現值見 `docs/FLOW.md` 規模表——`progress-render` 為其後新增）**（除 SessionStart 的「浮 active 迴圈」恆跑外，其餘皆 opt-in 預設關；皆永不擋路；eval-gate 為 eval #35 新增、其餘 6 個源自 ECC）：
   - **SessionStart**：浮 active 迴圈 ＋ `LOOPS_INSTINCT_INJECT` instinct 注入（ECC #18）
   - **Stop**：`LOOPS_COST_TRACKER` 成本記帳 ＋ eval-gate 改檔回合多訊號（`LOOPS_EVAL_GATE` 回歸檢查 eval #35／`LOOPS_EVAL_TAGS_GATE` eval-tags 失敗 tag・`LOOPS_EVAL_POLL_GATE` eval-poll 共識 eval #49，三 flag 獨立）＋ `LOOPS_STOP_GATE` 自動 quality-gate（ECC #15/#17）
   - **PostToolUse**：`edit-accumulator` 改檔累積（ECC #17）
@@ -113,7 +113,7 @@ ECC 是「agent harness performance optimization system」（271 skill、67 agen
 - **operation-first-move 規則**（ECC #16）：build 紅燈起手式依任務性質分岔，見 `references/operation-first-move.md`。
 - **跨 loop instinct 學習**（ECC #18）：`distill` 程序（`docs/distill.md`，手動萃取）+ SessionStart 注入，見 `references/instinct-schema.md`。
 - **squash 合併政策**（cobus #11）：全部 squash 合併進 plugin master，每 PR master 一筆 commit。
-- **12 skills、46 references**（`distill` 已降為文件 `docs/distill.md`、不再可呼叫）；文件全同步（FLOW / REFERENCES / README / journaling）且經各 PR 的 docs-devex reviewer 查核一致。
+- **12 skills、46 references（當時快照；現值見 `docs/REFERENCES.md`）**（`distill` 已降為文件 `docs/distill.md`、不再可呼叫）；文件全同步（FLOW / REFERENCES / README / journaling）且經各 PR 的 docs-devex reviewer 查核一致。
 - 各 opt-in flag 的「怎麼開 / 行為 / footprint / SECURITY」目錄見 `references/journaling.md`。
 
 ### dogfood 實證（meta 閉環）
