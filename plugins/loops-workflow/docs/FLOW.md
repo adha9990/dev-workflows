@@ -8,7 +8,7 @@
 
 ## 命令介面（誰是入口）
 
-使用者**唯一的 pipeline 入口是 `/loops-workflow:dispatch`**（別名 `/loops-workflow:loop`）。下面所有階段（goal / define / explore / clarify / plan / build / verify / iterate）都標 **`user-invocable: false`** —— **不出現在 `/` 選單**，由 dispatch（及階段彼此）用 Skill tool **內部驅動**。這讓「dispatch 自己判類型、分流到對的起點」成為唯一進入方式，使用者不必（也不能）手動挑階段。side / opt-in 命令仍可直接喊：`explain`、`agents-md-maintainer`、`scaffold-fullstack`、`resume`、`status`、`progress`。
+使用者**唯一的 slash 入口是 `/loops-workflow:dispatch`**。所有其他 skill——階段（goal / define / explore / clarify / plan / build / verify / iterate）與側用（`explain`、`agents-md-maintainer`、`scaffold-fullstack`）——都標 **`user-invocable: false`**、**不出現在 `/` 選單**，由 dispatch（及階段彼此）用 Skill tool **內部驅動**：explain＝完整迴圈完工自動產、agents-md-maintainer＝iterate 完工命中維護時機自動跑、scaffold-fullstack＝dispatch 對乾淨空專案路由；三者也可自然語言請 Claude 執行。接續中途 loop＝`dispatch <slug>`（自動偵測 resume）；查進度＝直接讀 `.loops/<slug>/PROGRESS.md`（恆開 hook 自動重生）。
 
 ---
 
@@ -83,7 +83,7 @@ flowchart TD
 | **skill** | `scaffold-fullstack`（**loops-workflow 內建 skill**，自帶整棵模板樹 + scaffold 腳本、無外部依賴）｜**agent** 0 |
 | **何時** | dispatch 偵測目標**完全乾淨**（空目錄 / 無原始碼 / 無 `package.json` / 無 git 歷史）才觸發；既有 / 半成品專案不 scaffold |
 | **處理什麼** | 沒架構承載 issue、也沒 code 可改 → 先立專案骨架（Fastify + React 19 + TanStack + Kysely/SQLite + Vitest 分層全端 TS） |
-| **機制** | **一定停**用 `AskUserQuestion` 確認（scaffold 是大動作 + 棧定死）→ 合用就跑模板 + `pnpm install` + typecheck/lint/test 驗收 → 接後續（**發散式 explore** 盤 backlog／§1.5 **define** 單一問題）。要別的棧 → 提示自建骨架。也可直接 `/loops-workflow:scaffold-fullstack` 單獨跑 |
+| **機制** | **一定停**用 `AskUserQuestion` 確認（scaffold 是大動作 + 棧定死）→ 合用就跑模板 + `pnpm install` + typecheck/lint/test 驗收 → 接後續（**發散式 explore** 盤 backlog／§1.5 **define** 單一問題）。要別的棧 → 提示自建骨架。（internal skill，僅由 dispatch 路由；也可自然語言請求） |
 | **策略** | **內建、永遠可用**（無跨-plugin 耦合）；棧定死、不合用不硬塞 |
 
 ---
@@ -235,7 +235,7 @@ flowchart TD
 | **子代理** | build 紅綠 3 + verify 0～6 核心（步驟 1 風險梯）+ 10 條件式 + validator；各依角色靜態選 model/effort tier（見 `references/model-effort-policy.md`），高風險時 verify/build 派工才動態拉 `model: opus` | Subagents |
 | **技能** | 13 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
-| **自動化** | `dispatch auto`、`/loop`·`/schedule`、progress（/progress + Stop hook 自動產 PROGRESS.md） | Automations |
+| **自動化** | `LOOPS_AUTO=1` 自動連跑、`/loop`·`/schedule`（Claude Code 內建排程）、progress（Stop hook 自動產 PROGRESS.md） | Automations |
 
 **兩座標 + 一總綱**（見 `AGENTS.md`）：
 - **類型**：Closed Loop（預設，人類框架內把關）/ opt-in Open（`auto` 連跑）。
@@ -252,7 +252,7 @@ flowchart TD
 | **skill** | 12（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **agents-md-maintainer** 側用文檔維運）。〔`distill` 已降為文件 `docs/distill.md`、不再可呼叫〕 |
 | **agent** | 21（+ 2 個 opt-in 高風險 -deep 變體：security-reviewer-deep / architecture-reviewer-deep，opus·high）= build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + eval-judge（eval E4，無 oracle 維度評分、主迴圈/Workflow 派）+ 10 條件式領域 reviewer（accessibility / ci-cd / docs-devex / frontend-ui / migration / observability / processing-reliability / root-cause / web-performance / **multi-user-concurrency〔專案宣告多人使用才派，非改動領域觸發〕**，視改動面 / 專案宣告加派）。explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose（不計入此數）。全 21 個 frontmatter 各帶 `model`+`effort` tier（`model-effort-policy.md`：多為 sonnet·medium，窄任務 sonnet·low，referee opus·high） |
 | **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 10 條件式）+ N validator |
-| **reference** | 51 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + bdd-scenarios / code-retrieval / model-effort-policy + 9 份 per-axis 審查判準（含 multi-user-review）+ verify-triage 風險分級 + operation-first-move + instinct-schema + eval-judge-rubric 無 oracle 維度評分卡 + eval-judge-panel / eval-live-candidate Phase 3 活流程 recipe）｜**command** loop / resume / status / explain / progress｜**hook** 8 個 / 4 事件（SessionStart 恆跑、其餘 6 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈 + instinct 注入 opt-in) + Stop(cost-tracker 估成本 + eval-gate 改檔回合多訊號注入〔eval-metrics check 退化 LOOPS_EVAL_GATE／eval-tags by-tag 失敗 tag LOOPS_EVAL_TAGS_GATE／eval-poll poll 共識 LOOPS_EVAL_POLL_GATE，三 flag 獨立〕 + stop-gate 改檔回合自動跑 quality-gate + progress-render（恆跑，每回合對本 session active loop 重生 PROGRESS.md、不注入、永不擋路）) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
+| **reference** | 51 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + bdd-scenarios / code-retrieval / model-effort-policy + 9 份 per-axis 審查判準（含 multi-user-review）+ verify-triage 風險分級 + operation-first-move + instinct-schema + eval-judge-rubric 無 oracle 維度評分卡 + eval-judge-panel / eval-live-candidate Phase 3 活流程 recipe）｜**command** 0（唯一 slash 入口＝`dispatch` skill；resume＝`dispatch <slug>`、查進度＝讀 `PROGRESS.md`）｜**hook** 8 個 / 4 事件（SessionStart 恆跑、其餘 6 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈 + instinct 注入 opt-in) + Stop(cost-tracker 估成本 + eval-gate 改檔回合多訊號注入〔eval-metrics check 退化 LOOPS_EVAL_GATE／eval-tags by-tag 失敗 tag LOOPS_EVAL_TAGS_GATE／eval-poll poll 共識 LOOPS_EVAL_POLL_GATE，三 flag 獨立〕 + stop-gate 改檔回合自動跑 quality-gate + progress-render（恆跑，每回合對本 session active loop 重生 PROGRESS.md、不注入、永不擋路）) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
 
 ---
 
