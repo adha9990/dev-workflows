@@ -5,6 +5,7 @@
     { "name": "issue 號", "input": "做 issue #5", "expect": "判 issue → 從 goal 起、建 loop.md、停在 gate" },
     { "name": "設計問題", "input": "設計一個範例功能 X", "expect": "判 design → 從 explore 起" },
     { "name": "PR 修正", "input": "PR #12 reviewer 給回饋了", "expect": "判 fix → 從 iterate 起" },
-    { "name": "模糊", "input": "幫我看一下這個", "expect": "停下來問使用者（不亂猜）" }
+    { "name": "模糊", "input": "幫我看一下這個", "expect": "停下來問使用者（不亂猜）" },
+    { "name": "接續既有 loop", "input": "84-single-entry-dispatch（.loops/ 下存在同名 loop.md）", "expect": "步驟 0 命中 → 跳過分類、直接走 resume 協定（讀 Journal 重建 → 回報停點 → 問是否續跑）" }
   ]
 }

@@ -96,7 +96,7 @@ function formatLoopLine(slug, md) {
 
 /** active loop 區塊的標頭行（含偵測到的迴圈數）。 */
 function formatActiveLoopsHeader(count) {
-  return `[loops-workflow] 偵測到 ${count} 個 active 迴圈（.loops/ 含 worktree）。可用 /loops-workflow:resume <slug> 接續、或 /loops-workflow:status 看詳情：`;
+  return `[loops-workflow] 偵測到 ${count} 個 active 迴圈（.loops/ 含 worktree）。可用 /loops-workflow:dispatch <slug> 接續、或直接讀 .loops/<slug>/PROGRESS.md 看詳情：`;
 }
 
 // ── IO 薄邊界：掃描 + 讀檔（被 main 編排）─────────────────────────────────────────

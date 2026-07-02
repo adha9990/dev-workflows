@@ -298,7 +298,7 @@ function expectedTableLine(slug) {
 }
 // 預期的 active-loop 區塊標頭（逐字鏡射 formatActiveLoopsHeader，含偵測到的 count）。
 function expectedActiveHeader(count) {
-  return `[loops-workflow] 偵測到 ${count} 個 active 迴圈（.loops/ 含 worktree）。可用 /loops-workflow:resume <slug> 接續、或 /loops-workflow:status 看詳情：`;
+  return `[loops-workflow] 偵測到 ${count} 個 active 迴圈（.loops/ 含 worktree）。可用 /loops-workflow:dispatch <slug> 接續、或直接讀 .loops/<slug>/PROGRESS.md 看詳情：`;
 }
 
 function makeLoopCwd({
@@ -367,6 +367,14 @@ const out = (res) => (typeof res.stdout === 'string' ? res.stdout : '');
       'S1：active-loop 標頭含「偵測到 1 個」（count 正確）[S1]');
     assert(out(res).includes(expectedActiveHeader(1)),
       'S1：active-loop 標頭整行逐字（formatActiveLoopsHeader(1)）[S1]');
+    // 錨定外部事實（非鏡射）：標頭不得引用已刪除的 command（#84 指令面收斂後 dispatch 是唯一入口）——
+    // 防「來源與鏡射字串同時改成同一個錯值」的雙綠假陽性。
+    for (const dead of ['loops-workflow:resume', 'loops-workflow:status', 'loops-workflow:progress', 'loops-workflow:loop ']) {
+      assert(!out(res).includes(dead),
+        `S1：active-loop 提示不含已刪除指令「${dead.trim()}」（單一入口錨定）[S1]`);
+    }
+    assert(out(res).includes('loops-workflow:dispatch'),
+      'S1：active-loop 提示指向唯一入口 dispatch（錨定）[S1]');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
