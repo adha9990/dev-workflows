@@ -1,9 +1,0 @@
-id: docs-only-verify-2-axes
-trigger: 本次變更僅涉及文件 / 註解 / README（無程式邏輯）
-action: verify 階段只派 2 軸（lint + 既有單元測試），不派完整測試矩陣
-scope: project
-confidence: 0.85
-evidence:
-  - docs-readme-refresh
-  - docs-changelog-sync
-summary: docs-only verify 派 2 軸即可

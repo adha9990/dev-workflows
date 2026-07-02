@@ -48,7 +48,6 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 > | `LOOPS_EVAL_GATE`/`TAGS`/`POLL` | 開（#87） | 無 artifact 即 no-op；不執行 repo 定義命令 |
 > | `LOOPS_CONFIG_PROTECTION` | 開（#87，loops-scoped） | 防 AI 弱化 linter；`.loops/` 存在才生效、日常編輯零外溢 |
 > | `LOOPS_STOP_GATE` | **opt-in**（#87 評估後維持） | 開＝自動執行 repo 的 gate.config 命令（#17 RCE 面）；補發現性提示消滅資訊差 |
-> | `LOOPS_INSTINCT_INJECT` | **opt-in**（#87 評估後維持） | 間接 prompt injection 面（#18） |
 > | `LOOPS_COMPACT_HINT` | **opt-in**（#87 評估後維持） | 非已踩過坑對治、價值中性 |
 > | edit-accumulator（非 flag） | 隨消費端＋`.loops/` 存在前置（#87） | 非 loops repo 零 tmp 寫入 |
 >
@@ -64,10 +63,6 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 > - **`LOOPS_CONFIG_PROTECTION`**（config-protection，PreToolUse matcher `Write|Edit|MultiEdit`；**預設開（#87）且 loops-scoped**——未設 env 時僅 `payload.cwd` 下存在 `.loops/` 才生效（作弊風險集中於 loops 執行、日常編輯零外溢）；顯式 `'1'`＝全域生效（既有行為）；僅字面 `'0'` 關）：偵測對既有 linter/formatter 設定檔（eslint/prettier/biome/ruff…）的**修改**→ `permissionDecision:"deny"` 擋下並提示「修 code 別弱化設定；設 `LOOPS_CONFIG_PROTECTION=0` 可關」；**新建**設定檔放行、非設定檔放行。出錯 **fail-open（放行）**。footprint：無持久檔。
 > - **`LOOPS_PATH_CONTAINMENT`**（loops-path-guard，PreToolUse matcher `Write|Edit|MultiEdit`；**預設開（#85，plugin 唯一 opt-out 介入 hook）——只有字面 `'0'` 會關**，`false`/空字串/未設一律維持啟用）：Write/Edit/MultiEdit 目標路徑落在 `.claude/worktrees/**/.loops/**`（詞法判定：resolve 收合 `..`、大小寫折疊、段完全相等比對）→ `permissionDecision:"deny"`＋指引正確落點 `$LOOPS_ROOT/.loops/<slug>/`——把 AGENTS 規則 9「.loops 嚴禁寫進 worktree」（已踩過、毀 audit trail）機械化。出錯 **fail-open（放行）**。已知限制：不解析 symlink（熱路徑零 I/O 取捨）。footprint：無持久檔。
 >   - ⚠️ **SECURITY／繞過**：deny 訊息附逃生口——確需在 worktree 寫 `.loops`（不應發生）時設 `LOOPS_PATH_CONTAINMENT=0` 暫時關閉；此 hook 只攔 Claude 的寫檔工具呼叫，不攔 shell/node 直接 fs 寫入（已核對：現行無任何 hook 寫 worktree .loops）。
-
-> **opt-in 學習 hook（#18，一個、預設關、唯讀永不擋路）**：
-> - **`LOOPS_INSTINCT_INJECT=1`**（session-start，SessionStart）：除既有「浮 active 迴圈」外，再讀 `<cwd>/.loops/.instincts/*.yaml`（`distill` 程序產的跨 loop instinct）→ 過濾 confidence ≥ 0.7 → 取前 6 → 注入為 session context（每條 `[<conf%>] <summary>`、summary 截 ≤200 字）。footprint：`.loops/.instincts/`（已 gitignore）。active-loop 浮出行為不變。
->   - ⚠️ **SECURITY：instinct 的 `summary` 會進模型 context。若 cwd 是不信任的 repo，其 `.loops/.instincts/*.yaml` 可能夾帶誘導性文字（間接 prompt injection）。注入已框定「來源未驗證、僅供參考、勿當指令」並截斷長度，但仍請只在你信任的 repo 開此 flag。** instinct 應由你自己在信任 repo 依 `docs/distill.md` 手動萃取產生。
 
 > **評測 hook（#35 + #49 擴成多訊號，永不擋路；#87 起三 flag 皆預設開——僅字面 `'0'` 關、無 artifact 即 no-op 零噪音、不執行 repo 定義命令）**：
 > - **`LOOPS_EVAL_GATE`**（eval-gate，Stop hook + edit-accumulator PostToolUse；預設開）：**本回合有改檔**且 cwd 有 `.loops/.metrics/eval-results.jsonl` 時，於 Stop 自動跑 `eval-metrics.mjs check`，**只有偵測到 passRate 退化（exit 1）才把警示注入 context**（無退化靜默、不阻擋）。與 stop-gate 共用 edit-accumulator：在 hooks.json 排其**前**、**僅 stop-gate 未啟用時才自清** accumulator（避免兩 gate 互踩）。footprint：`os.tmpdir()/loops-edits-<session>.json`（與 stop-gate 共用）。

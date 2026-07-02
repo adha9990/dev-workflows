@@ -533,15 +533,6 @@ function buildLintScanMap(fullMap) {
   return out;
 }
 
-function buildCountLintMap(lintScanMap) {
-  const out = {};
-  for (const [file, content] of Object.entries(lintScanMap)) {
-    if (basename(file) === 'optimization-odw-ecc.md') continue;
-    out[file] = content;
-  }
-  return out;
-}
-
 function buildReferenceMap(fullMap) {
   const out = {};
   for (const [file, content] of Object.entries(fullMap)) {
@@ -639,7 +630,7 @@ function buildDeepSyncPairs(agentsList) {
 export function buildReport(root) {
   const fullMap = walk(root);
   const lintScanMap = buildLintScanMap(fullMap);
-  const countLintMap = buildCountLintMap(lintScanMap);
+  const countLintMap = lintScanMap; // #95 起無逐檔排除（原 odw-ecc 歷程紀錄已刪），countLint 掃描面＝lint 掃描面
   const referenceMap = buildReferenceMap(fullMap);
   const agentsList = buildAgentsList(fullMap);
 

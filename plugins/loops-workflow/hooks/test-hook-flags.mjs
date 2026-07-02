@@ -9,12 +9,12 @@
 // 這就是 TDD 的紅燈起點。實作補齊後，下方斷言才有機會逐條轉綠。
 //
 // 對外契約（拍板後，見 issue #87 討論）：
-//   FLAG_DEFAULTS：7-9 個 flag 的分類表（defaultOn / optIn）。
+//   FLAG_DEFAULTS：8 個 flag 的分類表（defaultOn / optIn）。
 //   flagEnabled(name, env)：純函式，env 物件參數（非直接讀 process.env）。
 //   - defaultOn 類（LOOPS_PATH_CONTAINMENT / LOOPS_COST_TRACKER / LOOPS_EVAL_GATE /
 //     LOOPS_EVAL_TAGS_GATE / LOOPS_EVAL_POLL_GATE / LOOPS_CONFIG_PROTECTION）：
 //     僅字面 '0' 關；'1' / '' / 未設 / 'true' / 'off' / '2' 等怪值皆開（不會關）。
-//   - optIn 類（LOOPS_STOP_GATE / LOOPS_INSTINCT_INJECT / LOOPS_COMPACT_HINT）：
+//   - optIn 類（LOOPS_STOP_GATE / LOOPS_COMPACT_HINT）：
 //     僅字面 '1' 開；其餘（未設 / '' / '0' / 'true' / 'yes' 等）皆關。
 
 import { FLAG_DEFAULTS, flagEnabled } from './hook-flags.mjs';
@@ -47,10 +47,9 @@ const DEFAULT_ON_FLAGS = [
   'LOOPS_EVAL_POLL_GATE',
   'LOOPS_CONFIG_PROTECTION',
 ];
-// optIn 類（3）：未設 / 怪值一律「關」，只有字面 '1' 才開。
+// optIn 類（2）：未設 / 怪值一律「關」，只有字面 '1' 才開。
 const OPT_IN_FLAGS = [
   'LOOPS_STOP_GATE',
-  'LOOPS_INSTINCT_INJECT',
   'LOOPS_COMPACT_HINT',
 ];
 
@@ -58,7 +57,7 @@ const OPT_IN_FLAGS = [
 // A) FLAG_DEFAULTS：分類表本身的契約（值即契約，逐欄釘死）
 // =============================================================================
 
-// ── A1：FLAG_DEFAULTS 是物件，含全部 9 個 flag 的分類 ─────────────────────────
+// ── A1：FLAG_DEFAULTS 是物件，含全部 8 個 flag 的分類 ─────────────────────────
 {
   assert(FLAG_DEFAULTS && typeof FLAG_DEFAULTS === 'object', 'FLAG_DEFAULTS：是物件 [A1]');
   for (const name of DEFAULT_ON_FLAGS) {

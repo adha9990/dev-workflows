@@ -787,26 +787,19 @@ function runCli(root, args = ['--json']) {
   }
 }
 
-// IO-6：docs/optimization-odw-ecc.md 整檔排除於 countLint（即使數字離譜也不觸發；控制組要能被抓到）
+// IO-6：docs/ 下任何檔的寫死計數都在 countLint 掃描面內（#95 起無逐檔排除；原 odw-ecc 特例已隨該檔刪除）
 {
   const dir = makeRepo({
-    'plugins/loops-workflow/docs/optimization-odw-ecc.md': '目前有 999 份 reference，顯著偏離事實。\n',
     'plugins/loops-workflow/docs/count-control.md': '目前有 999 份 reference，顯著偏離事實。\n',
   });
   try {
     const { res, json } = runCli(dir, ['--json']);
-    assert(res.status === 1, 'IO-6：控制組 count-drift → exit code===1 [IO-6]');
+    assert(res.status === 1, 'IO-6：docs/ 檔 count-drift → exit code===1 [IO-6]');
     assert(
       json &&
         Array.isArray(json.findings) &&
         json.findings.some((f) => f.check === 'count-drift' && JSON.stringify(f).includes('count-control.md')),
-      'IO-6：控制組 count-control.md 的 count-drift 被抓到 [IO-6]',
-    );
-    assert(
-      json &&
-        Array.isArray(json.findings) &&
-        !json.findings.some((f) => JSON.stringify(f).includes('optimization-odw-ecc.md')),
-      'IO-6：docs/optimization-odw-ecc.md 整檔排除，即使數字離譜也不觸發 count-drift [IO-6]',
+      'IO-6：docs/count-control.md 的 count-drift 被抓到（docs 無逐檔排除）[IO-6]',
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
