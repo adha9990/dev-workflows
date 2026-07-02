@@ -1,7 +1,7 @@
 ---
 name: verify
 user-invocable: false
-description: Right-size how many reviewers to change risk, dispatch them in one parallel turn (fresh context, anti-bias), validate findings in a second pass, then gate on "did we actually do the issue" — if fundamentally wrong, bounce the whole thing back (iterate routes to goal/explore/plan/build); else Ready / Not ready. Use at the verify stage of a loops-workflow run, or for merge-readiness review before iterate.
+description: Independently reviews built work for merge readiness — including whether the issue was actually done — and returns a Ready / Not ready verdict. Use when starting the verify stage of a loops-workflow run, or when completed work needs an independent review before iterate.
 ---
 
 # verify — 驗證（5 步）
