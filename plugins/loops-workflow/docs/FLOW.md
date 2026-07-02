@@ -233,7 +233,7 @@ flowchart TD
 | **記憶體** | `.loops/<slug>/`：`loop.md`（儀表板 + Journal）+ `0N-*.md`（各階段精煉產出） | Memory |
 | **隔離工作樹** | 會動 code 的迴圈在 `git worktree`（`<issue#>-<slug>` 同名 branch） | Worktrees |
 | **子代理** | build 紅綠 3 + verify 0～6 核心（步驟 1 風險梯）+ 10 條件式 + validator；各依角色靜態選 model/effort tier（見 `references/model-effort-policy.md`），高風險時 verify/build 派工才動態拉 `model: opus` | Subagents |
-| **技能** | 13 個 skill（SKILL.md 統一骨架） | Skills |
+| **技能** | 12 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
 | **自動化** | `LOOPS_AUTO=1` 自動連跑、`/loop`·`/schedule`（Claude Code 內建排程）、progress（Stop hook 自動產 PROGRESS.md） | Automations |
 

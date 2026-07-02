@@ -97,7 +97,7 @@ intent→入口對照與全程操作規則見 plugin 內的 `AGENTS.md`（market
 
 ```
 plugins/loops-workflow/
-├── skills/       dispatch（唯一入口）+ 前置 clarify / define / scaffold-fullstack + 7 階段
+├── skills/       dispatch（唯一入口）+ 前置 clarify / define / scaffold-fullstack + goal→iterate 六個迴圈階段
 │                 + 側用 explain（完工自動產）/ agents-md-maintainer（iterate 條件式自動跑）
 │                 —— 除 dispatch 外全部 user-invocable: false，全量見 docs/FLOW.md 規模表
 ├── agents/       build 紅綠分離（test-author / impl-author / referee）+ verify 核心 reviewer

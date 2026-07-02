@@ -27,7 +27,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 ### 0. 先判 resume（輸入是既有 loop 的 slug 就不分類）
 
-判類型**之前**，先確定性檢查輸入是不是要接續既有迴圈：算 `LOOPS_ROOT`（`git worktree list --porcelain | sed -n 's/^worktree //p' | head -1`），**若 `$LOOPS_ROOT/.loops/<輸入>/loop.md` 存在**（輸入完全比對目錄名、不做模糊匹配）→ **跳過整個決策樹**，直接走 resume 協定（讀 Journal 重建狀態 → 回報停在哪個階段/gate → 問是否續跑，見 `references/journaling.md`）。這是「接續中途 loop」的唯一入口：`dispatch <slug>`。不存在才進下面的判類型。
+判類型**之前**，先確定性檢查輸入是不是要接續既有迴圈：算 `LOOPS_ROOT`（`git worktree list --porcelain | sed -n 's/^worktree //p' | head -1`），**若 `$LOOPS_ROOT/.loops/<輸入>/loop.md` 存在**（輸入完全比對目錄名、不做模糊匹配；slug 格式同 §2＝英數字＋連字號，含空格／斜線／`..` 的輸入不可能是 slug、直接進判類型）→ **跳過整個決策樹**，直接走 resume 協定（讀 Journal 重建狀態 → 回報停在哪個階段/gate → 問是否續跑，見 `references/journaling.md`）。這是「接續中途 loop」的唯一入口：`dispatch <slug>`。不存在才進下面的判類型。
 
 ### 1. 判類型（決策樹：先看乾淨度，再判意圖清晰度）
 
