@@ -56,14 +56,17 @@ function readStdin() {
  * 其餘一律放行（無輸出）。fail-open：payload 壞掉 / 缺欄位一律放行，永不擋路。
  */
 function main() {
-  if (process.env.LOOPS_PATH_CONTAINMENT === '0') return; // 明確 opt-out（僅字面 '0'）→ 放行
-
+  // 先無條件讀滿 stdin 再查 env（與家族全部 sibling 同序）——若先 return 不讀，
+  // 子行程提前關閉 pipe，父行程對大 payload（實測 ≥64KB）的寫入會 EPIPE/EOF，
+  // 正好違反本 hook「永不因 hook 故障卡住使用者」的設計目標（verify P1 修正）。
   let payload;
   try {
     payload = JSON.parse(readStdin());
   } catch {
     return; // payload 壞 → 放行（無輸出）
   }
+
+  if (process.env.LOOPS_PATH_CONTAINMENT === '0') return; // 明確 opt-out（僅字面 '0'）→ 放行
 
   const filePath = payload?.tool_input?.file_path;
   if (typeof filePath !== 'string') return; // 無檔路徑 → 無從判定，放行

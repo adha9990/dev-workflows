@@ -143,7 +143,7 @@ ECC 是「agent harness performance optimization system」（271 skill、67 agen
 - cobus 的 **C 線整批未取**（排程 fleet / 跨 session STATE / budget 檔）—— 那是「無人排程」產品方向，與我們「單 issue 互動 human-gated」不同物種，留策略對話。
 - ECC 多數內容（271 skill）與我們無關；我們只取方法論層級的可移植技術，沒照搬它的 autonomous / daemon 哲學。
 - 成本度量皆**估算 / 啟發式**：cobus #7 的 outcome 度量與 ECC #15 的 token/USD 都受限於 Claude Code 不穩定暴露 per-turn token，非帳單權威；instinct 的 `confidence` 是啟發式人工判斷、非統計。
-- 所有 hook、instinct 注入皆 **opt-in 預設關**：要真正享受成效需自行設 `LOOPS_*` flag，且自動執行 / 注入類功能**只在信任 repo 開**（已於文件三處警示）。
+- 多數 hook、instinct 注入皆 **opt-in 預設關**（當時快照；例外：#85 起 `loops-path-guard` 預設開、`LOOPS_PATH_CONTAINMENT=0` 才關——現值見 `references/journaling.md`〈介入 hook〉）：要真正享受成效需自行設 `LOOPS_*` flag，且自動執行 / 注入類功能**只在信任 repo 開**（已於文件三處警示）。
 - 未做（follow-up）：ODW 的 verify 共用 diff / 跨 round 紀律 / Workflow 化；cobus 的排程層 / budget 檔；ECC 的 background observer / size-classifier / confidence 衰退 / export-import。
 
 ---

@@ -27,6 +27,7 @@
 //     - cwd 來源：main 用 payload.cwd（fallback process.cwd()），不是子行程實際 cwd
 
 import { tmpdir } from 'node:os';
+import { mkdirSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -164,6 +165,13 @@ assert(
   '[A-A7] worktrees/x/../../legit/.loops/n（.. 收合後脫離 .claude/worktrees 相鄰段）→ false（放行）',
 );
 
+// A8：鎖住「緊鄰」判準本身——.claude 存在但下一段不是 worktrees（verify P2 補遺：
+// mutation 實測放寬緊鄰要求時原 46 case 全綠不被發現，此 case 專門守這條）。
+assert(
+  isWorktreeLoopsPath('C:/r/.claude/agents/.loops/n', 'C:/ignored') === false,
+  '[A-A8] .claude/agents/.loops/n（.claude 下一段非 worktrees、緊鄰不成立）→ false（放行）',
+);
+
 // =============================================================================
 // B) main() —— IO 層（真 spawn node loops-path-guard.mjs，stdin 餵 JSON payload）
 // =============================================================================
@@ -184,8 +192,6 @@ const stdoutOf = (res) => (typeof res.stdout === 'string' ? res.stdout : '');
 
 // ── B1：違規路徑、未關閉 containment → deny JSON，reason 含關鍵子串，exit 0 ─────
 {
-  const env = { ...process.env };
-  delete env.LOOPS_PATH_CONTAINMENT;
   const res = runHook({
     filePath: 'C:/x/.claude/worktrees/a/.loops/b/loop.md',
     cwd: 'C:/ignored',
@@ -322,6 +328,54 @@ const stdoutOf = (res) => (typeof res.stdout === 'string' ? res.stdout : '');
     parsed && parsed.hookSpecificOutput && parsed.hookSpecificOutput.permissionDecision === 'deny',
     '[B9] main() 以 payload.cwd（.../worktrees/x）resolve 相對路徑 → deny（證明非採子行程實際 cwd，否則會放行）',
   );
+}
+
+// ── B10：cwd fallback —— payload 缺 cwd 鍵（或非字串）時 main 用子行程 process.cwd()
+//     （verify P2 補遺：此 fallback 分支原本零覆蓋）。子行程實際 cwd 設為暫存目錄下的
+//     假 worktree 結構（真實建立），file_path 為相對路徑 → 以 fallback cwd 解析後違規 → deny。──
+{
+  const fakeWtCwd = join(tmpdir(), `lpg-b10-${process.pid}`, '.claude', 'worktrees', 'w');
+  mkdirSync(fakeWtCwd, { recursive: true });
+  try {
+    for (const badCwdPayload of [
+      { tool_input: { file_path: '.loops/n' } },            // 無 cwd 鍵
+      { tool_input: { file_path: '.loops/n' }, cwd: 123 },  // cwd 非字串
+    ]) {
+      const res = spawnSync(process.execPath, [HOOK_SCRIPT], {
+        cwd: fakeWtCwd,
+        input: JSON.stringify(badCwdPayload),
+        env: { ...process.env, LOOPS_PATH_CONTAINMENT: undefined },
+        encoding: 'utf8',
+      });
+      assert(res.status === 0, `[B10] exit 0（cwd=${JSON.stringify(badCwdPayload.cwd)}）`);
+      let parsed = null;
+      try { parsed = JSON.parse(stdoutOf(res).trim()); } catch { /* leave null */ }
+      assert(
+        parsed && parsed.hookSpecificOutput && parsed.hookSpecificOutput.permissionDecision === 'deny',
+        `[B10] payload cwd 缺/非字串 → fallback 子行程 cwd（假 worktree 下）resolve 相對路徑 → deny`,
+      );
+    }
+  } finally {
+    rmSync(join(tmpdir(), `lpg-b10-${process.pid}`), { recursive: true, force: true });
+  }
+}
+
+// ── B11（GUARD，verify P1 回歸）：opt-out（env='0'）＋大 payload（256KB）——
+//     main 須先讀滿 stdin 再 return，否則子行程提前關 pipe、父行程寫入 EPIPE/EOF
+//     （原實作 env 檢查在 readStdin 前，≥64KB 必炸 res.error；此 case 鎖住修正後順序）。──
+{
+  const big = JSON.stringify({
+    tool_input: { file_path: 'x/.claude/worktrees/a/.loops/y', content: 'A'.repeat(256 * 1024) },
+    cwd: 'C:/ignored',
+  });
+  const res = spawnSync(process.execPath, [HOOK_SCRIPT], {
+    input: big,
+    env: { ...process.env, LOOPS_PATH_CONTAINMENT: '0' },
+    encoding: 'utf8',
+  });
+  assert(res.error == null, '[B11] opt-out＋256KB payload → 無 spawn error（stdin 已讀滿、無 EPIPE/EOF）');
+  assert(res.status === 0, '[B11] exit 0');
+  assert(stdoutOf(res).trim() === '', '[B11] stdout 空（opt-out 放行）');
 }
 
 // ── 摘要 + exit code ─────────────────────────────────────────────────────────
