@@ -101,7 +101,7 @@ workspace 的 package 邊界保證,讓結構不會悄悄腐化。
    pnpm -r typecheck && pnpm -r lint && pnpm -r test
    ```
 
-   輸出收斂依 `references/context-diet.md` §A：綠燈取各套末行摘要；紅燈保前 N 個 failure 全文＋計數（skipped 必列）；被截斷必附 raw 落盤路徑。
+   輸出收斂依 `references/context-diet.md` §A（測試輸出紅綠不對稱＋截斷落盤）。
 
    (`-r` 會對 backend 與 frontend 兩個 package 各跑一次;根 `package.json` 也提供了
    `pnpm typecheck` / `pnpm lint` / `pnpm test` 作為等價捷徑。)
