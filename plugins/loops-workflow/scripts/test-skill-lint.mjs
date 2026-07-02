@@ -18,6 +18,7 @@ import {
   wordSet,
   jaccard,
   stripDeepVariantNote,
+  stripFrontmatter,
   duplicateCheck,
   deepSyncCheck,
   referenceIntegrityCheck,
@@ -139,6 +140,19 @@ function assert(cond, msg) {
     'footprintCheck：summary.estTokens=ceil(1001/4)=251 [2c]',
   );
 }
+{
+  // GUARD-5：500 個 astral 字元（'😀'.repeat(500)）→ 以 code point 計數不超標
+  // '😀' 是代理對（surrogate pair），JS .length===2；.length 天真計數會誤判為 1000（超標紅）。
+  // 正確行為：以 Unicode code point 計數 → 500，不超過 500 上限門檻 → 綠。
+  const emoji = '😀'.repeat(500);
+  assert(emoji.length === 1000, '前提：\'😀\'.repeat(500).length===1000（surrogate pair，非 code point 數）[GUARD-5-pre]');
+  const items = [{ file: 'agents/emoji.md', description: emoji }];
+  const r = footprintCheck(items);
+  assert(
+    r && Array.isArray(r.findings) && r.findings.length === 0,
+    'footprintCheck：500 個 astral code point description 不誤判超標（以 code point 計數，非 .length）[GUARD-5]',
+  );
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 // 3. wordSet / jaccard
@@ -191,6 +205,74 @@ const NOTE_LINE =
   const body = '審查內容主體文字，不需變動。\n';
   const stripped = stripDeepVariantNote(body);
   assert(stripped === body, 'stripDeepVariantNote：無變體句 → 原樣返回 [4b]');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// 4b（GUARD F-B）：stripFrontmatter → stripDeepVariantNote 整合（真實 deep 檔同形：
+// frontmatter 後有空行，慣例句前導 "\n" 使天真的 ^> 錨定失效）
+// ══════════════════════════════════════════════════════════════════════════
+{
+  const BODY_TEXT = '審查內容主體文字，不需變動。';
+  const fullDeepFile = [
+    '---',
+    'name: x-deep',
+    'model: opus',
+    '---',
+    '',
+    NOTE_LINE,
+    '',
+    BODY_TEXT,
+    '',
+  ].join('\n');
+  const bodyAfterFrontmatter = stripFrontmatter(fullDeepFile);
+  assert(
+    typeof bodyAfterFrontmatter === 'string' && bodyAfterFrontmatter.includes(NOTE_LINE),
+    '前提：stripFrontmatter 後 body 仍含慣例句原文（尚未剝句）[F-B-pre]',
+  );
+  const stripped = stripDeepVariantNote(bodyAfterFrontmatter);
+  assert(
+    typeof stripped === 'string' && !stripped.includes('此檔是'),
+    'stripFrontmatter→stripDeepVariantNote 整合：即使 frontmatter 後有前導空行，慣例句仍被剝除（不含「此檔是」）[F-B]',
+  );
+  assert(
+    typeof stripped === 'string' && stripped.includes(BODY_TEXT),
+    'stripFrontmatter→stripDeepVariantNote 整合：剝句後保留其餘本文 [F-B]',
+  );
+}
+{
+  // F-B deepSync 整合：兩份「帶 frontmatter 的完整檔案」（deep=base+慣例句）經真實管線 → 無 finding
+  const BODY_TEXT = '審查基準涵蓋架構分層依賴規則與設計模式對症判斷落點是否合理。';
+  const baseFull = ['---', 'name: architecture-reviewer', 'model: sonnet', '---', '', BODY_TEXT, ''].join('\n');
+  const deepFull = [
+    '---',
+    'name: architecture-reviewer-deep',
+    'model: opus',
+    '---',
+    '',
+    NOTE_LINE,
+    '',
+    BODY_TEXT,
+    '',
+  ].join('\n');
+  const baseBody = stripFrontmatter(baseFull);
+  const deepBody = stripFrontmatter(deepFull);
+
+  // 自我驗證前提：未剝句直接比較 raw jaccard < 0.9（證明管線確實需要剝句）
+  const rawJ = jaccard(wordSet(baseBody), wordSet(deepBody));
+  assert(rawJ < 0.9, `前提：frontmatter 完整檔管線下 raw jaccard=${rawJ} < 0.9 [F-B2-pre]`);
+
+  const findings = deepSyncCheck([
+    {
+      baseFile: 'architecture-reviewer.md',
+      baseBody,
+      deepFile: 'architecture-reviewer-deep.md',
+      deepBody,
+    },
+  ]);
+  assert(
+    Array.isArray(findings) && findings.length === 0,
+    '完整檔案（含 frontmatter）經 stripFrontmatter+deepSyncCheck 真實管線 → 剝句後高相似 → 無 finding [F-B2]',
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -449,6 +531,27 @@ const NOTE_LINE =
   const findings = deadCommandCheck(map);
   assert(Array.isArray(findings) && findings.length === 0, 'deadCommandCheck：乾淨內容 → 無 finding [9c]');
 }
+{
+  // GUARD-4：loops-workflow:status token → 紅（mutation 實證現有 fixture 殺不死漏這個 token 的 mutant）
+  const map = { 'plugins/loops-workflow/docs/status-old.md': '請改用 loops-workflow:status 查看進度。' };
+  const findings = deadCommandCheck(map);
+  const f = (findings || []).find((x) => x.check === 'dead-command');
+  assert(!!f, 'deadCommandCheck：含 "loops-workflow:status" token → finding [GUARD-4a]');
+}
+{
+  // GUARD-4：loops-workflow:progress token → 紅
+  const map = { 'plugins/loops-workflow/docs/progress-old.md': '請改用 loops-workflow:progress 查看進度。' };
+  const findings = deadCommandCheck(map);
+  const f = (findings || []).find((x) => x.check === 'dead-command');
+  assert(!!f, 'deadCommandCheck：含 "loops-workflow:progress" token → finding [GUARD-4b]');
+}
+{
+  // GUARD-6：大小寫不敏感 —— "Loops-Workflow:resume"（混合大小寫）仍應命中
+  const map = { 'plugins/loops-workflow/docs/mixed-case.md': '舊用法：Loops-Workflow:resume 已停用。' };
+  const findings = deadCommandCheck(map);
+  const f = (findings || []).find((x) => x.check === 'dead-command');
+  assert(!!f, 'deadCommandCheck：大小寫混合 "Loops-Workflow:resume" 仍命中（lowercase 比對）[GUARD-6]');
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 // 10. formatSummary（純函式部分）
@@ -478,6 +581,32 @@ const NOTE_LINE =
   assert(
     typeof s === 'string' && /✗\s*\[broken-ref\]\s*P1\s*b\.md\s*—\s*refs missing\.md/.test(s),
     'formatSummary：broken-ref finding 逐條格式對 [10b]',
+  );
+}
+{
+  // GUARD F-A：plain 模式 notes 可見 —— findings 空、notes 非空時，輸出仍含 ✓ 綠行，
+  // 且額外含至少一行可辨識的提醒（含該 note 的檔名或 "footprint" 字樣）。
+  const result = {
+    ok: true,
+    findings: [],
+    notes: [
+      {
+        file: 'plugins/loops-workflow/skills/scaffold-fullstack/SKILL.md',
+        message: 'footprint: description 接近 500 字元上限',
+      },
+    ],
+    summary: { filesScanned: 3, totalChars: 100, estTokens: 25 },
+  };
+  const s = formatSummary(result);
+  const lines = typeof s === 'string' ? s.split('\n').filter(Boolean) : [];
+  assert(lines.some((l) => l.includes('✓')), 'formatSummary：findings 空、notes 非空 → 仍含 ✓ 綠行 [F-A]');
+  assert(
+    lines.length >= 2,
+    'formatSummary：notes 非空時輸出不只一行（額外含提醒行）[F-A]',
+  );
+  assert(
+    lines.some((l) => l.includes('scaffold-fullstack') || l.includes('footprint')),
+    'formatSummary：提醒行含 note 檔名（scaffold-fullstack）或 "footprint" 字樣 [F-A]',
   );
 }
 
@@ -705,7 +834,11 @@ function runCli(root, args = ['--json']) {
   }
 }
 
-// IO-8：整合 smoke（對真 repo）—— --root 指到本 worktree，期望綠 + exit 0 + 單行含 ✓；--json ok:true findings:[]
+// IO-8（GUARD 增強）：整合 smoke（對真 repo）—— --root 指到本 worktree。
+// footprint 掃描範圍須含 skills/（不可退回只掃 agents/）：真實 scaffold-fullstack 的
+// description 明顯超出一般預算，且 user-invocable:false，正確行為是降級為 notes（而非
+// P2 finding，故整體仍 ok:true/exit 0），但 notes 必須恰好記錄這一筆、且 plain 輸出要可見。
+// mutation 實證：若實作「退回只掃 agents/*.md」，notes 會變空、這裡會紅。
 {
   const { res, json } = runCli(REAL_REPO_ROOT, ['--json']);
   assert(res.error == null, 'IO-8：node 啟動成功（真 repo smoke）[IO-8]');
@@ -715,12 +848,30 @@ function runCli(root, args = ['--json']) {
     json && Array.isArray(json.findings) && json.findings.length === 0,
     `IO-8：真 repo smoke --json findings===[]（實際：${JSON.stringify(json && json.findings)}）[IO-8]`,
   );
+  assert(
+    json && Array.isArray(json.notes) && json.notes.length === 1,
+    `IO-8：真 repo smoke --json notes.length===1（鎖 footprint 掃描含 skills/；實際：${JSON.stringify(json && json.notes)}）[IO-8]`,
+  );
+  assert(
+    json &&
+      Array.isArray(json.notes) &&
+      json.notes[0] &&
+      typeof json.notes[0].file === 'string' &&
+      json.notes[0].file.includes('scaffold-fullstack'),
+    'IO-8：notes[0].file 含 "scaffold-fullstack"（鎖 footprint wiring 掃到 skills/ 目錄）[IO-8]',
+  );
 
   const plain = spawnSync('node', [SCRIPT, '--root', REAL_REPO_ROOT], { encoding: 'utf8' });
   assert(plain.status === 0, 'IO-8：真 repo smoke 非 --json exit code===0 [IO-8]');
   const lines = plain.stdout.trim().split('\n').filter(Boolean);
-  assert(lines.length === 1, 'IO-8：真 repo smoke 非 --json 輸出為單行 [IO-8]');
-  assert(lines[0] && lines[0].includes('✓'), 'IO-8：真 repo smoke 單行輸出含 ✓ [IO-8]');
+  assert(
+    lines.some((l) => l.includes('✓')),
+    'IO-8：真 repo smoke 非 --json 輸出含 ✓ 綠行 [IO-8]',
+  );
+  assert(
+    lines.some((l) => l.includes('scaffold-fullstack')),
+    'IO-8：真 repo smoke 非 --json 輸出含 scaffold-fullstack 提醒行（notes 在 plain 模式可見）[IO-8]',
+  );
 }
 
 // ── 摘要 + exit code ─────────────────────────────────────────────────────────

@@ -3,12 +3,16 @@
 // reference 斷鏈/孤兒、文件計數失準、已刪指令殘留五類維護債。
 // 分層：
 //   1) 解析 / 判定層（純函式，無 IO）：parseDescription / footprintCheck / wordSet / jaccard /
-//      stripDeepVariantNote / duplicateCheck / deepSyncCheck / referenceIntegrityCheck /
-//      countLintCheck / deadCommandCheck / formatSummary —— 給單元測試直接 import。
+//      stripDeepVariantNote / stripFrontmatter / duplicateCheck / deepSyncCheck /
+//      referenceIntegrityCheck / countLintCheck / deadCommandCheck / formatSummary ——
+//      給單元測試直接 import。
 //   2) IO 薄邊界：walk（掃檔）與 CLI main（組裝、印出、決定 exit code）——
 //      main 被 import 時不執行（import.meta.url 守門）。
 // 依賴：僅 node 內建（fs / path / url / process），無外部套件。
 // 用法：node skill-lint.mjs [--root <dir>] [--json]
+// 已知限制：countLintCheck 的計數詞抓取只認半形阿拉伯數字（\d+）；全形數字（如「５１ 份
+// reference」）不會被偵測到、也就不會觸發 count-drift。純理論風險——本 repo 文件全數使用半形
+// 數字，尚未實際發生過；若未來出現全形數字寫法，需另外擴充 COUNT_PREFIX_RE / COUNT_SUFFIX_RE。
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname, basename, relative } from 'node:path';
@@ -87,7 +91,27 @@ export function parseDescription(content) {
 }
 
 /**
- * description 字數（context footprint）超過 500 字元 → P2。
+ * 剝除 .md 的 YAML frontmatter（含前後 `---` 分隔線），回傳純 body。無 frontmatter（不以 `---`
+ * 起頭，或找不到閉合 `---`）→ 原樣返回 content。agent/skill 內容比較（duplicateCheck /
+ * deepSyncCheck）與 stripDeepVariantNote 串接時，都該先過這關再比字，否則 frontmatter 裡
+ * model/effort 等每檔必異的欄位會把相似度洗低。
+ */
+export function stripFrontmatter(content) {
+  const lines = String(content ?? '').split(/\r?\n/);
+  if (lines[0] !== '---') return content;
+  const closeIdx = lines.slice(1).findIndex((l) => l === '---');
+  if (closeIdx === -1) return content;
+  return lines.slice(closeIdx + 2).join('\n');
+}
+
+// Unicode code point 數（非 UTF-16 code unit）。astral 字元（如 emoji）在 JS 字串裡是 surrogate
+// pair、.length 會灌水成 2 —— 用展開運算子逐 code point 迭代才是人類直覺的「字數」。
+function codePointLength(str) {
+  return [...String(str ?? '')].length;
+}
+
+/**
+ * description 字數（context footprint，以 Unicode code point 計，非 .length）超過 500 → P2。
  * summary 供 CLI 摘要用（totalChars 加總、estTokens 粗估 = ceil(chars/4)）。
  */
 export function footprintCheck(items) {
@@ -97,13 +121,14 @@ export function footprintCheck(items) {
 
   for (const item of list) {
     const description = item?.description ?? '';
-    totalChars += description.length;
-    if (description.length > FOOTPRINT_LIMIT_CHARS) {
+    const charCount = codePointLength(description);
+    totalChars += charCount;
+    if (charCount > FOOTPRINT_LIMIT_CHARS) {
       findings.push({
         check: 'footprint',
         severity: 'P2',
         file: item.file,
-        detail: `${description.length} chars`,
+        detail: `${charCount} chars`,
       });
     }
   }
@@ -139,7 +164,11 @@ export function jaccard(setA, setB) {
 
 // -deep 變體開頭的慣例提示句（審查內容逐字複製 base，僅 model/effort 不同）。比相似度前先剝除，
 // 否則這句本身的文字差異會把「內容其實同步」的 base/deep 判成分叉（假陽性）。
-const DEEP_VARIANT_NOTE_RE = /^>\s*\*\*此檔是[^\n]*\n\n?/;
+// 前導 \s*（非 ^>）刻意容忍 body 開頭的空白/換行 —— 真實管線裡 stripFrontmatter 回傳的 body
+// 常以 "\n" 起頭（frontmatter 後那個分隔空行），天真的 `^>` 錨定在該情境下永遠對不上、
+// 讓這條 regex 形同死碼（F-B：validator 抓到兩組真實 base/deep 對邊際相似度僅 0.01–0.02，
+// 代表剝句從未真的生效）。
+const DEEP_VARIANT_NOTE_RE = /^\s*>\s*\*\*此檔是[^\n]*\n\n?/;
 
 /** 剝除 -deep 檔開頭的變體提示 blockquote（含其後空行）；無此句 → 原樣返回。 */
 export function stripDeepVariantNote(body) {
@@ -154,6 +183,9 @@ export function stripDeepVariantNote(body) {
  */
 export function duplicateCheck(agents, threshold = DUPLICATE_THRESHOLD) {
   const list = Array.isArray(agents) ? agents : [];
+  // 每個 agent 的 wordSet 只算一次（迴圈外預先算），避免 O(n²) 比較時重算 O(n) 次 —— agent 數
+  // 隨 verify fan-out 成長，重算的浪費是乘數的。
+  const wordSets = list.map((a) => wordSet(a.body));
   const findings = [];
 
   for (let i = 0; i < list.length; i += 1) {
@@ -162,7 +194,7 @@ export function duplicateCheck(agents, threshold = DUPLICATE_THRESHOLD) {
       const b = list[j];
       if (isBaseDeepPair(a.file, b.file)) continue;
 
-      const similarity = jaccard(wordSet(a.body), wordSet(b.body));
+      const similarity = jaccard(wordSets[i], wordSets[j]);
       if (similarity >= threshold) {
         findings.push({
           check: 'duplicate',
@@ -358,13 +390,17 @@ function extractCountClaims(line) {
   return claims;
 }
 
-/** .md/.mjs 內殘留已刪指令 token（#84 指令收斂後唯一入口是 dispatch）→ P1，提醒清掉舊指代。 */
+/**
+ * .md/.mjs 內殘留已刪指令 token（#84 指令收斂後唯一入口是 dispatch）→ P1，提醒清掉舊指代。
+ * 比對前 lowercase 兩邊（token 清單本身已全小寫）：文件裡偶有大小寫混排（如標題句首大寫），
+ * 大小寫敏感比對會漏掉那些寫法，讓真正殘留的死指令因排版差異溜掉。
+ */
 export function deadCommandCheck(map) {
   const files = Object.keys(map ?? {});
   const findings = [];
 
   for (const file of files) {
-    const content = String(map[file] ?? '');
+    const content = String(map[file] ?? '').toLowerCase();
     for (const token of DEAD_COMMAND_TOKENS) {
       if (content.includes(token)) {
         findings.push({ check: 'dead-command', severity: 'P1', file, detail: `殘留已刪指令「${token}」` });
@@ -375,21 +411,34 @@ export function deadCommandCheck(map) {
   return findings;
 }
 
+// notes 形狀不只一種（footprint finding 形＝{check,file,detail}；countLintCheck 非強制鍵形＝
+// {check,file,key,claimed,actual}；呼叫端也可能自帶 {file,message} 形）——依序 fallback 取得可讀
+// 的一行，避免因缺欄位印出 "undefined"。
+function formatNoteLine(note) {
+  const check = note?.check ?? 'note';
+  const file = note?.file ?? '';
+  const detail = note?.detail
+    ?? note?.message
+    ?? (note?.key ? `${note.key}: 文件宣告 ${note.claimed}，實際 ${note.actual}` : '');
+  return `⚠ [${check}] ${file} — ${detail}`;
+}
+
 /**
- * 把整體檢查結果轉人讀摘要：全綠回單行 ✓；有 finding → 逐條 "✗ [check] severity file — detail"。
+ * 把整體檢查結果轉人讀摘要：findings 決定綠/紅頭（全綠單行 ✓；有 finding → 逐條
+ * "✗ [check] severity file — detail"）。notes（footprint 超標、非強制鍵計數落差等
+ * informational 提醒）永遠**額外**逐行印在頭部之後，不影響頭部綠/紅判定 —— notes 不擋線，
+ * 但也不能悶掉：plain 輸出是使用者唯一會看的畫面，notes 若不印，維護者永遠不會知道要瘦身。
  */
 export function formatSummary(result) {
   const findings = Array.isArray(result?.findings) ? result.findings : [];
+  const notes = Array.isArray(result?.notes) ? result.notes : [];
   const filesScanned = result?.summary?.filesScanned ?? 0;
 
-  if (findings.length === 0) {
-    return `✓ skill-lint：${filesScanned} 檔全綠，無 finding。`;
-  }
+  const header = findings.length === 0
+    ? `✓ skill-lint：${filesScanned} 檔全綠，無 finding。`
+    : findings.map((f) => `✗ [${f.check}] ${f.severity} ${f.file} — ${f.detail}`).join('\n');
 
-  const lines = findings.map(
-    (f) => `✗ [${f.check}] ${f.severity} ${f.file} — ${f.detail}`,
-  );
-  return lines.join('\n');
+  return [header, ...notes.map(formatNoteLine)].join('\n');
 }
 
 // ── IO 邊界：walk（掃檔）+ actualCounts（讀 hooks.json / 目錄）+ CLI main ──────────
@@ -565,14 +614,6 @@ function buildFootprintItems(fullMap) {
     items.push({ file, description: parseDescription(content).description });
   }
   return items;
-}
-
-function stripFrontmatter(content) {
-  const lines = String(content ?? '').split(/\r?\n/);
-  if (lines[0] !== '---') return content;
-  const closeIdx = lines.slice(1).findIndex((l) => l === '---');
-  if (closeIdx === -1) return content;
-  return lines.slice(closeIdx + 2).join('\n');
 }
 
 function buildAgentsList(fullMap) {
