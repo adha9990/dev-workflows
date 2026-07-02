@@ -298,7 +298,7 @@ function expectedTableLine(slug) {
 }
 // 預期的 active-loop 區塊標頭（逐字鏡射 formatActiveLoopsHeader，含偵測到的 count）。
 function expectedActiveHeader(count) {
-  return `[loops-workflow] 偵測到 ${count} 個 active 迴圈（.loops/ 含 worktree）。可用 /loops-workflow:resume <slug> 接續、或 /loops-workflow:status 看詳情：`;
+  return `[loops-workflow] 偵測到 ${count} 個 active 迴圈（.loops/ 含 worktree）。可用 /loops-workflow:dispatch <slug> 接續、或直接讀 .loops/<slug>/PROGRESS.md 看詳情：`;
 }
 
 function makeLoopCwd({

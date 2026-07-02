@@ -1,5 +1,6 @@
 ---
 name: scaffold-fullstack
+user-invocable: false
 description: >-
   Scaffold a brand-new, front/back-separated full-stack TypeScript project skeleton with a clean
   layered architecture: a pnpm workspace with a separate Fastify backend package

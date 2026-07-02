@@ -1,5 +1,6 @@
 ---
 name: agents-md-maintainer
+user-invocable: false
 description: Incrementally creates and maintains agent-facing AGENTS.md docs across a repo — root AGENTS.md, a coverage tracker, and per-module AGENTS.md. Documentation-only, exactly one scope per run, filename strictly AGENTS.md. Standalone side-tool, NOT part of the build loop.
 ---
 
@@ -9,13 +10,13 @@ description: Incrementally creates and maintains agent-facing AGENTS.md docs acr
 
 `agents-md-maintainer` 以**小步、高價值**的方式漸進建立 / 維護一個 repo 的 **agent-facing 文檔**（給 AI agent 讀的 repo 說明，不是給人讀的 README）。產出三類檔：根 `AGENTS.md`、覆蓋率追蹤表 `docs/agent-doc-coverage.md`、各模組的 module-level `AGENTS.md`。
 
-它是 **documentation-only 的側用工具**：**不改** runtime 原始碼 / generated 檔 / 行為 / 測試 / build 設定 / migration，不跑破壞性指令；**不在 7 階段迴圈裡**、不被 `dispatch` 路由（與 `explain` 同屬側用）。橫切整個 repo 的文檔治理，與單一 feature 迴圈無關。
+它是 **documentation-only 的側用工具**：**不改** runtime 原始碼 / generated 檔 / 行為 / 測試 / build 設定 / migration，不跑破壞性指令；**不在 7 階段迴圈裡**、不被 `dispatch` 路由（與 `explain` 同屬側用、`user-invocable: false`）。**兩種驅動方式**：① `iterate` 完工收尾在本迴圈**確實改變了慣例 / 規則**（命中 `references/docs-policy.md` 的 AGENTS.md 維護時機）時自動驅動，並傳入具體變動內容 → 走下面決策樹的**分支 2.5（局部同步）**；② 使用者以自然語言請求（audit / 補模組覆蓋等）→ 走一般決策樹。
 
 > **每次呼叫只完成恰好一個 scope（one scope per invocation）** —— 建根檔、或建追蹤表、或補一個模組，做完就停，不要一輪掃全 repo。
 
 ## When to Use
 
-**Use when**：被要求 add / improve / audit / maintain 一個 repo 的 agent-facing 文檔（`AGENTS.md`）。
+**Use when**：被要求 add / improve / audit / maintain 一個 repo 的 agent-facing 文檔（`AGENTS.md`）；或由 `iterate` 完工收尾自動驅動（本迴圈改變了慣例 / 規則，需同步進 `AGENTS.md`——iterate 會傳入變動內容）。
 
 **NOT for**：
 - 跑開發（走 `dispatch` / 各階段）。
@@ -26,7 +27,8 @@ description: Incrementally creates and maintains agent-facing AGENTS.md docs acr
 
 1. **檢查根 `AGENTS.md` 是否存在。**
 2. 若**缺** → 建根 `AGENTS.md`（用下面骨架），**停**（同一輪不做別的）。
-3. 若有 → **檢查 `docs/agent-doc-coverage.md` 追蹤表是否存在。**
+2.5. **局部同步分支（iterate 自動驅動專用）**：根檔**已存在**、且這次是「慣例 / 規則變動」觸發（呼叫方傳入了具體變動內容）→ **只把該變動同步進根 `AGENTS.md` 的對應段落**（更新既有句、或在對的章節加最小一條），**停**——不重建骨架、不建追蹤表、不掃無關模組（觸發理由是什麼就只做什麼）。
+3. 若有（且非分支 2.5 的觸發）→ **檢查 `docs/agent-doc-coverage.md` 追蹤表是否存在。**
 4. 若**缺** → 建追蹤表，**停**。
 5. 兩者都在 → 挑**恰好一個**重要的未覆蓋 / 過期模組 → 掃描它 → 建 / 更新該模組 `AGENTS.md` → 同步更新追蹤表 → **停**。
 

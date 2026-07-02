@@ -1,5 +1,6 @@
 ---
 name: explain
+user-invocable: false
 description: Produces an engineer understanding pack for a change — implementation walkthrough, ownership self-check questions, and a design-direction recap — to help an engineer grasp how built work, a PR, a branch, or a diff connects. Use when an engineer needs to understand an implementation, take over existing code, or confirm they truly understand what was built. For engineer understanding, not for reviewers. Read-only, not part of the build loop.
 ---
 
