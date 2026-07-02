@@ -270,6 +270,47 @@ function callSafe(fn) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  readEvalRows(file, maxBytes) —— #87 修復輪 P2（sec）：新增可選 maxBytes 讀檔上限
+//  （預設常數 16MB 級），避免對超大檔案無界讀入。極小 maxBytes → 安全空值 []（非拋錯、非讀入超限內容）；
+//  正常小檔 + 不帶 maxBytes（沿用預設）→ 解析行為不變（函式簽名相容：原呼叫不帶第二參數仍照舊運作）。
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── RR-maxbytes-cap：小檔 + 極小 maxBytes(10) → 安全空值 []（不拋錯、不讀入超限內容）[修復輪 P2 sec]
+{
+  const dir = mkdtempSync(join(tmpdir(), 'em-maxbytes-'));
+  try {
+    const file = join(dir, 'eval-results.jsonl');
+    // 內容遠超過 10 bytes（確保會真的觸發上限）
+    writeFileSync(file, JSON.stringify({ ts: 'T1', corpus: 'c', passRate: 1.0, total: 5 }) + '\n', 'utf8');
+    const r = callSafe(() => readEvalRows(file, 10));
+    assert(!r.threw, 'readEvalRows(file, 10)：極小 maxBytes 不拋錯 [RR-maxbytes-cap]');
+    assert(Array.isArray(r.val) && r.val.length === 0,
+      'readEvalRows(file, 10)：超過極小 maxBytes → 回安全空值 []（不讀入超限內容）[RR-maxbytes-cap]');
+    // 串接 check 語意：安全空值 → computeRegression 視為無歷史 → 不誤判退化
+    const reg = computeRegression(r.val || [], { tolerance: 0 });
+    assert(reg && reg.regressed === false, 'readEvalRows(file,10) 接 computeRegression：安全空值 → check 語意上無退化 [RR-maxbytes-cap]');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// ── RR-maxbytes-default：正常小檔 + 不帶 maxBytes（沿用預設 16MB 級上限）→ 解析行為不變（簽名相容）[修復輪 P2 sec]
+{
+  const dir = mkdtempSync(join(tmpdir(), 'em-maxbytes-default-'));
+  try {
+    const file = join(dir, 'eval-results.jsonl');
+    writeFileSync(file, JSON.stringify({ ts: 'T1', corpus: 'c', passRate: 1.0, total: 5 }) + '\n', 'utf8');
+    const r = callSafe(() => readEvalRows(file)); // 原呼叫方式：不帶第二參數
+    assert(!r.threw, 'readEvalRows(file)：不帶 maxBytes 不拋錯（簽名相容）[RR-maxbytes-default]');
+    const rows = r.val || [];
+    assert(rows.length === 1 && rows[0].passRate === 1.0,
+      'readEvalRows(file)：小檔 + 預設上限 → 正常解析（行為不變）[RR-maxbytes-default]');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 //  computeRegression(rows, { baseline, tolerance }) —— 退化判定
 //  baseline row = rows[baseline]（預設 0）；current = 最後一行；
 //  regressed = currentRate < baselineRate - tolerance（嚴格小於）；delta = currentRate - baselineRate。

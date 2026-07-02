@@ -120,7 +120,7 @@ ECC 是「agent harness performance optimization system」（271 skill、67 agen
 用 #18 剛建的 `/distill` 對 #2–#18 這整批迴圈自己萃取出 5 條方法論 instinct，並用 #18 的 session-start 注入**實跑驗證**成功：
 
 - `[90%]` 主線複跑勝過 subagent 自報 / LSP diagnostics
-- `[85%]` plugin hook 一律 opt-in 預設關 + 永不擋路
+- `[85%]` plugin hook 一律 opt-in 預設關 + 永不擋路（當時快照；#85 起 loops-path-guard、#87 起 cost-tracker／eval-gate×3／config-protection 改預設開——現值見 `references/journaling.md` 決策表）
 - `[85%]` 瑣碎 docs→SKIP、實質 docs→2 軸（product-contract+docs-devex）、含 code 依風險梯（#8 二分 → #38 4 級）
 - `[80%]` 檔案數 / 度量以 `ls` / 實跑為準、不信算術
 - `[80%]` 自動執行 repo 內容 / 注入 context → 威脅建模 + 信任警示

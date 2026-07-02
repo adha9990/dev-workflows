@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 // config-protection.mjs —— loops-workflow PreToolUse(Write|Edit|MultiEdit) hook：擋下「修改既有 linter/formatter
 // 設定檔」這個弱化品質閘的動作（應改程式碼，而非把 lint/format 規則調鬆）。只擋「受保護且已存在」的檔；
-// 新建設定檔放行。env LOOPS_CONFIG_PROTECTION=1 才啟用，預設靜默放行。
+// 新建設定檔放行。LOOPS_CONFIG_PROTECTION defaultOn 但 loops-scoped（#87）：
+//   - 未設：只在 payload.cwd 下存在 .loops/ 才生效（不擾非 loops 專案）。
+//   - 顯式 '1'：全域生效，不查 .loops/。
+//   - 顯式 '0'：關閉。
 // fail-open：任何例外一律放行 exit 0，永不擋路（hook 故障不該卡住使用者）。
 //
 // 分層（仿 hooks/suggest-compact.mjs / scripts/loops-quality-gate.mjs）：
@@ -10,7 +13,7 @@
 // 依賴：僅 node 內建（fs / path / url / process），零外部套件。
 
 import { existsSync, readFileSync } from 'node:fs';
-import { basename } from 'node:path';
+import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 // ── 對外契約：受保護的 linter / formatter 設定檔 basename（值即契約，逐欄釘死）─────────
@@ -27,7 +30,8 @@ const PROTECTED_CONFIGS = new Set([
 ]);
 
 const DENY_REASON =
-  '請修正程式碼錯誤，而非弱化 linter/formatter 設定檔。若確需修改設定，請暫時關閉 LOOPS_CONFIG_PROTECTION。';
+  '請修正程式碼錯誤，而非弱化 linter/formatter 設定檔。若確需修改設定，請設 LOOPS_CONFIG_PROTECTION=0 暫時關閉' +
+  '（僅字面 \'0\' 會關）。';
 
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
 
@@ -42,6 +46,16 @@ export function isProtectedConfig(name) {
  */
 export function shouldBlock(filePath, existsFn) {
   return isProtectedConfig(basename(String(filePath))) && Boolean(existsFn(filePath));
+}
+
+/**
+ * loops-scoped defaultOn 判定（#87）：顯式 '0' 關；顯式 '1' 全域生效（不查 .loops/）；
+ * 未設（含怪值）僅在 loops 工作區（hasLoopsDir）才生效——避免打擾非 loops 專案。
+ */
+export function isProtectionEnabled(envValue, hasLoopsDir) {
+  if (envValue === '0') return false;
+  if (envValue === '1') return true;
+  return Boolean(hasLoopsDir);
 }
 
 // ── IO 薄邊界：main()（被 import 時不執行）────────────────────────────────────────
@@ -63,7 +77,9 @@ function main() {
     return; // payload 壞 → 放行（無輸出）
   }
 
-  if (process.env.LOOPS_CONFIG_PROTECTION !== '1') return; // 預設關閉 → 放行
+  const cwd = payload?.cwd;
+  const hasLoopsDir = typeof cwd === 'string' && existsSync(join(cwd, '.loops'));
+  if (!isProtectionEnabled(process.env.LOOPS_CONFIG_PROTECTION, hasLoopsDir)) return; // 未啟用 → 放行
 
   const filePath = payload?.tool_input?.file_path;
   if (typeof filePath !== 'string') return; // 無檔路徑 → 無從判定，放行

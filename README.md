@@ -103,7 +103,8 @@ plugins/loops-workflow/
 ├── agents/       build 紅綠分離（test-author / impl-author / referee）+ verify 核心 reviewer
 │                 + finding-validator + 條件式領域 reviewer + 高風險 -deep 變體 + eval-judge
 │                 —— 全量與計數見 docs/FLOW.md 規模表
-├── hooks/        SessionStart：浮出 active .loops/ 迴圈；Stop：progress-render 重生 PROGRESS.md（恆跑）+ opt-in 觀測/閘
+├── hooks/        SessionStart：浮出 active .loops/ 迴圈；Stop：progress-render 重生 PROGRESS.md（恆跑）
+│                 + 把關/觀測（預設值逐 flag 拍板——見 references/journaling.md 決策表；安全把關預設開、SECURITY 類 opt-in）
 ├── scripts/      validate-plan / run-eval / loops-scan / progress
 └── references/   共用規範 + 模板（全量與分類見 docs/REFERENCES.md）
 ```

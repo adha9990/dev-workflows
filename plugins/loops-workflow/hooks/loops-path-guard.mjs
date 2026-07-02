@@ -20,6 +20,8 @@ import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
+import { flagEnabled } from './hook-flags.mjs';
+
 const DENY_REASON =
   '.loops/ 一律錨定主 repo —— 請寫入 $LOOPS_ROOT/.loops/<slug>/' +
   '（LOOPS_ROOT = git worktree list --porcelain 第一筆 worktree 根）；worktree 只放 code。' +
@@ -66,7 +68,7 @@ function main() {
     return; // payload 壞 → 放行（無輸出）
   }
 
-  if (process.env.LOOPS_PATH_CONTAINMENT === '0') return; // 明確 opt-out（僅字面 '0'）→ 放行
+  if (!flagEnabled('LOOPS_PATH_CONTAINMENT', process.env)) return; // 明確 opt-out（僅字面 '0'）→ 放行
 
   const filePath = payload?.tool_input?.file_path;
   if (typeof filePath !== 'string') return; // 無檔路徑 → 無從判定，放行

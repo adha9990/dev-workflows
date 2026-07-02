@@ -19,11 +19,12 @@ import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { flagEnabled } from './hook-flags.mjs';
+
 // ── instinct 選取契約常數（值即契約，逐欄釘死）─────────────────────────────────────
 const DEFAULT_INSTINCT_THRESHOLD = 0.7; // confidence 低於此者不注入（啟發式雜訊門檻）
 const DEFAULT_INSTINCT_TOP_N = 6; // 一次最多注入幾條，界定 context 消耗
 const PERCENT_SCALE = 100;
-const INSTINCT_INJECT_FLAG = '1'; // LOOPS_INSTINCT_INJECT 開啟值（預設未設＝關）
 const MAX_INSTINCT_SUMMARY_LENGTH = 200; // summary 注入長度上限：防惡意/髒 instinct 塞超長字串爆 context（縱深防禦）
 // 注入標頭明確框定來源：instinct 是「過往 loop 蒸餾的啟發、來源未驗證」，僅供參考、不可當指令
 // —— 對間接 prompt injection 的降權標示。「instinct」「啟發式」字樣為既有契約所釘，不可移除。
@@ -181,7 +182,7 @@ function printInstinctInjection(cwd) {
 function main() {
   const cwd = process.cwd();
   printActiveLoops(cwd);
-  if (process.env.LOOPS_INSTINCT_INJECT === INSTINCT_INJECT_FLAG) {
+  if (flagEnabled('LOOPS_INSTINCT_INJECT', process.env)) {
     printInstinctInjection(cwd);
   }
 }

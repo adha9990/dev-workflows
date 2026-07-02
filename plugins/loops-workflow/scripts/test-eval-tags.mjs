@@ -9,6 +9,10 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 import { groupByTag, summarizeByTag, crossLink } from './eval-tags.mjs';
+// #87 修復輪 P2（sec）：readJson 新增可選 maxBytes 參數，現尚未 export（僅 CLI 內部用）。
+// 用 namespace import 取用：未 export 時呼叫 undefined → TypeError → callSafe 捕捉，逐條轉紅
+// （不連坐既有 T1-T3 斷言，比照 test-eval-gate.mjs 的 namespace-import 慣例）。
+import * as ET from './eval-tags.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(HERE, 'eval-tags.mjs');
@@ -20,6 +24,15 @@ function assert(cond, msg) {
   else { failed.push(msg); console.error(`  ✗ ${msg}`); }
 }
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+function callSafe(fn) {
+  try { return { threw: false, val: fn() }; }
+  catch (e) { return { threw: true, err: e }; }
+}
+// tasksOf 的測試端等價複製（純取值，非 impl 真相源）：容受 {tasks:[...]} 或裸陣列，其餘 → []。
+function tasksOfLocal(report) {
+  if (Array.isArray(report?.tasks)) return report.tasks;
+  return Array.isArray(report) ? report : [];
+}
 
 // ── T1 groupByTag + summarizeByTag ──────────────────────────────────────────────
 {
@@ -82,6 +95,32 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   // 無交集不連
   const none = crossLink([{ id: 'z', pass: false, tags: ['unrelated'] }], findings, {});
   assert(none.evalToVerify[0].findings.length === 0, 'crossLink：無交集 tag → 不連 [T2]');
+}
+
+// ── RJ readJson(path, maxBytes) —— #87 修復輪 P2（sec）：新增可選 maxBytes 讀檔上限（預設 16MB 級）。
+//    極小 maxBytes → 安全空值（不拋錯、不讀入超限內容；by-tag 語意上「無訊號」→ summarizeByTag 回 []）；
+//    正常小檔 + 不帶 maxBytes（沿用預設）→ 正常解析（函式簽名相容）。readJson 現未 export → callSafe
+//    捕捉 TypeError，兩條斷言皆先紅（新 export + maxBytes 尚未實作）。
+{
+  const dir = mkdtempSync(join(tmpdir(), 'et-maxbytes-'));
+  try {
+    const file = join(dir, 'report.json');
+    writeFileSync(file, JSON.stringify({ total: 1, passed: 1, failed: 0, tasks: [{ id: 'a', pass: true, tags: ['x'] }] }));
+
+    const r = callSafe(() => ET.readJson(file, 10)); // 極小 maxBytes(10)，內容遠超此值
+    assert(!r.threw, 'readJson(file, 10)：極小 maxBytes 不拋錯（安全空值，非拋錯）[RJ-maxbytes-cap]');
+    const byTag = summarizeByTag(tasksOfLocal(r.val));
+    assert(Array.isArray(byTag) && byTag.length === 0,
+      'readJson(file, 10) 接 by-tag 語意：超限 → 安全空值 → summarizeByTag 無訊號（[]）[RJ-maxbytes-cap]');
+
+    const r2 = callSafe(() => ET.readJson(file)); // 原呼叫方式：不帶第二參數
+    assert(!r2.threw, 'readJson(file)：不帶 maxBytes 不拋錯（簽名相容）[RJ-maxbytes-default]');
+    const tasks2 = tasksOfLocal(r2.val);
+    assert(tasks2.length === 1 && tasks2[0].id === 'a',
+      'readJson(file)：小檔 + 預設上限 → 正常解析（行為不變）[RJ-maxbytes-default]');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 // ── T3 CLI spawn smoke ──────────────────────────────────────────────────────────

@@ -11,6 +11,10 @@ import { spawnSync } from 'node:child_process';
 import {
   cohenKappa, pollVote, aggregatePanel, pairJudgeVsGold,
 } from './eval-poll.mjs';
+// #87 修復輪 P2（sec）：loadRecords 新增可選 maxBytes 參數，現尚未 export（僅 CLI 內部用）。
+// 用 namespace import 取用：未 export 時呼叫 undefined → TypeError → callSafe 捕捉，逐條轉紅
+// （不連坐既有 T1-T5 斷言，比照 test-eval-gate.mjs 的 namespace-import 慣例）。
+import * as EP from './eval-poll.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(HERE, 'eval-poll.mjs');
@@ -22,6 +26,10 @@ function assert(cond, msg) {
   else { failed.push(msg); console.error(`  ✗ ${msg}`); }
 }
 const approx = (a, b) => typeof a === 'number' && Math.abs(a - b) < 1e-9;
+function callSafe(fn) {
+  try { return { threw: false, val: fn() }; }
+  catch (e) { return { threw: true, err: e }; }
+}
 
 // ── T1 cohenKappa（已知值）──────────────────────────────────────────────────────
 {
@@ -121,6 +129,30 @@ const approx = (a, b) => typeof a === 'number' && Math.abs(a - b) < 1e-9;
   // judgeLabels [t,f,t,f] vs goldLabels [t,f,f,f]：po=.75 pe=.5 κ=.5
   const k = cohenKappa(paired.judgeLabels, paired.goldLabels);
   assert(approx(k.kappa, 0.5), 'pairJudgeVsGold → cohenKappa 端到端 κ=0.5 [T4]');
+}
+
+// ── LR loadRecords(file, maxBytes) —— #87 修復輪 P2（sec）：新增可選 maxBytes 讀檔上限（預設 16MB 級）。
+//    極小 maxBytes → 安全空值（records:[]，不拋錯、不讀入超限內容；poll 語意上「零 records」）；
+//    正常小檔 + 不帶 maxBytes（沿用預設）→ 正常解析（函式簽名相容）。loadRecords 現未 export →
+//    callSafe 捕捉 TypeError，兩條斷言皆先紅（新 export + maxBytes 尚未實作）。
+{
+  const dir = mkdtempSync(join(tmpdir(), 'ep-maxbytes-'));
+  try {
+    const file = join(dir, 'judge-results.jsonl');
+    writeFileSync(file, '{"caseId":"c1","judgeId":"a","pass":true,"score":4,"track":"judge-estimate"}\n');
+
+    const r = callSafe(() => EP.loadRecords(file, 10)); // 極小 maxBytes(10)，內容遠超此值
+    assert(!r.threw, 'loadRecords(file, 10)：極小 maxBytes 不拋錯（安全空值，非拋錯）[LR-maxbytes-cap]');
+    assert(r.val && Array.isArray(r.val.records) && r.val.records.length === 0,
+      'loadRecords(file, 10)：超限 → 安全空值 records:[]（poll 語意上零 records）[LR-maxbytes-cap]');
+
+    const r2 = callSafe(() => EP.loadRecords(file)); // 原呼叫方式：不帶第二參數
+    assert(!r2.threw, 'loadRecords(file)：不帶 maxBytes 不拋錯（簽名相容）[LR-maxbytes-default]');
+    assert(r2.val && Array.isArray(r2.val.records) && r2.val.records.length === 1 && r2.val.records[0].caseId === 'c1',
+      'loadRecords(file)：小檔 + 預設上限 → 正常解析（行為不變）[LR-maxbytes-default]');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 // ── T5 CLI spawn smoke ──────────────────────────────────────────────────────────
