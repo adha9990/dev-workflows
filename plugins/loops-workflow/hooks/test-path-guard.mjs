@@ -165,11 +165,18 @@ assert(
   '[A-A7] worktrees/x/../../legit/.loops/n（.. 收合後脫離 .claude/worktrees 相鄰段）→ false（放行）',
 );
 
-// A8：鎖住「緊鄰」判準本身——.claude 存在但下一段不是 worktrees（verify P2 補遺：
-// mutation 實測放寬緊鄰要求時原 46 case 全綠不被發現，此 case 專門守這條）。
+// A8：鎖住「緊鄰」判準——.claude 存在但下一段不是 worktrees（verify P2 補遺；
+// 不依賴 .. 收合機制、比 A7 隔離度更高的顯式守衛）。
 assert(
   isWorktreeLoopsPath('C:/r/.claude/agents/.loops/n', 'C:/ignored') === false,
   '[A-A8] .claude/agents/.loops/n（.claude 下一段非 worktrees、緊鄰不成立）→ false（放行）',
+);
+
+// A9：鎖住緊鄰的另一半——worktrees 存在但不緊接在 .claude 之後（delta re-verify 補遺：
+// 「.claude 之後某處出現 worktrees」的放寬 mutant 可通過 A1–A8 全部斷言，此 case 專殺它）。
+assert(
+  isWorktreeLoopsPath('C:/r/.claude/x/worktrees/y/.loops/n', 'C:/ignored') === false,
+  '[A-A9] .claude/x/worktrees/y/.loops/n（worktrees 未緊接 .claude）→ false（放行）',
 );
 
 // =============================================================================
