@@ -1,13 +1,15 @@
 #!/usr/bin/env node
-// eval-gate.mjs —— loops-workflow Stop hook：改檔回合（這趟有累積編輯）時，依三個各自 opt-in 的訊號
+// eval-gate.mjs —— loops-workflow Stop hook：改檔回合（這趟有累積編輯）時，依三個各自 defaultOn 的訊號
 //   把 eval 觀測注入回 context 促 agent 自我修正，三者合併為單一 additionalContext。永不擋路：
 //   未達條件 / spawn 失敗 / 任何例外 → no-op exit 0（注入是 advisory，從不阻擋 Stop）。
 //     1) GATE（LOOPS_EVAL_GATE）：eval-metrics check 比歷史，偵測 passRate 退化（exit 1）才注入。
 //     2) TAGS（LOOPS_EVAL_TAGS_GATE）：eval-tags by-tag 讀 per-task report，列出有失敗的 tag。
 //     3) POLL（LOOPS_EVAL_POLL_GATE）：eval-poll poll 聚合 judge panel 共識（advisory、非回歸 gate）。
+//   三者皆 defaultOn（#87）：未設視為開，僅字面 '0' 可個別關閉（見 hooks/hook-flags.mjs）。
 //
 // ⚠️ SECURITY：三訊號都只 spawn 同 plugin 的固定腳本（固定子命令 + 固定參數）、只**讀** cwd 下
-//   .loops/.metrics 的固定檔（路徑由 payload.cwd 推得、不內插任何外部字串、無 shell）；預設全關。
+//   .loops/.metrics 的固定檔（路徑由 payload.cwd 推得、不內插任何外部字串、無 shell）；只讀觀測，
+//   不執行 repo 控制的命令。
 //
 // accumulator 協調：與 stop-gate 共用 edit-accumulator。本 hook 排在 stop-gate **之前**、且**只在
 //   stop-gate 未啟用時**才清 accumulator（stop-gate 開時由它清、本 hook 先跑讀到編輯不清），
@@ -24,6 +26,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 import { readEditsForSession, clearEditsState } from './edit-accumulator.mjs';
+import { flagEnabled } from './hook-flags.mjs';
 
 const GATE_TIMEOUT_MS = 120000; // check 很便宜（讀 JSONL）；上限 2 分鐘，逾時視為 spawn 失敗 → no-op
 const MAX_INJECTION_CHARS = 10000; // 注入回 context 的摘要上限，過長截斷
@@ -156,10 +159,10 @@ function runGateSignal(shouldRun, scriptPath, args, buildInjection, { includeStd
  * spawn 的都是 plugin 自帶腳本（固定路徑 + 固定子命令 + 固定參數），輸入檔由 cwd 推得，不內插外部字串。
  */
 function main() {
-  const gateOn = process.env.LOOPS_EVAL_GATE === '1';
-  const tagsOn = process.env.LOOPS_EVAL_TAGS_GATE === '1';
-  const pollOn = process.env.LOOPS_EVAL_POLL_GATE === '1';
-  if (!(gateOn || tagsOn || pollOn)) return; // 三閘全關 → no-op，連 stdin 都不讀
+  const gateOn = flagEnabled('LOOPS_EVAL_GATE', process.env);
+  const tagsOn = flagEnabled('LOOPS_EVAL_TAGS_GATE', process.env);
+  const pollOn = flagEnabled('LOOPS_EVAL_POLL_GATE', process.env);
+  if (!(gateOn || tagsOn || pollOn)) return; // 三閘全關（皆顯式 '0'）→ no-op，連 stdin 都不讀
 
   let payload;
   try {
@@ -208,7 +211,7 @@ function main() {
   //   → 每次 Stop 重觸發（洩漏）；改由本 hook 自己清。全短路未跑閘 → 不清，分辨「短路 vs 跑空閘」。
   //   殘留窄洞（誠實註明）：stop-gate config 在但其 spawn 罕見失敗時，本 hook 已 defer 不清 → 該回合 edits 仍可能殘留。
   const ranAny = gate.ran || tags.ran || poll.ran;
-  const deferToStopGate = process.env.LOOPS_STOP_GATE === '1' && existsSync(join(cwd, '.loops', 'gate.config.json'));
+  const deferToStopGate = flagEnabled('LOOPS_STOP_GATE', process.env) && existsSync(join(cwd, '.loops', 'gate.config.json'));
   if (ranAny && !deferToStopGate) clearEditsState(sessionId);
 }
 

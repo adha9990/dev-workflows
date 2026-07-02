@@ -425,15 +425,32 @@ function runHook(scriptAbs, payload, extraEnv = {}) {
   return spawnSync(process.execPath, [scriptAbs], { input: JSON.stringify(payload), env, encoding: 'utf8' });
 }
 
-// ── S-cost①：未設 LOOPS_COST_TRACKER → 不產 costs.jsonl、exit 0 ───────────────
+// ── S-cost①：顯式 LOOPS_COST_TRACKER='0' → 不產 costs.jsonl、exit 0 ───────────
+// （新語意：LOOPS_COST_TRACKER 已翻轉為 defaultOn，「未開→無動作」須用字面 '0' 顯式關閉才成立；
+//   單純 delete/未設不再代表關閉，見下方 S-cost①b 的翻轉斷言。）
 {
   const cwd = makeCwd(true);
   try {
-    const res = runHook(COST_SCRIPT, { transcript_path: SAMPLE, session_id: 'smoke-1', cwd });
+    const res = runHook(COST_SCRIPT, { transcript_path: SAMPLE, session_id: 'smoke-1', cwd }, { LOOPS_COST_TRACKER: '0' });
     const costFile = join(cwd, '.loops', '.metrics', 'costs.jsonl');
     assert(res.error == null, 'S-cost①：node 啟動成功（spawn 無 error）[S-cost①]');
-    assert(res.status === 0, 'S-cost①：未設旗標 → exit 0 [S-cost①]');
-    assert(!existsSync(costFile), 'S-cost①：未設 LOOPS_COST_TRACKER → 不產生 .loops/.metrics/costs.jsonl [S-cost①]');
+    assert(res.status === 0, 'S-cost①：顯式關閉旗標 → exit 0 [S-cost①]');
+    assert(!existsSync(costFile), 'S-cost①：LOOPS_COST_TRACKER=\'0\'（顯式關）→ 不產生 .loops/.metrics/costs.jsonl [S-cost①]');
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
+// ── S-cost①b（defaultOn 翻轉）：未設 LOOPS_COST_TRACKER + 有 .loops/ → 仍產 costs.jsonl ─────
+// 釘住 #87 翻轉契約：LOOPS_COST_TRACKER 現為 defaultOn，「未設」等同「開」，不再是「關」。
+// runHook() 內部固定 delete env.LOOPS_COST_TRACKER，此處刻意不覆寫、驗證真正的「未設」語意。
+{
+  const cwd = makeCwd(true);
+  try {
+    const res = runHook(COST_SCRIPT, { transcript_path: SAMPLE, session_id: 'smoke-1b', cwd }); // 不帶 extraEnv → 旗標真正未設
+    const costFile = join(cwd, '.loops', '.metrics', 'costs.jsonl');
+    assert(res.status === 0, 'S-cost①b：未設旗標（defaultOn）→ exit 0 [S-cost①b]');
+    assert(existsSync(costFile), 'S-cost①b：未設 LOOPS_COST_TRACKER 但有 .loops/ → 仍產生 costs.jsonl（defaultOn 翻轉）[S-cost①b]');
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }

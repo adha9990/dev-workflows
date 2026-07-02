@@ -7,7 +7,7 @@
 // P1 子代理：額外掃 <transcript>/<session>/subagents/*.jsonl，依角色（reviewer→verify /
 //   test·impl-author→build / design→plan / exploring→explore）歸到對應 stage——補上 verify /
 //   iterate 等「幾乎全是 fan-out 子代理」的階段成本（主 transcript 本來看不到）。
-// 估算值（estimate:true）、非帳單精確值；env LOOPS_COST_TRACKER=1 才啟用，預設靜默 no-op。
+// 估算值（estimate:true）、非帳單精確值；env LOOPS_COST_TRACKER 預設啟用（defaultOn），設 '0' 可關閉。
 //
 // 分層（仿 scripts/loops-quality-gate.mjs）：
 //   1) 純函式（無 IO，測試直接 import）：getRates / sumUsageFromTranscript /
@@ -19,6 +19,8 @@
 import { readFileSync, appendFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
+
+import { flagEnabled } from './hook-flags.mjs';
 
 // ── 對外契約：per-1M-token USD 費率（值即契約，逐欄釘死）──────────────────────────
 export const RATE_TABLE = {
@@ -346,7 +348,7 @@ function main() {
     return; // payload 壞掉 → 靜默 no-op
   }
 
-  if (process.env.LOOPS_COST_TRACKER !== '1') return; // 預設關閉
+  if (!flagEnabled('LOOPS_COST_TRACKER', process.env)) return; // defaultOn：僅字面 '0' 關閉
 
   const loopsRoot = resolveLoopsRoot(payload?.cwd); // P2：worktree cwd → 主 repo 根
   if (!loopsRoot || !existsSync(join(loopsRoot, '.loops'))) return; // 不在 loops 工作區 → 不自建

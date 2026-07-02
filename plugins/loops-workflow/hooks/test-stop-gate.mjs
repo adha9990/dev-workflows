@@ -12,6 +12,7 @@
 import {
   writeFileSync,
   mkdtempSync,
+  mkdirSync,
   rmSync,
   existsSync,
 } from 'node:fs';
@@ -67,6 +68,8 @@ function runHook(scriptAbs, payload, extraEnv = {}) {
   delete env.LOOPS_CONFIG_PROTECTION; // 確保「未設」情境真的未設（不被外層環境污染）
   delete env.LOOPS_STOP_GATE;
   delete env.LOOPS_EVAL_GATE; // #35：accumulator 現也認 eval-gate flag，須一併隔離才能測「兩 flag 都關 → no-op」
+  delete env.LOOPS_EVAL_TAGS_GATE; // #87：accumulator 消費 flag 擴至三個 eval 訊號，皆須隔離避免污染「全關」情境
+  delete env.LOOPS_EVAL_POLL_GATE;
   Object.assign(env, extraEnv);
   return spawnSync(process.execPath, [scriptAbs], {
     input: JSON.stringify(payload),
@@ -270,7 +273,9 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
   }
 }
 
-// ── S-prot④：env 未設 + 既有 eslint.config.js → 無輸出（放行）─────────────────
+// ── S-prot④：env 未設 + 無 cwd（無從判定 .loops）+ 既有 eslint.config.js → 無輸出（放行）──
+// 新語意（#87）：LOOPS_CONFIG_PROTECTION 翻轉為 defaultOn 但 loops-scoped——「未設」時只在
+// payload.cwd 下有 .loops/ 才生效；此處 payload 根本無 cwd 欄位，無從確認 .loops 存在 → 視為不生效、放行。
 {
   const dir = mkdtempSync(join(tmpdir(), 'prot-off-'));
   try {
@@ -279,9 +284,85 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
     const res = runHook(CONFIG_PROT_SCRIPT, { tool_name: 'Edit', tool_input: { file_path: cfg } });
     assert(res.status === 0, 'S-prot④：env 未設 → exit 0 [S-prot④]');
     assert(typeof res.stdout === 'string' && res.stdout.trim() === '',
-      'S-prot④：未設 LOOPS_CONFIG_PROTECTION → 無輸出（放行，即便受保護且存在）[S-prot④]');
+      'S-prot④：未設 LOOPS_CONFIG_PROTECTION 且無 cwd 可查 .loops → 無輸出（放行）[S-prot④]');
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// =============================================================================
+// #87 config-protection 新行為（defaultOn 但 loops-scoped）新增案例
+// =============================================================================
+
+// ── S-prot⑤（defaultOn + loops-scoped）：env 未設 + payload.cwd 下有 .loops/ + 既有受保護檔 → deny ──
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'prot-unset-loops-'));
+  try {
+    mkdirSync(join(cwd, '.loops'), { recursive: true });
+    const cfg = join(cwd, 'eslint.config.js');
+    writeFileSync(cfg, 'export default [];\n');
+    const res = runHook(CONFIG_PROT_SCRIPT, { tool_name: 'Edit', cwd, tool_input: { file_path: cfg } }); // env 未設
+    let out = null; try { out = JSON.parse(res.stdout); } catch { out = null; }
+    assert(res.status === 0, 'S-prot⑤：exit 0 [S-prot⑤]');
+    assert(out && out.hookSpecificOutput && out.hookSpecificOutput.permissionDecision === 'deny',
+      'S-prot⑤：未設 LOOPS_CONFIG_PROTECTION 但 payload.cwd 下有 .loops/ → deny（defaultOn 於 loops 工作區生效）[S-prot⑤]');
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
+// ── S-prot⑥（defaultOn + loops-scoped）：env 未設 + payload.cwd 下無 .loops/ + 既有受保護檔 → 放行（不擾非 loops 專案）──
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'prot-unset-noloops-'));
+  try {
+    const cfg = join(cwd, 'eslint.config.js');
+    writeFileSync(cfg, 'export default [];\n'); // 無 .loops/ 目錄
+    const res = runHook(CONFIG_PROT_SCRIPT, { tool_name: 'Edit', cwd, tool_input: { file_path: cfg } }); // env 未設
+    assert(res.status === 0, 'S-prot⑥：exit 0 [S-prot⑥]');
+    assert(typeof res.stdout === 'string' && res.stdout.trim() === '',
+      'S-prot⑥：未設 LOOPS_CONFIG_PROTECTION 且 cwd 下無 .loops/ → 無輸出（放行，不擾非 loops 專案）[S-prot⑥]');
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
+// ── S-prot⑦（顯式 '1' 全域生效）：env='1' + payload.cwd 下「無」.loops/ + 既有受保護檔 → 仍 deny（不查 .loops，既有行為）──
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'prot-explicit1-'));
+  try {
+    const cfg = join(cwd, 'eslint.config.js');
+    writeFileSync(cfg, 'export default [];\n'); // 無 .loops/ 目錄
+    const res = runHook(
+      CONFIG_PROT_SCRIPT,
+      { tool_name: 'Edit', cwd, tool_input: { file_path: cfg } },
+      { LOOPS_CONFIG_PROTECTION: '1' },
+    );
+    let out = null; try { out = JSON.parse(res.stdout); } catch { out = null; }
+    assert(res.status === 0, 'S-prot⑦：exit 0 [S-prot⑦]');
+    assert(out && out.hookSpecificOutput && out.hookSpecificOutput.permissionDecision === 'deny',
+      'S-prot⑦：顯式 LOOPS_CONFIG_PROTECTION=\'1\' → 全域生效（即便 cwd 無 .loops/ 仍 deny，不查 .loops）[S-prot⑦]');
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
+// ── S-prot⑧（顯式 '0' 關）：env='0' + payload.cwd 下有 .loops/ + 既有受保護檔 → 放行 ──
+{
+  const cwd = mkdtempSync(join(tmpdir(), 'prot-explicit0-'));
+  try {
+    mkdirSync(join(cwd, '.loops'), { recursive: true });
+    const cfg = join(cwd, 'eslint.config.js');
+    writeFileSync(cfg, 'export default [];\n');
+    const res = runHook(
+      CONFIG_PROT_SCRIPT,
+      { tool_name: 'Edit', cwd, tool_input: { file_path: cfg } },
+      { LOOPS_CONFIG_PROTECTION: '0' },
+    );
+    assert(res.status === 0, 'S-prot⑧：exit 0 [S-prot⑧]');
+    assert(typeof res.stdout === 'string' && res.stdout.trim() === '',
+      'S-prot⑧：顯式 LOOPS_CONFIG_PROTECTION=\'0\' → 放行（即便 cwd 有 .loops/ 且受保護檔存在）[S-prot⑧]');
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
   }
 }
 
@@ -289,17 +370,26 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
 // SMOKE — edit-accumulator.mjs（真 spawn 累積 state 檔，驗去重 / 多筆）
 // =============================================================================
 
-// ── S-acc①：兩次不同 path → state 檔 paths 累積 2 筆（accumulator hook 僅 flag=1 才寫 state）──
+// accumulator 新前置條件（#87）：除了「任一消費 flag 依新語意啟用」，還須 payload.cwd 下存在 .loops/
+// 才會記錄（loops-scoped）。以下 smoke 一律建一個帶 .loops/ 的暫存 cwd 並塞進 payload，符合新契約。
+function makeAccCwd(prefix) {
+  const cwd = mkdtempSync(join(tmpdir(), prefix));
+  mkdirSync(join(cwd, '.loops'), { recursive: true });
+  return cwd;
+}
+
+// ── S-acc①：兩次不同 path（cwd 有 .loops/）→ state 檔 paths 累積 2 筆（accumulator hook 僅消費 flag 開才寫 state）──
 {
   const sessionId = freshSession('acc');
   const stateFile = editsStateFile(sessionId);
   rmSync(stateFile, { force: true });
+  const cwd = makeAccCwd('acc-cwd-');
   try {
     const pa = join(tmpdir(), `acc-a-${sessionId}.ts`); // 絕對路徑：避免 impl 正規化造成 includes 漂移
     const pb = join(tmpdir(), `acc-b-${sessionId}.ts`);
-    // A1：edit-accumulator 的 PostToolUse hook 只在 LOOPS_STOP_GATE=1 時才寫 state，故 spawn 須設 flag。
-    const r1 = runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: pa } }, { LOOPS_STOP_GATE: '1' });
-    const r2 = runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: pb } }, { LOOPS_STOP_GATE: '1' });
+    // A1：edit-accumulator 的 PostToolUse hook 只在消費 flag 啟用「且」payload.cwd 下有 .loops/ 時才寫 state。
+    const r1 = runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, cwd, tool_input: { file_path: pa } }, { LOOPS_STOP_GATE: '1' });
+    const r2 = runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, cwd, tool_input: { file_path: pb } }, { LOOPS_STOP_GATE: '1' });
     assert(r1.status === 0 && r2.status === 0, 'S-acc①：兩次 spawn 皆 exit 0 [S-acc①]');
     assert(existsSync(stateFile), 'S-acc①：accumulator 產生 state 檔 [S-acc①]');
     const paths = readEditsForSession(sessionId); // 單一真相源讀回（不自刻路徑/解析）
@@ -307,40 +397,89 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
     assert(paths.includes(pa) && paths.includes(pb), 'S-acc①：兩 path 都被記錄 [S-acc①]');
   } finally {
     rmSync(stateFile, { force: true });
+    rmSync(cwd, { recursive: true, force: true });
   }
 }
 
-// ── S-acc②：同一 path 兩次 → 去重 1 筆 ──────────────────────────────────────
+// ── S-acc②：同一 path 兩次（cwd 有 .loops/）→ 去重 1 筆 ─────────────────────
 {
   const sessionId = freshSession('acc-dup');
   const stateFile = editsStateFile(sessionId);
   rmSync(stateFile, { force: true });
+  const cwd = makeAccCwd('acc-dup-cwd-');
   try {
     const p = join(tmpdir(), `acc-dup-${sessionId}.ts`);
-    // A1：accumulator hook 須在 LOOPS_STOP_GATE=1 下才會寫 state。
-    runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: p } }, { LOOPS_STOP_GATE: '1' });
-    runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: p } }, { LOOPS_STOP_GATE: '1' });
+    // A1：accumulator hook 須在消費 flag 啟用「且」cwd 有 .loops/ 下才會寫 state。
+    runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, cwd, tool_input: { file_path: p } }, { LOOPS_STOP_GATE: '1' });
+    runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, cwd, tool_input: { file_path: p } }, { LOOPS_STOP_GATE: '1' });
     const paths = readEditsForSession(sessionId); // 單一真相源讀回
     assert(paths.length === 1, 'S-acc②：同 path 兩次 → 去重後 paths 只 1 筆 [S-acc②]');
   } finally {
     rmSync(stateFile, { force: true });
+    rmSync(cwd, { recursive: true, force: true });
   }
 }
 
-// ── S-acc③：flag 關（未設 LOOPS_STOP_GATE）→ accumulator no-op、不寫出 state 檔（A1 負向）──
+// ── S-acc③（改）：三個 eval flag 皆顯式 '0'（且 LOOPS_STOP_GATE 未設）+ cwd 有 .loops/ → accumulator no-op、不寫出 state 檔 ──
+// 新語意（#87）：LOOPS_STOP_GATE 仍是 optIn（未設＝關），但 LOOPS_EVAL_GATE / _TAGS_GATE / _POLL_GATE 三者已翻轉為
+// defaultOn；若只是「未設」不足以代表關閉（見下方 S-acc③c 的翻轉斷言），本條須把三者顯式設 '0' 才是「全部消費 flag 皆關」。
 {
-  const sessionId = freshSession('acc-off');
+  const sessionId = freshSession('acc-alloff');
   const stateFile = editsStateFile(sessionId);
   rmSync(stateFile, { force: true }); // 起始確保無殘留 state 檔（冪等）
+  const cwd = makeAccCwd('acc-alloff-cwd-');
   try {
-    const p = join(tmpdir(), `acc-off-${sessionId}.ts`);
-    // A1（負向）：runHook 預設已 delete LOOPS_STOP_GATE，flag 關 → accumulator main 開頭即 return、不落盤。
-    // Prove-It：刪掉 impl 的 `if (process.env.LOOPS_STOP_GATE !== '1') return;`，flag 關仍會寫 state → 檔存在 → 此條轉紅。
-    runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, tool_input: { file_path: p } }); // 不帶 LOOPS_STOP_GATE
+    const p = join(tmpdir(), `acc-alloff-${sessionId}.ts`);
+    // Prove-It：若 impl 把 GATE/TAGS/POLL 的「關」判斷退化成只看未設（而非新 flagEnabled 語意），
+    // 顯式 '0' 仍應正確判為關；反之若忽略顯式 '0' 仍記錄 → 此條轉紅。
+    runHook(
+      ACCUMULATOR_SCRIPT,
+      { session_id: sessionId, cwd, tool_input: { file_path: p } },
+      { LOOPS_EVAL_GATE: '0', LOOPS_EVAL_TAGS_GATE: '0', LOOPS_EVAL_POLL_GATE: '0' }, // LOOPS_STOP_GATE 維持未設（optIn 關）
+    );
     assert(existsSync(editsStateFile(sessionId)) === false,
-      'S-acc③：未設 LOOPS_STOP_GATE → accumulator no-op、不寫出 state 檔（existsSync === false）[A1]');
+      'S-acc③：四個消費 flag 皆判定關閉（STOP 未設 + 三 eval flag 顯式 \'0\'）→ accumulator no-op、不寫出 state 檔 [S-acc③]');
   } finally {
     rmSync(stateFile, { force: true }); // 防衛性清（預期本就無檔）
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
+// ── S-acc③b（loops-scoped 新前置）：消費 flag 未設（defaultOn）但 cwd 下「無」.loops/ → accumulator no-op、不寫出 state 檔 ──
+// 釘住 #87 新前置條件：即便 GATE/TAGS/POLL 因未設而判定為開，缺 .loops/ 仍不該記錄（不擾非 loops 專案）。
+{
+  const sessionId = freshSession('acc-noloops');
+  const stateFile = editsStateFile(sessionId);
+  rmSync(stateFile, { force: true });
+  const cwd = mkdtempSync(join(tmpdir(), 'acc-noloops-cwd-')); // 刻意不建 .loops/
+  try {
+    const p = join(tmpdir(), `acc-noloops-${sessionId}.ts`);
+    runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, cwd, tool_input: { file_path: p } }); // 全部消費 flag 未設
+    assert(existsSync(editsStateFile(sessionId)) === false,
+      'S-acc③b：消費 flag 未設（defaultOn）但 cwd 下無 .loops/ → accumulator no-op、不寫出 state 檔 [S-acc③b]');
+  } finally {
+    rmSync(stateFile, { force: true });
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
+// ── S-acc③c（defaultOn 翻轉）：消費 flag 全未設（defaultOn）且 cwd 下「有」.loops/ → accumulator 仍記錄 ──
+// 釘住 #87 翻轉契約：LOOPS_EVAL_GATE 等三個 eval flag 現為 defaultOn，「未設」等同「開」；
+// 搭配 cwd 有 .loops/，前置條件（任一消費 flag 開 + cwd 有 .loops/）齊備 → 應記錄 edit。
+{
+  const sessionId = freshSession('acc-unset-loops');
+  const stateFile = editsStateFile(sessionId);
+  rmSync(stateFile, { force: true });
+  const cwd = makeAccCwd('acc-unset-loops-cwd-');
+  try {
+    const p = join(tmpdir(), `acc-unset-loops-${sessionId}.ts`);
+    runHook(ACCUMULATOR_SCRIPT, { session_id: sessionId, cwd, tool_input: { file_path: p } }); // 全部消費 flag 未設（defaultOn 三者仍算開）
+    const paths = readEditsForSession(sessionId);
+    assert(paths.length === 1 && paths.includes(p),
+      'S-acc③c：消費 flag 全未設（defaultOn）+ cwd 有 .loops/ → accumulator 仍記錄（defaultOn 翻轉）[S-acc③c]');
+  } finally {
+    rmSync(stateFile, { force: true });
+    rmSync(cwd, { recursive: true, force: true });
   }
 }
 
@@ -460,6 +599,75 @@ const NOT_PROTECTED = ['app.ts', 'tsconfig.json', 'package.json', 'README.md', '
   } finally {
     rmSync(stateFile, { force: true });
   }
+}
+
+// =============================================================================
+// SMOKE — stop-gate.mjs 發現性提示（#87：optIn 未開時，主動提示可設 LOOPS_STOP_GATE=1）
+// =============================================================================
+// 契約：①main 重排「先讀 stdin 再查 flag」（本節各案例本身即驗證此重排——若 main 仍在讀 stdin 前就
+//   因 flag 關而 return，將永遠讀不到 payload.cwd，以下「應提示」案例會全部轉紅）。
+// ②flag 關（optIn 未開）且 payload.cwd 有 .loops/gate.config.json 且本 session 未提示過
+//   → stdout 注入一行提示（含字面 LOOPS_STOP_GATE=1 與「信任」字樣）；已開 / 無 config / 同 session
+//   第二次 → 無提示。提示 state 檔於 os.tmpdir()（檔名含 session id，仿 suggest-compact），
+//   本測試不預知其確切檔名，靠「未設過的 fresh session」+「同 session 連續兩次呼叫」驗證行為。
+
+// ── D①（應提示）：flag 關（未設）+ cwd=GATE_GREEN（有 gate.config.json）+ fresh session → stdout 含提示 ──
+{
+  const sessionId = freshSession('discover-1');
+  const res = runHook(STOP_GATE_SCRIPT, { session_id: sessionId, cwd: GATE_GREEN }); // 未設 LOOPS_STOP_GATE
+  assert(res.status === 0, 'D①：flag 關 + 有 config + 未提示過 → exit 0 [D①]');
+  const out = res.stdout || '';
+  assert(out.includes('LOOPS_STOP_GATE=1'),
+    'D①：flag 關 + cwd 有 .loops/gate.config.json + 本 session 未提示過 → stdout 含字面 "LOOPS_STOP_GATE=1" [D①]');
+  assert(out.includes('信任'),
+    'D①：發現性提示含「信任」字樣（提醒此 flag 會自動執行 repo 命令、需信任 repo）[D①]');
+}
+
+// ── D②（不該提示：已開）：flag='1' + cwd=GATE_GREEN + fresh session、無 edits → stdout 不含提示文案 ──
+{
+  const sessionId = freshSession('discover-2');
+  const res = runHook(STOP_GATE_SCRIPT, { session_id: sessionId, cwd: GATE_GREEN }, { LOOPS_STOP_GATE: '1' });
+  assert(res.status === 0, 'D②：flag 開 → exit 0 [D②]');
+  assert(!(res.stdout || '').includes('LOOPS_STOP_GATE=1'),
+    'D②：LOOPS_STOP_GATE 已顯式開（\'1\'）→ 不該再提示「可設 LOOPS_STOP_GATE=1」（已開無需提示）[D②]');
+}
+
+// ── D③（不該提示：無 config）：flag 關 + cwd 下無 .loops/gate.config.json → stdout 不含提示文案 ──
+{
+  const sessionId = freshSession('discover-3');
+  const noCfgCwd = mkdtempSync(join(tmpdir(), 'discover-nocfg-'));
+  try {
+    const res = runHook(STOP_GATE_SCRIPT, { session_id: sessionId, cwd: noCfgCwd }); // 未設 LOOPS_STOP_GATE
+    assert(res.status === 0, 'D③：flag 關 + 無 config → exit 0 [D③]');
+    assert(!(res.stdout || '').includes('LOOPS_STOP_GATE=1'),
+      'D③：cwd 下無 .loops/gate.config.json → 不該提示（非 gate 工作區、提示無意義）[D③]');
+  } finally {
+    rmSync(noCfgCwd, { recursive: true, force: true });
+  }
+}
+
+// ── D④（不該提示：同 session 第二次）：flag 關 + cwd=GATE_GREEN + 同 session 連呼兩次 → 第二次無提示 ──
+{
+  const sessionId = freshSession('discover-4');
+  const first = runHook(STOP_GATE_SCRIPT, { session_id: sessionId, cwd: GATE_GREEN }); // 未設 LOOPS_STOP_GATE
+  const second = runHook(STOP_GATE_SCRIPT, { session_id: sessionId, cwd: GATE_GREEN }); // 同 session 再呼叫一次
+  assert(first.status === 0 && second.status === 0, 'D④：兩次呼叫皆 exit 0 [D④]');
+  assert((first.stdout || '').includes('LOOPS_STOP_GATE=1'),
+    'D④：首次（同 session）→ 有提示（含 "LOOPS_STOP_GATE=1"）[D④]');
+  assert(!(second.stdout || '').includes('LOOPS_STOP_GATE=1'),
+    'D④：同 session 第二次呼叫 → 無提示（state 已記住本 session 提示過，不重複洗版）[D④]');
+}
+
+// ── D⑤（安全邊界 + 驗主重排①）：flag 關 + payload 缺 cwd → exit 0、不崩、無提示（早讀 stdin 但仍優雅早退）──
+// 本條同時驗①的「先讀 stdin」重排不會因缺 cwd 而崩：main 必須先讀完 stdin（拿到 payload）才能判斷 cwd 是否存在，
+// 若 main 仍是「先查 flag、flag 關就直接 return」的舊序，本條仍會綠（因為兩種順序在缺 cwd 時結果一致）——
+// 故本條的真正判別力來自 D①（有 config 時必須真的讀到 payload.cwd 才提得出提示）。
+{
+  const sessionId = freshSession('discover-5');
+  const res = runHook(STOP_GATE_SCRIPT, { session_id: sessionId }); // 未設 LOOPS_STOP_GATE、無 cwd
+  assert(res.status === 0, 'D⑤：flag 關 + 缺 cwd → exit 0（不崩）[D⑤]');
+  assert(!(res.stdout || '').includes('LOOPS_STOP_GATE=1'),
+    'D⑤：缺 cwd 無從查 .loops/gate.config.json → 不提示 [D⑤]');
 }
 
 // ── 摘要 + exit code ─────────────────────────────────────────────────────────

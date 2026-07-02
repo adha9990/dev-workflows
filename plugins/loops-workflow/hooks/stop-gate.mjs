@@ -9,21 +9,31 @@
 //   等同自動執行 repo 控制的 code。**只在你信任的 repo 開此 flag。** 風險本就存在於手動跑
 //   quality-gate；本 hook 把它變成改檔回合自動，故格外提醒。
 //
+// 發現性提示（#87）：LOOPS_STOP_GATE 仍是 optIn（未設＝關）。當 flag 關但 cwd 是 loops gate 工作區
+//   （有 .loops/gate.config.json）時，主動提示可設 LOOPS_STOP_GATE=1 啟用——每個 session 只提示一次
+//   （state 記在 os.tmpdir()，仿 suggest-compact 的 per-session 節流）。
+//
 // 分層（仿 hooks/suggest-compact.mjs / scripts/loops-quality-gate.mjs）：
-//   1) 純函式（無 IO，測試直接 import）：shouldRunGate / buildGateInjection。
-//   2) IO 薄邊界：main()（讀 stdin、查 config、spawn quality-gate、清 accumulator）——被 import 時不執行。
-// 依賴：僅 node 內建（fs / path / url / child_process / process），零外部套件。
+//   1) 純函式（無 IO，測試直接 import）：shouldRunGate / buildGateInjection / shouldShowDiscoveryHint。
+//   2) IO 薄邊界：main()（讀 stdin、查 config、spawn quality-gate、清 accumulator、發現性提示）——被
+//      import 時不執行。
+// 依賴：僅 node 內建（fs / os / path / url / child_process / process），零外部套件。
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-// state 讀 / 清都走 edit-accumulator 的單一真相源 IO（本檔不再自存一份 readStateRaw）。
-import { readEditsForSession, clearEditsState } from './edit-accumulator.mjs';
+// state 讀 / 清、安全檔名規則都走 edit-accumulator 的單一真相源 IO（本檔不再自存一份 readStateRaw）。
+import { readEditsForSession, clearEditsState, sanitizeSessionId } from './edit-accumulator.mjs';
+import { flagEnabled } from './hook-flags.mjs';
 
 const GATE_TIMEOUT_MS = 300000; // 跑閘上限 5 分鐘，逾時視為 spawn 失敗 → no-op（不擋）
 const MAX_INJECTION_CHARS = 10000; // 注入回 context 的摘要上限，過長截斷
+const DISCOVERY_HINT =
+  '[loops-workflow] 偵測到 .loops/gate.config.json：可設 LOOPS_STOP_GATE=1，讓每次改檔回合自動跑 ' +
+  'type/lint 閘並在紅燈時提示修正。⚠️ 此 flag 會自動執行 repo 控制的 lint/type 命令，僅在你信任的 repo 開啟。';
 
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
 
@@ -42,6 +52,11 @@ export function buildGateInjection(summary, ok) {
   return out.trim() ? out : null;
 }
 
+/** 發現性提示三條件：flag 關（optIn 未開）、cwd 是 gate 工作區、本 session 未提示過 —— 皆成立才提示。 */
+export function shouldShowDiscoveryHint({ flagOn, hasConfig, alreadyHinted }) {
+  return Boolean(!flagOn && hasConfig && !alreadyHinted);
+}
+
 // ── IO 薄邊界：main()（被 import 時不執行）────────────────────────────────────────
 
 // quality-gate 腳本路徑由本檔位置推得：hooks/ 上一層即 plugin root，再 + scripts/loops-quality-gate.mjs。
@@ -52,16 +67,41 @@ function readStdin() {
   return readFileSync(0, 'utf8'); // fd 0 = stdin（hook payload 由父行程以 pipe 餵入）
 }
 
+/** 發現性提示的 per-session state 檔絕對路徑：os.tmpdir()/loops-stop-gate-hint-<safe session>.json。 */
+function discoveryHintStateFile(sessionId) {
+  return join(tmpdir(), `loops-stop-gate-hint-${sanitizeSessionId(sessionId)}.json`);
+}
+
+function hasAlreadyHinted(stateFile) {
+  try {
+    return Boolean(JSON.parse(readFileSync(stateFile, 'utf8'))?.hinted);
+  } catch {
+    return false; // 無 state / 壞檔 → 視為尚未提示過
+  }
+}
+
+/**
+ * flag 關但 cwd 是 gate 工作區、本 session 未提示過 → 印一行發現性提示並記住（per-session 只提示一次）。
+ * persist-before-emit（防洗版，仿 suggest-compact:140）：先落盤「已提示」，落盤成功才印，
+ * 確保「提示過」必然伴隨「已記住」，否則下次又會重複洗版。
+ */
+function maybeShowDiscoveryHint(sessionId, hasConfig) {
+  const stateFile = discoveryHintStateFile(sessionId);
+  const alreadyHinted = hasAlreadyHinted(stateFile);
+  if (!shouldShowDiscoveryHint({ flagOn: false, hasConfig, alreadyHinted })) return;
+
+  writeFileSync(stateFile, JSON.stringify({ hinted: true }));
+  console.log(DISCOVERY_HINT);
+}
+
 /**
  * Stop hook 入口：條件齊備才 spawn quality-gate（type/lint）；紅燈注入摘要、綠燈靜默；跑完清 accumulator。
- * 安全 / 永不擋路：env 預設關、無 gate.config / 無編輯 → no-op、spawn 失敗 → no-op、任何例外 exit 0。
+ * flag 關時改走發現性提示（cwd 是 gate 工作區且本 session 未提示過才印一行）。
+ * 安全 / 永不擋路：先無條件讀滿 stdin 再查 flag（與家族其他 hook 同序，避免大 payload EPIPE）、
+ * 無 gate.config / 無編輯 → no-op、spawn 失敗 → no-op、任何例外 exit 0。
  * spawn 的是 plugin 自帶腳本（固定路徑 + 固定參數），cwd 來自 payload，不內插任何外部字串。
  */
 function main() {
-  // opt-in flag 先判：預設關時直接 no-op，連 stdin / config 探測 / state 讀取都不做（省白工）。
-  const flagOn = process.env.LOOPS_STOP_GATE === '1';
-  if (!flagOn) return;
-
   let payload;
   try {
     payload = JSON.parse(readStdin());
@@ -70,10 +110,17 @@ function main() {
   }
 
   const cwd = payload?.cwd;
-  if (typeof cwd !== 'string') return; // 無 cwd → 無從跑閘
+  if (typeof cwd !== 'string') return; // 無 cwd → 無從跑閘、也無從判定是否為 gate 工作區
 
+  const flagOn = flagEnabled('LOOPS_STOP_GATE', process.env);
   const sessionId = payload.session_id;
   const hasConfig = existsSync(join(cwd, '.loops', 'gate.config.json'));
+
+  if (!flagOn) {
+    maybeShowDiscoveryHint(sessionId, hasConfig);
+    return;
+  }
+
   const hasEdits = readEditsForSession(sessionId).length > 0;
 
   if (!shouldRunGate({ flagOn, hasConfig, hasEdits })) return; // 未達條件 → no-op（不 spawn、不清）

@@ -331,16 +331,36 @@ const METRICS_TRACE = /退化|regression|passRate/i; // 既有 metrics 退化注
 // SMOKE — 真 spawn eval-gate.mjs
 // =============================================================================
 
-// ── S1：flag 關 → no-op（無輸出、不動 accumulator）─────────────────────────────
+// ── S1：LOOPS_EVAL_GATE 顯式 '0' → no-op（無輸出、不動 accumulator）────────────
+// （新語意：LOOPS_EVAL_GATE 已翻轉為 defaultOn，「未開→無動作」須用字面 '0' 顯式關閉才成立；
+//   單純 delete/未設不再代表關閉，見下方 S1b 的翻轉斷言。）
 {
   const sessionId = freshSession('eg-off');
   const cwd = makeMetricsCwd('eg-off-', REGRESSED);
   writeEditsState(sessionId, [join(tmpdir(), `e-${sessionId}.ts`)]);
   try {
-    const res = runHook({ session_id: sessionId, cwd }); // 未設 LOOPS_EVAL_GATE
-    assert(res.status === 0, 'S1：flag 關 → exit 0 [S1]');
-    assert((res.stdout || '').trim() === '', 'S1：flag 關 → 無輸出（no-op）[S1]');
-    assert(readEditsForSession(sessionId).length === 1, 'S1：flag 關 → 不動 accumulator（seed 仍在）[S1]');
+    const res = runHook({ session_id: sessionId, cwd }, { LOOPS_EVAL_GATE: '0' }); // 顯式關閉
+    assert(res.status === 0, 'S1：flag 顯式關 → exit 0 [S1]');
+    assert((res.stdout || '').trim() === '', 'S1：flag 顯式關（\'0\'）→ 無輸出（no-op）[S1]');
+    assert(readEditsForSession(sessionId).length === 1, 'S1：flag 顯式關 → 不動 accumulator（seed 仍在）[S1]');
+  } finally { rmSync(editsStateFile(sessionId), { force: true }); rmSync(cwd, { recursive: true, force: true }); }
+}
+
+// ── S1b（defaultOn 翻轉）：LOOPS_EVAL_GATE 未設 + 退化歷史 + edits → 仍注入退化警示 ──
+// 釘住 #87 翻轉契約：LOOPS_EVAL_GATE 現為 defaultOn，「未設」等同「開」。此 cwd 只有 eval-results.jsonl
+// （無 eval-report.json / judge-results.jsonl），故即便 TAGS/POLL 也因 defaultOn 而判定開，仍因
+// hasReport/hasJudge 為 false 而不會跑，注入只會來自 GATE 訊號——測試維持單訊號可辨識。
+{
+  const sessionId = freshSession('eg-unset-on');
+  const cwd = makeMetricsCwd('eg-unset-on-', REGRESSED);
+  writeEditsState(sessionId, [join(tmpdir(), `e-${sessionId}.ts`)]);
+  try {
+    const res = runHook({ session_id: sessionId, cwd }); // 不帶 extraEnv → LOOPS_EVAL_GATE 真正未設
+    let out = null; try { out = JSON.parse(res.stdout); } catch { out = null; }
+    const ctx = out?.hookSpecificOutput?.additionalContext;
+    assert(res.status === 0, 'S1b：未設旗標（defaultOn）→ exit 0 [S1b]');
+    assert(typeof ctx === 'string' && ctx.length > 0, 'S1b：未設 LOOPS_EVAL_GATE 但有退化歷史 → 仍注入 additionalContext（defaultOn 翻轉）[S1b]');
+    assert(/退化|regression|passRate/i.test(ctx || ''), 'S1b：注入內容反映真退化 [S1b]');
   } finally { rmSync(editsStateFile(sessionId), { force: true }); rmSync(cwd, { recursive: true, force: true }); }
 }
 
@@ -435,8 +455,10 @@ const METRICS_TRACE = /退化|regression|passRate/i; // 既有 metrics 退化注
   rmSync(editsStateFile(sessionId), { force: true });
   try {
     const accEnv = { ...process.env }; delete accEnv.LOOPS_STOP_GATE; accEnv.LOOPS_EVAL_GATE = '1';
+    // #87：edit-accumulator 新前置條件之一是 payload.cwd 下存在 .loops/；cwd 由 makeMetricsCwd 建立
+    // （內含 .loops/.metrics），故此處餵同一個 cwd 才滿足新契約（否則就算 flag 開也不會記 edit）。
     const acc = spawnSync(process.execPath, [ACCUMULATOR_SCRIPT], {
-      input: JSON.stringify({ session_id: sessionId, tool_input: { file_path: join(tmpdir(), `f-${sessionId}.ts`) } }),
+      input: JSON.stringify({ session_id: sessionId, cwd, tool_input: { file_path: join(tmpdir(), `f-${sessionId}.ts`) } }),
       env: accEnv, encoding: 'utf8',
     });
     assert(acc.status === 0, 'S7：edit-accumulator exit 0 [S7]');
@@ -521,8 +543,9 @@ const METRICS_TRACE = /退化|regression|passRate/i; // 既有 metrics 退化注
     delete accEnv.LOOPS_STOP_GATE; delete accEnv.LOOPS_EVAL_GATE;
     delete accEnv.LOOPS_EVAL_TAGS_GATE; delete accEnv.LOOPS_EVAL_POLL_GATE;
     accEnv.LOOPS_EVAL_TAGS_GATE = '1'; // 只開第 3 旗標
+    // #87：edit-accumulator 新前置條件之一是 payload.cwd 下存在 .loops/；cwd 由 makeGateCwd 建立（內含 .loops/.metrics）。
     const acc = spawnSync(process.execPath, [ACCUMULATOR_SCRIPT], {
-      input: JSON.stringify({ session_id: sessionId, tool_input: { file_path: join(tmpdir(), `f-${sessionId}.ts`) } }),
+      input: JSON.stringify({ session_id: sessionId, cwd, tool_input: { file_path: join(tmpdir(), `f-${sessionId}.ts`) } }),
       env: accEnv, encoding: 'utf8',
     });
     assert(acc.status === 0, 'S-tags-producer：edit-accumulator exit 0 [S-tags-producer]');
@@ -546,8 +569,9 @@ const METRICS_TRACE = /退化|regression|passRate/i; // 既有 metrics 退化注
     delete accEnv.LOOPS_STOP_GATE; delete accEnv.LOOPS_EVAL_GATE;
     delete accEnv.LOOPS_EVAL_TAGS_GATE; delete accEnv.LOOPS_EVAL_POLL_GATE;
     accEnv.LOOPS_EVAL_POLL_GATE = '1'; // 只開第 4 旗標
+    // #87：edit-accumulator 新前置條件之一是 payload.cwd 下存在 .loops/；cwd 由 makeGateCwd 建立（內含 .loops/.metrics）。
     const acc = spawnSync(process.execPath, [ACCUMULATOR_SCRIPT], {
-      input: JSON.stringify({ session_id: sessionId, tool_input: { file_path: join(tmpdir(), `f-${sessionId}.ts`) } }),
+      input: JSON.stringify({ session_id: sessionId, cwd, tool_input: { file_path: join(tmpdir(), `f-${sessionId}.ts`) } }),
       env: accEnv, encoding: 'utf8',
     });
     assert(acc.status === 0, 'S-poll-producer：edit-accumulator exit 0 [S-poll-producer]');
@@ -595,16 +619,17 @@ const METRICS_TRACE = /退化|regression|passRate/i; // 既有 metrics 退化注
   } finally { rmSync(editsStateFile(sessionId), { force: true }); rmSync(cwd, { recursive: true, force: true }); }
 }
 
-// ── S-independent：三輸入齊但只開 TAGS（GATE/POLL 關）→ 只有 tags 注入、無 metrics/poll 痕跡（驗三 flag 獨立）──
+// ── S-independent：三輸入齊但只開 TAGS（GATE/POLL 顯式關）→ 只有 tags 注入、無 metrics/poll 痕跡（驗三 flag 獨立）──
+// 注意：GATE/POLL 現為 defaultOn，「只開 TAGS」須把另兩者顯式設 '0'，否則兩者會因 defaultOn 而一併跑閘。
 {
   const sessionId = freshSession('eg-indep');
   const cwd = makeGateCwd('eg-indep-');
-  writeMetricsRows(cwd, REGRESSED);       // 退化 metrics（GATE 關 → 不該注入）
+  writeMetricsRows(cwd, REGRESSED);       // 退化 metrics（GATE 顯式關 → 不該注入）
   writeTagsReport(cwd, FAILED_TAG_TASKS); // 失敗 tag（TAGS 開 → 該注入）
-  writeJudgeRecords(cwd, JUDGE_RECORDS);  // judge（POLL 關 → 不該注入）
+  writeJudgeRecords(cwd, JUDGE_RECORDS);  // judge（POLL 顯式關 → 不該注入）
   writeEditsState(sessionId, [join(tmpdir(), `e-${sessionId}.ts`)]);
   try {
-    const res = runGate({ session_id: sessionId, cwd }, { LOOPS_EVAL_TAGS_GATE: '1' }); // 只開 TAGS
+    const res = runGate({ session_id: sessionId, cwd }, { LOOPS_EVAL_TAGS_GATE: '1', LOOPS_EVAL_GATE: '0', LOOPS_EVAL_POLL_GATE: '0' }); // 只開 TAGS，GATE/POLL 顯式關
     assert(res.status === 0, 'S-independent：exit 0 [S-independent]');
     const ctx = ctxOf(res);
     assert(typeof ctx === 'string' && ctx.includes('eval-tags') && ctx.includes('alpha'), 'S-independent：只開 TAGS → 有 tags 注入 [S-independent]');
@@ -647,7 +672,9 @@ const METRICS_TRACE = /退化|regression|passRate/i; // 既有 metrics 退化注
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 }
 
-// ── S-alloff：三 flag 全關 + 三輸入齊 → no-op exit 0、無輸出、不動 accumulator（新增不破壞「預設全關」）[guard] ──
+// ── S-alloff：三 flag 皆顯式 '0' + 三輸入齊 → no-op exit 0、無輸出、不動 accumulator（新增不破壞「全關」）[guard] ──
+// 注意：三 flag 現皆 defaultOn，單純 delete/未設不再代表關閉（見下方 S-allunset 的翻轉斷言），
+// 此處須逐一顯式設 '0' 才是真正的「全關」語意。
 {
   const sessionId = freshSession('eg-alloff');
   const cwd = makeGateCwd('eg-alloff-');
@@ -656,10 +683,31 @@ const METRICS_TRACE = /退化|regression|passRate/i; // 既有 metrics 退化注
   writeJudgeRecords(cwd, JUDGE_RECORDS);
   writeEditsState(sessionId, [join(tmpdir(), `e-${sessionId}.ts`)]);
   try {
-    const res = runGate({ session_id: sessionId, cwd }); // runGate 清掉全部旗標 → 三 flag 全關
-    assert(res.status === 0, 'S-alloff：三 flag 全關 → exit 0 [S-alloff]');
-    assert((res.stdout || '').trim() === '', 'S-alloff：三 flag 全關 → 無輸出（no-op）即便三輸入齊 [S-alloff]');
+    const res = runGate({ session_id: sessionId, cwd }, { LOOPS_EVAL_GATE: '0', LOOPS_EVAL_TAGS_GATE: '0', LOOPS_EVAL_POLL_GATE: '0' }); // 三 flag 皆顯式關
+    assert(res.status === 0, 'S-alloff：三 flag 皆顯式關 → exit 0 [S-alloff]');
+    assert((res.stdout || '').trim() === '', 'S-alloff：三 flag 皆顯式關 → 無輸出（no-op）即便三輸入齊 [S-alloff]');
     assert(readEditsForSession(sessionId).length === 1, 'S-alloff：全關 → 不動 accumulator（seed 仍在）[S-alloff]');
+  } finally { rmSync(editsStateFile(sessionId), { force: true }); rmSync(cwd, { recursive: true, force: true }); }
+}
+
+// ── S-allunset（defaultOn 翻轉）：三 flag 全未設 + 三輸入齊 → 三訊號皆跑、單一 additionalContext 同時含三痕跡 ──
+// 釘住 #87 翻轉契約：GATE/TAGS/POLL 三者皆 defaultOn，「全未設」等同「全開」，行為應等價於 S-combo（三 flag 顯式 '1'）。
+{
+  const sessionId = freshSession('eg-allunset');
+  const cwd = makeGateCwd('eg-allunset-');
+  writeMetricsRows(cwd, REGRESSED);
+  writeTagsReport(cwd, FAILED_TAG_TASKS);
+  writeJudgeRecords(cwd, JUDGE_RECORDS);
+  writeEditsState(sessionId, [join(tmpdir(), `e-${sessionId}.ts`)]);
+  try {
+    const res = runGate({ session_id: sessionId, cwd }); // runGate 清掉全部旗標 → 三 flag 真正「未設」（非顯式關）
+    assert(res.status === 0, 'S-allunset：三 flag 全未設 → exit 0 [S-allunset]');
+    const ctx = ctxOf(res);
+    assert(typeof ctx === 'string' && ctx.length > 0, 'S-allunset：三 flag 全未設（defaultOn）→ 仍合併注入 additionalContext [S-allunset]');
+    assert(typeof ctx === 'string' && METRICS_TRACE.test(ctx), 'S-allunset：含 metrics 退化痕跡（GATE 未設→開）[S-allunset]');
+    assert(typeof ctx === 'string' && ctx.includes('eval-tags') && ctx.includes('alpha'), 'S-allunset：含 tags 痕跡（TAGS 未設→開）[S-allunset]');
+    assert(typeof ctx === 'string' && ctx.includes('共識'), 'S-allunset：含 poll 痕跡（POLL 未設→開）[S-allunset]');
+    assert(readEditsForSession(sessionId).length === 0, 'S-allunset：三閘皆 ran → 跑完清 accumulator（stop-gate 關）[S-allunset]');
   } finally { rmSync(editsStateFile(sessionId), { force: true }); rmSync(cwd, { recursive: true, force: true }); }
 }
 

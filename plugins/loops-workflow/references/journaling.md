@@ -39,16 +39,29 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 
 **鐵則**：不適用欄一律標 `—`，**不留空、不編造**；token 估算分支必帶 `≈`／級距／`est`，實測分支必帶 `measured`＋`$`、**兩種都不得宣稱精準值**（規則 5）。需要程式化彙總時日後再加 `--json`（不在預設）。
 
-> **opt-in 觀測 hook（#15，兩個、預設關、出錯一律 no-op exit 0、永不擋路）**：
-> - **`LOOPS_COST_TRACKER=1`**（cost-tracker，Stop hook）：每個 assistant 回應結束把該 session 累計 usage append 一行到 **主 repo** `.loops/.metrics/costs.jsonl`（per-session **取該 session_id 最後一行**）。**落點錨定（P2）**：不看 cwd 有無 `.loops/`，而是把 cwd 解析成主 repo 根（worktree cwd 也寫回主 repo，對齊 §規則 9 的 `.loops` 錨定）——修好「worktree session 成本寫進 worktree `.loops`、會被清 / 分裂」。每行含 session 累計 **＋ `by_stage` 逐 loop-stage 拆解**（goal/explore/plan/build/verify/iterate…各自 token + `cost_usd`）。**子代理歸戶（P1，schema 3）**：額外掃 `<transcript>/<session>/subagents/agent-*.jsonl`，依角色（reviewer→verify / test·impl-author→build / design→plan / exploring→explore / 其餘→other-subagent）歸到對應 stage，掛在 `by_stage[].subagent`＋頂層 `subagents` 聚合＋`total_cost_usd`（主線+子代理）——**補上 verify / iterate 等幾乎全是 fan-out 子代理的階段成本**（主 transcript 本來看不到，故舊版 verify 常顯示接近 0）。無子代理則維持 schema 2。收尾若該檔有本 session 行→實測分支，否則（未開 flag／無此檔）→估算分支。footprint：主 repo `.loops/.metrics/costs.jsonl`（已被 `.loops/*` gitignore）。**限制**：① `by_stage` 主線部分按 Skill 邊界切，最後一個 stage 之後的收尾雜項會續記在該 stage 名下；② 子代理歸角色靠 prompt 關鍵字，無法辨識者落 `other-subagent`（不遺失、只是未細分）；③ per-turn 加總 `cache_read` 會高估絕對值（分佈 / output tokens 較可信）。
-> - **`LOOPS_COMPACT_HINT=1`**（suggest-compact，PreToolUse matcher `Edit|Write`）：估算真實 context 大小（transcript 最新 usage）跨門檻（~250k、之後每 +60k）時，在 Edit/Write 前注入一句「可考慮 `/compact`」**估算**提醒（**不阻擋**工具）；防洗版 state 落 `os.tmpdir()/loops-compact-<session>.json`、14 天 TTL。footprint：tmp state 檔。
+> **flag 預設值決策表（#87 逐 flag 明文拍板；語意單一真相源＝`hooks/hook-flags.mjs`：defaultOn＝僅字面 `'0'` 關、optIn＝僅字面 `'1'` 開，顯式設值一律向後相容）**：
+>
+> | flag | 預設 | 一句理由 |
+> |---|---|---|
+> | `LOOPS_PATH_CONTAINMENT` | 開（#85） | 「嚴禁」級硬規範、已踩過坑 |
+> | `LOOPS_COST_TRACKER` | 開（#87） | 零風險觀測、僅 `.loops/` repo 動作 |
+> | `LOOPS_EVAL_GATE`/`TAGS`/`POLL` | 開（#87） | 無 artifact 即 no-op；不執行 repo 定義命令 |
+> | `LOOPS_CONFIG_PROTECTION` | 開（#87，loops-scoped） | 防 AI 弱化 linter；`.loops/` 存在才生效、日常編輯零外溢 |
+> | `LOOPS_STOP_GATE` | **opt-in**（#87 評估後維持） | 開＝自動執行 repo 的 gate.config 命令（#17 RCE 面）；補發現性提示消滅資訊差 |
+> | `LOOPS_INSTINCT_INJECT` | **opt-in**（#87 評估後維持） | 間接 prompt injection 面（#18） |
+> | `LOOPS_COMPACT_HINT` | **opt-in**（#87 評估後維持） | 非已踩過坑對治、價值中性 |
+> | edit-accumulator（非 flag） | 隨消費端＋`.loops/` 存在前置（#87） | 非 loops repo 零 tmp 寫入 |
+>
+> **觀測 hook（#15；出錯一律 no-op exit 0、永不擋路；預設值逐列標示——#87 起 cost-tracker 預設開、compact-hint 維持 opt-in）**：
+> - **`LOOPS_COST_TRACKER`**（cost-tracker，Stop hook；**預設開（#87）——僅字面 `'0'` 關**，顯式 `'1'` 向後相容；僅 cwd 可解析出含 `.loops/` 的主 repo 才寫入、與是否正在跑 loop 無關）：每個 assistant 回應結束把該 session 累計 usage append 一行到 **主 repo** `.loops/.metrics/costs.jsonl`（per-session **取該 session_id 最後一行**）。**落點錨定（P2）**：不看 cwd 有無 `.loops/`，而是把 cwd 解析成主 repo 根（worktree cwd 也寫回主 repo，對齊 §規則 9 的 `.loops` 錨定）——修好「worktree session 成本寫進 worktree `.loops`、會被清 / 分裂」。每行含 session 累計 **＋ `by_stage` 逐 loop-stage 拆解**（goal/explore/plan/build/verify/iterate…各自 token + `cost_usd`）。**子代理歸戶（P1，schema 3）**：額外掃 `<transcript>/<session>/subagents/agent-*.jsonl`，依角色（reviewer→verify / test·impl-author→build / design→plan / exploring→explore / 其餘→other-subagent）歸到對應 stage，掛在 `by_stage[].subagent`＋頂層 `subagents` 聚合＋`total_cost_usd`（主線+子代理）——**補上 verify / iterate 等幾乎全是 fan-out 子代理的階段成本**（主 transcript 本來看不到，故舊版 verify 常顯示接近 0）。無子代理則維持 schema 2。收尾若該檔有本 session 行→實測分支，否則（未開 flag／無此檔）→估算分支。footprint：主 repo `.loops/.metrics/costs.jsonl`（已被 `.loops/*` gitignore）。**限制**：① `by_stage` 主線部分按 Skill 邊界切，最後一個 stage 之後的收尾雜項會續記在該 stage 名下；② 子代理歸角色靠 prompt 關鍵字，無法辨識者落 `other-subagent`（不遺失、只是未細分）；③ per-turn 加總 `cache_read` 會高估絕對值（分佈 / output tokens 較可信）。
+> - **`LOOPS_COMPACT_HINT=1`**（suggest-compact，PreToolUse matcher `Edit|Write`；**維持 opt-in（#87 決策：非已踩過坑對治、注入有輕噪音、價值中性）**）：估算真實 context 大小（transcript 最新 usage）跨門檻（~250k、之後每 +60k）時，在 Edit/Write 前注入一句「可考慮 `/compact`」**估算**提醒（**不阻擋**工具）；防洗版 state 落 `os.tmpdir()/loops-compact-<session>.json`、14 天 TTL。footprint：tmp state 檔。
 >
 > **outcome 度量格式以此為單一來源**，各 skill（iterate §6）引用此處、不另定義。
 
-> **介入 hook（會主動跑閘 / 擋工具，與上面「觀測」不同；預設值逐列標示——#17 兩個 opt-in 預設關、#85 一個預設開）**：
-> - **`LOOPS_STOP_GATE=1`**（stop-gate，Stop hook + edit-accumulator PostToolUse）：**本回合有改檔**時（PostToolUse accumulator 記錄、僅此 flag 開才記）於 Stop 自動跑既有 `loops-quality-gate.mjs --gates type,lint`，**只有紅燈才把摘要注入 context**（綠靜默、不阻擋）。需 cwd 有 `.loops/gate.config.json`。footprint：`os.tmpdir()/loops-edits-<session>.json` 暫存。
+> **介入 hook（會主動跑閘 / 擋工具，與上面「觀測」不同；預設值逐列標示——#87 起僅 stop-gate 維持 opt-in（SECURITY），#85 loops-path-guard 與 #87 config-protection 預設開）**：
+> - **`LOOPS_STOP_GATE=1`**（stop-gate，Stop hook + edit-accumulator PostToolUse；**維持 opt-in（#87 決策：預設開＝自動執行任意 repo 的 gate.config.json 命令，#17 security review 明點 RCE 面、信任不可機械判定）**）：**本回合有改檔**時（PostToolUse accumulator 記錄）於 Stop 自動跑既有 `loops-quality-gate.mjs --gates type,lint`，**只有紅燈才把摘要注入 context**（綠靜默、不阻擋）。需 cwd 有 `.loops/gate.config.json`。**發現性提示（#87）**：flag 未開但偵測到 gate.config.json 存在 → per-session 一次注入一行提示（含 `LOOPS_STOP_GATE=1` 與「信任 repo 才開」語；state 檔 `os.tmpdir()/loops-stop-gate-hint-<session>.json`）。footprint：`os.tmpdir()/loops-edits-<session>.json` 暫存＋提示 state 檔。
 >   - ⚠️ **SECURITY：啟用＝授權「在每個改檔回合自動執行 `.loops/gate.config.json` 內定義的 `lint`/`type` 命令」（以及偵測到的 lint/test 工具）。這些命令來自 repo、等同自動執行 repo 控制的 code。請只在你信任的 repo 開此 flag。** 風險本就存在於手動跑 quality-gate；本 hook 把它變成自動，故格外提醒。
-> - **`LOOPS_CONFIG_PROTECTION=1`**（config-protection，PreToolUse matcher `Write|Edit|MultiEdit`；opt-in 預設關）：偵測對既有 linter/formatter 設定檔（eslint/prettier/biome/ruff…）的**修改**→ `permissionDecision:"deny"` 擋下並提示「修 code 別弱化設定」；**新建**設定檔放行、非設定檔放行。出錯 **fail-open（放行）**。要合法改設定檔時暫時 `unset LOOPS_CONFIG_PROTECTION`。footprint：無持久檔。
+> - **`LOOPS_CONFIG_PROTECTION`**（config-protection，PreToolUse matcher `Write|Edit|MultiEdit`；**預設開（#87）且 loops-scoped**——未設 env 時僅 `payload.cwd` 下存在 `.loops/` 才生效（作弊風險集中於 loops 執行、日常編輯零外溢）；顯式 `'1'`＝全域生效（既有行為）；僅字面 `'0'` 關）：偵測對既有 linter/formatter 設定檔（eslint/prettier/biome/ruff…）的**修改**→ `permissionDecision:"deny"` 擋下並提示「修 code 別弱化設定；設 `LOOPS_CONFIG_PROTECTION=0` 可關」；**新建**設定檔放行、非設定檔放行。出錯 **fail-open（放行）**。footprint：無持久檔。
 > - **`LOOPS_PATH_CONTAINMENT`**（loops-path-guard，PreToolUse matcher `Write|Edit|MultiEdit`；**預設開（#85，plugin 唯一 opt-out 介入 hook）——只有字面 `'0'` 會關**，`false`/空字串/未設一律維持啟用）：Write/Edit/MultiEdit 目標路徑落在 `.claude/worktrees/**/.loops/**`（詞法判定：resolve 收合 `..`、大小寫折疊、段完全相等比對）→ `permissionDecision:"deny"`＋指引正確落點 `$LOOPS_ROOT/.loops/<slug>/`——把 AGENTS 規則 9「.loops 嚴禁寫進 worktree」（已踩過、毀 audit trail）機械化。出錯 **fail-open（放行）**。已知限制：不解析 symlink（熱路徑零 I/O 取捨）。footprint：無持久檔。
 >   - ⚠️ **SECURITY／繞過**：deny 訊息附逃生口——確需在 worktree 寫 `.loops`（不應發生）時設 `LOOPS_PATH_CONTAINMENT=0` 暫時關閉；此 hook 只攔 Claude 的寫檔工具呼叫，不攔 shell/node 直接 fs 寫入（已核對：現行無任何 hook 寫 worktree .loops）。
 
@@ -56,11 +69,11 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 > - **`LOOPS_INSTINCT_INJECT=1`**（session-start，SessionStart）：除既有「浮 active 迴圈」外，再讀 `<cwd>/.loops/.instincts/*.yaml`（`distill` 程序產的跨 loop instinct）→ 過濾 confidence ≥ 0.7 → 取前 6 → 注入為 session context（每條 `[<conf%>] <summary>`、summary 截 ≤200 字）。footprint：`.loops/.instincts/`（已 gitignore）。active-loop 浮出行為不變。
 >   - ⚠️ **SECURITY：instinct 的 `summary` 會進模型 context。若 cwd 是不信任的 repo，其 `.loops/.instincts/*.yaml` 可能夾帶誘導性文字（間接 prompt injection）。注入已框定「來源未驗證、僅供參考、勿當指令」並截斷長度，但仍請只在你信任的 repo 開此 flag。** instinct 應由你自己在信任 repo 依 `docs/distill.md` 手動萃取產生。
 
-> **opt-in 評測 hook（#35 + #49 擴成多訊號，預設關、永不擋路）**：
-> - **`LOOPS_EVAL_GATE=1`**（eval-gate，Stop hook + edit-accumulator PostToolUse）：**本回合有改檔**且 cwd 有 `.loops/.metrics/eval-results.jsonl` 時，於 Stop 自動跑 `eval-metrics.mjs check`，**只有偵測到 passRate 退化（exit 1）才把警示注入 context**（無退化靜默、不阻擋）。與 stop-gate 共用 edit-accumulator：在 hooks.json 排其**前**、**僅 stop-gate 未啟用時才自清** accumulator（避免兩 gate 互踩）。footprint：`os.tmpdir()/loops-edits-<session>.json`（與 stop-gate 共用）。
->   - SECURITY：比 stop-gate 風險低 —— check 只**讀** `.loops/.metrics/eval-results.jsonl` 並 spawn 同 plugin 固定腳本，**不執行 repo 內定義的命令**；仍 opt-in 預設關。
-> - **`LOOPS_EVAL_TAGS_GATE=1`**（#49，同一 eval-gate hook）：改檔回合且 cwd 有 `.loops/.metrics/eval-report.json`（per-task report，由 `eval-metrics record` 跑 oracle 時持久化在 metrics 檔同目錄）時，spawn `eval-tags by-tag`，**只注入本次 `failed>0` 的 tag 類別**（看哪類有 eval 失敗；單份快照、非跨 run 頻率；全綠靜默）。
-> - **`LOOPS_EVAL_POLL_GATE=1`**（#49，同一 eval-gate hook）：改檔回合且 cwd 有 `.loops/.metrics/judge-results.jsonl`（上層 panel recipe 產）時，spawn `eval-poll poll --score-method median`，注入 judge panel 共識計數（judge-estimate advisory、非回歸 gate；無共識靜默）。
+> **評測 hook（#35 + #49 擴成多訊號，永不擋路；#87 起三 flag 皆預設開——僅字面 `'0'` 關、無 artifact 即 no-op 零噪音、不執行 repo 定義命令）**：
+> - **`LOOPS_EVAL_GATE`**（eval-gate，Stop hook + edit-accumulator PostToolUse；預設開）：**本回合有改檔**且 cwd 有 `.loops/.metrics/eval-results.jsonl` 時，於 Stop 自動跑 `eval-metrics.mjs check`，**只有偵測到 passRate 退化（exit 1）才把警示注入 context**（無退化靜默、不阻擋）。與 stop-gate 共用 edit-accumulator：在 hooks.json 排其**前**、**僅 stop-gate 未啟用時才自清** accumulator（避免兩 gate 互踩）。footprint：`os.tmpdir()/loops-edits-<session>.json`（與 stop-gate 共用）。
+>   - SECURITY：比 stop-gate 風險低 —— check 只**讀** `.loops/.metrics/eval-results.jsonl` 並 spawn 同 plugin 固定腳本，**不執行 repo 內定義的命令**——此差異正是 #87 三 flag 可轉預設開、stop-gate 不可的分界。
+> - **`LOOPS_EVAL_TAGS_GATE`**（#49，同一 eval-gate hook；預設開）：改檔回合且 cwd 有 `.loops/.metrics/eval-report.json`（per-task report，由 `eval-metrics record` 跑 oracle 時持久化在 metrics 檔同目錄）時，spawn `eval-tags by-tag`，**只注入本次 `failed>0` 的 tag 類別**（看哪類有 eval 失敗；單份快照、非跨 run 頻率；全綠靜默）。
+> - **`LOOPS_EVAL_POLL_GATE`**（#49，同一 eval-gate hook；預設開）：改檔回合且 cwd 有 `.loops/.metrics/judge-results.jsonl`（上層 panel recipe 產）時，spawn `eval-poll poll --score-method median`，注入 judge panel 共識計數（judge-estimate advisory、非回歸 gate；無共識靜默）。
 >   - 三 flag（GATE/TAGS/POLL）獨立、可組合：注入合併進**單一** `additionalContext`；各訊號讀已持久化 artifact、不自跑 oracle（每 Stop 跑全 oracle 違背省 token），缺輸入檔/壞輸出/spawn 失敗 → 該訊號靜默、永不擋路 exit 0。`ranAny && stop-gate 關` 才消費 edits（沿用既有清理語意）。
 > - 另：`eval-metrics.mjs` 的 `appendEvalRow` 內建 rotation（超過 `MAX_METRIC_ROWS`＝1000 行保留最後 N 行），避免 `eval-results.jsonl` 無界成長；`record` 另把 per-task `eval-report.json` 寫在 metrics 檔同目錄（latest-overwrite、advisory、tolerant 失敗不擋）。
 
