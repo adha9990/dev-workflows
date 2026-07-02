@@ -45,10 +45,12 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 >
 > **outcome 度量格式以此為單一來源**，各 skill（iterate §6）引用此處、不另定義。
 
-> **opt-in 介入 hook（#17，兩個、預設關、永不擋路；與上面「觀測」不同，這兩個會主動跑閘 / 擋工具）**：
+> **介入 hook（會主動跑閘 / 擋工具，與上面「觀測」不同；預設值逐列標示——#17 兩個 opt-in 預設關、#85 一個預設開）**：
 > - **`LOOPS_STOP_GATE=1`**（stop-gate，Stop hook + edit-accumulator PostToolUse）：**本回合有改檔**時（PostToolUse accumulator 記錄、僅此 flag 開才記）於 Stop 自動跑既有 `loops-quality-gate.mjs --gates type,lint`，**只有紅燈才把摘要注入 context**（綠靜默、不阻擋）。需 cwd 有 `.loops/gate.config.json`。footprint：`os.tmpdir()/loops-edits-<session>.json` 暫存。
 >   - ⚠️ **SECURITY：啟用＝授權「在每個改檔回合自動執行 `.loops/gate.config.json` 內定義的 `lint`/`type` 命令」（以及偵測到的 lint/test 工具）。這些命令來自 repo、等同自動執行 repo 控制的 code。請只在你信任的 repo 開此 flag。** 風險本就存在於手動跑 quality-gate；本 hook 把它變成自動，故格外提醒。
-> - **`LOOPS_CONFIG_PROTECTION=1`**（config-protection，PreToolUse matcher `Write|Edit|MultiEdit`）：偵測對既有 linter/formatter 設定檔（eslint/prettier/biome/ruff…）的**修改**→ `permissionDecision:"deny"` 擋下並提示「修 code 別弱化設定」；**新建**設定檔放行、非設定檔放行。出錯 **fail-open（放行）**。要合法改設定檔時暫時 `unset LOOPS_CONFIG_PROTECTION`。footprint：無持久檔。
+> - **`LOOPS_CONFIG_PROTECTION=1`**（config-protection，PreToolUse matcher `Write|Edit|MultiEdit`；opt-in 預設關）：偵測對既有 linter/formatter 設定檔（eslint/prettier/biome/ruff…）的**修改**→ `permissionDecision:"deny"` 擋下並提示「修 code 別弱化設定」；**新建**設定檔放行、非設定檔放行。出錯 **fail-open（放行）**。要合法改設定檔時暫時 `unset LOOPS_CONFIG_PROTECTION`。footprint：無持久檔。
+> - **`LOOPS_PATH_CONTAINMENT`**（loops-path-guard，PreToolUse matcher `Write|Edit|MultiEdit`；**預設開（#85，plugin 唯一 opt-out 介入 hook）——只有字面 `'0'` 會關**，`false`/空字串/未設一律維持啟用）：Write/Edit/MultiEdit 目標路徑落在 `.claude/worktrees/**/.loops/**`（詞法判定：resolve 收合 `..`、大小寫折疊、段完全相等比對）→ `permissionDecision:"deny"`＋指引正確落點 `$LOOPS_ROOT/.loops/<slug>/`——把 AGENTS 規則 9「.loops 嚴禁寫進 worktree」（已踩過、毀 audit trail）機械化。出錯 **fail-open（放行）**。已知限制：不解析 symlink（熱路徑零 I/O 取捨）。footprint：無持久檔。
+>   - ⚠️ **SECURITY／繞過**：deny 訊息附逃生口——確需在 worktree 寫 `.loops`（不應發生）時設 `LOOPS_PATH_CONTAINMENT=0` 暫時關閉；此 hook 只攔 Claude 的寫檔工具呼叫，不攔 shell/node 直接 fs 寫入（已核對：現行無任何 hook 寫 worktree .loops）。
 
 > **opt-in 學習 hook（#18，一個、預設關、唯讀永不擋路）**：
 > - **`LOOPS_INSTINCT_INJECT=1`**（session-start，SessionStart）：除既有「浮 active 迴圈」外，再讀 `<cwd>/.loops/.instincts/*.yaml`（`distill` 程序產的跨 loop instinct）→ 過濾 confidence ≥ 0.7 → 取前 6 → 注入為 session context（每條 `[<conf%>] <summary>`、summary 截 ≤200 字）。footprint：`.loops/.instincts/`（已 gitignore）。active-loop 浮出行為不變。

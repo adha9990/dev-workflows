@@ -1,5 +1,5 @@
 {
-  "description": "loops-workflow hooks（SessionStart active-loop 恆跑；其餘為 opt-in 預設關；皆永不擋路）：SessionStart=浮出 active 迴圈 + instinct 注入(opt-in LOOPS_INSTINCT_INJECT，注入 distill 產的跨 loop instinct)；Stop=cost-tracker 記估算成本(LOOPS_COST_TRACKER) + eval-gate 改檔回合多訊號注入(eval-metrics check 退化 LOOPS_EVAL_GATE／eval-tags by-tag 失敗 tag LOOPS_EVAL_TAGS_GATE／eval-poll poll 共識 LOOPS_EVAL_POLL_GATE，三 flag 獨立、讀已持久化 artifact、永不擋路) + stop-gate 改檔回合自動跑 quality-gate 注入失敗(LOOPS_STOP_GATE) + progress-render 恆跑：每回合對本 session active loop 重生 .loops/<slug>/PROGRESS.md（只寫檔、不注入、永不擋路）；PostToolUse=edit-accumulator 累積本回合改檔(供 stop-gate / eval-gate；任一 opt-in 開才累積)；PreToolUse(Edit|Write)=suggest-compact context 壓力提醒(LOOPS_COMPACT_HINT)、(Write|Edit|MultiEdit)=config-protection 擋弱化 linter 設定(LOOPS_CONFIG_PROTECTION)。",
+  "description": "loops-workflow hooks（SessionStart active-loop 與 progress-render 恆跑；loops-path-guard 預設開（唯一 opt-out，設 LOOPS_PATH_CONTAINMENT=0 才關）；其餘為 opt-in 預設關；除 deny 類外皆永不擋路）：SessionStart=浮出 active 迴圈 + instinct 注入(opt-in LOOPS_INSTINCT_INJECT，注入 distill 產的跨 loop instinct)；Stop=cost-tracker 記估算成本(LOOPS_COST_TRACKER) + eval-gate 改檔回合多訊號注入(eval-metrics check 退化 LOOPS_EVAL_GATE／eval-tags by-tag 失敗 tag LOOPS_EVAL_TAGS_GATE／eval-poll poll 共識 LOOPS_EVAL_POLL_GATE，三 flag 獨立、讀已持久化 artifact、永不擋路) + stop-gate 改檔回合自動跑 quality-gate 注入失敗(LOOPS_STOP_GATE) + progress-render 恆跑：每回合對本 session active loop 重生 .loops/<slug>/PROGRESS.md（只寫檔、不注入、永不擋路）；PostToolUse=edit-accumulator 累積本回合改檔(供 stop-gate / eval-gate；任一 opt-in 開才累積)；PreToolUse(Edit|Write)=suggest-compact context 壓力提醒(LOOPS_COMPACT_HINT)、(Write|Edit|MultiEdit)=config-protection 擋弱化 linter 設定(LOOPS_CONFIG_PROTECTION) + loops-path-guard 擋 .loops 寫進 worktree(預設開，LOOPS_PATH_CONTAINMENT=0 關；AGENTS 規則 9 機械化)。",
   "hooks": {
     "SessionStart": [
       {
@@ -60,6 +60,10 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/config-protection.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/loops-path-guard.mjs\""
           }
         ]
       }
