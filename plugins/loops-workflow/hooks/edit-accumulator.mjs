@@ -101,21 +101,22 @@ export function clearEditsState(sessionId) {
 
 /**
  * PostToolUse(Edit|Write) hook 入口：把編輯過的 file_path 去重累積進本 session 的 state 檔。
- * 安全 / 永不擋路：消費 flag 全關 / payload 壞掉 / 無檔路徑 / cwd 下無 .loops/ → no-op；
- * state 只落在 os.tmpdir()；任何例外 exit 0。
+ * 安全 / 永不擋路：先無條件讀滿 stdin 再查 flag——若先查 flag 就提前 return，子行程會在父行程仍在
+ *   寫大 payload 時提前關閉 pipe，觸發 EPIPE/EOF（見 hooks/loops-path-guard.mjs 的 P1 教訓，此處同序修復）。
+ * 消費 flag 全關 / payload 壞掉 / 無檔路徑 / cwd 下無 .loops/ → no-op；state 只落在 os.tmpdir()；任何例外 exit 0。
  */
 function main() {
-  // accumulator 的消費者是 stop-gate 與 eval-gate（含其 tags / poll 訊號）；ACCUMULATOR_FLAGS 任一
-  // 依 hook-flags 判定為開，才需要「這趟改了哪些檔」。全關時真 no-op、不寫 tmp——
-  // 避免「flag 關卻仍每次寫 state」的 footprint 不一致。
-  if (!ACCUMULATOR_FLAGS.some((f) => flagEnabled(f, process.env))) return;
-
   let payload;
   try {
     payload = JSON.parse(readStdin());
   } catch {
     return; // payload 壞 → no-op
   }
+
+  // accumulator 的消費者是 stop-gate 與 eval-gate（含其 tags / poll 訊號）；ACCUMULATOR_FLAGS 任一
+  // 依 hook-flags 判定為開，才需要「這趟改了哪些檔」。全關時真 no-op、不寫 tmp——
+  // 避免「flag 關卻仍每次寫 state」的 footprint 不一致。
+  if (!ACCUMULATOR_FLAGS.some((f) => flagEnabled(f, process.env))) return;
 
   // loops-scoped（#87）：只在 payload.cwd 下存在 .loops/ 才記錄，不擾非 loops 專案。
   const cwd = payload?.cwd;

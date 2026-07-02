@@ -4,7 +4,7 @@
 
 ## 怎麼開
 
-- **環境變數 `LOOPS_AUTO=1`**（與 `LOOPS_COST_TRACKER` 等 LOOPS_* flag 同慣例、手動設定）—— dispatch 建 loop.md 前用 Bash `echo "${LOOPS_AUTO:-}"` 檢查，輸出 `1` → 整個 run 走 auto。
+- **環境變數 `LOOPS_AUTO=1`**（與 `LOOPS_STOP_GATE` 等 opt-in flag 同慣例、手動設定）—— dispatch 建 loop.md 前用 Bash `echo "${LOOPS_AUTO:-}"` 檢查，輸出 `1` → 整個 run 走 auto。
 - 或在 `loop.md` 把 `推進模式` 設為 `auto`（既有 loop 續跑時改）。
 - 也可只對某段開：plan 拍板時說「接下來 build→verify 走 auto」。
 

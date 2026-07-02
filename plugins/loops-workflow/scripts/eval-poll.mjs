@@ -14,11 +14,14 @@
 //   node eval-poll.mjs kappa --records <judge-results.jsonl> --gold <gold.json>
 //   node eval-poll.mjs poll  --records <judge-results.jsonl> [--score-method median|max|min]
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const JUDGE_TRACK = 'judge-estimate'; // 只在 judge-estimate 軌上算，永不混入 measured
+// 防惡意巨檔 DoS（#87 defaultOn 後自動吃 repo 可控輸入，security review）：loadRecords 讀檔前的
+// 位元組上限，與 eval-metrics.mjs 的 MAX_INPUT_FILE_BYTES 同款量級。
+const MAX_INPUT_FILE_BYTES = 16 * 1024 * 1024;
 
 // ── 純函式：Cohen κ（兩 rater 類別一致性）──────────────────────────────────────────
 
@@ -166,8 +169,14 @@ function parseArgs(argv) {
 
 const VALID_SCORE_METHODS = new Set(['median', 'max', 'min']);
 
-/** tolerant 讀 jsonl：檔不存在 → throw（CLI 接住 exit 3）；單行壞 → 跳過並計數（揭露於輸出，非靜默吞）。 */
-function loadRecords(file) {
+/**
+ * tolerant 讀 jsonl：檔不存在 → throw（CLI 接住 exit 3）；單行壞 → 跳過並計數（揭露於輸出，非靜默吞）。
+ * maxBytes（可選，預設 MAX_INPUT_FILE_BYTES）：讀前先 statSync 檔大小，超限 → 回安全空值
+ * { records: [], skipped: 0 }（不讀入超限內容、不拋錯；poll 語意上等同零 records）——
+ * 防惡意巨檔 DoS（#87 defaultOn 後自動吃 repo 可控輸入）。export 供測試 import。
+ */
+export function loadRecords(file, maxBytes = MAX_INPUT_FILE_BYTES) {
+  if (statSync(file).size > maxBytes) return { records: [], skipped: 0 }; // 超限 → 安全空值
   const text = readFileSync(file, 'utf8');
   const records = [];
   let skipped = 0;

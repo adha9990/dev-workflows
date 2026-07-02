@@ -768,5 +768,24 @@ const METRICS_TRACE = /退化|regression|passRate/i; // 既有 metrics 退化注
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 }
 
+// ── EPIPE-guard（cq P2 修復輪，仿 hooks/test-path-guard.mjs [B11]）：三 flag 顯式 '0' + 256KB payload
+//    → main 須先讀滿 stdin 才依 flag 判斷 return，否則子行程提前結束、父行程仍在寫入巨大 payload
+//    時觸發 EPIPE/EOF（現 impl main() 在 readStdin() 前就先判三 flag 全關直接 return → 先紅）。
+{
+  const big = JSON.stringify({
+    session_id: 'epipe-eg',
+    cwd: 'C:/ignored',
+    padding: 'A'.repeat(256 * 1024),
+  });
+  const res = spawnSync(process.execPath, [EVAL_GATE_SCRIPT], {
+    input: big,
+    env: { ...process.env, LOOPS_EVAL_GATE: '0', LOOPS_EVAL_TAGS_GATE: '0', LOOPS_EVAL_POLL_GATE: '0' },
+    encoding: 'utf8',
+  });
+  assert(res.error == null, 'EPIPE-guard：三 flag 顯式關 + 256KB payload → 無 spawn error（stdin 已讀滿、無 EPIPE/EOF）[EPIPE-guard]');
+  assert(res.status === 0, 'EPIPE-guard：exit 0 [EPIPE-guard]');
+  assert((res.stdout || '').trim() === '', 'EPIPE-guard：三 flag 皆顯式關 → stdout 空（no-op）[EPIPE-guard]');
+}
+
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
 process.exit(failed.length > 0 ? 1 : 0);

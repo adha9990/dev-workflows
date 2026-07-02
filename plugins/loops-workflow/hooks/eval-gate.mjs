@@ -155,21 +155,23 @@ function runGateSignal(shouldRun, scriptPath, args, buildInjection, { includeStd
 
 /**
  * Stop hook 入口：三訊號各自 opt-in，齊備條件才 spawn 對應腳本，注入合併為單一 additionalContext。
- * 安全 / 永不擋路：三 flag 全關 → 連 stdin 都不讀、no-op；缺輸入 / 無編輯 / spawn 失敗 / 任何例外 exit 0。
+ * 安全 / 永不擋路：先無條件讀滿 stdin 再查 flag（三閘全關時仍讀完才 no-op）——若先查 flag 就提前
+ *   return，子行程會在父行程仍在寫大 payload 時提前關閉 pipe，觸發 EPIPE/EOF（見 hooks/loops-path-guard.mjs
+ *   的 P1 教訓，此處同序修復）；缺輸入 / 無編輯 / spawn 失敗 / 任何例外 exit 0。
  * spawn 的都是 plugin 自帶腳本（固定路徑 + 固定子命令 + 固定參數），輸入檔由 cwd 推得，不內插外部字串。
  */
 function main() {
-  const gateOn = flagEnabled('LOOPS_EVAL_GATE', process.env);
-  const tagsOn = flagEnabled('LOOPS_EVAL_TAGS_GATE', process.env);
-  const pollOn = flagEnabled('LOOPS_EVAL_POLL_GATE', process.env);
-  if (!(gateOn || tagsOn || pollOn)) return; // 三閘全關（皆顯式 '0'）→ no-op，連 stdin 都不讀
-
   let payload;
   try {
     payload = JSON.parse(readStdin());
   } catch {
     return; // payload 壞 → no-op
   }
+
+  const gateOn = flagEnabled('LOOPS_EVAL_GATE', process.env);
+  const tagsOn = flagEnabled('LOOPS_EVAL_TAGS_GATE', process.env);
+  const pollOn = flagEnabled('LOOPS_EVAL_POLL_GATE', process.env);
+  if (!(gateOn || tagsOn || pollOn)) return; // 三閘全關（皆顯式 '0'）→ no-op
 
   const cwd = payload?.cwd;
   if (typeof cwd !== 'string') return; // 無 cwd → 無從定位輸入檔（早退在清 accumulator 之前）

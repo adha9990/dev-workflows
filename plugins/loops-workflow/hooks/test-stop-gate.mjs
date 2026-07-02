@@ -29,6 +29,7 @@ import {
   editsStateFile,
   readEditsForSession,
   writeEditsState,
+  sanitizeSessionId,
 } from './edit-accumulator.mjs';
 import { shouldRunGate, buildGateInjection } from './stop-gate.mjs';
 
@@ -61,6 +62,13 @@ let seq = 0;
 function freshSession(prefix) {
   // 執行內唯一 session_id（pid+時間+序號），確保 smoke 跨「執行」冪等、不撞殘留 state 檔。
   return `${prefix}-${process.pid}-${Date.now()}-${++seq}`;
+}
+
+// #87 修復輪 teardown（ts P2）：stop-gate 發現性提示的 state 檔（仿 hooks/test-cost-hooks.mjs 的
+// compactStateFile 慣例）。任何「flag 關 + cwd 有 .loops/gate.config.json」的案例都可能落盤此檔，
+// finally 須清掉，避免 tmp 殘留（跑完 ls tmpdir 不該有 loops-stop-gate-hint-* 殘留）。
+function hintStateFile(sessionId) {
+  return join(tmpdir(), `loops-stop-gate-hint-${sanitizeSessionId(sessionId)}.json`);
 }
 
 function runHook(scriptAbs, payload, extraEnv = {}) {
@@ -483,6 +491,27 @@ function makeAccCwd(prefix) {
   }
 }
 
+// ── EPIPE-guard（cq P2 修復輪，仿 hooks/test-path-guard.mjs [B11]）：四消費 flag 皆顯式 '0' + 256KB
+//    payload → main 須先讀滿 stdin 才依 flag 判斷 return，否則子行程提前結束、父行程仍在寫入巨大
+//    payload 時觸發 EPIPE/EOF（現 impl main() 在 readStdin() 前就先判四 flag 全關直接 return → 先紅）。
+{
+  const big = JSON.stringify({
+    session_id: 'epipe-acc',
+    tool_input: { file_path: 'x.ts' },
+    padding: 'A'.repeat(256 * 1024),
+  });
+  const res = spawnSync(process.execPath, [ACCUMULATOR_SCRIPT], {
+    input: big,
+    env: {
+      ...process.env,
+      LOOPS_STOP_GATE: '0', LOOPS_EVAL_GATE: '0', LOOPS_EVAL_TAGS_GATE: '0', LOOPS_EVAL_POLL_GATE: '0',
+    },
+    encoding: 'utf8',
+  });
+  assert(res.error == null, 'EPIPE-guard：四消費 flag 皆顯式關 + 256KB payload → 無 spawn error（stdin 已讀滿、無 EPIPE/EOF）[EPIPE-guard]');
+  assert(res.status === 0, 'EPIPE-guard：exit 0 [EPIPE-guard]');
+}
+
 // =============================================================================
 // SMOKE — stop-gate.mjs（最重要：真 spawn stop-gate → 真跑 quality-gate fixtures）
 // =============================================================================
@@ -552,6 +581,7 @@ function makeAccCwd(prefix) {
       'S-gate③a：no-op 不清 accumulator（seed 的 1 筆仍在，readEditsForSession.length === 1）[A5]');
   } finally {
     rmSync(stateFile, { force: true });
+    rmSync(hintStateFile(sessionId), { force: true }); // #87 teardown：flag 關 + GATE_GREEN（有 config）可能落盤發現性提示 state 檔
   }
 }
 
@@ -614,13 +644,17 @@ function makeAccCwd(prefix) {
 // ── D①（應提示）：flag 關（未設）+ cwd=GATE_GREEN（有 gate.config.json）+ fresh session → stdout 含提示 ──
 {
   const sessionId = freshSession('discover-1');
-  const res = runHook(STOP_GATE_SCRIPT, { session_id: sessionId, cwd: GATE_GREEN }); // 未設 LOOPS_STOP_GATE
-  assert(res.status === 0, 'D①：flag 關 + 有 config + 未提示過 → exit 0 [D①]');
-  const out = res.stdout || '';
-  assert(out.includes('LOOPS_STOP_GATE=1'),
-    'D①：flag 關 + cwd 有 .loops/gate.config.json + 本 session 未提示過 → stdout 含字面 "LOOPS_STOP_GATE=1" [D①]');
-  assert(out.includes('信任'),
-    'D①：發現性提示含「信任」字樣（提醒此 flag 會自動執行 repo 命令、需信任 repo）[D①]');
+  try {
+    const res = runHook(STOP_GATE_SCRIPT, { session_id: sessionId, cwd: GATE_GREEN }); // 未設 LOOPS_STOP_GATE
+    assert(res.status === 0, 'D①：flag 關 + 有 config + 未提示過 → exit 0 [D①]');
+    const out = res.stdout || '';
+    assert(out.includes('LOOPS_STOP_GATE=1'),
+      'D①：flag 關 + cwd 有 .loops/gate.config.json + 本 session 未提示過 → stdout 含字面 "LOOPS_STOP_GATE=1" [D①]');
+    assert(out.includes('信任'),
+      'D①：發現性提示含「信任」字樣（提醒此 flag 會自動執行 repo 命令、需信任 repo）[D①]');
+  } finally {
+    rmSync(hintStateFile(sessionId), { force: true }); // #87 teardown：flag 關 + 有 config → 落盤發現性提示 state 檔
+  }
 }
 
 // ── D②（不該提示：已開）：flag='1' + cwd=GATE_GREEN + fresh session、無 edits → stdout 不含提示文案 ──
@@ -649,13 +683,17 @@ function makeAccCwd(prefix) {
 // ── D④（不該提示：同 session 第二次）：flag 關 + cwd=GATE_GREEN + 同 session 連呼兩次 → 第二次無提示 ──
 {
   const sessionId = freshSession('discover-4');
-  const first = runHook(STOP_GATE_SCRIPT, { session_id: sessionId, cwd: GATE_GREEN }); // 未設 LOOPS_STOP_GATE
-  const second = runHook(STOP_GATE_SCRIPT, { session_id: sessionId, cwd: GATE_GREEN }); // 同 session 再呼叫一次
-  assert(first.status === 0 && second.status === 0, 'D④：兩次呼叫皆 exit 0 [D④]');
-  assert((first.stdout || '').includes('LOOPS_STOP_GATE=1'),
-    'D④：首次（同 session）→ 有提示（含 "LOOPS_STOP_GATE=1"）[D④]');
-  assert(!(second.stdout || '').includes('LOOPS_STOP_GATE=1'),
-    'D④：同 session 第二次呼叫 → 無提示（state 已記住本 session 提示過，不重複洗版）[D④]');
+  try {
+    const first = runHook(STOP_GATE_SCRIPT, { session_id: sessionId, cwd: GATE_GREEN }); // 未設 LOOPS_STOP_GATE
+    const second = runHook(STOP_GATE_SCRIPT, { session_id: sessionId, cwd: GATE_GREEN }); // 同 session 再呼叫一次
+    assert(first.status === 0 && second.status === 0, 'D④：兩次呼叫皆 exit 0 [D④]');
+    assert((first.stdout || '').includes('LOOPS_STOP_GATE=1'),
+      'D④：首次（同 session）→ 有提示（含 "LOOPS_STOP_GATE=1"）[D④]');
+    assert(!(second.stdout || '').includes('LOOPS_STOP_GATE=1'),
+      'D④：同 session 第二次呼叫 → 無提示（state 已記住本 session 提示過，不重複洗版）[D④]');
+  } finally {
+    rmSync(hintStateFile(sessionId), { force: true }); // #87 teardown：flag 關 + 有 config → 落盤發現性提示 state 檔
+  }
 }
 
 // ── D⑤（安全邊界 + 驗主重排①）：flag 關 + payload 缺 cwd → exit 0、不崩、無提示（早讀 stdin 但仍優雅早退）──

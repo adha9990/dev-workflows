@@ -45,7 +45,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 顯式語法可跳過判斷：`dispatch <type> <ref>`，例如 `dispatch issue #5`、`dispatch explore "command pattern 怎麼設計"`、`dispatch iterate PR#12`；接續既有 loop 用 `dispatch <slug>`（步驟 0 自動偵測）。
 
-**推進模式**：預設只在決策點停（routine 轉場不問）。**opt-in 自動連跑＝環境變數 `LOOPS_AUTO=1`**（與 `LOOPS_COST_TRACKER` 等同慣例、手動設定）：dispatch 建 loop.md 前跑一次 `echo "${LOOPS_AUTO:-}"`（Bash）檢查，輸出 `1` → 本 run 推進模式＝auto（核准計畫一次後連決策也用推薦自動帶過，危險 / 失敗 / P0 / 規格模糊仍硬停，見 `references/auto-mode.md`）；否則 closed。推進模式照舊寫進 loop.md。
+**推進模式**：預設只在決策點停（routine 轉場不問）。**opt-in 自動連跑＝環境變數 `LOOPS_AUTO=1`**（與 `LOOPS_STOP_GATE` 等 opt-in flag 同慣例、手動設定）：dispatch 建 loop.md 前跑一次 `echo "${LOOPS_AUTO:-}"`（Bash）檢查，輸出 `1` → 本 run 推進模式＝auto（核准計畫一次後連決策也用推薦自動帶過，危險 / 失敗 / P0 / 規格模糊仍硬停，見 `references/auto-mode.md`）；否則 closed。推進模式照舊寫進 loop.md。
 
 ### 1.4 完全乾淨的空專案 → 先 scaffold 骨架，再 define
 
