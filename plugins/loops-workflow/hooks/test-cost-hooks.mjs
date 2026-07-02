@@ -9,7 +9,7 @@
 // 下面的 import 會 ERR_MODULE_NOT_FOUND，整個檔在載入期就丟例外 → node 非 0 退出。
 // 這就是 TDD 的紅燈起點。實作補齊兩模組後，下方斷言才有機會逐條轉綠。
 
-import { readFileSync, mkdtempSync, mkdirSync, rmSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,6 +22,10 @@ import {
   sumUsageByStage,
   estimateCostUsd,
   buildCostRow,
+  resolveLoopsRoot,
+  resolveSubagentsDir,
+  extractFirstUserText,
+  classifySubagentStage,
 } from './cost-tracker.mjs';
 
 import {
@@ -245,6 +249,93 @@ function callSafe(fn) {
 }
 
 // =============================================================================
+// C) cost-tracker.mjs — 子代理歸戶 + 主 repo 錨定（永久修：P1 掃子代理 / P2 落點錨定）
+// =============================================================================
+
+// ── C1 resolveLoopsRoot：worktree cwd → 主 repo 根；主 repo cwd → 原樣（兩種分隔符）──
+{
+  assert(resolveLoopsRoot('/home/u/repo/.claude/worktrees/137-x') === '/home/u/repo',
+    'resolveLoopsRoot：POSIX worktree cwd → 主 repo 根（去 /.claude/worktrees/<slug>）[C1]');
+  assert(resolveLoopsRoot('C:\\Users\\e\\repo\\.claude\\worktrees\\137-x') === 'C:\\Users\\e\\repo',
+    'resolveLoopsRoot：Windows worktree cwd（反斜線）→ 主 repo 根 [C1]');
+  assert(resolveLoopsRoot('/home/u/repo') === '/home/u/repo',
+    'resolveLoopsRoot：非 worktree cwd → 原樣回傳 [C1]');
+  assert(resolveLoopsRoot('C:\\Users\\e\\repo') === 'C:\\Users\\e\\repo',
+    'resolveLoopsRoot：Windows 非 worktree → 原樣 [C1]');
+  assert(resolveLoopsRoot('') === '' && resolveLoopsRoot(null) === '',
+    'resolveLoopsRoot：空 / null → 空字串（不丟例外）[C1]');
+}
+
+// ── C2 resolveSubagentsDir：<dir>/<session>.jsonl → <dir>/<session>/subagents ─────
+{
+  assert(resolveSubagentsDir('/p/hash/sess-abc.jsonl') === join('/p/hash', 'sess-abc', 'subagents'),
+    'resolveSubagentsDir：主 transcript 路徑 → <同層>/<session>/subagents [C2]');
+  assert(resolveSubagentsDir('') === '' && resolveSubagentsDir(null) === '',
+    'resolveSubagentsDir：空 / null → 空字串 [C2]');
+}
+
+// ── C3 extractFirstUserText：取第一個 type=user 的 message.content（array 併字串）─
+{
+  const c = [
+    '{"type":"assistant","message":{"model":"m","usage":{"input_tokens":1}}}',
+    '{"type":"user","message":{"role":"user","content":"You are the impl-author for one TDD task"}}',
+    '{"type":"user","message":{"role":"user","content":"second user (should be ignored)"}}',
+  ].join('\n');
+  assert(extractFirstUserText(c).includes('impl-author'), 'extractFirstUserText：取第一個 user 訊息文字 [C3]');
+  const arr = '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"You are a read-only DESIGN reviewer"}]}}';
+  assert(extractFirstUserText(arr).includes('DESIGN reviewer'), 'extractFirstUserText：content 為 array → 併出文字 [C3]');
+  assert(extractFirstUserText('') === '' && extractFirstUserText(null) === '', 'extractFirstUserText：空 → "" [C3]');
+}
+
+// ── C4 classifySubagentStage：角色關鍵字 → stage（build/plan/verify/explore/other）─
+{
+  assert(classifySubagentStage('You are the impl-author for one TDD task') === 'build', 'classify：impl-author → build [C4]');
+  assert(classifySubagentStage('You are the test-author for one TDD task') === 'build', 'classify：test-author → build [C4]');
+  assert(classifySubagentStage('You are a read-only DESIGN reviewer. Review the plan') === 'plan', 'classify：DESIGN reviewer → plan [C4]');
+  assert(classifySubagentStage('You are the loops-workflow verify security-reviewer') === 'verify', 'classify：security-reviewer → verify [C4]');
+  assert(classifySubagentStage('You are the product-contract reviewer') === 'verify', 'classify：一般 reviewer → verify [C4]');
+  assert(classifySubagentStage('You second-pass validate each candidate finding (finding-validator)') === 'verify', 'classify：finding-validator → verify [C4]');
+  assert(classifySubagentStage('You are exploring the React SPA to map all thumbnails') === 'explore', 'classify：exploring → explore [C4]');
+  assert(classifySubagentStage('do something unrelated') === 'other-subagent', 'classify：無法辨識 → other-subagent [C4]');
+  assert(classifySubagentStage('') === 'other-subagent', 'classify：空 → other-subagent [C4]');
+}
+
+// ── C5 buildCostRow(subagents)：給 subagents → schema 3 + subagents 聚合 + by_stage[].subagent ──
+{
+  // 主線 by_stage：(main) + verify（主線 verify 有 1 turn）；子代理：2 個 verify reviewer + 1 個 build impl-author
+  const byStage = sumUsageByStage([
+    '{"type":"assistant","message":{"model":"claude-opus-4-8","usage":{"input_tokens":10,"output_tokens":5}}}',
+    '{"type":"assistant","message":{"model":"claude-opus-4-8","content":[{"name":"Skill","input":{"skill":"loops-workflow:verify"}}],"usage":{"input_tokens":100,"output_tokens":20}}}',
+  ].join('\n'));
+  const subagents = [
+    { stage: 'verify', inputTokens: 0, outputTokens: 1_000_000, cacheWriteTokens: 0, cacheReadTokens: 0, model: 'claude-sonnet-5' },
+    { stage: 'verify', inputTokens: 0, outputTokens: 1_000_000, cacheWriteTokens: 0, cacheReadTokens: 0, model: 'claude-sonnet-5' },
+    { stage: 'build', inputTokens: 0, outputTokens: 1_000_000, cacheWriteTokens: 0, cacheReadTokens: 0, model: 'claude-sonnet-5' },
+  ];
+  const row = buildCostRow({ sessionId: 's', usage: { inputTokens: 110, outputTokens: 25 }, model: 'claude-opus-4-8', costUsd: 1, ts: 't', byStage, subagents });
+  assert(row.schema === 3, 'buildCostRow：給 subagents → schema === 3 [C5]');
+  assert(row.subagents && row.subagents.count === 3, 'buildCostRow：row.subagents.count === 3（子代理檔數）[C5]');
+  // 3 個 sonnet 各 1M output = 3M out * $15/1M = $45
+  assert(near(row.subagents.cost_usd, 45), 'buildCostRow：row.subagents.cost_usd === $45（3×1M sonnet out）[C5]');
+  assert(near(row.subagents.output_tokens, 3_000_000), 'buildCostRow：subagents.output_tokens 聚合 = 3M [C5]');
+  assert(near(row.total_cost_usd, 46), 'buildCostRow：total_cost_usd = 主線 $1 + 子代理 $45 = $46 [C5]');
+  // by_stage[verify] 應帶 .subagent（2×1M sonnet = $30）
+  const v = (row.by_stage || []).find((s) => s.stage === 'verify');
+  assert(v && v.subagent && near(v.subagent.cost_usd, 30), 'buildCostRow：by_stage[verify].subagent.cost_usd === $30（2 reviewer）[C5]');
+  assert(v && v.subagent.agents === 2, 'buildCostRow：by_stage[verify].subagent.agents === 2 [C5]');
+  // build 主線在此 session 無 marker（沒進過 build skill）→ 由子代理補一個 build 段
+  const b = (row.by_stage || []).find((s) => s.stage === 'build');
+  assert(b && b.subagent && near(b.subagent.cost_usd, 15), 'buildCostRow：主線無 build 段時，子代理 build 仍補出 by_stage[build].subagent（$15）[C5]');
+  assert(b && b.input_tokens === 0 && b.output_tokens === 0, 'buildCostRow：補出的 build 段主線部分為 0（只有子代理）[C5]');
+}
+{
+  // C5b：不給 subagents → 維持 schema 2、無 subagents/total_cost_usd 欄（向後相容）
+  const row = buildCostRow({ sessionId: 's', usage: { inputTokens: 100 }, model: 'claude-opus-4-8', costUsd: 1, ts: 't' });
+  assert(row.schema === 2, 'buildCostRow：不給 subagents → schema 維持 2（向後相容）[C5b]');
+  assert(row.subagents === undefined && row.total_cost_usd === undefined, 'buildCostRow：不給 subagents → 無 subagents / total_cost_usd 欄 [C5b]');
+}
+
+// =============================================================================
 // B) suggest-compact.mjs — 純函式
 // =============================================================================
 
@@ -425,6 +516,55 @@ function runHook(scriptAbs, payload, extraEnv = {}) {
     assert(allParse, 'S-cost⑤：兩行皆為合法 JSON（逐行可 JSON.parse）[S-cost⑤]');
   } finally {
     rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
+// ── S-cost⑥（P1+P2 整合）：worktree cwd → costs.jsonl 落主 repo .loops + 掃到子代理（schema 3）──
+// 釘住兩個永久修：P2 落點錨定（cwd 是 worktree 也寫回主 repo .loops）、P1 子代理歸戶（verify reviewer 被算進）。
+{
+  const mainRoot = mkdtempSync(join(tmpdir(), 'cost-mainrepo-'));
+  const proj = mkdtempSync(join(tmpdir(), 'cost-proj-'));
+  try {
+    mkdirSync(join(mainRoot, '.loops'), { recursive: true });
+    // 模擬 worktree cwd（主 repo 之下）
+    const wtCwd = join(mainRoot, '.claude', 'worktrees', 'my-slug');
+    mkdirSync(wtCwd, { recursive: true });
+    // 主 transcript：(main) + Skill(verify) 段
+    const transcript = join(proj, 'sess-x.jsonl');
+    writeFileSync(transcript, [
+      '{"type":"assistant","message":{"model":"claude-opus-4-8","usage":{"input_tokens":10,"output_tokens":5}}}',
+      '{"type":"assistant","message":{"model":"claude-opus-4-8","content":[{"name":"Skill","input":{"skill":"loops-workflow:verify"}}],"usage":{"input_tokens":100,"output_tokens":20}}}',
+    ].join('\n'));
+    // 子代理：一個 verify reviewer（1M sonnet output → $15）
+    const subDir = join(proj, 'sess-x', 'subagents');
+    mkdirSync(subDir, { recursive: true });
+    writeFileSync(join(subDir, 'agent-r1.jsonl'), [
+      '{"type":"user","message":{"role":"user","content":"You are the loops-workflow verify security-reviewer"}}',
+      '{"type":"assistant","message":{"model":"claude-sonnet-5","usage":{"input_tokens":0,"output_tokens":1000000}}}',
+    ].join('\n'));
+
+    const res = runHook(COST_SCRIPT, { transcript_path: transcript, session_id: 'sess-x', cwd: wtCwd }, { LOOPS_COST_TRACKER: '1' });
+    assert(res.status === 0, 'S-cost⑥：exit 0 [S-cost⑥]');
+    // P2：檔應在「主 repo」.loops，而非 worktree cwd 底下
+    const mainCostFile = join(mainRoot, '.loops', '.metrics', 'costs.jsonl');
+    const wtCostFile = join(wtCwd, '.loops', '.metrics', 'costs.jsonl');
+    assert(existsSync(mainCostFile), 'S-cost⑥[P2]：worktree cwd → costs.jsonl 錨定寫入「主 repo」.loops/.metrics [S-cost⑥]');
+    assert(!existsSync(wtCostFile), 'S-cost⑥[P2]：不寫進 worktree cwd 底下的 .loops（避免漂移/被清）[S-cost⑥]');
+    let row = null;
+    if (existsSync(mainCostFile)) {
+      const lines = readFileSync(mainCostFile, 'utf8').trim().split('\n').filter(Boolean);
+      try { row = JSON.parse(lines[lines.length - 1]); } catch { row = null; }
+    }
+    // P1：掃到子代理 → schema 3 + subagents 聚合 + verify 段帶 subagent
+    assert(row && row.schema === 3, 'S-cost⑥[P1]：有子代理 → schema === 3 [S-cost⑥]');
+    assert(row && row.subagents && row.subagents.count === 1, 'S-cost⑥[P1]：subagents.count === 1 [S-cost⑥]');
+    assert(row && near(row.subagents.cost_usd, 15), 'S-cost⑥[P1]：subagents.cost_usd === $15（1M sonnet out）[S-cost⑥]');
+    const v = row && (row.by_stage || []).find((s) => s.stage === 'verify');
+    assert(v && v.subagent && near(v.subagent.cost_usd, 15), 'S-cost⑥[P1]：by_stage[verify].subagent.cost_usd === $15（reviewer 歸到 verify）[S-cost⑥]');
+    assert(row && near(row.total_cost_usd, row.cost_usd + 15), 'S-cost⑥：total_cost_usd = 主線 + 子代理 [S-cost⑥]');
+  } finally {
+    rmSync(mainRoot, { recursive: true, force: true });
+    rmSync(proj, { recursive: true, force: true });
   }
 }
 
