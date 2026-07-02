@@ -42,7 +42,7 @@ description: Researches how to build something before it gets planned, and lays 
 
 找：既有可重用的實作 / 模式 / 類似功能。**兩條路，優先用 graph、不行才派 agent**：
 
-**內部檢索一律依 `references/code-retrieval.md`**（單一正本）：repo 已索引 ready → 用 codebase-memory-mcp 查穩定周邊（`search_graph`/`trace_path`/`get_code_snippet`/`search_code`/`get_architecture`）；**worktree / 未提交 / `detect_changes` 的 changed_files 一律讀實檔、不信 stale graph**；未索引 / mcp 不可用 → 派內建 `Explore` agent（read-only）或 raw Grep。
+**內部檢索一律依 `references/code-retrieval.md`**（單一正本）：repo 已索引 ready → 用 codebase-memory-mcp 查穩定周邊（`search_graph`/`trace_path`/`get_code_snippet`/`search_code`/`get_architecture`）；**worktree / 未提交 / `detect_changes` 的 changed_files 一律讀實檔、不信 stale graph**；未索引 / mcp 不可用 → 派內建 `Explore` agent（read-only）或 raw Grep。讀檔與命令輸出的瘦身（大檔 offset/limit 範圍讀、gh/git 篩欄、改動檔重讀）依 `references/context-diet.md`。
 
 兩條路都一樣：**出入口稍異不等於要另造** —— 預設擴充或參數化既有方法。回精煉 digest 給主線（不是整檔貼回）。
 
@@ -119,6 +119,7 @@ description: Researches how to build something before it gets planned, and lays 
 - 把推薦寫成「已決定採用」越過使用者的選擇 gate。
 - 多個方法都走得通，卻沒做多維評估、隨便挑一個能用的。
 - **拿 `codebase-memory-mcp` graph 查「剛改 / worktree / 未提交」那塊就直接採信**（沒 `detect_changes` 驗新鮮度、沒回頭 `Read` 實檔）—— graph 只保證「已索引 baseline」，正在動的那塊以實檔為準。
+- 大檔整檔重複讀、或引用**已改動檔**的舊 Read 內容做推理（context-diet §C：重讀該範圍）。
 
 ## Verification
 
@@ -127,5 +128,5 @@ description: Researches how to build something before it gets planned, and lays 
 - [ ] 有明確推薦 + 理由，且措辭是「待你拍板」不是「已決定」。
 - [ ] 框架 API 來源已 CITE，查不到的標 UNVERIFIED。
 - [ ] deep-research（若用）有先經同意。
-- [ ] 內部掃描**優先用 `codebase-memory-mcp`**（repo 已索引時）；**剛改 / worktree / 未提交**的 code 已用 `detect_changes` + 直接 `Read` 驗證、未採信 stale graph；未索引 / 工具不可用則 fallback 派 `Explore` agent（見 `references/code-retrieval.md`）。
+- [ ] 內部掃描**優先用 `codebase-memory-mcp`**（repo 已索引時）；**剛改 / worktree / 未提交**的 code 已用 `detect_changes` + 直接 `Read` 驗證、未採信 stale graph；未索引 / 工具不可用則 fallback 派 `Explore` agent（見 `references/code-retrieval.md`）。讀檔／輸出瘦身守 `references/context-diet.md`。
 - [ ] 已停在對應 gate：**收斂式** `explore → plan`（選方法）／**發散式** `explore → define`（確認 backlog 範圍 + 優先序）。

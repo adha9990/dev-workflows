@@ -39,7 +39,7 @@
 }
 ```
 
-約束：`failures` dedup（同 `file`+`line`+`code|ruleId`+`kind` 視為同一筆）；總量 cap（預設 160，可 `--max-failures` 調），超出 → 截斷且 `truncated=true`；各 gate 原始輸出 tail 截到上限（預設 80000 字，可 `--tail` 調）。
+約束：`failures` dedup（同 `file`+`line`+`code|ruleId`+`kind` 視為同一筆）；總量 cap（預設 160，可 `--max-failures` 調），超出 → 截斷且 `truncated=true`；各 gate 原始輸出 tail 截到上限（預設 80000 字，可 `--tail` 調）。**已知限制（#97）**：`counts` 尚無 `skipped` 欄——被 `.skip`/`.todo` 的測試不進摘要、綠燈仍 `✓`；「skipped 必列」紀律（`context-diet.md` §A）目前僅覆蓋 quality-gate 以外的原始輸出路徑，本 schema 的補欄留待後續票。
 
 ## CLI
 

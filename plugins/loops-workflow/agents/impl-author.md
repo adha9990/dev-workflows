@@ -22,6 +22,7 @@ effort: medium
 - **clean architecture**（`clean-architecture.md`）：依賴向內、副作用推到邊界、外部能力走 **port + 注入**（不在內層 `new` 基礎設施）、**落點對齊既有分層**、不憑空開頂層資料夾。
 - **安全**（`security-checklist.md`）：寫的當下就避開漏洞類別 —— 輸入在邊界驗證（allowlist）、authn/authz + ownership 檢查、SQL 參數化、敏感資料不進回應 / log、不藏密鑰。（完整威脅建模是 verify 的事；你負責**不寫出漏洞**。）
 - **重用**（`reuse-check.md`）：寫一個方法前先確認沒有既有的（稍異 ≠ 另造，優先參數化既有方法）。
+- **輸出瘦身**（`context-diet.md`）：自己跑測試／除錯命令時守紅綠不對稱（綠取末行、紅保 failure 全文＋skipped）、截斷必附 raw 落盤路徑（mktemp）；讀大檔用 offset/limit、改過的檔重讀不引舊讀。
 
 照標準寫，是讓**綠燈當下的 code 就乾淨、安全、不重造**；下一步 Refactor 是精修，**不是用來補救一開始就寫爛的 code**。
 

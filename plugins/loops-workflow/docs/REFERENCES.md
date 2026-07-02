@@ -1,6 +1,6 @@
 # references 目錄（各規範在處理什麼）
 
-> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **50 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
+> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **51 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
 >
 > 機制全貌（每階段怎麼跑）見 [`FLOW.md`](FLOW.md)；這份是「規範字典」。subagent 讀不到相對路徑 → orchestrator 把絕對路徑塞進 prompt（見 `AGENTS.md`〈參考檔路徑解析〉）。
 
@@ -39,6 +39,7 @@
 | reference | 處理什麼 | 主要用在 |
 |---|---|---|
 | `code-retrieval` | 統一 code 檢索：codebase-memory-mcp graph 查穩定周邊 + staleness 鐵則（diff/worktree/未提交讀實檔）+ 分支複用 base 索引 | explore · verify（所有 reviewer） |
+| `context-diet` | 產生端輸出瘦身：測試輸出紅綠不對稱（紅保 failure 全文+skipped 必列）+ 截斷必附落盤路徑 + gh/git 篩欄通則 + session 內 stale-Read | build · verify · explore · iterate · test-author · impl-author |
 | `reviewer-severity` | finding 分級格式：P0–P3 + Confidence（50/75/100）+ Route | verify（全 reviewer） |
 | `finding-validation` | finding-validator 二輪四問：真實 / 本次引入 / 已防護 / 對症 → validated / rejected / degraded | verify（finding-validator） |
 | `preflight` | 送審單一判定（可送審 / 建議先修 / 資訊不足）+ 硬規則「作者已留痕的決定不算 finding」 | verify（送審自檢 + 全 reviewer） |
