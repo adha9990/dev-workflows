@@ -1,7 +1,0 @@
-id: broken-no-confidence
-trigger: 某個尚未校準信心的情境
-action: 某個待驗證的行動
-scope: project
-evidence:
-  - calibration-sample-loop
-summary: 這條沒有信心欄位僅供測試容錯

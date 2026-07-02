@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // test-path-guard.mjs —— loops-path-guard.mjs（PreToolUse deny hook，#85）紅綠斷言
-// （自帶極簡 harness，仿同目錄 test-instinct.mjs，不引測試框架）。
+// （自帶極簡 harness，仿同目錄 test-session-start.mjs，不引測試框架）。
 //
 // 用法（cwd = plugins/loops-workflow）：node hooks/test-path-guard.mjs
 // 全綠 → exit 0；任一斷言失敗或 import 失敗 → exit 1（主線用此 exit code 判紅綠）。

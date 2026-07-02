@@ -1,6 +1,6 @@
 # references 目錄（各規範在處理什麼）
 
-> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **51 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
+> `references/` 是 loops-workflow 的「知識模組」—— 各階段 skill / agent 不重述共用規範，而是引用這裡。本檔把 **50 份 reference 依功能分類**，一眼看出「哪份在管什麼、誰在用」。
 >
 > 機制全貌（每階段怎麼跑）見 [`FLOW.md`](FLOW.md)；這份是「規範字典」。subagent 讀不到相對路徑 → orchestrator 把絕對路徑塞進 prompt（見 `AGENTS.md`〈參考檔路徑解析〉）。
 
@@ -33,7 +33,6 @@
 | `change-summaries` | build 產出的 Change Summaries 三段式格式 | build（`03-build.md`） |
 | `operation-first-move` | 4 operation 性質（new-feature/change-behavior/bug-fix/refactor）× test-author 紅燈第一步規則 + fail-safe（單一來源） | dispatch（寫 `operation` 欄）· build（讀欄派 test-author） |
 | `quality-gate-schema` | quality-gate 腳本輸出 / failures 結構化契約（`file:line [code\|ruleId] message`） | build（派 fixer 帶 failures）· verify（gate 摘要） |
-| `instinct-schema` | 跨 loop 學習的 instinct YAML 格式（id/trigger/action/confidence/scope/evidence/summary）+ 隱私/Honesty 規範 | distill（寫 instinct）· session-start（讀注入） |
 
 ## 3. 驗證與審查機制
 
