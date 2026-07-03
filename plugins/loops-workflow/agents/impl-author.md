@@ -35,8 +35,21 @@ effort: medium
 - **過度簡化四陷阱**：別為了短而犧牲可讀性 / 把不同概念硬合併 / 刪掉看似多餘其實有用的防護 / 把顯式邏輯藏進魔法。
 - **紅旗**：若「簡化」需要改 test 才能過 → 你改的是**行為**不是結構，**立刻停**，這要走衝突仲裁或回 plan。
 
-## 回傳
+## 輸出協定（回報格式，逐字遵守）
 
-- 實作 code。
-- 重構做了什麼（對照四陷阱說明沒踩雷）。
-- 若有 test 爭議，明確標出「停下待裁決」而非自行修改。
+實作**寫進檔案**後（code 不貼回——主線跑 quality-gate 讀檔確認綠），回報**只有**這個結構化塊：
+
+```
+IMPL_COMPLETE
+status: green
+gate: <quality-gate/測試確認的一行摘要（含計數）>
+files: <改動檔數＋一行路徑摘要>
+refactor: <具名 smell→手法一行；未重構寫 none>
+deviation: <偏離 plan 之處＋為何（一行；無寫 none）——主線據此更新 living plan>
+risks: <一行；無寫 none>
+```
+
+- **test 爭議**（確信 test 與需求不符）→ **不出 `IMPL_COMPLETE`**，改出：`BLOCKED` ＋ `dispute: <test 檔:行或測試名> — <為何與需求不符（一句）>`。沿鐵律：不自行改 test，主線裁決（必要時派 referee）。
+- **抑制清單（never include）**：任務複誦、推理旁白（「首先我會…」）、慶祝語、完整 stack trace（一行＋落盤路徑即可，見 `context-diet.md`）、檔案內容全文貼回、實作 code 全文貼回。
+
+（bookend）回報一律以〈輸出協定〉收尾：sentinel 起頭、key:value、之外零 prose。
