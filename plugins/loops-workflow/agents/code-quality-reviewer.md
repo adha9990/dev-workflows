@@ -22,7 +22,7 @@ effort: medium
   - 是不是為了短而犧牲可讀性、把不同概念硬合併、用魔法藏掉顯式邏輯。
   - 命名 / 結構是否讓人一眼看懂；有沒有不必要的重複。
   - **不是越短越好** —— 顯式、好讀優先於精巧。
-- **code smells / 重構訊號**（讀 orchestrator 在 prompt 提供的 `refactoring.md` 絕對路徑）：有沒有明顯該重構的異味（Long Method / Large Class / Feature Envy / Duplicated Code / Primitive Obsession…）；有沒有 **pattern 上癮 / 過度設計**（為套而套、簡單 if/else 換成一堆類）。
+- **code smells / 重構訊號**（讀 orchestrator 在 prompt 提供的 `refactoring.md` 絕對路徑）：有沒有明顯該重構的異味（Long Method / Large Class / Feature Envy / Duplicated Code / Primitive Obsession…）；有沒有 **pattern 上癮 / 過度設計**（為套而套、簡單 if/else 換成一堆類）；**或本可用標準庫 / 原生 / 既有依賴卻另造（`minimalism-ladder.md` 未爬）**。
 - **重用 / 同義方法**（讀 orchestrator 在 prompt 提供的 `reuse-check.md`）：新增的方法是不是既有方法換個入口（同件事兩個入口）？同詞根系列（`showXDialog` / `getXById`…）有沒有該收斂成參數化的（`showDialog(type)`）。
 
 ## 輸出

@@ -1,6 +1,6 @@
 # references 目錄（幫你找到「該讀哪份規範」）
 
-> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。這頁把 **51 份 reference 依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」。
+> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。這頁把 **52 份 reference 依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」。
 >
 > 想看**流程全貌**（每階段怎麼跑）→ [`FLOW.md`](FLOW.md)；想看**可設定的參數** → [`settings.md`](settings.md)；這份是「規範字典」。（技術註：subagent 讀不到相對路徑，orchestrator 會把絕對路徑塞進 prompt——見 `AGENTS.md`〈參考檔路徑解析〉。）
 
@@ -18,6 +18,7 @@
 | `refactoring` | 看到什麼壞味道（code smell）→ 用哪個具名手法整理——Fowler 分類目錄 | build（Refactor step）· verify（code-quality） |
 | `code-simplification` | 怎麼簡化才不會簡出 bug：改之前先懂為什麼這樣寫（Chesterton's Fence）、過度簡化四陷阱、清晰優先於精巧 | build（Refactor）· verify（code-quality） |
 | `reuse-check` | 寫新方法前先確認沒有現成的：同詞根系列收斂成參數化、「稍微不同」不等於要另造一個 | plan（拆任務前）· build（寫前）· verify（code-quality） |
+| `minimalism-ladder` | 動手加新東西前的最小主義階梯：需要做嗎 → 複用 → 標準庫 → 框架原生 → 已裝依賴 → 一行 → 最少代碼（author-time 防 over-build） | build（impl-author 動手前）· verify（code-quality / architecture 勾稽） |
 | `security-checklist` | 不寫出漏洞的檢查表：威脅建模、STRIDE、OWASP / LLM Top 10、認證授權 / 輸入驗證 / 資料保護 | build（寫安全）· verify（security） |
 | `test-rubric` | 測試怎麼寫才算好：四層測試怎麼分、能用真的就別 mock（Real > Fake > Stub > Mock）、金字塔 80/15/5、DAMP > DRY、data-layer 覆蓋清單 | build（test-author）· verify（tests） |
 | `contract-spec` | 跨介面（API / 資料 / 事件）的契約怎麼寫、對到哪層測試；含 Hyrum's Law 提醒 | plan（跨介面才寫）· verify（product-contract） |
