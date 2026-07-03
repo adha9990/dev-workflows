@@ -63,7 +63,7 @@
 
 - **主線（執行 skill 者）**：依 skill 載入時顯示的 base directory 解析（`<base>/../../references/xxx.md`）。
 - **subagent（被 build / verify 派出的 persona）**：CWD 是使用者 repo、且 `${CLAUDE_PLUGIN_ROOT}` 在 markdown body **不會展開**（Claude Code 已知限制），相對路徑 `references/xxx.md` 解不到。因此**派 subagent 的 orchestrator skill 必須**從自己的 base directory 推出 plugin root，組出 reference 的**絕對路徑、寫進該 subagent 的 prompt**；persona 一律「讀 prompt 提供的絕對路徑」，不自己用相對路徑。
-- **subagent 探索 code 一律依 `references/code-retrieval.md`**（graph 查穩定周邊、diff/worktree/未提交讀實檔）—— 主迴圈同樣依該檔：值得用 graph 就先用 codebase-memory-mcp 的 `index_repository` 建索引再查，補上 subagent（verify reviewer 等）的檢索統一。
+- **subagent 探索 code 一律依 `references/code-retrieval.md`**（graph 查穩定周邊、diff/worktree/未提交讀實檔）—— 主迴圈同樣依該檔：**未索引 repo 預設先用 codebase-memory-mcp 的 `index_repository` 建索引再查、不直接退 grep**（退 grep 例外見該檔 §Fallback）；verify reviewer 唯讀不自索引。
 
 ---
 

@@ -42,7 +42,7 @@ description: Researches how to build something before it gets planned, and lays 
 
 找：既有可重用的實作 / 模式 / 類似功能。**兩條路，優先用 graph、不行才派 agent**：
 
-**內部檢索一律依 `references/code-retrieval.md`**（單一正本）：repo 已索引 ready → 用 codebase-memory-mcp 查穩定周邊（`search_graph`/`trace_path`/`get_code_snippet`/`search_code`/`get_architecture`）；**worktree / 未提交 / `detect_changes` 的 changed_files 一律讀實檔、不信 stale graph**；未索引 / mcp 不可用 → 派內建 `Explore` agent（read-only）或 raw Grep。讀檔與命令輸出的瘦身（大檔 offset/limit 範圍讀、gh/git 篩欄、改動檔重讀）依 `references/context-diet.md`。
+**內部檢索一律依 `references/code-retrieval.md`**（單一正本）：repo 已索引 ready → 用 codebase-memory-mcp 查穩定周邊（`search_graph`/`trace_path`/`get_code_snippet`/`search_code`/`get_architecture`）；**worktree / 未提交 / `detect_changes` 的 changed_files 一律讀實檔、不信 stale graph**；**未索引 → 依 `code-retrieval.md` §Fallback 預設先 `index_repository` 再查**（mcp 不可用 / 退 grep 例外才派內建 `Explore` agent 或 raw Grep）。讀檔與命令輸出的瘦身（大檔 offset/limit 範圍讀、gh/git 篩欄、改動檔重讀）依 `references/context-diet.md`。
 
 兩條路都一樣：**出入口稍異不等於要另造** —— 預設擴充或參數化既有方法。回精煉 digest 給主線（不是整檔貼回）。
 
