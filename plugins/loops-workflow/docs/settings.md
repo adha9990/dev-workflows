@@ -12,7 +12,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 }
 ```
 
-> **值一定要用引號包成字串**（`"1"` 不是 `1`）——判定只認字面字串 `'0'`/`'1'`，裸數字或 `true`/`false` 會被當「怪值」落回該參數的預設行為，看起來像「設了沒生效」。
+> **值一定要用引號包成字串**（`"1"` 不是 `1`）——9 個 hook 層 flag 由 code 強制只認字面字串 `'0'`/`'1'`；布林 `true`/`false` 會變成字串 `"true"`/`"false"` 被當「怪值」落回預設，看起來像「設了沒生效」。`LOOPS_AUTO`／`LOOPS_EXPLAIN` 是 **skill 層慣例**（agent 讀指令判斷、非程式碼強制），語意相同但保證強度不同——一律照本檔寫法設字串最保險。
 
 > 本檔管「**怎麼用**」；每個參數**為什麼是這個預設**（決策理由與完整行為細節）＝`references/journaling.md` 的 flag 決策表與逐條說明，兩邊互為索引。
 
@@ -37,8 +37,8 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 |---|---|---|---|
 | `LOOPS_AUTO` | 自動連跑：核准計畫一次後，決策點用推薦選項自動帶過（危險／失敗仍硬停） | `"LOOPS_AUTO": "1"` | —（詳 `references/auto-mode.md`；注意它也會讓 loop-driver 覆蓋 closed 模式） |
 | `LOOPS_EXPLAIN` | 完整迴圈完工時自動產「工程師理解包」（EXPLAIN.md）；沒開＝不產、Journal 留一行 | `"LOOPS_EXPLAIN": "1"` | — |
-| `LOOPS_STOP_GATE` | 改檔回合自動跑 lint/type 檢查、紅燈才提醒 | `"LOOPS_STOP_GATE": "1"` | 「啟用＝授權『在每個改檔回合自動執行 `.loops/gate.config.json` 內定義的 `lint`/`type` 命令』（以及偵測到的 lint/test 工具）。」——全文見 `references/journaling.md` |
-| `LOOPS_LOOP_DRIVER` | build 階段機械續跑（任務外置 state.json、Stop 自動接下一個任務） | `"LOOPS_LOOP_DRIVER": "1"` | 「啟用＝授權『build 完工判定時自動執行 `.loops/gate.config.json` 定義（或自動偵測）的 test/lint/type 命令』——執行面比 stop-gate（僅 type,lint）更寬（含 test）。」——全文見 `references/journaling.md` |
+| `LOOPS_STOP_GATE` | 改檔回合自動跑 lint/type 檢查、紅燈才提醒 | `"LOOPS_STOP_GATE": "1"` | 啟用＝授權「在每個改檔回合自動執行 `.loops/gate.config.json` 內定義的 `lint`/`type` 命令」（以及偵測到的 lint/test 工具）。這些命令來自 repo、等同自動執行 repo 控制的 code。**請只在你信任的 repo 開此 flag。**——全文見 `references/journaling.md` |
+| `LOOPS_LOOP_DRIVER` | build 階段機械續跑（任務外置 state.json、Stop 自動接下一個任務） | `"LOOPS_LOOP_DRIVER": "1"` | 啟用＝授權「build 完工判定時自動執行 `.loops/gate.config.json` 定義（或自動偵測）的 test/lint/type 命令」——執行面比 stop-gate（僅 type,lint）更寬（含 test）；且 block reason 會把 state.json 的任務文字注入 context（已消毒＋框定，防護是降低而非消除）。**請只在你信任的 repo 開此 flag。**——全文見 `references/journaling.md` |
 | `LOOPS_COMPACT_HINT` | context 快滿時提醒你可以 `/compact` | `"LOOPS_COMPACT_HINT": "1"` | — |
 
 ## 怎麼自己驗證有沒有生效
