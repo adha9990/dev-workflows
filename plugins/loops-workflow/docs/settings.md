@@ -12,7 +12,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 }
 ```
 
-> **值一定要用引號包成字串**（`"1"` 不是 `1`）——9 個 hook 層 flag 由 code 強制只認字面字串 `'0'`/`'1'`；布林 `true`/`false` 會變成字串 `"true"`/`"false"` 被當「怪值」落回預設，看起來像「設了沒生效」。`LOOPS_AUTO`／`LOOPS_EXPLAIN` 是 **skill 層慣例**（agent 讀指令判斷、非程式碼強制），語意相同但保證強度不同——一律照本檔寫法設字串最保險。
+> **值一定要用引號包成字串**（`"1"` 不是 `1`）——上表除 `LOOPS_AUTO`／`LOOPS_EXPLAIN` 外的參數由 hook 程式碼（`hook-flags.mjs`）強制只認字面字串 `'0'`/`'1'`；布林 `true`/`false` 會變成字串 `"true"`/`"false"` 被當「怪值」落回預設，看起來像「設了沒生效」。`LOOPS_AUTO`／`LOOPS_EXPLAIN` 是 **skill 層慣例**（agent 讀指令判斷、非程式碼強制），語意相同但保證強度不同——一律照本檔寫法設字串最保險。
 
 > 本檔管「**怎麼用**」；每個參數**為什麼是這個預設**（決策理由與完整行為細節）＝`references/journaling.md` 的 flag 決策表與逐條說明，兩邊互為索引。
 
