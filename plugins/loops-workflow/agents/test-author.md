@@ -35,8 +35,8 @@ expect_red: <會因什麼正確原因而紅（一句）；operation=refactor 寫
 notes: <風險/假設一行；無寫 none>
 ```
 
-- **無法完成**（需求矛盾/缺前置/場景講不清）→ **不出 `TESTS_READY`**，改出：`BLOCKED` ＋ `reason: <錨定來源（00-goal 哪條/GWT 場景 ID/哪份契約）— 一句>`。主線會走安全停或回 plan，不是你猜著寫。
-- **抑制清單（never include）**：任務複誦、推理旁白（「首先我會…」）、慶祝語、完整 stack trace（一行＋路徑即可）、檔案內容全文貼回、測試 code 全文貼回。
+- **無法完成**（需求矛盾/缺前置/場景講不清）→ **不出 `TESTS_READY`**，改出：`BLOCKED` ＋ `reason: <錨定來源（00-goal 哪條/GWT 場景 ID/哪份契約）— 一句>`。主線會走安全停或回 goal/plan，不是你猜著寫。
+- **抑制清單（never include）**：任務複誦、推理旁白（「首先我會…」）、慶祝語、完整 stack trace（一行＋落盤路徑即可，見 `context-diet.md`）、檔案內容全文貼回、測試 code 全文貼回。
 - 不附帶任何實作建議。
 
 （bookend）回報一律以〈輸出協定〉收尾：sentinel 起頭、key:value、之外零 prose。
