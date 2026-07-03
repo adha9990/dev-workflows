@@ -69,7 +69,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 ### 6. 完工收尾
 
-**前提：最近一輪 verify 無 actionable findings**（修完有再驗過，不是測試綠就收）。對照 `00-goal.md` 停止條件全部達成 → 跑 Pre-Launch checklist 骨架（砍掉 infra 項）→ 收尾前過 `references/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
+**前提：最近一輪 verify 無 actionable findings**（修完有再驗過，不是測試綠就收）。對照 `00-goal.md` 停止條件全部達成 → 收尾前過 `references/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
 
 **AGENTS.md 同步（條件式，不問）**：docs-policy 檢查若判定**本迴圈確實改變了慣例 / 規則**（AGENTS.md 維護時機命中）→ **主線直接依 `references/docs-policy.md`（時機＋〈怎麼寫〉守門同檔）編輯根 `AGENTS.md` 對應段落**（一次一 scope、documentation-only）；**不命中就不動、不問**——絕大多數功能迴圈不觸發，只有動到規則 / 慣例 / 新子系統的迴圈才會。
 

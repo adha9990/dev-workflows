@@ -11,7 +11,7 @@
    - **異質模型**（PoLL：異質小 judge 投票 > 單一大 judge、抗 position/verbosity/self-enhancement、便宜 ~7×）。
 2. **捕每個 judge 的 verdict**，寫成 `verdicts.jsonl`，每行一個 judge：
    ```jsonc
-   { "judgeId": "sonnet-1", "model": "claude-sonnet-4-6", "output": "<該 judge 的 raw verdict 文字>" }
+   { "judgeId": "sonnet-1", "model": "claude-sonnet-5", "output": "<該 judge 的 raw verdict 文字>" }
    ```
 3. **跑膠水算共識**（cwd＝repo 根，路徑與 `eval-harness.md` 一致）：
    ```bash

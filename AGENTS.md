@@ -57,17 +57,19 @@
 >
 > 命名這兩個失敗模式，是讓維護者知道 `explain` 與 human gate **不是冗餘流程、而是對應具名風險的設計**（呼應規則 10 已援引的 Loop Engineering：要當「打算繼續當工程師的人」、不是「只按 go 的人」）。
 
+### 參考檔路徑解析
+
 `references/*.md` 的讀取分兩種情境：
 
 - **主線（執行 skill 者）**：依 skill 載入時顯示的 base directory 解析（`<base>/../../references/xxx.md`）。
 - **subagent（被 build / verify 派出的 persona）**：CWD 是使用者 repo、且 `${CLAUDE_PLUGIN_ROOT}` 在 markdown body **不會展開**（Claude Code 已知限制），相對路徑 `references/xxx.md` 解不到。因此**派 subagent 的 orchestrator skill 必須**從自己的 base directory 推出 plugin root，組出 reference 的**絕對路徑、寫進該 subagent 的 prompt**；persona 一律「讀 prompt 提供的絕對路徑」，不自己用相對路徑。
-- **subagent 探索 code 一律依 `references/code-retrieval.md`**（graph 查穩定周邊、diff/worktree/未提交讀實檔）—— 呼應 SessionStart 的 Code Discovery Protocol（主迴圈），補上 subagent（verify reviewer 等）的檢索統一。
+- **subagent 探索 code 一律依 `references/code-retrieval.md`**（graph 查穩定周邊、diff/worktree/未提交讀實檔）—— 主迴圈同樣依該檔：值得用 graph 就先用 codebase-memory-mcp 的 `index_repository` 建索引再查，補上 subagent（verify reviewer 等）的檢索統一。
 
 ---
 
 ## 3. Intent → 入口對照表
 
-**使用者唯一的 slash 入口是 `/loops-workflow:dispatch`** —— 它判類型、分流到對的起點階段；**輸入是既有 loop 的 slug 時自動走 resume 協定**（dispatch 步驟 0）。其餘 skill（含階段與側用）全部 `user-invocable: false`、由 dispatch（及階段彼此）用 Skill tool 內部驅動：`explain`＝完整迴圈完工且 `LOOPS_EXPLAIN=1` 才自動產、`scaffold-fullstack`＝dispatch 對乾淨空專案路由——兩者也可用自然語言請 Claude 執行（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 docs-policy 直接編輯）。**查進度直接讀 `.loops/<slug>/`**（`PROGRESS.md` 由恆開 hook 每回合自動重生）。opt-in 模式一律環境變數：auto 連跑＝`LOOPS_AUTO=1`（見 `references/auto-mode.md`），其餘 flag 目錄見 `references/journaling.md`。
+**使用者唯一的 slash 入口是 `/loops-workflow:dispatch`** —— 它判類型、分流到對的起點階段；**輸入是既有 loop 的 slug 時自動走 resume 協定**（dispatch 步驟 0）。其餘 skill（含階段與側用）全部 `user-invocable: false`、由 dispatch（及階段彼此）用 Skill tool 內部驅動：`explain`＝完整迴圈完工且 `LOOPS_EXPLAIN=1` 才自動產、`scaffold-fullstack`＝dispatch 對乾淨空專案路由——兩者也可用自然語言請 Claude 執行（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 docs-policy 直接編輯）。**查進度直接讀 `.loops/<slug>/`**（`PROGRESS.md` 由恆開 hook 每回合自動重生）。opt-in 模式一律環境變數：auto 連跑＝`LOOPS_AUTO=1`（見 `references/auto-mode.md`），其餘 flag 目錄見 `references/journaling.md`（使用者導向的「怎麼設定」總覽見 `docs/settings.md`）。
 
 | 你想做的事 | 怎麼做 | 起點階段 |
 |------|------|------|

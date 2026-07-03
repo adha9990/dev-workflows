@@ -12,7 +12,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 }
 ```
 
-> **值一定要用引號包成字串**（`"1"` 不是 `1`）——上表除 `LOOPS_AUTO`／`LOOPS_EXPLAIN` 外的參數由 hook 程式碼（`hook-flags.mjs`）強制只認字面字串 `'0'`/`'1'`；布林 `true`/`false` 會變成字串 `"true"`/`"false"` 被當「怪值」落回預設，看起來像「設了沒生效」。`LOOPS_AUTO`／`LOOPS_EXPLAIN` 是 **skill 層慣例**（agent 讀指令判斷、非程式碼強制），語意相同但保證強度不同——一律照本檔寫法設字串最保險。
+> **值一定要用引號包成字串**（`"1"` 不是 `1`）——上表除 `LOOPS_AUTO`／`LOOPS_EXPLAIN` 外的參數由 hook 程式碼（`hook-flags.mjs`）強制只認字面字串 `'0'`/`'1'`；布林 `true`/`false` 會變成字串 `"true"`/`"false"` 被當「怪值」落回預設，看起來像「設了沒生效」。`LOOPS_EXPLAIN` 是純 **skill 層慣例**（agent 讀指令判斷、非程式碼強制）；`LOOPS_AUTO` 主要也是 skill 層慣例，但另被 loop-driver hook 程式碼直讀（同樣僅認字面 `'1'`）——語意相同但保證強度不同，一律照本檔寫法設字串最保險。
 
 > 本檔管「**怎麼用**」；每個參數**為什麼是這個預設**（決策理由與完整行為細節）＝`references/journaling.md` 的 flag 決策表與逐條說明，兩邊互為索引。
 
@@ -27,7 +27,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 | `LOOPS_EVAL_GATE` | 改檔回合自動檢查 eval 成績有沒有退化，退化才提醒（沒有 eval 資料＝完全沉默） | `"LOOPS_EVAL_GATE": "0"` |
 | `LOOPS_EVAL_TAGS_GATE` | 同上，提醒「哪一類 eval 在失敗」 | `"LOOPS_EVAL_TAGS_GATE": "0"` |
 | `LOOPS_EVAL_POLL_GATE` | 同上，顯示 judge panel 共識計數 | `"LOOPS_EVAL_POLL_GATE": "0"` |
-| `LOOPS_CONFIG_PROTECTION` | 擋住「為了讓 lint 過而弱化 eslint/prettier 等設定檔」——只在有 `.loops/` 的 repo 生效，日常編輯不受影響 | `"LOOPS_CONFIG_PROTECTION": "0"` |
+| `LOOPS_CONFIG_PROTECTION` | 擋住「為了讓 lint 過而弱化 eslint/prettier 等設定檔」——預設只在有 `.loops/` 的 repo 生效，日常編輯不受影響；顯式設 `"1"`＝擴大為全域生效（不限 `.loops/` repo） | `"LOOPS_CONFIG_PROTECTION": "0"` |
 
 ## 預設關（想用才需要設，值填 `"1"`）
 

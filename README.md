@@ -72,7 +72,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 ## 兩個引擎
 
 - **build 紅綠分離**：`test-author`（只看需求、看不到 impl）→ `impl-author`（只轉綠、不准改 test）→ Refactor → 衝突派 `referee` 裁決。讓測試不會遷就實作。
-- **verify fan-out**：主線同回合派 6 reviewer（product-contract / architecture / security / performance / code-quality / tests）各審一軸 + 條件式領域 reviewer + `finding-validator` 二輪，輸出 Ready / Not ready。
+- **verify fan-out**：主線同回合派最多 6 個核心 reviewer（依風險 0~6；product-contract / architecture / security / performance / code-quality / tests）各審一軸 + 條件式領域 reviewer + `finding-validator` 二輪，輸出 Ready / Not ready。
 
 ## 看進度（直接讀 `.loops/`）
 
@@ -88,24 +88,26 @@ dispatch → goal → explore → plan → build → verify → iterate
 | 競賽 / 投票式編隊（N 方案→評審） | plan / explore 說「用 Fleet」，見 `references/fleet.md` |
 | 跨 session 接續 | `/loops-workflow:dispatch <slug>`（自動偵測既有 loop.md），見 `references/journaling.md` |
 | 機器可驗證計畫 + eval | 計畫塊 `scripts/validate-plan.mjs`（見 `references/machine-plan-schema.md`）/ dispatch 場景評測 `scripts/run-eval.mjs`（見 `references/eval-harness.md`） |
+| 全部開關總覽 | `docs/settings.md` —— settings.json `env` 可設的全部 `LOOPS_*` 參數一頁看完 |
 | 工程師理解包 | `LOOPS_EXPLAIN=1` 時完整迴圈完工自動產；其他情境自然語言請 Claude 跑 `explain` skill（唯讀側用） |
 | code 工作隔離 | 會動 code 的迴圈（issue / fix）在 **git worktree**（自帶 branch）裡做，不擾動主 checkout；`EnterWorktree` 或 `.claude/worktrees/<issue#>-<slug>`（例 `137-trash-delete-permanent`，**不加 `fix/` 前綴**） |
 
-intent→入口對照與全程操作規則見 plugin 內的 `AGENTS.md`（marketplace 根）。
+intent→入口對照與全程操作規則見 `AGENTS.md`（marketplace 根）。
 
 ## 結構
 
 ```
 plugins/loops-workflow/
 ├── skills/       dispatch（唯一入口）+ 前置 clarify / define / scaffold-fullstack + goal→iterate 六個迴圈階段
-│                 + 側用 explain（完工且 LOOPS_EXPLAIN=1 才自動產）
+│                 + 側用 explain（完整迴圈完工且 LOOPS_EXPLAIN=1 才自動產）
 │                 —— 除 dispatch 外全部 user-invocable: false，全量見 docs/FLOW.md 規模表
 ├── agents/       build 紅綠分離（test-author / impl-author / referee）+ verify 核心 reviewer
 │                 + finding-validator + 條件式領域 reviewer + 高風險 -deep 變體 + eval-judge
 │                 —— 全量與計數見 docs/FLOW.md 規模表
 ├── hooks/        SessionStart：浮出 active .loops/ 迴圈；Stop：progress-render 重生 PROGRESS.md（恆跑）
 │                 + 把關/觀測（預設值逐 flag 拍板——見 references/journaling.md 決策表；安全把關預設開、SECURITY 類 opt-in）
-├── scripts/      validate-plan / run-eval / loops-scan / progress
+├── scripts/      validate-plan / run-eval / loops-scan / progress 等 17 支（含 eval-* 家族 / skill-lint / loops-quality-gate，全量見目錄）
+├── docs/         FLOW（完整流程圖）/ settings（可設參數總覽）/ REFERENCES（規範目錄）—— 索引見 docs/README.md
 └── references/   共用規範 + 模板（全量與分類見 docs/REFERENCES.md）
 ```
 

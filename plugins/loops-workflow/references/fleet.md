@@ -1,6 +1,6 @@
 # Fleet 競賽 / 投票式編隊
 
-> **先分清楚**：loops-workflow 平常的多 agent 是**分工式並行**（explore 各查一角、verify 6 reviewer 各驗一軸、build 紅綠分離）—— 多 agent 各做**不同**子任務。**Fleet 不一樣**：多個 agent 跑**同一份**工作，再用投票 / 評審挑最好的。解空間很寬、單次嘗試品質不穩時才值得。
+> **先分清楚**：loops-workflow 平常的多 agent 是**分工式並行**（explore 各查一角、verify 各 reviewer 各驗一軸、build 紅綠分離）—— 多 agent 各做**不同**子任務。**Fleet 不一樣**：多個 agent 跑**同一份**工作，再用投票 / 評審挑最好的。解空間很寬、單次嘗試品質不穩時才值得。
 
 ## 何時用 Fleet
 
@@ -39,4 +39,4 @@
 
 ## 開法
 
-opt-in：plan / explore 階段使用者說「這題用 Fleet 出 N 個方案評審」才啟動，預設不開（避免每個小決定都編隊、爆 token）。
+opt-in：plan / explore 階段使用者說「這題用 Fleet 出 N 個方案評審」才啟動；build 卡關（多種實作走法難取捨）同樣由使用者明說才啟動。預設不開（避免每個小決定都編隊、爆 token）。
