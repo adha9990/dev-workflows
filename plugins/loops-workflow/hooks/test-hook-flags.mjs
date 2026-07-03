@@ -8,13 +8,13 @@
 // 下面具名 import 會 ERR_MODULE_NOT_FOUND，整個檔在載入期就丟例外 → node 非 0 退出。
 // 這就是 TDD 的紅燈起點。實作補齊後，下方斷言才有機會逐條轉綠。
 //
-// 對外契約（拍板後，見 issue #87 討論）：
-//   FLAG_DEFAULTS：8 個 flag 的分類表（defaultOn / optIn）。
+// 對外契約（拍板後，見 issue #87 討論；#99 loop-driver 併入後追加 LOOPS_LOOP_DRIVER）：
+//   FLAG_DEFAULTS：9 個 flag 的分類表（defaultOn / optIn）。
 //   flagEnabled(name, env)：純函式，env 物件參數（非直接讀 process.env）。
 //   - defaultOn 類（LOOPS_PATH_CONTAINMENT / LOOPS_COST_TRACKER / LOOPS_EVAL_GATE /
 //     LOOPS_EVAL_TAGS_GATE / LOOPS_EVAL_POLL_GATE / LOOPS_CONFIG_PROTECTION）：
 //     僅字面 '0' 關；'1' / '' / 未設 / 'true' / 'off' / '2' 等怪值皆開（不會關）。
-//   - optIn 類（LOOPS_STOP_GATE / LOOPS_COMPACT_HINT）：
+//   - optIn 類（LOOPS_STOP_GATE / LOOPS_COMPACT_HINT / LOOPS_LOOP_DRIVER）：
 //     僅字面 '1' 開；其餘（未設 / '' / '0' / 'true' / 'yes' 等）皆關。
 
 import { FLAG_DEFAULTS, flagEnabled } from './hook-flags.mjs';
@@ -47,10 +47,11 @@ const DEFAULT_ON_FLAGS = [
   'LOOPS_EVAL_POLL_GATE',
   'LOOPS_CONFIG_PROTECTION',
 ];
-// optIn 類（2）：未設 / 怪值一律「關」，只有字面 '1' 才開。
+// optIn 類（3）：未設 / 怪值一律「關」，只有字面 '1' 才開。
 const OPT_IN_FLAGS = [
   'LOOPS_STOP_GATE',
   'LOOPS_COMPACT_HINT',
+  'LOOPS_LOOP_DRIVER',
 ];
 
 // =============================================================================

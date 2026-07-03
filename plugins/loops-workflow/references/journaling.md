@@ -48,6 +48,7 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 > | `LOOPS_EVAL_GATE`/`TAGS`/`POLL` | 開（#87） | 無 artifact 即 no-op；不執行 repo 定義命令 |
 > | `LOOPS_CONFIG_PROTECTION` | 開（#87，loops-scoped） | 防 AI 弱化 linter；`.loops/` 存在才生效、日常編輯零外溢 |
 > | `LOOPS_STOP_GATE` | **opt-in**（#87 評估後維持） | 開＝自動執行 repo 的 gate.config 命令（#17 RCE 面）；補發現性提示消滅資訊差 |
+> | `LOOPS_LOOP_DRIVER` | **opt-in**（#99） | 家族首支 block hook——殺手鍵獨立性（要 auto 推進未必要機械續跑）；三層 opt-in（flag∧state∧auto 語意）為輔 |
 > | `LOOPS_COMPACT_HINT` | **opt-in**（#87 評估後維持） | 非已踩過坑對治、價值中性 |
 > | edit-accumulator（非 flag） | 隨消費端＋`.loops/` 存在前置（#87） | 非 loops repo 零 tmp 寫入 |
 >
@@ -57,10 +58,12 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 >
 > **outcome 度量格式以此為單一來源**，各 skill（iterate §6）引用此處、不另定義。
 
-> **介入 hook（會主動跑閘 / 擋工具，與上面「觀測」不同；預設值逐列標示——#87 起僅 stop-gate 維持 opt-in（SECURITY），#85 loops-path-guard 與 #87 config-protection 預設開）**：
+> **介入 hook（會主動跑閘 / 擋工具，與上面「觀測」不同；預設值逐列標示——#87 起 stop-gate 維持 opt-in（SECURITY）、#99 loop-driver opt-in（首支 block hook），#85 loops-path-guard 與 #87 config-protection 預設開）**：
 > - **`LOOPS_STOP_GATE=1`**（stop-gate，Stop hook + edit-accumulator PostToolUse；**維持 opt-in（#87 決策：預設開＝自動執行任意 repo 的 gate.config.json 命令，#17 security review 明點 RCE 面、信任不可機械判定）**）：**本回合有改檔**時（PostToolUse accumulator 記錄）於 Stop 自動跑既有 `loops-quality-gate.mjs --gates type,lint`，**只有紅燈才把摘要注入 context**（綠靜默、不阻擋）。需 cwd 有 `.loops/gate.config.json`。**發現性提示（#87）**：flag 未開但偵測到 gate.config.json 存在 → per-session 一次注入一行提示（含 `LOOPS_STOP_GATE=1` 與「信任 repo 才開」語；state 檔 `os.tmpdir()/loops-stop-gate-hint-<session>.json`）。footprint：`os.tmpdir()/loops-edits-<session>.json` 暫存＋提示 state 檔。
 >   - ⚠️ **SECURITY：啟用＝授權「在每個改檔回合自動執行 `.loops/gate.config.json` 內定義的 `lint`/`type` 命令」（以及偵測到的 lint/test 工具）。這些命令來自 repo、等同自動執行 repo 控制的 code。請只在你信任的 repo 開此 flag。** 風險本就存在於手動跑 quality-gate；本 hook 把它變成自動，故格外提醒。
 > - **`LOOPS_CONFIG_PROTECTION`**（config-protection，PreToolUse matcher `Write|Edit|MultiEdit`；**預設開（#87）且 loops-scoped**——未設 env 時僅 `payload.cwd` 下存在 `.loops/` 才生效（作弊風險集中於 loops 執行、日常編輯零外溢）；顯式 `'1'`＝全域生效（既有行為）；僅字面 `'0'` 關）：偵測對既有 linter/formatter 設定檔（eslint/prettier/biome/ruff…）的**修改**→ `permissionDecision:"deny"` 擋下並提示「修 code 別弱化設定；設 `LOOPS_CONFIG_PROTECTION=0` 可關」；**新建**設定檔放行、非設定檔放行。出錯 **fail-open（放行）**。footprint：無持久檔。
+> - **`LOOPS_LOOP_DRIVER=1`**（loop-driver，Stop hook 家族**末位**；**opt-in（#99）——家族首支會 block 的 hook**）：build 執行迴圈外置——`$LOOPS_ROOT/.loops/<slug>/state.json`（tasks[] 任務複本＋status 單欄真相源）存在、session/stage 匹配、auto 語意成立（`progressionMode:auto` 或 `LOOPS_AUTO=1`）且未完工時，Stop 回 `{"decision":"block","reason":<下一任務塊+git status 半成品前置+推進契約>}` 機械續跑。四道防護：`stop_hook_active` 防重入／iteration 保險絲（雙路 +1、觸發後冪等放行）／`awaitingApproval` 使用者閘／atomic 寫+updatedAt CAS。完工雙帳本：all-done ∧ quality-gate 結構化判定（**test not-run 一律降級「弱帳本」**、已跑紅→block、綠→刪 state 收攤；timeout 300s fail-open）。孤兒 state（跨 session）＝惰性無害、同 slug 重跑接管、可手刪。footprint：state.json（gitignored `.loops/*`）。
+>   - ⚠️ **SECURITY：啟用＝授權「build 完工判定時自動執行 `.loops/gate.config.json` 定義（或自動偵測）的 test/lint/type 命令」——執行面比 stop-gate（僅 type,lint）更寬（含 test）。這些命令來自 repo、等同自動執行 repo 控制的 code；且 block reason 會把 state.json 的任務文字注入 context（已消毒＋框定，防護是降低而非消除）。請只在你信任的 repo 開此 flag。**
 > - **`LOOPS_PATH_CONTAINMENT`**（loops-path-guard，PreToolUse matcher `Write|Edit|MultiEdit`；**預設開（#85，plugin 唯一 opt-out 介入 hook）——只有字面 `'0'` 會關**，`false`/空字串/未設一律維持啟用）：Write/Edit/MultiEdit 目標路徑落在 `.claude/worktrees/**/.loops/**`（詞法判定：resolve 收合 `..`、大小寫折疊、段完全相等比對）→ `permissionDecision:"deny"`＋指引正確落點 `$LOOPS_ROOT/.loops/<slug>/`——把 AGENTS 規則 9「.loops 嚴禁寫進 worktree」（已踩過、毀 audit trail）機械化。出錯 **fail-open（放行）**。已知限制：不解析 symlink（熱路徑零 I/O 取捨）。footprint：無持久檔。
 >   - ⚠️ **SECURITY／繞過**：deny 訊息附逃生口——確需在 worktree 寫 `.loops`（不應發生）時設 `LOOPS_PATH_CONTAINMENT=0` 暫時關閉；此 hook 只攔 Claude 的寫檔工具呼叫，不攔 shell/node 直接 fs 寫入（已核對：現行無任何 hook 寫 worktree .loops）。
 
