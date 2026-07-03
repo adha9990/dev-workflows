@@ -24,6 +24,8 @@ description: Implements each planned task into working, test-protected code. Use
 
 > **動 code 前先確認在 worktree 裡**：在獨立 git worktree（自帶 branch）寫，不在使用者主 checkout 直接改（dispatch 對 issue/fix 已開；純設計迴圈走到這裡才開 —— `git worktree add .claude/worktrees/<slug> -b <slug> <base>`，branch / worktree 名 = slug，不加 type 前綴）。見 `AGENTS.md` 規則 9。
 
+> **step-0 迴圈外置（#99，opt-in）**：`LOOPS_LOOP_DRIVER=1` 且 auto 語意成立（loop.md `推進模式：auto` 或 `LOOPS_AUTO=1`）時，進 build 先把 `02-plan.md` 任務拆解一次性解析寫入 `$LOOPS_ROOT/.loops/<slug>/state.json`（schema/欄位語意見 `references/journaling.md` loop-driver 條目；**既有 state 不歸零**——`session` 更新為當前、`tasks[].status` 依 03-build 軌跡/quality-gate 推導保留、iteration 歸 1）。之後每任務完成（step 7 Save Point 後）把該任務 `status` 翻 `done`（atomic、單欄——cursor 由 hook 推導、不另記 index）；**build 全完進 verify 前主線刪 state.json**（正常收攤；loop-driver 完工路徑的刪除＝同 session crash 兜底）。closed 且未設 LOOPS_AUTO＝不建 state、行為完全不變。跨 session 孤兒 state 惰性無害（永不匹配），同 slug 重跑接管或手刪。
+
 > **平行 build 一律 worktree 隔離**：build 預設**逐任務序列**跑紅綠（同一時間只有一個 writer，在 loop worktree 裡）。若為加速**平行派多個會寫檔的 agent**（跨獨立任務 / DAG 同層），**每個平行 writer 必須各自一個隔離 worktree**（`isolation: 'worktree'`）—— 共用同一工作目錄會競態，且各 agent 自報的「綠」是不同時間點的半成品態、**不可採信**（已踩過）。平行完成後合併回主 worktree，**由主線在合併態跑 quality-gate（見下方〈quality-gate 整合〉、只讀精簡摘要，確認預期 gate 皆 `passed`、非 `not-run`）才算數** —— 不採信各 agent 自報。見 `AGENTS.md` 規則 9。
 
 > **quality-gate 整合（跑測試只讀摘要，省 token）**：build 的三個「主線跑測試」確認點（step 2 確認 Red / step 4 確認 Green / 平行合併 re-run）**不收完整 `pnpm typecheck && lint && test` 輸出**（中大型套件單次可灌 >100k token），改跑 quality-gate 腳本只讀**精簡摘要**：

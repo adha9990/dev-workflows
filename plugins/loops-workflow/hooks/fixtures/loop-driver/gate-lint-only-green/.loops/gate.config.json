@@ -1,0 +1,1 @@
+{ "lint": "node lint-ok.mjs" }
