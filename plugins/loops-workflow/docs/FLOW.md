@@ -289,7 +289,7 @@ flowchart TD
 | build | 1 | **2 / 任務**（test+impl）+ referee | 衝突時 referee |
 | verify | 1 | **1–6 + 0–10 + N** | 同回合並行（multi-user 由專案宣告觸發） |
 | iterate | 1 | 0（+cross-model 選用） | 卡關時 |
-| explain（側） | 1 | 0 | 唯讀（LOOPS_EXPLAIN=1 才完工自動產） |
+| explain（側） | 1 | 0 | 唯讀（完整迴圈完工且 LOOPS_EXPLAIN=1 才自動產） |
 | scaffold-fullstack（前置） | 1 | 0 | 完全乾淨空專案建骨架 |
 
 ---

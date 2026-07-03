@@ -25,7 +25,7 @@ effort: low
 
 - **`validated`**：四問都站得住 → 確認是真 blocking，保留 + 原 P 級。
 - **`rejected`**：誤報 / 非本次引入 / 已被既有防護處理 → 剔除，附理由。
-- **`degraded`**：你無法檢視足夠脈絡、無法確證 → 進「未驗證區域」，除非 coordinator 能獨立證明影響是 P0，否則不得當 blocker。問題**部分成立但沒那麼嚴重**（例如已有部分防護、或非阻塞）→ 回 `validated` + 建議降 P 級 + 理由，**不歸 degraded**。
+- **`degraded`**：你無法檢視足夠脈絡、無法確證 → 進「未驗證區域」，除非 coordinator 能獨立證明影響是 P0，否則不得當 blocker。問題**部分成立但沒那麼嚴重**（例如已有部分防護、或非阻塞）→ 回 `validated` + 建議降 P 級 + 理由，**不歸 degraded**（此為上條「保留原 P 級」的例外；coordinator 依 `finding-validation.md`〈Coordinator 怎麼用〉採用建議新級）。
 
 ## 鐵律
 
