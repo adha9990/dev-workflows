@@ -6,6 +6,37 @@
 
 ---
 
+## 5 分鐘導讀（第一次用先看這裡）
+
+**這是什麼**：一個把「你說一句話」變成「一個開好的 PR」的工作流 plugin。你只要下一個指令（`/loops-workflow:dispatch`），它會自己判斷這句話是要做功能、修 bug 還是研究，然後帶著你走完整條路——中間只在真正需要你做決定的地方停下來問。
+
+**旅程長這樣**（簡化版；完整圖見下方 §0——兩張圖描述同一流程）：
+
+```mermaid
+flowchart LR
+    A["你：一句話 / issue 號"] --> B["dispatch 判斷類型"]
+    B --> C["定目標 → 研究 → 提計畫（你拍板）"]
+    C --> D["寫測試 → 寫實作（紅綠分離）"]
+    D --> E["多位 reviewer 並行驗收"]
+    E --> F["開 PR（你核可才合）"]
+```
+
+**我想做 X，用哪個入口？**
+
+| 我想… | 怎麼做 |
+|---|---|
+| 做一個功能／修一個 bug | `/loops-workflow:dispatch 描述一句` 或 `dispatch issue #N` |
+| 接續上次做到一半的 | `/loops-workflow:dispatch <slug>`（自動偵測 resume） |
+| 先研究再決定做不做 | `dispatch explore "題目"` |
+| 看某條 loop 跑到哪 | 直接開 `.loops/<slug>/PROGRESS.md` |
+| 看懂一份改動 | 自然語言請 Claude 跑 `explain`（或設 `LOOPS_EXPLAIN=1` 完工自動產） |
+| 開關各種自動化（成本記錄／自動檢查／自動連跑…） | 見 [`settings.md`](settings.md)——所有可設參數一頁看完 |
+| 找某份規範文件 | 見 [`REFERENCES.md`](REFERENCES.md) 的分類導覽 |
+
+**三個常用名詞**（後文會反覆出現）：**loop**＝一條從目標到 PR 的完整任務旅程；**`.loops/<slug>/`**＝這條旅程的記事本（進度、決策、產出全在裡面，session 斷了靠它接回）；**gate**＝停下來等你拍板的檢查點。
+
+---
+
 ## 命令介面（誰是入口）
 
 使用者**唯一的 slash 入口是 `/loops-workflow:dispatch`**。所有其他 skill——階段（goal / define / explore / clarify / plan / build / verify / iterate）與側用（`explain`、`scaffold-fullstack`）——都標 **`user-invocable: false`**、**不出現在 `/` 選單**，由 dispatch（及階段彼此）用 Skill tool **內部驅動**：explain＝完整迴圈完工且 `LOOPS_EXPLAIN=1` 才自動產、scaffold-fullstack＝dispatch 對乾淨空專案路由；兩者也可自然語言請 Claude 執行（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 `references/docs-policy.md` 直接編輯）。接續中途 loop＝`dispatch <slug>`（自動偵測 resume）；查進度＝直接讀 `.loops/<slug>/PROGRESS.md`（恆開 hook 自動重生）。
@@ -263,4 +294,4 @@ flowchart TD
 
 ---
 
-> **維護**：本檔同步自 plugin 各 `SKILL.md` / `agents/` / `references/` —— **改了流程（階段行為、agent 分工、機制、策略）就一併更新這份**，讓它跟著 SKILL 走、不 drift。這份是給人讀的全貌總覽，**正本機制仍以各 `SKILL.md` 為準**。
+> **維護**：本檔同步自 plugin 各 `SKILL.md` / `agents/` / `references/` —— **改了流程（階段行為、agent 分工、機制、策略）就一併更新這份**，讓它跟著 SKILL 走、不 drift。這份是給人讀的全貌總覽，**正本機制仍以各 `SKILL.md` 為準**。開頭〈5 分鐘導讀〉的簡化圖與 §0 詳細圖**描述同一流程——改流程時兩張圖一起改**。
