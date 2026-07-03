@@ -21,7 +21,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 **NOT for**：
 - 把所有階段一路自動跑完 —— 那違反 Closed Loop，dispatch 只送你到起點。（接續既有 loop **也是 dispatch 的事**：`dispatch <slug>` 走步驟 0 的 resume 分支，見下。）
-- **側用工具不歸 dispatch 路由** —— `explain`（看懂改動）、`agents-md-maintainer`（維護 repo `AGENTS.md`，documentation-only）是閉環外側用工具（`user-invocable: false`）：由對應階段內部驅動（explain＝完整迴圈完工自動產；agents-md-maintainer＝iterate 完工命中維護時機自動跑），或使用者以自然語言請求，不進決策樹。
+- **側用工具不歸 dispatch 路由** —— `explain`（看懂改動）是閉環外側用工具（`user-invocable: false`）：由 iterate 內部驅動（完整迴圈完工且 `LOOPS_EXPLAIN=1` 才自動產），或使用者以自然語言請求，不進決策樹。（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 docs-policy 直接編輯，無獨立 skill。）
 
 ## Process
 
