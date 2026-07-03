@@ -50,10 +50,10 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 
 - **同一回合一次發出**所有 Agent call 才真並行；subagent 不能再派 subagent；維度**不排成序列**（順序化會交叉漏審 + 後者錨定前者偏誤；唯一的「先後」只剩 build 前那道便宜的 quality-gate：型別/lint/測試）。
 - **反偏見**：只給 reviewer **artifact + 契約**（issue / `02-plan.md` 契約 / diff），**不給作者的理由/辯護**（`03-build.md` 的 concerns 不轉發）。
-- **防 stale**：reviewer 審的是 build 剛寫、常在 worktree / 未提交的 code —— graph 對這塊最不可信。依 `references/code-retrieval.md`：graph 只查穩定周邊，改動檔一律讀實檔。
-- **跑真 app**：能跑就 `/run` 起服務 + `/verify` 逐條玩 `00-goal.md` 需求 + 本機 `/code-review`（**不跑 ultra 計費版**），把宣稱從 `not measured` 變實測；純 lib 無 app 則據實標 `not measured`。
-- **參考檔路徑（必做）**：subagent 讀不到相對路徑 → 從本 skill base 上兩層推出 plugin root，組**絕對路徑**塞進各 reviewer prompt：全 reviewer ← `reviewer-severity.md` + `review-dispositions.md` + `preflight.md`「作者已留痕的決定不算 finding」原文；`product-contract` ← `acceptance-review.md`；`code-quality` ← `correctness-review.md`/`clean-code.md`/`refactoring.md`/`code-simplification.md`/`reuse-check.md`；`architecture` ← `architecture-review.md`/`clean-architecture.md`/`design-patterns.md`；`security` ← `security-checklist.md`；`performance` ← `performance-review.md`；`tests` ← `test-rubric.md`；條件式各 ← 對應 review 檔（`ui-interaction-review.md`/`root-cause-review.md`/`docs-devex-review.md`/`multi-user-review.md`…）；`finding-validator` ← `finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
-- **檢索接線**：派每個 reviewer 時，prompt 額外提供：①`references/code-retrieval.md` 的絕對路徑（orchestrator 從自己的 base directory 推出 plugin root 組絕對路徑，同既有 per-axis reference 做法）；②**本次改動檔清單**（reviewer 對這些一律讀實檔）；③ 若 repo 已索引，graph project id + 提醒「`detect_changes` 顯示這些 stale」。reviewer 依此用 graph 查穩定周邊、diff 讀實檔。
+- **防 stale**：reviewer 審的是 build 剛寫、常在 worktree / 未提交的 code —— graph 對這塊最不可信。依 `references/code-retrieval.md`：graph 只查穩定周邊，改動檔一律讀實檔。（graph staleness 見該檔；**session 內 Read 快取 staleness**——改動過的檔不得拿舊讀推理、重讀該範圍——見 `references/context-diet.md` §C，兩者是不同 axis。）
+- **跑真 app**：能跑就 `/run` 起服務 + `/verify` 逐條玩 `00-goal.md` 需求 + 本機 `/code-review`（**不跑 ultra 計費版**），把宣稱從 `not measured` 變實測；純 lib 無 app 則據實標 `not measured`。跑測試／app 的輸出收斂依 `references/context-diet.md` §A（紅綠不對稱、截斷附落盤路徑）。
+- **參考檔路徑（必做）**：subagent 讀不到相對路徑 → 從本 skill base 上兩層推出 plugin root，組**絕對路徑**塞進各 reviewer prompt：全 reviewer ← `reviewer-severity.md` + `review-dispositions.md` + `context-diet.md`（gh/git 篩欄、大檔範圍讀）+ `preflight.md`「作者已留痕的決定不算 finding」原文；`product-contract` ← `acceptance-review.md`；`code-quality` ← `correctness-review.md`/`clean-code.md`/`refactoring.md`/`code-simplification.md`/`reuse-check.md`；`architecture` ← `architecture-review.md`/`clean-architecture.md`/`design-patterns.md`；`security` ← `security-checklist.md`；`performance` ← `performance-review.md`；`tests` ← `test-rubric.md`；條件式各 ← 對應 review 檔（`ui-interaction-review.md`/`root-cause-review.md`/`docs-devex-review.md`/`multi-user-review.md`…）；`finding-validator` ← `finding-validation.md`。詳見 AGENTS.md〈參考檔路徑解析〉。
+- **檢索接線**：派每個 reviewer 時，prompt 額外提供：①`references/code-retrieval.md` 的絕對路徑（orchestrator 從自己的 base directory 推出 plugin root 組絕對路徑，同既有 per-axis reference 做法；code-retrieval 管「要不要信 graph」、context-diet §C 管「讀後新鮮度與大檔範圍讀」，改動檔清單同時服務兩者）；②**本次改動檔清單**（reviewer 對這些一律讀實檔）；③ 若 repo 已索引，graph project id + 提醒「`detect_changes` 顯示這些 stale」。reviewer 依此用 graph 查穩定周邊、diff 讀實檔。
 - **model / effort 動態（成本，見 `references/model-effort-policy.md`）**：reviewer 預設用各自 frontmatter tier（多為 `sonnet`）。**當步驟 1 判為高風險**：`security` / `architecture` 軸**改派其 `-deep` 變體**（`security-reviewer-deep` / `architecture-reviewer-deep`，frontmatter 已 `opus`·`high`，做更深威脅建模 / 分層契約推敲；派 -deep 時注入與 base 相同的 per-axis reference）；`code-quality` 等其餘高風險軸維持 base、以 `model: opus` per-dispatch 覆寫。瑣碎 / 一般維持 frontmatter 預設。effort 無法 per-dispatch，故高 effort 只能透過 -deep 變體達成。
 
 ### 3. 驗 findings — 去重 + 二輪確認
@@ -94,7 +94,7 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 ## Verification
 
 - [ ] **步驟 1**：依風險定軸（瑣碎 / 小孤立 / 一般 / 高風險），拿不準 / 混 code / 碰高風險向嚴升級。
-- [ ] **步驟 2**：同一回合並行派出、各一軸；只給 artifact + 契約（不給作者辯護）、tests-reviewer 不被告知已過；跑真 app + 本機 `/code-review` 或據實標 `not measured`；參考檔絕對路徑 + `code-retrieval.md` 路徑 + **本次改動檔清單（含 stale 提醒）**已塞進 reviewer prompt。
+- [ ] **步驟 2**：同一回合並行派出、各一軸；只給 artifact + 契約（不給作者辯護）、tests-reviewer 不被告知已過；跑真 app + 本機 `/code-review` 或據實標 `not measured`；參考檔絕對路徑（含 `context-diet.md`）+ `code-retrieval.md` 路徑 + **本次改動檔清單（含 stale 提醒）**已塞進 reviewer prompt。
 - [ ] **步驟 3**：coordinator 去重後，每個 blocking finding 有 finding-validator 結果。
 - [ ] **步驟 4**：acceptance 閘 —— 每條 criterion 收斂到 已滿足（有證據）/ 明確 descoped（留痕）才判 Ready；確證根本做錯 → 整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）。
 - [ ] **步驟 5**：每條 finding 有 P0–P3 + Confidence + Route + Metric-Honesty；結論 Ready / Not ready 進 iterate（只 P0 才停下問）；回環修完再驗一輪。
