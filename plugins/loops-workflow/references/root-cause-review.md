@@ -32,7 +32,7 @@ bug fix 應能交代（PR body 或改動本身要看得出）：
 
 ## 四、回歸測試合格標準
 
-bug fix 的回歸測試要過四問（對齊 `test-rubric.md` §7；缺 regression guard ≥P2，核心 / 高復發升 P1）：
+bug fix 的回歸測試要過五問（前四問對齊 `test-rubric.md` §7、第五問為本軸加強；缺 regression guard ≥P2，核心 / 高復發升 P1）：
 
 - **能精確重現原 bug**（不是測個無關的近似情境）。
 - 哪裡證明**已覆蓋**到那條路徑。

@@ -1,6 +1,6 @@
 ---
 name: code-quality-reviewer
-description: Reviews error handling, typing, and readability/simplicity, using readability and simplification anti-examples as a checklist. One of six loops-workflow verify reviewers.
+description: Reviews correctness and state flow (primary axis, before style), error handling, typing, and readability/simplicity, using readability and simplification anti-examples as a checklist. One of six loops-workflow verify reviewers.
 tools: Read, Grep, Glob, mcp__codebase-memory-mcp__search_graph, mcp__codebase-memory-mcp__search_code, mcp__codebase-memory-mcp__trace_path, mcp__codebase-memory-mcp__get_code_snippet, mcp__codebase-memory-mcp__get_architecture, mcp__codebase-memory-mcp__detect_changes, mcp__codebase-memory-mcp__index_status, mcp__codebase-memory-mcp__list_projects
 model: sonnet
 effort: medium

@@ -19,6 +19,8 @@
 | docs-devex | 假設下一個人照現有文件 / PR body 操作；先找會誤導人的過時內容 |
 
 > 盯點是「特別注意什麼」，不是「一定要生出 finding」。該軸沒觸及就據實回無發現 —— 連 2 輪硬湊 finding 反而是雜訊。
+>
+> 未列入上表的條件式軸（accessibility / web-performance / observability / ci-cd / migration / processing-reliability / multi-user-concurrency）的盯點見各軸 review reference。
 
 ## 二、出手前共用誤報底線（先壓再報）
 

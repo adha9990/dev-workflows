@@ -17,7 +17,7 @@ git branch --show-current                                   # 當前 branch
 - 不一致 → **不擅自切 branch**（可能污染當前 worktree 的 in-progress 工作）；告知「PR #<N> 的 branch 是 `<head>`，當前在 `<current>`，建議先 `gh pr checkout <N>` 再繼續」，等確認。
 - PR 已 `MERGED` / `CLOSED` → 告知並確認是否仍要處理（可能要在 follow-up PR 補）。
 
-## 三種回饋來源 —— 缺一不可
+## 四種回饋來源 —— 缺一不可
 
 用單一指令拿不全，這是最容易漏的地方：
 

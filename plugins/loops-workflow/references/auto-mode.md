@@ -10,7 +10,7 @@
 
 ## auto 模式做什麼
 
-核准計畫後，主線自動依序跑 `build → verify → iterate`，**每階段照樣**：寫 `.loops/` 對應 markdown、分段 commit、紅綠分離、6 reviewer fan-out。只是**不在階段之間停下等人**。
+核准計畫後，主線自動依序跑 `build → verify → iterate`，**每階段照樣**：寫 `.loops/` 對應 markdown、分段 commit、紅綠分離、多 reviewer fan-out。只是**不在階段之間停下等人**。
 
 ## 但這些情況**一定停**（auto 的硬煞車）
 

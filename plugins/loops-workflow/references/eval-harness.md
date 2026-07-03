@@ -2,6 +2,21 @@
 
 > 進階：用一組**情境（scenario）+ baseline** 評估某個階段 skill 是否如預期運作。`scripts/run-eval.mjs` 驗證情境集結構（≥3 + baseline）並印出可逐條跑的 checklist。**選用**。
 
+## 入口表（目的 → 跑哪支）
+
+本檔按票號演進編年組織（E1–E7 + 活流程）；要動手先查這張表、再跳對應段：
+
+| 我要… | 跑哪支 | 段 |
+|---|---|---|
+| 驗證 scenario 檔結構＋印人工勾檢 checklist | `run-eval.mjs` | 本節（下方） |
+| 用可執行 oracle 判 task 通過與否（零 judge） | `eval-oracle.mjs` | E1 |
+| 跨 run 聚合＋回歸 gate（passRate 退化 exit≠0） | `eval-metrics.mjs` | E2 |
+| 比對執行軌跡是否符合 reference（純規則） | `eval-trajectory.mjs` | E3 |
+| 無 oracle 維度（解釋/溝通品質）rubric 評分 | `eval-judge.mjs` | E4 |
+| judge 對人工金標的 κ 校準＋多 judge 投票 | `eval-poll.mjs` | E5 |
+| live-candidate 真 pass^k（多 run 全過才算穩） | `eval-passk.mjs` | E7 |
+| 沙箱檢查／執行計畫（容器隔離跑 candidate） | `eval-sandbox.mjs` | E7（protocol 見 `evals/live/README-protocol.md`） |
+
 ## scenario 檔格式（JSON）
 
 ```json

@@ -24,9 +24,9 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 ## Process
 
-### 1. 決策留痕（decision record 五欄）
+### 1. 決策留痕（decision record，欄位集＝design-plan-schema §6）
 
-每個設計決策記一筆：**情境 / 選項 / 決定 / 理由 / 後果（Consequences）**。涉及取捨的用 `AskUserQuestion` 給使用者拍板，每選項標推薦 + 理由。ADR 模板見 `references/adr-template.md`。
+每個設計決策記一筆，欄位集以 `references/design-plan-schema.md` §6 為正本：**選擇 / 為什麼 / 背書 / 未採用 / 拍板人**（背書絕不可空）。涉及取捨的用 `AskUserQuestion` 給使用者拍板，每選項標推薦 + 理由。要另出**獨立 ADR 檔**時才用 `references/adr-template.md`（Context / Decision / Alternatives / Consequences 四段式）——plan 內嵌的決策留痕表用 §6 欄位集，兩者用途不同。
 
 ### 2. 套件評估（若要引入新套件）
 
@@ -70,7 +70,7 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 
 ### 6. 送出計畫 + 拍板 gate
 
-**在 plan 階段就把計畫草稿送出**（不是等 loop 結束）：issue-driven → 依 **`references/plan-comment-template.md`（完整版：系統全貌 + 套件清單含版本 + ADR + 機制圖 + 施工圖 + 契約 + out-of-scope）** 寫暫存 tmp 草稿校稿後 post 成 issue 對齊 comment（留 audit trail，**post 後刪 tmp**；更新既有 comment 用 `gh api --method PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<tmp>`）；非 issue → 呈現給使用者。**這則 comment 是 living as-built 摘要**，build 偏離時回來同步更新（含已 post 的版本）。
+**在 plan 階段就把計畫草稿送出**（不是等 loop 結束）：issue-driven → 依 **`skills/plan/references/plan-comment-template.md`（本 skill 目錄下；完整版：系統全貌 + 套件清單含版本 + ADR + 機制圖 + 施工圖 + 契約 + out-of-scope）** 寫暫存 tmp 草稿校稿後 post 成 issue 對齊 comment（留 audit trail，**post 後刪 tmp**；更新既有 comment 用 `gh api --method PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<tmp>`）；非 issue → 呈現給使用者。**這則 comment 是 living as-built 摘要**，build 偏離時回來同步更新（含已 post 的版本）。
 
 **拍板前一定把第 3 步的機制圖直接渲染給使用者看** —— 每機制「一段白話 + 運作流程圖（mermaid）+ 注入 / 接線圖（mermaid）」。**機制圖直接放進對齊 comment**（GitHub 原生渲染 mermaid，所以圖就在 comment 裡，不再只躺 `02-plan.md`）。**對齊 comment 必須 self-contained：絕不引用 `.loops/` 路徑**（`02-plan.md` 等是本地暫存、不上 GitHub、PR merge/close 後清除＝死連結）；要指更細只指 PR/commit/`file:line`/issue（見 `references/comment-policy.md §0`）。
 
@@ -102,13 +102,13 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 
 ## Verification
 
-- [ ] `02-plan.md` 有 decision record（含 Consequences）+ 機制圖（白話 + 兩圖）。
+- [ ] `02-plan.md` 有 decision record（§6 欄位集：選擇 / 為什麼 / 背書 / 未採用 / 拍板人，背書不可空）+ 機制圖（白話 + 兩圖）。
 - [ ] 拍板 gate 已把每機制的**運作流程圖 + 注入 / 接線圖渲染在 chat 給使用者看**（不只躺在 `02-plan.md` / 不只給精煉 comment）。
 - [ ] 新套件（若有）附 ≥3 候選比較 + 拍板結論。
 - [ ] 每個任務有可執行的 Verification 指令。
 - [ ] 沒有任務命中「該再拆」四訊號還未拆。
 - [ ] **設計審查已派**（plan 前先 verify —— 一律必派、不論風險高低，無 trivial 免派例外），判定『要修』的**必修項已折回 `02-plan.md`**；必修項若改動核心設計，已做 ≤1 次 bounded 複審。
 - [ ] 計畫草稿已在 **plan 階段送出**（issue→post 對齊 comment / 否則呈現），不是留到 loop 結束。
-- [ ] 對齊 comment 用**完整版樣板**（`references/plan-comment-template.md`：系統全貌+套件清單+ADR+機制圖+施工圖+契約+out-of-scope），機制圖直接放進 comment。
+- [ ] 對齊 comment 用**完整版樣板**（`skills/plan/references/plan-comment-template.md`：系統全貌+套件清單+ADR+機制圖+施工圖+契約+out-of-scope），機制圖直接放進 comment。
 - [ ] **進 build 前在 gate 問了使用者**（沒自行跨入），且**所有新增套件已逐一列出+推薦+取得核可**，新決策已先問+推薦。
 - [ ] 使用者已拍板，停在 `plan → build` gate。

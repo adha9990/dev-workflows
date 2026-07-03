@@ -35,7 +35,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 ├─ 完全乾淨的空專案（無原始碼 / 空目錄）─────────▶ 先 scaffold 建骨架（§1.4）→ 再依下面清晰度分流
 ├─ issue 號 / 「做這個 issue」（意圖明確）────────▶ 從 goal 開始（跳過 clarify）
 ├─ PR 號 / 「reviewer / 修正回饋」（意圖明確）────▶ 從 iterate 開始（跳過 clarify）
-├─ 模糊想法 / 含糊一句話 / 不確定要落地還是研究 ─▶ 從 `clarify` 開始（一次一問釐清 + 確認 → 再判方向：define/goal/explore/iterate）
+├─ 模糊想法 / 含糊一句話 / 不確定要落地還是研究 ─▶ 從 `clarify` 開始（一次一問釐清 + 確認 → 再判方向：define→goal / explore / iterate）
 ├─ 已釐清、要追蹤成 issue ────────────────────────▶ `define`（建 template-ready issue）→ goal
 ├─ 想做功能、但不知怎麼做最好 ────────────────────▶ `define` 功能 issue（標「實作待研究」）→ goal → explore 研究怎麼做 → plan
 └─ 想先探索一塊空間再決定要做什麼 ────────────────▶ explore 研究 → 產出經 `define` 開功能 issue（**不建獨立「研究 issue」**）
@@ -62,7 +62,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 > `scaffold-fullstack` 是 **loops-workflow 內建 skill**（`skills/scaffold-fullstack/`，自帶整棵模板樹 + scaffold 腳本）—— 無外部 plugin 依賴、永遠可用（internal skill：由 dispatch 路由、或自然語言請求單獨跑）。模稜兩可（已有少量檔案 / 半成品）→ 當既有專案、不 scaffold。
 
-
+### 1.5 已釐清、無 issue → define
 
 一個**已釐清、要解決 / 實作、但還沒有 GitHub issue** 的問題 → **進 `define` skill**：用 Readiness Model + repo 的 issue template + scope sizing + flowchart，把它具體化成 template-ready issue（草稿校稿 → `gh issue create --assignee @me` → 刪 tmp），slug 用 `<新 issue#>-<kebab>`、loop.md 類型 = issue，**再進 `goal`**。**若從 `clarify` 進來、需求已釐清，define 不重新訪談、只做格式化**（clarify 已把模糊收斂、判好方向）。
 

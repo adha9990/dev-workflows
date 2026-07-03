@@ -116,8 +116,8 @@ workspace 的 package 邊界保證,讓結構不會悄悄腐化。
 
 ## 架構說明(讓你能正確地擴充)
 
-這套技術棧的重點在於結構是**被強制執行的,而非僅供參考**。新增功能前請先讀
-`references/architecture.md` —— 它說明了每一層、import 規則,以及照著 `Note` 切片新增實體的精確
+這套技術棧的重點在於結構是**被強制執行的,而非僅供參考**。新增功能前請先讀本 skill 目錄下的
+`skills/scaffold-fullstack/references/architecture.md` —— 它說明了每一層、import 規則,以及照著 `Note` 切片新增實體的精確
 步驟。簡短版:
 
 - **依賴向內流動。** `domain` 是核心,不 import 其他層的任何東西。`ports` 定義介面;`services`、

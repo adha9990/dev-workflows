@@ -1,6 +1,6 @@
 # Automations（排程 / 連續跑）
 
-> loops-workflow 本身是互動式閉環。要「無人值守地推進」或「定期跑」，搭配環境內建的 `/loop` 與 `/schedule`，再用 `auto` 模式收斂 gate。**選用**。
+> loops-workflow 本身是互動式閉環。要「無人值守地推進」或「定期跑」，搭配環境內建的 `/loop` 與 `/schedule`，再用 `auto` 模式收斂 gate。**選用**。宿主環境沒有 `/loop`／`/schedule` 這類技能時本檔不適用——照常互動式跑迴圈即可，plugin 不自建排程 fallback。
 
 ## 1. `/loop` —— 自我推進到某條件
 

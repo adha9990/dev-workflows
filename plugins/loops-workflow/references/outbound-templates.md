@@ -31,7 +31,7 @@
 | # | 對外訊息 | 何時 / 哪個 skill | 樣板（canonical source） |
 |---|---------|------------------|--------------------------|
 | 1 | **issue 建立** | `define`（所有無票工作唯一入口）| repo `.github/ISSUE_TEMPLATE/*.yml`（輸出契約）→ 無則 `define` 的 generic fallback。對齊 repo house-style exemplar；UI 票附 ASCII 線框 |
-| 2 | **plan 對齊 comment** | `plan` gate（issue-driven）| **`plan-comment-template.md`**（系統全貌 + 套件清單含版本 + ADR + 機制圖 mermaid + 施工圖 + 契約 + out-of-scope；living as-built）|
+| 2 | **plan 對齊 comment** | `plan` gate（issue-driven）| **`plan-comment-template.md`**（位於 `skills/plan/references/`，plan skill 私有、非本共用目錄；系統全貌 + 套件清單含版本 + ADR + 機制圖 mermaid + 施工圖 + 契約 + out-of-scope；living as-built）|
 | 3 | **verify 驗收報告 comment** | `verify` 合併安全結論對外 | **`comment-policy.md §7`**（方向總評 → 按維度分組 → 每點四小節：情境/為何問題/怎麼修/補測試 → 結尾 CI 提醒）|
 | 4 | **iterate 修正回覆 comment** | `iterate` 修完 PR 回饋 / verify 缺口 | **`comment-policy.md §8`**（每點雙視角：工程角度 根因/怎麼修/怎麼驗 + 客戶角度 修正前→後；不 @reviewer；結尾據實驗證行）|
 | 5 | **PR body** | `iterate` 完整迴圈收尾 | **`pr-spec.md`**（as-built 提煉；含 `Closes #<issue>` 關閉關鍵字）|
