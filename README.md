@@ -35,8 +35,8 @@
 | 接續中途的 loop | `dispatch <slug>`（自動偵測 `.loops/<slug>/loop.md`） |
 | 看某條 loop 跑到哪 | 直接開 `.loops/<slug>/PROGRESS.md`（恆開 hook 每回合自動重生；開場也會自動浮出 active 迴圈） |
 | 空資料夾建全端 TS 骨架 | `dispatch` 偵測到乾淨專案、確認後自動走內建 scaffold |
-| 工程師理解包 | 完整迴圈完工**自動產**；其他情境用自然語言請 Claude 跑 `explain` skill |
-| 維護 repo 的 `AGENTS.md` | iterate 完工命中維護時機**自動跑**；或自然語言請求 |
+| 工程師理解包 | `LOOPS_EXPLAIN=1` 時完整迴圈完工**自動產**；其他情境用自然語言請 Claude 跑 `explain` skill |
+| 維護 repo 的 `AGENTS.md` | iterate 完工命中維護時機由主線依 docs-policy 直接編輯；或自然語言請求 |
 | 自動連跑（auto） | 環境變數 `LOOPS_AUTO=1`（見 `references/auto-mode.md`） |
 
 ## 內部怎麼跑（下面 7 個階段你不用打、dispatch 自動驅動）
@@ -88,7 +88,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 | 競賽 / 投票式編隊（N 方案→評審） | plan / explore 說「用 Fleet」，見 `references/fleet.md` |
 | 跨 session 接續 | `/loops-workflow:dispatch <slug>`（自動偵測既有 loop.md），見 `references/journaling.md` |
 | 機器可驗證計畫 + eval | 計畫塊 `scripts/validate-plan.mjs`（見 `references/machine-plan-schema.md`）/ dispatch 場景評測 `scripts/run-eval.mjs`（見 `references/eval-harness.md`） |
-| 工程師理解包 | 完整迴圈完工自動產；其他情境自然語言請 Claude 跑 `explain` skill（唯讀側用） |
+| 工程師理解包 | `LOOPS_EXPLAIN=1` 時完整迴圈完工自動產；其他情境自然語言請 Claude 跑 `explain` skill（唯讀側用） |
 | code 工作隔離 | 會動 code 的迴圈（issue / fix）在 **git worktree**（自帶 branch）裡做，不擾動主 checkout；`EnterWorktree` 或 `.claude/worktrees/<issue#>-<slug>`（例 `137-trash-delete-permanent`，**不加 `fix/` 前綴**） |
 
 intent→入口對照與全程操作規則見 plugin 內的 `AGENTS.md`（marketplace 根）。
@@ -98,7 +98,7 @@ intent→入口對照與全程操作規則見 plugin 內的 `AGENTS.md`（market
 ```
 plugins/loops-workflow/
 ├── skills/       dispatch（唯一入口）+ 前置 clarify / define / scaffold-fullstack + goal→iterate 六個迴圈階段
-│                 + 側用 explain（完工自動產）/ agents-md-maintainer（iterate 條件式自動跑）
+│                 + 側用 explain（完工且 LOOPS_EXPLAIN=1 才自動產）
 │                 —— 除 dispatch 外全部 user-invocable: false，全量見 docs/FLOW.md 規模表
 ├── agents/       build 紅綠分離（test-author / impl-author / referee）+ verify 核心 reviewer
 │                 + finding-validator + 條件式領域 reviewer + 高風險 -deep 變體 + eval-judge
