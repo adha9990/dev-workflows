@@ -72,11 +72,13 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 
 **在 plan 階段就把計畫草稿送出**（不是等 loop 結束）：issue-driven → 依 **`skills/plan/references/plan-comment-template.md`（本 skill 目錄下；完整版：系統全貌 + 套件清單含版本 + ADR + 機制圖 + 施工圖 + 契約 + out-of-scope）** 寫暫存 tmp 草稿校稿後 post 成 issue 對齊 comment（留 audit trail，**post 後刪 tmp**；更新既有 comment 用 `gh api --method PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<tmp>`）；非 issue → 呈現給使用者。**這則 comment 是 living as-built 摘要**，build 偏離時回來同步更新（含已 post 的版本）。
 
+> **這個 post 是 plan 階段的無條件既定步驟（audit trail），不是 `plan → build` gate 的條件選項**：先**無條件** post 對齊 comment（issue-driven；非 issue 則呈現給使用者），**再獨立**走下面的拍板 gate —— 是兩個步驟，不可混成同一個問題問（別把「核可進 build **且** post comment」vs「進 build 但不 post」擺成 gate 選項）。post 對齊 comment 到**你正在處理的該 issue**（使用者交辦 / 自己 assign 的當前 issue）屬 plan 階段的工作流程授權範圍：**「要不要 post 這件事」不需再當成需逐次向使用者確認的『對外動作』**（有別於 dispatch 建 issue 那種需確認的 outward action；草稿校稿本身仍守 `references/comment-policy.md` §5 的 tmp 草稿校稿 / 送出後刪 tmp 紀律；除非使用者另有指示）。
+
 **拍板前一定把第 3 步的機制圖直接渲染給使用者看** —— 每機制「一段白話 + 運作流程圖（mermaid）+ 注入 / 接線圖（mermaid）」。**機制圖直接放進對齊 comment**（GitHub 原生渲染 mermaid，所以圖就在 comment 裡，不再只躺 `02-plan.md`）。**對齊 comment 必須 self-contained：絕不引用 `.loops/` 路徑**（`02-plan.md` 等是本地暫存、不上 GitHub、PR merge/close 後清除＝死連結）；要指更細只指 PR/commit/`file:line`/issue（見 `references/comment-policy.md §0`）。
 
 **同時攤一份「我做的假設 → 現在糾正我」清單**：把技術 / 架構 / 範圍 / 平台層面那些**沒問、但默默假設**的事編號列出給使用者看。這跟內部的 HYPOTHESIS+CONFIDENCE 不同 —— 是把藏在決策底下的假設**顯式**攤出來，趁拍板前糾正；比 build 到一半才發現假設錯便宜得多（對齊規則 10 成本意識）。
 
-然後**一定停在 `plan → build` 拍板 gate**（`AskUserQuestion`）—— **進 build 前務必先問使用者、不可自行跨入 build**（即使 routine 也要在此 gate 停）。gate 要把使用者要拍板的點顯式列出並**標推薦**：方案 + 任務拆解、**所有新增套件（逐一列出名稱+版本+用途，附推薦，使用者核可後才裝）**、以及任何需要使用者定奪的決策。**新套件 / 新決策一律先問 + 推薦，不先斬後奏**；build 中途若冒出計畫外的新套件或新決策，也停下回此 gate 問。
+然後**一定停在 `plan → build` 拍板 gate**（`AskUserQuestion`）—— **進 build 前務必先問使用者、不可自行跨入 build**（即使 routine 也要在此 gate 停）。gate 要把使用者要拍板的點顯式列出並**標推薦**：方案 + 任務拆解、**所有新增套件（逐一列出名稱+版本+用途，附推薦，使用者核可後才裝）**、以及任何需要使用者定奪的決策。**新套件 / 新決策一律先問 + 推薦，不先斬後奏**；build 中途若冒出計畫外的新套件或新決策，也停下回此 gate 問。**gate 只拍板上述這些（方案／任務／新套件／新決策），不把『要不要 post 對齊 comment』當成 gate 的選項** —— 對齊 comment 已在上一步無條件處理完（issue → 已 post；非 issue → 已呈現）。
 
 > **`02-plan.md` 是 living source of truth**：實作階段若偏離（決策變、任務拆法變），**回去更新它**（並同步已 post 的版本），保持 as-built —— 不是放到 loop 結束才補。完工時這份 as-built plan 提煉成 PR body（見 `references/pr-spec.md`）。
 
@@ -99,6 +101,7 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 - **沒在 `plan → build` gate 問使用者就自行跨入 build**（即使 routine 轉場也要在此停下問）。
 - **新增套件沒逐一列出（名稱+版本+用途）+ 標推薦 + 等使用者核可就先裝**；或 build 中途冒出計畫外套件/決策卻沒停下回 gate 問。
 - **沒派設計審查就進 gate**（一律必派、不論風險高低，沒有「這題簡單」的免派例外 —— plan 前先 verify 設計）；或審查判「要修」卻沒把必修項折回計畫；或必修項改了核心設計卻**沒做 bounded 複審**就進 build —— 等於把方向 / 落點錯留到 build 後才在 verify 撞到（最貴）。
+- **把 post 對齊 comment 當成 `plan → build` gate 的條件選項問**（例：「核可進 build＋post」vs「進 build 但不 post」）—— 對齊 comment 是 plan 階段**無條件既定步驟**，應**先無條件 post、再獨立走 gate**；gate 只問方案／任務／新套件／新決策。處理使用者交辦 / 自己 assign 的當前 issue、post 對齊 comment 屬工作流程授權，不是需逐次確認的對外動作。
 
 ## Verification
 
@@ -109,6 +112,7 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 - [ ] 沒有任務命中「該再拆」四訊號還未拆。
 - [ ] **設計審查已派**（plan 前先 verify —— 一律必派、不論風險高低，無 trivial 免派例外），判定『要修』的**必修項已折回 `02-plan.md`**；必修項若改動核心設計，已做 ≤1 次 bounded 複審。
 - [ ] 計畫草稿已在 **plan 階段送出**（issue→post 對齊 comment / 否則呈現），不是留到 loop 結束。
+- [ ] 對齊 comment 是**無條件先 post**（issue→post／非 issue→呈現；送出前仍走 `references/comment-policy.md` §5 tmp 草稿校稿）、**沒有**被當成 `plan → build` gate 的條件選項；gate 只問方案／任務／新套件／新決策。
 - [ ] 對齊 comment 用**完整版樣板**（`skills/plan/references/plan-comment-template.md`：系統全貌+套件清單+ADR+機制圖+施工圖+契約+out-of-scope），機制圖直接放進 comment。
 - [ ] **進 build 前在 gate 問了使用者**（沒自行跨入），且**所有新增套件已逐一列出+推薦+取得核可**，新決策已先問+推薦。
 - [ ] 使用者已拍板，停在 `plan → build` gate。
