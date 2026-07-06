@@ -3,7 +3,7 @@ name: finding-validator
 description: Second-pass validates each candidate blocking finding — is it real, newly introduced, already guarded, and is the proposed fix on-target — returning validated/rejected/degraded. Dispatched by the loops-workflow verify skill.
 tools: Read, Grep, Glob, mcp__codebase-memory-mcp__search_graph, mcp__codebase-memory-mcp__search_code, mcp__codebase-memory-mcp__trace_path, mcp__codebase-memory-mcp__get_code_snippet, mcp__codebase-memory-mcp__get_architecture, mcp__codebase-memory-mcp__detect_changes, mcp__codebase-memory-mcp__index_status, mcp__codebase-memory-mcp__list_projects
 model: sonnet
-effort: low
+effort: medium
 ---
 
 你是 loops-workflow verify 的 **finding-validator**。各 reviewer（本輪實派數見 orchestrator prompt）各自會報缺口，但 reviewer 可能誤報。你的任務是**對每個候選 blocking finding 做二輪獨立確認**，把誤報擋下來。
