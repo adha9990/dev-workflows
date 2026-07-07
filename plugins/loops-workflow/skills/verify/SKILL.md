@@ -69,6 +69,7 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 
 - **逐條勾稽**：`product-contract` 對 issue **每一條** acceptance criterion 列 `references/acceptance-review.md` 的五態（已滿足 / 部分滿足 / 缺失 / 證據不足 / 被反證）；每條要收斂到「**已滿足（有可信證據）**」或「**明確 descoped（作者在 plan/issue/PR 留痕）**」。任一條還停在 部分滿足 / 缺失 / 證據不足 / 被反證 且沒 descoped → **Not ready**，回 iterate。
 - **做錯就整個退回**：若確證「**做的不是 issue 要的** / **核心沒做到卻當完工** / **最基本流程跑不起來**」→ 判 Not ready、**整個退回、不對其他 finding 逐條修**；由 **iterate 依「錯在哪」路由回對的階段**：解錯問題 / 方向錯 → **goal / explore**、設計或拆解缺陷 → **plan**、單純實作 bug → **build**（別在註定要重想 / 重做的東西上修小問題）。
+- **物化成 `CHECKLIST.md`（人類 / AI 共用、一律產、不吃旗標）**：把上面逐條勾稽的 ledger 同時**寫成一份可勾選 `$LOOPS_ROOT/.loops/<slug>/CHECKLIST.md`**（格式 ＋ 範本見 `references/acceptance-review.md §六`）—— 每項＝GWT 場景（`S1…`）/ AC 轉成的**具體可執行步驟** ＋ 可觀察預期 ＋ **AI 驗收三態**（✅ 通過 / ❌ 失敗 / ⬜ not-measured ＋ 證據錨點）。**AI 驗收欄用本步驟 2「跑真 app」的實測填**（能跑就把 `not measured` 變實測、純 lib 無 app 據實標 ⬜、Metric-Honesty）。這份是 acceptance 閘的**物化、非另一道審查**（ledger 收斂態直接決定每項結果，與 `finding-validation.md` 正交）；`iterate` 收尾原樣交人類手動驗收（獨立於 `LOOPS_EXPLAIN`）。
 
 ### 5. 判 Ready / 退回 — 分級輸出
 
@@ -87,6 +88,7 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 - tests-reviewer 被餵「作者說已過」；或把作者辯護餵給 reviewer 當框架（只給 artifact + 契約）。
 - blocking finding 沒過 finding-validator 就進報告；或出現未實測的效能 / 覆蓋率數字。
 - 判 Ready 卻沒對 issue 逐條勾稽 acceptance（findings 清完 ≠ 做到 issue）。
+- acceptance 閘跑了卻**沒物化 `CHECKLIST.md`**（人類收尾無驗收清單可玩、AI 驗收結果沒落檔）；或 checklist 另起一套跟 ledger 漂移（該是同一份的物化）。
 - 確證「根本做錯」卻還對其他 finding 逐條修，而非整個退回（交 iterate 路由回 goal/explore/plan/build）。
 - 連 2+ 輪 reviewer 都出 substantive finding 卻 **0 條 actionable** = 在背書不是審查（rubber-stamp），停下重看 validator 是不是把該修的都 rationalize 掉了。
 - **改動新增 / 動到 `docs/<topic>.md` 卻沒派 `docs-devex`（用 mainline 自查頂替）** —— 教學文檔的**自足品質**（引用 issue/PR 號、塞「現狀與後續 / Phase X 已交付 / 後續 follow-up」狀態段、把限制寫成進度、不白話 / 寫給已懂的人）會整個漏審，拖到人類 reviewer 才抓（見 `references/docs-devex-review.md §四`）。**docs 有增/改 ＝ 必派 `docs-devex`，不 mainline 自查頂替。**
@@ -97,5 +99,5 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 - [ ] **步驟 1（專案約定）**：已讀專案 root + 就近 `CLAUDE.md`/`AGENTS.md` 枚舉跨切面約定，對每個新 user-facing / 功能面逐條核（不以通過機械 gate 當滿足），違反者當可行 finding（見 `references/project-conventions.md`）。
 - [ ] **步驟 2**：同一回合並行派出、各一軸；只給 artifact + 契約（不給作者辯護）、tests-reviewer 不被告知已過；跑真 app + 本機 `/code-review` 或據實標 `not measured`；參考檔絕對路徑（含 `context-diet.md`）+ `code-retrieval.md` 路徑 + **本次改動檔清單（含 stale 提醒）**已塞進 reviewer prompt。
 - [ ] **步驟 3**：coordinator 去重後，每個 blocking finding 有 finding-validator 結果。
-- [ ] **步驟 4**：acceptance 閘 —— 每條 criterion 收斂到 已滿足（有證據）/ 明確 descoped（留痕）才判 Ready；確證根本做錯 → 整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）。
+- [ ] **步驟 4**：acceptance 閘 —— 每條 criterion 收斂到 已滿足（有證據）/ 明確 descoped（留痕）才判 Ready；確證根本做錯 → 整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）。**並物化成 `$LOOPS_ROOT/.loops/<slug>/CHECKLIST.md`**（人類 / AI 共用、一律產、不吃旗標，格式見 `references/acceptance-review.md §六`；AI 驗收欄用跑真 app 實測填）。
 - [ ] **步驟 5**：每條 finding 有 P0–P2（P3 落 Non-blocking notes）+ Confidence + Route + Metric-Honesty；結論 Ready / Not ready 進 iterate（只 P0 才停下問）；回環修完再驗一輪。

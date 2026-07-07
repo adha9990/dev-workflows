@@ -50,12 +50,14 @@
     省 token 不是吝嗇，是讓迴圈**能負擔得起地跑到完成**。
 11. **品質前置（shift-left）：build 寫的當下就達到合併標準，不留給 verify 才抓**。impl-author 寫 code 時就套 verify 會查的**同一套品質標準** —— clean code / clean architecture / **安全（`references/security-checklist.md`）/ 重用（`references/reuse-check.md`）/ 設計模式（`references/design-patterns.md`）**。標準是**同一份 reference、兩處套用**：build 主動寫到位、verify 獨立複查。如此 verify 是「**獨立確認 + 抓盲點**」的安全網，不是第一道品質關 —— **寫對的成本遠低於寫錯被退回重修**（呼應規則 10「不重複勞動」、且減少漏檢風險：寫的人套標準 + 獨立的人複查，比只靠事後查更不會漏）。
 12. **每件工作都從一個 `define` 建立的 GitHub issue 起手（含研究）**：要動手 `plan` / `build` / **`explore` 研究** 的工作，**若還沒有對應 issue，一律先 `define` 建一個再進** —— 不從臨時想法、口頭描述、父 issue 子切片、或 **ad-hoc `gh issue create`** 直接動工。**issue 一律用 repo template 寫**。**沒有獨立的「研究 issue」** —— 研究永遠服務某功能：要嘛是某張**功能 issue 的 `explore` 階段**（功能 issue 標「實作待研究」，動工前先 explore 研究怎麼做），要嘛**先研究 / 討論定案再 `define` 開功能 issue**。已有 issue（issue# / 從 `define` 產生）才可用「直接 `plan` / `build` / `explore`」捷徑。發散式 `explore` 盤出的 backlog **也是逐條經 `define` 開功能 issue**（issue 一律由 define 建、非繞過）。理由：每段工作對得上一張 issue、可追溯、PR 有 `Closes #`、避免無票施工。`define` 是建 issue 的唯一入口。
+13. **工作流摩擦要回收成 plugin 改良（friction-capture）**：執行任一階段時，若 **loops-workflow 本身**造成摩擦（階段指示不清 / hook 誤判 / reference 過時 / 得繞過 plugin 限制 / docs 漂移）且你已**自己繞過解決** → **當下只在 `loop.md` Journal append 一行 `[friction]` 筆記**（不打斷流程、不當場問），到 **`iterate` 收尾批次處理**：派**一個 subagent** 讀齊全部筆記、root-cause、對每點產**具體 plugin 修改提案**（哪檔 / 改什麼 / 為什麼），回傳後由**主線**用 `AskUserQuestion` 問要不要寫進 plugin —— **agent 只提案、不動 plugin、回傳即收工**；答「要」由主 session 照 direct-edit plugin repo 紀律落地（行為面大改仍停下確認）。**只捕捉「改 plugin 能防下次再踩」的摩擦**，target 專案的一次性 bug 不算（那走 `iterate` 修）。細則見 `references/friction-capture.md`。理由：plugin 還在實驗期，踩過的坑沒回饋進 plugin、換 session 重踩 ＝ workflow knowledge loss（見下失敗模式註）。
 
-> **兩個要顯式防的失敗模式（Loop Engineering 詞彙，即規則 10 援引的那套、命名既有實踐）**——這不是新規則，是替上面紀律點名它們在防什麼：
+> **三個要顯式防的失敗模式（Loop Engineering 詞彙，即規則 10 援引的那套、命名既有實踐）**——這不是新規則，是替上面紀律點名它們在防什麼：
 > - **comprehension debt（理解債）**：loop 跑得快、產出你沒讀懂的 code，理解落差會一圈圈累積。對策＝`explain`（工程師理解包：實作導讀 + ownership 自測 + 方向 recap，見 `skills/explain`；完整迴圈完工且 **`LOOPS_EXPLAIN=1`** 時自動產、未開不產）——它存在就是為了讓人補上理解、不被理解債吃掉。
 > - **cognitive surrender（認知投降）**：被動讓 loop 跑、不再維持自己的判斷。對策＝規則 2 的 **human gate**（只在真正要選的決策點停下讓人把關）+ 規則 5 Metric-Honesty——逼人在關鍵點保持工程判斷。
+> - **workflow knowledge loss（工作流知識流失）**：plugin 還在實驗期、跑起來會踩到自身的坑；踩過若沒回饋進 plugin，換 session 重踩、同樣摩擦一再發生。對策＝規則 13 的 **friction-capture**（loop 收尾把「踩到 ＋ 自己繞過」批次回收成「要不要寫進 plugin」的具體提案，見 `references/friction-capture.md`）——讓工作流自己把踩過的坑補回自己身上。
 >
-> 命名這兩個失敗模式，是讓維護者知道 `explain` 與 human gate **不是冗餘流程、而是對應具名風險的設計**（呼應規則 10 已援引的 Loop Engineering：要當「打算繼續當工程師的人」、不是「只按 go 的人」）。
+> 命名這三個失敗模式，是讓維護者知道 `explain`、human gate 與 friction-capture **不是冗餘流程、而是對應具名風險的設計**（呼應規則 10 已援引的 Loop Engineering：要當「打算繼續當工程師的人」、不是「只按 go 的人」）。
 
 ### 參考檔路徑解析
 

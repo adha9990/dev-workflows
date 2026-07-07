@@ -14,6 +14,8 @@ description: Produces an engineer understanding pack for a change — implementa
 
 > **對象是工程師，不是 reviewer。** 用途：接手 / 維護一段 code 想快速理解；看懂 Claude 剛建好的東西；自己確認真的懂自己做了什麼。（reviewer 要的是 verify 報告與 PR comment，不是這份。）
 
+> **與 `CHECKLIST.md` 分工（別重疊）**：explain 問「**懂了沒**」（實作導讀 + 5 題自測，opt-in `LOOPS_EXPLAIN`）；verify 步驟 4 產的 `CHECKLIST.md` 問「**做到了沒**」（GWT/AC 逐條驗收，一律產、不吃旗標，見 `references/acceptance-review.md §六`）。兩者互補 —— explain **不重述** acceptance 逐條，收尾兩份各給一次。
+
 ## When to Use
 
 **Use when**：工程師要理解一份既有實作 / PR / diff、接手別人的 code、或確認自己真的懂剛建好的東西。

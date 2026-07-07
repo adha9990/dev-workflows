@@ -78,11 +78,15 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **修正型（`type=fix`，從 PR reviewer 回饋進來、PR 已存在）→ 只產一份：修正回覆 comment**，**固定套 `references/comment-policy.md` §8「修正回覆 comment 版型」**：開場「這輪 N 個 blocking 點都修了」→ 每點「**工程角度**（根因 / 怎麼修 `<file:line>` / 怎麼驗）＋**客戶角度**（修正前 → 後）」→ 結尾 gate 綠。**不 `@` 點名 reviewer、不寫客套**；婉拒項（contract misread）只陳述技術理由。**不另寫 PR body as-built 條目、不另發 issue comment**（除非使用者明確要）。
 - **完整迴圈（`type=issue/design`，交新 PR）→ PR 收尾 comment**（`references/pr-spec.md` + `references/comment-policy.md`：成果 + 驗證證據 + 回覆）+ **explain 理解包（opt-in）**：收尾時先 Bash `echo "${LOOPS_EXPLAIN:-}"`（與 `LOOPS_AUTO` 同慣例、settings.json env 可設）——輸出 `1` → 跑 `explain` skill 產理解包（不問「要不要產」）；否則**跳過**並在 `loop.md` Journal 記一行「explain skipped（LOOPS_EXPLAIN 未開）」。**修正型維持分類排除：不查此旗標、不產、不記 skipped**（其不產與旗標無關；要理解包時以自然語言請 Claude 跑 `explain` skill 即可）。
 
+**驗收 checklist（`CHECKLIST.md`，一律交人類、不吃旗標）**：verify 步驟 4 acceptance 閘已物化 `$LOOPS_ROOT/.loops/<slug>/CHECKLIST.md`（人類 / AI 共用，格式見 `references/acceptance-review.md §六`）；收尾**一律在 chat 摘要把它指給使用者做手動驗收**（點出路徑 ＋ AI 已驗的結果），**不論迴圈類型、獨立於 `LOOPS_EXPLAIN`**（explain 沒開也有 checklist、不查旗標）。它留在 `.loops/`（不入庫），是人類接手把關的落地清單 —— 與 explain（理解包、opt-in）互補：checklist 問「做到了沒（逐條驗收）」、explain 問「懂了沒（導讀 + 自測）」。
+
 **follow-up 在當前 issue 內處理、不另開 issue**：發現的後續項 / 既有非本次引入的退化，預設記在當前 issue / PR thread 並在本次或本 issue 內處理，**不 spin off 新 issue**（除非使用者明確要另開）。
 
 > 這些只在「完工」這條分支產；回環途中不產。
 
 完工後把 `loop.md` 的「當前階段」設為「**完工**」（progress / hook 即不再顯示此 loop），**並在 Journal 末尾 append 一行 outcome 度量** —— 依 `references/journaling.md`〈完工 outcome 度量〉的格式（`★[outcome] 結果 ｜ token≈估算(級距)est ｜ sub-agent 數 ｜ 回環 圈 ｜ findings validated→剩餘 ｜ 交付：交付物`），從本 loop Journal 回推各欄、**token 標粗估（規則 5）**，給這條 loop 留下可回顧的成本 / 規模輪廓（落實規則 10 成本意識可觀測）。中止（descoped / aborted）收尾同樣 append 一行。格式定義以 `journaling.md` 為**單一來源**，這裡只引用、不另立第二份。
+
+**friction-capture（條件式，有 `[friction]` 筆記才做；規則 13）**：收尾時 grep `loop.md` Journal 的 `[friction]` 筆記（＝跑迴圈時踩到 **loops-workflow 本身**的摩擦、當下只記一行的那些）。**無筆記 → 跳過、不派、不問**（絕大多數 loop）。**有筆記 → 派一個 subagent**（背景、隔離 context —— 分析在它自己 context 做、不污染主 session；prompt 塞全部 `[friction]` 筆記原文 ＋ `references/friction-capture.md` 絕對路徑）：讀齊 → root-cause → 對每點產**具體 plugin 修改提案**（哪檔 / 改什麼 / 為什麼）→ 回傳精煉提案清單、**回傳即收工**。**subagent 只提案、不編輯 / commit / push 任何 plugin 檔**。主線拿回提案後用 `AskUserQuestion`（標推薦）問**要不要寫進 plugin**：要 → **主 session** 照 direct-edit plugin repo 紀律落地（marketplace 來源、只 add 己改檔、繁中 commit、push branch、draft PR、merge human-gated；**行為面大改停下確認**）；不要 → Journal 記一行留痕。細則見 `references/friction-capture.md`。
 
 **收尾清理 —— loop 結束的標準環節，不是選項。分兩個時機：**
 
@@ -119,6 +123,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **verify 出 actionable findings（含 P2/P3）還問使用者「修多少 / 要不要修」** —— actionable 一律自動全修，不是使用者決策。
 - 修正型（`type=fix`）收尾還產一堆草稿（PR body as-built / 另發 issue comment）—— 只該一份修正回覆 comment（§8）。
 - **LOOPS_EXPLAIN 未開卻自動產 explain**（未開＝跳過＋Journal 留痕）；**開了卻問「要不要產」**（`=1` 就產、不問）；**修正型被掛上旗標查詢**（修正型是分類排除、與旗標無關）。
+- **完工沒把 `CHECKLIST.md` 交人類**（或誤以為 explain 沒開就不用給 checklist —— checklist 不吃旗標、一律交）。
+- 有 `[friction]` 筆記卻**收尾沒派 friction-capture**（工作流知識流失）；或讓 **subagent 自己改 / commit / push plugin**（只准提案，落地是主線 AskUserQuestion 問過才做）；或把 target 專案的一次性 bug 當摩擦處理。
 - 把本可在當前 issue 解決的 follow-up 擅自另開新 issue。
 - issue-driven PR 的 body 沒放關閉關鍵字 `Closes #<issue>`（只寫標題 `(#issue)` / 內文提及 = 不連結、merge 不自動關 issue，見 `references/pr-spec.md`）。
 - **合併後沒刪已合併分支 / 沒清 worktree**，囤積一堆 merged branch；或 **loop 暫存（草稿 / 截圖 / worktree / `.loops` / `data`）被 commit 推上去**。
@@ -135,6 +141,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 完工前對照 `00-goal.md` 停止條件全達成。
 - [ ] **完工 / 中止已在 `loop.md` Journal append 一行 outcome 度量**（依 `references/journaling.md`〈完工 outcome 度量〉，欄位齊全、token 帶 `est`／級距標粗估）。
 - [ ] 收尾交接物依迴圈類型：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」、完整迴圈產 PR 收尾 comment + **explain 依 LOOPS_EXPLAIN 判**（`=1` 產且沒問；未開跳過＋Journal 留痕；修正型未掛旗標查詢）；對外那份經使用者確認才送、未自動 post、回環途中不產。
+- [ ] **驗收 checklist 已交人類**：verify 產的 `CHECKLIST.md` 在收尾指給使用者手動驗收（點出路徑 ＋ AI 已驗結果），**不論迴圈類型、獨立於 LOOPS_EXPLAIN**（不吃旗標）。
+- [ ] **friction-capture 已處理**：Journal 有 `[friction]` 筆記 → 派 subagent 產 plugin 修改提案 ＋ 主線 `AskUserQuestion` 問是否寫進 plugin（**subagent 只提案、不動 plugin**）；無筆記 → 未派未問。
 - [ ] **AGENTS.md 同步已判**：docs-policy 檢查命中「慣例 / 規則改變」→ 主線已依 docs-policy（含〈怎麼寫〉守門）直接編輯對應段落；未命中 → 未動也未問（不對無關迴圈加噪音）。
 - [ ] follow-up 在當前 issue 內處理，沒有擅自另開新 issue。
 - [ ] **收尾清理兩時機都做了**：① loop 結束時清掉 loop 期間所有暫存（worktree / 草稿 / 截圖 / scratch，不等 PR）；② PR 合併後刪分支（solo 自己合併自己清，只留 `main` + 進行中）。loop 暫存沒被推上去（`.gitignore` 有涵蓋）。
