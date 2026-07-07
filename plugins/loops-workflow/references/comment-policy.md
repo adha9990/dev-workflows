@@ -22,7 +22,9 @@ issue comment / PR body / reviewer 回覆等**任何 post 上 GitHub 的內容**
 - 先講「**會出什麼包 / 怎麼修 / 怎麼驗**」，再帶 identifier 當錨點 —— 不要一開頭就堆 `stale stat` / `race` / `lock scope` 這種行話。
 - 有清楚中文講法就用中文（正確性 / 效能 / 安全 / 競態 / 邊界狀況…），identifier 只在白話解釋之後、且幫得上定位時才提。
 - 學對方講話的風格，直白但**不省略證據**。
-- **適用範圍含 reviewer / preflight 的主體輸出**，不只 GitHub comment —— 驗收報告、reviewer finding、送審判定的本文都套白話，沒有「內部 brief 可以保持技術腔」的豁免。
+- **適用範圍 = 每一則對外文字**（PR / issue body、各種 comment、reviewer finding、送審判定、端給使用者的問題）**＋ 平時跟使用者的對話回覆** —— 沒有「PR body 可以塞術語」「內部 brief 可保持技術腔」的豁免。
+- **別把工程實作細節倒進使用者看的文字**：複雜度符號（`O(...)`）、機制 / 實作名（`INDEXED BY`、`partial index`、`GROUP BY`、`event-loop`、`batched`…）多數情況根本不用提；真要講效能就用「平常很快，只有 <某情境> 當下會稍慢、且暫時的」這種說法。工程流水帳留給 commit / `.loops`。
+- **具體例子勝過抽象描述**：動到 API 就給「回傳長這樣」範例 + 白話說明欄位；講改善就給「前 → 後」對照。
 - **輸出前逐句自檢**：一句裡出現 2 個以上「非 identifier 的英文行話」就重寫成白話（identifier / 路徑 / 指令不算）。
 
 | 術語湯（重寫前） | 白話（重寫後） |
@@ -31,6 +33,8 @@ issue comment / PR body / reviewer 回覆等**任何 post 上 GitHub 的內容**
 | 「missing invalidation 造成 stale cache」 | 「改完沒通知畫面更新，使用者看到舊資料」 |
 | 「unbounded query 在 scale 下會 degrade」 | 「資料變多時這個查詢會愈來愈慢」 |
 | 「optimistic update 沒 rollback」 | 「畫面先顯示成功，但失敗時沒退回，使用者以為存好了」 |
+| 「batched GROUP BY 消除 N+1，jobs-probe 由 O(N) 降 O(active)」 | 「原本清單上每個庫各跑幾個小查詢、庫一多就慢；改成整頁一次算完，大庫也快」 |
+| 「INDEXED BY 強制 partial index 命中」 | 「加了索引讓這個查詢查得快」（多數情況根本不用提實作） |
 
 ## 3. 雙視角問題紀錄（所有「找出 / 修正問題」的紀錄點固定這樣寫）
 
