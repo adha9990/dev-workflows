@@ -46,7 +46,7 @@ loops-workflow 的每個開關都是**環境變數**，設在 Claude Code `setti
 | `LOOPS_EXPLAIN` | **關** | 完整迴圈完工時自動產「工程師理解包」（`EXPLAIN.md`）；沒開＝不產、Journal 留一行 | 設 `"1"` |
 | `LOOPS_COMPACT_HINT` | **關** | context 快滿時提醒你可以 `/compact`（不阻擋、只提示） | 設 `"1"` |
 
-> **不吃旗標、一律產的收尾產物**：完整迴圈完工還會**一律產 `CHECKLIST.md`**（驗收清單，人類 / AI 共用，見 `references/acceptance-review.md §六`）—— 它**不受任何參數控制**，`LOOPS_EXPLAIN` 沒開也有。
+> **不吃旗標、一律產的收尾產物**：完整迴圈完工還會**一律產** `CHECKLIST.md`（驗收清單，人類 / AI 共用，見 `references/acceptance-review.md §六`）與 `cost.md`（成本報告，看 token 花在哪：逐階段 ＋ 子代理拆解）—— 都**不受任何參數控制**，`LOOPS_EXPLAIN` 沒開也有。`cost.md` 的**實測**版需 `LOOPS_COST_TRACKER`（預設開）有 `costs.jsonl` 資料；沒資料就落**估算**版。
 
 ## 怎麼自己驗證有沒有生效
 

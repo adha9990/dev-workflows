@@ -86,6 +86,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 完工後把 `loop.md` 的「當前階段」設為「**完工**」（progress / hook 即不再顯示此 loop），**並在 Journal 末尾 append 一行 outcome 度量** —— 依 `references/journaling.md`〈完工 outcome 度量〉的格式（`★[outcome] 結果 ｜ token≈估算(級距)est ｜ sub-agent 數 ｜ 回環 圈 ｜ findings validated→剩餘 ｜ 交付：交付物`），從本 loop Journal 回推各欄、**token 標粗估（規則 5）**，給這條 loop 留下可回顧的成本 / 規模輪廓（落實規則 10 成本意識可觀測）。中止（descoped / aborted）收尾同樣 append 一行。格式定義以 `journaling.md` 為**單一來源**，這裡只引用、不另立第二份。
 
+**成本報告 `cost.md`（一律產、Metric-Honesty）**：收尾把本 loop 的成本明細物化成 `$LOOPS_ROOT/.loops/<slug>/cost.md`（給人看 **token 花在哪**：逐 loop-stage ＋ 子代理歸戶 ＋ 總計 ＋ $）—— 跑 `node {loops-workflow-plugin-root}/scripts/loops-cost-report.mjs --cwd "$LOOPS_ROOT" --session "$CLAUDE_CODE_SESSION_ID" --slug <slug> --out "$LOOPS_ROOT/.loops/<slug>/cost.md"`（plugin root 從本 skill base 解析，同 reference 絕對路徑機制；`--slug` 讓報告標題帶 loop 名）。**cost-tracker 預設開 → 讀 `.loops/.metrics/costs.jsonl` 本 session 最後一行、產實測版**；未開 / 無資料 → 腳本自動落**估算版**（指回 loop.md outcome 度量）。**一律產、不吃旗標**（與 `CHECKLIST.md` 同）；它是 Journal 那行 outcome 度量的**逐階展開**（單一真相源仍是 costs.jsonl，cost.md 只是人類可讀渲染，非第二份帳）。
+
 **friction-capture（條件式，有 `[friction]` 筆記才做；規則 13）**：收尾時 grep `loop.md` Journal 的 `[friction]` 筆記（＝跑迴圈時踩到 **loops-workflow 本身**的摩擦、當下只記一行的那些）。**無筆記 → 跳過、不派、不問**（絕大多數 loop）。**有筆記 → 派一個 subagent**（背景、隔離 context —— 分析在它自己 context 做、不污染主 session；prompt 塞全部 `[friction]` 筆記原文 ＋ `references/friction-capture.md` 絕對路徑）：讀齊 → root-cause → 對每點產**具體 plugin 修改提案**（哪檔 / 改什麼 / 為什麼）→ 回傳精煉提案清單、**回傳即收工**。**subagent 只提案、不編輯 / commit / push 任何 plugin 檔**。主線拿回提案後用 `AskUserQuestion`（標推薦）問**要不要寫進 plugin**：要 → **主 session** 照 direct-edit plugin repo 紀律落地（marketplace 來源、只 add 己改檔、繁中 commit、push branch、draft PR、merge human-gated；**行為面大改停下確認**）；不要 → Journal 記一行留痕。細則見 `references/friction-capture.md`。
 
 **收尾清理 —— loop 結束的標準環節，不是選項。分兩個時機：**
@@ -123,7 +125,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **verify 出 actionable findings（含 P2/P3）還問使用者「修多少 / 要不要修」** —— actionable 一律自動全修，不是使用者決策。
 - 修正型（`type=fix`）收尾還產一堆草稿（PR body as-built / 另發 issue comment）—— 只該一份修正回覆 comment（§8）。
 - **LOOPS_EXPLAIN 未開卻自動產 explain**（未開＝跳過＋Journal 留痕）；**開了卻問「要不要產」**（`=1` 就產、不問）；**修正型被掛上旗標查詢**（修正型是分類排除、與旗標無關）。
-- **完工沒把 `CHECKLIST.md` 交人類**（或誤以為 explain 沒開就不用給 checklist —— checklist 不吃旗標、一律交）。
+- **完工沒把 `CHECKLIST.md` 交人類**（或誤以為 explain 沒開就不用給 checklist —— checklist 不吃旗標、一律交）；或**收尾沒產 `cost.md`**（成本報告一律產、不吃旗標）。
 - 有 `[friction]` 筆記卻**收尾沒派 friction-capture**（工作流知識流失）；或讓 **subagent 自己改 / commit / push plugin**（只准提案，落地是主線 AskUserQuestion 問過才做）；或把 target 專案的一次性 bug 當摩擦處理。
 - 把本可在當前 issue 解決的 follow-up 擅自另開新 issue。
 - issue-driven PR 的 body 沒放關閉關鍵字 `Closes #<issue>`（只寫標題 `(#issue)` / 內文提及 = 不連結、merge 不自動關 issue，見 `references/pr-spec.md`）。
@@ -143,6 +145,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 收尾交接物依迴圈類型：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」、完整迴圈產 PR 收尾 comment + **explain 依 LOOPS_EXPLAIN 判**（`=1` 產且沒問；未開跳過＋Journal 留痕；修正型未掛旗標查詢）；對外那份經使用者確認才送、未自動 post、回環途中不產。
 - [ ] **驗收 checklist 已交人類**：verify 產的 `CHECKLIST.md` 在收尾指給使用者手動驗收（點出路徑 ＋ AI 已驗結果），**不論迴圈類型、獨立於 LOOPS_EXPLAIN**（不吃旗標）。
 - [ ] **friction-capture 已處理**：Journal 有 `[friction]` 筆記 → 派 subagent 產 plugin 修改提案 ＋ 主線 `AskUserQuestion` 問是否寫進 plugin（**subagent 只提案、不動 plugin**）；無筆記 → 未派未問。
+- [ ] **cost.md 已產**：收尾用 `loops-cost-report.mjs` 物化 `cost.md`（有 costs.jsonl → 實測版、無 → 估算版），一律產、不吃旗標。
 - [ ] **AGENTS.md 同步已判**：docs-policy 檢查命中「慣例 / 規則改變」→ 主線已依 docs-policy（含〈怎麼寫〉守門）直接編輯對應段落；未命中 → 未動也未問（不對無關迴圈加噪音）。
 - [ ] follow-up 在當前 issue 內處理，沒有擅自另開新 issue。
 - [ ] **收尾清理兩時機都做了**：① loop 結束時清掉 loop 期間所有暫存（worktree / 草稿 / 截圖 / scratch，不等 PR）；② PR 合併後刪分支（solo 自己合併自己清，只留 `main` + 進行中）。loop 暫存沒被推上去（`.gitignore` 有涵蓋）。

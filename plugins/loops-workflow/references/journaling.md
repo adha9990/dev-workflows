@@ -59,6 +59,8 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 > - **`LOOPS_COMPACT_HINT=1`**（suggest-compact，PreToolUse matcher `Edit|Write`；**維持 opt-in（#87 決策：非已踩過坑對治、注入有輕噪音、價值中性）**）：估算真實 context 大小（transcript 最新 usage）跨門檻（~250k、之後每 +60k）時，在 Edit/Write 前注入一句「可考慮 `/compact`」**估算**提醒（**不阻擋**工具）；防洗版 state 落 `os.tmpdir()/loops-compact-<session>.json`、14 天 TTL。footprint：tmp state 檔。
 >
 > **outcome 度量格式以此為單一來源**，各 skill（iterate §6）引用此處、不另定義。
+>
+> **人類可讀展開＝`cost.md`**：iterate 收尾另用 `scripts/loops-cost-report.mjs` 讀 `costs.jsonl` **本 session 最後一行**，物化一份 `.loops/<slug>/cost.md`（逐 loop-stage ＋ 子代理歸戶 ＋ 總計 ＋ `$`）——**一律產、不吃旗標**：有 cost-tracker 資料＝實測版、無＝估算版（指回本節 outcome 度量）。它是 Journal 那行 outcome 度量的**逐階展開**，**單一真相源仍是 `costs.jsonl`**（cost.md 只渲染、非第二份帳）。
 
 > **介入 hook（會主動跑閘 / 擋工具，與上面「觀測」不同；預設值逐列標示——#87 起 stop-gate 維持 opt-in（SECURITY）、#99 loop-driver opt-in（首支 block hook），#85 loops-path-guard 與 #87 config-protection 預設開）**：
 > - **`LOOPS_STOP_GATE=1`**（stop-gate，Stop hook + edit-accumulator PostToolUse；**維持 opt-in（#87 決策：預設開＝自動執行任意 repo 的 gate.config.json 命令，#17 security review 明點 RCE 面、信任不可機械判定）**）：**本回合有改檔**時（PostToolUse accumulator 記錄）於 Stop 自動跑既有 `loops-quality-gate.mjs --gates type,lint`，**只有紅燈才把摘要注入 context**（綠靜默、不阻擋）。需 cwd 有 `.loops/gate.config.json`。**發現性提示（#87）**：flag 未開但偵測到 gate.config.json 存在 → per-session 一次注入一行提示（含 `LOOPS_STOP_GATE=1` 與「信任 repo 才開」語；state 檔 `os.tmpdir()/loops-stop-gate-hint-<session>.json`）。footprint：`os.tmpdir()/loops-edits-<session>.json` 暫存＋提示 state 檔。
