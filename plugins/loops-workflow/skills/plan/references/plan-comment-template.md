@@ -5,6 +5,7 @@
 > GitHub 原生渲染 ` ```mermaid ` 區塊，所以機制圖**直接放進 comment**（不再只躺在 `02-plan.md`）。
 > 流程：寫 tmp 草稿 → 校稿 → `gh issue comment <#> --body-file <tmp>`（或更新既有用 `gh api --method PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<tmp>`）→ 刪 tmp。
 > 這份 comment 是 **living as-built 摘要**：build 偏離 plan 時回來同步更新（含已 post 的版本）。
+> **白話優先（`references/comment-policy.md §2`）**：這是最容易術語爆炸的 comment（系統全貌 + ADR + 契約）——機制圖幫理解，但**周邊文字要白話**：先講做什麼為什麼、別把複雜度符號（`O(...)`）/機制名（`INDEXED BY`、`partial index`…）倒進去、要用術語就當場一句解釋。
 
 ---
 
