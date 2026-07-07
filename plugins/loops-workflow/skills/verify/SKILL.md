@@ -31,7 +31,7 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 
 **再依領域加派 N 個 conditional**（與上表正交、碰到才加，清單見 `references/optional-reviewers.md`）：前端/UI→`frontend-ui`/`accessibility`/`web-performance`、bug fix→`root-cause`、docs/對外契約/CLI/config→`docs-devex`、schema migration→`migration`、queue/背景/長流程→`processing-reliability`、CI/CD→`ci-cd`、關鍵後端流程→`observability`。
 
-**另外讀「專案宣告條件」（以專案為主）**：選軸時**除了看改動領域，也讀目標專案的 `AGENTS.md` / `CLAUDE.md`（就近的也讀）有沒有宣告專案級 verify 條件** —— 例如**專案宣告「多人 / 併發 / 協作使用」→ 且改動觸及共享 / 持久化狀態、授權、或並發變更 path 時，加派 `multi-user-concurrency-reviewer`**（lost update / 跨帳號授權隔離 / 交易競態 / oplog 排序 / 冪等 / read-your-writes）。**專案沒宣告就不觸發**（單人 / 本機專案不加無關噪音）；判準與擴充方式見 `references/optional-reviewers.md`〈專案宣告條件〉。
+**另外讀「專案宣告條件」= 枚舉專案憲章的所有跨切面約定、逐條核（以專案為主，必做，見 `references/project-conventions.md`）**：選軸時**除了看改動領域，也讀目標專案的 root + 就近 `AGENTS.md` / `CLAUDE.md`，枚舉其宣告的每一條跨切面約定**（i18n / logging / a11y / 錯誤處理 / 安全 / 分層 / 命名…），對**每個新 user-facing / 功能面逐條核是否遵守**——**且不得以「通過了某 lint/gate」當作滿足**（gate 常有掃描死角，如 i18n gate 只掃 JSX、不掃 `.ts` 常數；看**約定的精神**不只看綠燈）。命中領域派對應 conditional reviewer（i18n/文案→`frontend-ui`/`docs-devex`；logging→`observability`；a11y→`accessibility`；多人/併發→`multi-user-concurrency-reviewer`〔lost update / 跨帳號授權隔離 / 交易競態 / oplog 排序 / 冪等 / read-your-writes〕…），把「違反專案約定」當**可行 finding**（severity 依影響，**不因 issue 沒要求而降級或忽略**）。**專案沒宣告的約定就不觸發**（單人 / 本機專案不加無關噪音）；判準與擴充方式見 `references/optional-reviewers.md`〈專案宣告條件〉+ `references/project-conventions.md`。
 
 > **名詞**：**波及面（blast-radius）**＝改動影響到多少別處（誰 import / 呼叫被改的）。非 code 的實質文件 / 設定（有驗收契約）走 `product-contract` + `docs-devex`，不套這張 code 級梯。
 
@@ -94,6 +94,7 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 ## Verification
 
 - [ ] **步驟 1**：依風險定軸（瑣碎 / 小孤立 / 一般 / 高風險），拿不準 / 混 code / 碰高風險向嚴升級。
+- [ ] **步驟 1（專案約定）**：已讀專案 root + 就近 `CLAUDE.md`/`AGENTS.md` 枚舉跨切面約定，對每個新 user-facing / 功能面逐條核（不以通過機械 gate 當滿足），違反者當可行 finding（見 `references/project-conventions.md`）。
 - [ ] **步驟 2**：同一回合並行派出、各一軸；只給 artifact + 契約（不給作者辯護）、tests-reviewer 不被告知已過；跑真 app + 本機 `/code-review` 或據實標 `not measured`；參考檔絕對路徑（含 `context-diet.md`）+ `code-retrieval.md` 路徑 + **本次改動檔清單（含 stale 提醒）**已塞進 reviewer prompt。
 - [ ] **步驟 3**：coordinator 去重後，每個 blocking finding 有 finding-validator 結果。
 - [ ] **步驟 4**：acceptance 閘 —— 每條 criterion 收斂到 已滿足（有證據）/ 明確 descoped（留痕）才判 Ready；確證根本做錯 → 整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）。

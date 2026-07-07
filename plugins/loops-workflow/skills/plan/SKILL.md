@@ -42,6 +42,7 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 
 ### 4. 品質維度過一遍
 
+- **專案跨切面約定當設計輸入**（見 `references/project-conventions.md`）：goal 折進 DoD 的專案約定（i18n / logging / a11y…）在此當**設計輸入**、不事後補 —— 例：label 要 i18n → 設計就要決定 labelKey / t() 接線；新服務要 logging → 設計就含 logger 注入。命中約定的機制在任務裡明確帶出。
 - **設計品質六維度**（簡潔 / 可維護 / 可靠 / 可擴展 / 安全 / 高併發高流量效能）+ **clean architecture 結構標準**（依賴向內 / 分層邊界 / port + 注入 / 落點對齊，見 `references/clean-architecture.md`）：in-scope 實作不以 MVP 設計，對可預見的規模退化預先用對的演算法**與結構**。
 - **設計模式對症選型**（見 `references/design-patterns.md`）：設計某機制時，若問題本來就是某模式的經典形狀（多變體 / 可替換演算法 / 解耦通知…）就用對的模式 —— **對症才用、不為套而套**（YAGNI）。
 - **重用檢查**（判準見 `references/reuse-check.md`）：拆任務前先確認沒有重複造輪子（含跨入口 / 跨 session 的隱蔽重複；稍異 ≠ 另造，優先參數化既有方法）。

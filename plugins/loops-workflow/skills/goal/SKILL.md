@@ -34,6 +34,8 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 
 **能從素材推得的不要問** —— 只問會改變方向的 blocking 決策。
 
+**同時讀專案憲章、把跨切面約定折進 DoD（必做，見 `references/project-conventions.md`）**：除了掃 issue，**還要讀目標專案的 root `CLAUDE.md`/`AGENTS.md` + 改動落點就近的 `AGENTS.md`/`CLAUDE.md`**（例 `client/AGENTS.md`），抽出其宣告的**跨切面約定**（i18n / logging / a11y / 錯誤處理 / 安全 / 分層…），把**這次改動會觸及的**那些寫進第 3 步六欄的 **Constraint**（成為隱含驗收標準）。**issue 沒寫不代表不用做** —— 專案約定是 repo 所有改動的預設底線（例：新 user-facing 字串→i18n；新功能模組→logging；新 UI→a11y）。這不必問使用者、直接推得就折進 DoD。
+
 ### 2. 一次一問
 
 - 一則訊息只問一個問題；用 `AskUserQuestion` 給 2–4 個選項。
@@ -87,6 +89,7 @@ DoD 的「Success / 停止條件」用 **GWT 場景（帶 ID `S1…`，見 `refe
 ## Verification
 
 - [ ] 已**逐句掃過整張 issue**抽 requirement（不只 AC 段），每條都落到六欄某處。
+- [ ] 已讀**專案 root + 就近 `CLAUDE.md`/`AGENTS.md`**，把這次改動觸及的**跨切面約定**（i18n / logging / a11y…）折進 Constraint 欄（見 `references/project-conventions.md`）。
 - [ ] `00-goal.md` 六欄齊全，每欄有實質內容。
 - [ ] Success 欄 = 可驗證的停止條件（不是「做得好」這種無法驗的話）。
 - [ ] restate DoD 後**直接進 explore**，沒把「DoD 對嗎 / 可以鎖定嗎 / 要不要進 explore」當 gate 問；只有**具體 scope 取捨選擇**才用 `AskUserQuestion` 停下。

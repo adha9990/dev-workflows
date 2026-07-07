@@ -45,6 +45,7 @@
 | `finding-validation` | 抓到的問題先過二輪四問（是真的嗎/這次引入的嗎/已有防護嗎/修法對症嗎）再算數——結論三態 validated / rejected / degraded，防誤報 | verify（finding-validator） |
 | `preflight` | 送審前作者自檢：可送審 / 建議先修 / 資訊不足三態判定＋硬規則「作者已留痕的決定不算 finding」 | verify（送審自檢 + 全 reviewer） |
 | `optional-reviewers` | 哪種改動要加派哪個領域 reviewer（前端 / a11y / 可觀測性 / CI-CD / migration / bug-fix / docs…）＋專案宣告條件（宣告多人使用→併發審查） | verify（1.5 加派） |
+| `project-conventions` | **專案 CLAUDE.md/AGENTS.md 宣告的跨切面約定**（i18n / logging / a11y / 錯誤處理 / 安全…）是每條 loop 的隱含 DoD + verify 檢查項（issue 沒寫也要做）；通過機械 gate ≠ 滿足約定；完工交付列出「除 issue 外依約定額外做的事」 | goal（折 DoD）· plan（設計輸入）· verify（逐條核）· iterate（交付列出） |
 | `verify-triage` | 這次改動風險多大、該派幾軸審查（0~6）：高風險硬閘清單 / 小事從簡的判準 / 夾帶無關改動就否決從簡（tangling veto）/ 「做錯東西就整個退回」判準 | verify（步驟 1 選軸判級） |
 | `cross-model-review` | 卡關時換一個不同的模型當對手 reviewer（opt-in 對抗審查） | iterate（卡關）· verify（可選） |
 | `model-effort-policy` | 成本控管：每個 agent 依角色配多大的模型／多深的思考，高風險任務才升級（表末附每個 agent 各配哪個 model 的逐一對照） | 全 agent（frontmatter）· verify · build |
