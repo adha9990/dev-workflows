@@ -74,7 +74,10 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 **交接物依迴圈類型而定 —— 都先寫暫存 tmp 草稿（不進專案）→ 使用者確認 → `--body-file` post → 刪 tmp，不自動 post**：
 
 - **修正型（`type=fix`，從 PR reviewer 回饋進來、PR 已存在）→ 只產一份：修正回覆 comment**，**固定套 `references/comment-policy.md` §8「修正回覆 comment 版型」**：開場「這輪 N 個 blocking 點都修了」→ 每點「**工程角度**（根因 / 怎麼修 `<file:line>` / 怎麼驗）＋**客戶角度**（修正前 → 後）」→ 結尾 gate 綠。**不 `@` 點名 reviewer、不寫客套**；婉拒項（contract misread）只陳述技術理由。**不另寫 PR body as-built 條目、不另發 issue comment**（除非使用者明確要）。
-- **完整迴圈（`type=issue/design`，交新 PR）→ PR 收尾 comment**（`references/pr-spec.md` + `references/comment-policy.md`：成果 + 驗證證據 + 回覆）+ **自動產 explain 理解包**（跑 `explain` skill，給工程師理解）。**完整迴圈完工一律自動產 explain，不問「要不要產」** —— 它是完整迴圈的標準交接物。修正型才**不自動產 explain**（opt-in，用 `/loops-workflow:explain`）。
+- **完整迴圈（`type=issue/design`，交新 PR）→ 開 PR + PR 收尾 comment**：
+  - **開 PR 一律 `gh pr create --draft --assignee @me`**（**Draft**（先草稿、使用者確認再轉 Ready）**＋ 指派作者本人**，見 `references/pr-spec.md`〈開 PR〉；忘了開 draft → `gh pr ready <PR#> --undo` 轉回 draft、忘了指派 → `gh pr edit <PR#> --add-assignee @me`）。**body 必含 `Closes #<issue>`**。**別開成 Ready、別漏 assignee** —— pr-spec 硬性要求。
+  - 再依 `references/pr-spec.md` + `references/comment-policy.md` 寫 PR 收尾 comment（成果 + 驗證證據 + 回覆）+ **自動產 explain 理解包**（跑 `explain` skill，給工程師理解）。**完整迴圈完工一律自動產 explain，不問「要不要產」** —— 它是完整迴圈的標準交接物。修正型才**不自動產 explain**（opt-in，用 `/loops-workflow:explain`）。
+  - **交付物必含「除 issue 外依專案約定額外處理的跨切面項」一段（見 `references/project-conventions.md`）**：把 issue ACs 以外、依 repo `CLAUDE.md`/`AGENTS.md` 底線額外做 / 確認的事（例：label 走 i18n 新增 catalog、新服務附 logging 並有測試、UI 補 ARIA）明列給工程師，或明確「本次無額外約定觸及」。讓人清楚你除了 issue 還依專案底線動了哪些面向、為什麼。
 
 **follow-up 在當前 issue 內處理、不另開 issue**：發現的後續項 / 既有非本次引入的退化，預設記在當前 issue / PR thread 並在本次或本 issue 內處理，**不 spin off 新 issue**（除非使用者明確要另開）。
 
@@ -119,6 +122,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **完整迴圈完工還問使用者「要不要產 explain」** —— 完整迴圈一律自動產（只有修正型才 opt-in）。
 - 把本可在當前 issue 解決的 follow-up 擅自另開新 issue。
 - issue-driven PR 的 body 沒放關閉關鍵字 `Closes #<issue>`（只寫標題 `(#issue)` / 內文提及 = 不連結、merge 不自動關 issue，見 `references/pr-spec.md`）。
+- **開 PR 沒用 `--draft` / 沒 `--assignee @me`**（直接開成 Ready、或無 assignee = 沒依 `references/pr-spec.md`〈開 PR〉；一律 Draft + 指派作者本人，確認後才轉 Ready）。
 - **合併後沒刪已合併分支 / 沒清 worktree**，囤積一堆 merged branch；或 **loop 暫存（草稿 / 截圖 / worktree / `.loops` / `data`）被 commit 推上去**。
 - **完工 / 中止沒在 `loop.md` Journal append 一行 outcome 度量**（缺成本 / 規模輪廓，違規則 10 可觀測）；或 token 欄寫成精準值沒標 `est`（違規則 5）。
 
@@ -133,6 +137,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 完工前對照 `00-goal.md` 停止條件全達成。
 - [ ] **完工 / 中止已在 `loop.md` Journal append 一行 outcome 度量**（依 `references/journaling.md`〈完工 outcome 度量〉，欄位齊全、token 帶 `est`／級距標粗估）。
 - [ ] 收尾交接物依迴圈類型：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」、完整迴圈產 PR 收尾 comment + **自動產 explain（沒問「要不要產」）**；對外那份經使用者確認才送、未自動 post、回環途中不產。
+- [ ] 交付物含**「除 issue 外依專案約定額外處理的跨切面項」**一段（i18n / logging / a11y…），或明確「本次無額外約定觸及」（見 `references/project-conventions.md`）。
+- [ ] 完整迴圈**開 PR 是 Draft + `--assignee @me`**（`gh pr create --draft --assignee @me`，見 `references/pr-spec.md`〈開 PR〉），body 含 `Closes #<issue>`；沒開成 Ready、沒漏 assignee。
 - [ ] follow-up 在當前 issue 內處理，沒有擅自另開新 issue。
 - [ ] **收尾清理兩時機都做了**：① loop 結束時清掉 loop 期間所有暫存（worktree / 草稿 / 截圖 / scratch，不等 PR）；② PR 合併後刪分支（solo 自己合併自己清，只留 `main` + 進行中）。loop 暫存沒被推上去（`.gitignore` 有涵蓋）。
 - [ ] 停在 `iterate` 決策 gate。

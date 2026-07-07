@@ -44,6 +44,7 @@
 | `finding-validation` | finding-validator 二輪四問：真實 / 本次引入 / 已防護 / 對症 → validated / rejected / degraded | verify（finding-validator） |
 | `preflight` | 送審單一判定（可送審 / 建議先修 / 資訊不足）+ 硬規則「作者已留痕的決定不算 finding」 | verify（送審自檢 + 全 reviewer） |
 | `optional-reviewers` | 條件式領域 reviewer 對照（哪種改動加派哪個：前端 / a11y / 可觀測性 / CI-CD / migration / bug-fix / docs…）＋**專案宣告條件**（專案 AGENTS.md 宣告多人使用→multi-user-concurrency） | verify（1.5 加派） |
+| `project-conventions` | **專案 CLAUDE.md/AGENTS.md 宣告的跨切面約定**（i18n / logging / a11y / 錯誤處理 / 安全…）是每條 loop 的隱含 DoD + verify 檢查項（issue 沒寫也要做）；通過機械 gate ≠ 滿足約定；完工交付列出「除 issue 外依約定額外做的事」 | goal（折 DoD）· plan（設計輸入）· verify（逐條核）· iterate（交付列出） |
 | `verify-triage` | verify 改動風險判準（定 0~6 核心軸）：高風險硬閘清單 / 小孤立·瑣碎判準 / tangling veto / 「做錯東西就整個退回」catastrophic-miss 判準（所有級、審查後 triage） | verify（步驟 1 選軸判級） |
 | `cross-model-review` | opt-in 換不同模型當對手 reviewer（卡關時升級對抗審查） | iterate（卡關）· verify（可選） |
 | `model-effort-policy` | cost-aware：agent 依角色靜態選 model+effort、verify/build 依風險動態覆寫 model（effort 無法 per-dispatch） | 全 agent（frontmatter）· verify · build |
