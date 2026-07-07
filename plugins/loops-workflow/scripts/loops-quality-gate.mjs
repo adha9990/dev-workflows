@@ -7,7 +7,10 @@
 //      main 被 import 時不執行（import.meta.url 守門）。
 // 依賴：僅 node 內建（child_process / fs / path / os / url），無外部套件。
 // 用法：node loops-quality-gate.mjs [--cwd <dir>] [--gates test,lint,type] [--json]
-//        [--continue-on-failure] [--max-failures <n>] [--tail <n>]
+//        [--continue-on-failure] [--max-failures <n>] [--tail <n>] [--scope <p1,p2,...>]
+//   --scope：只讓 test / lint 兩閘針對這些路徑跑（路徑當位置參數附給底層 runner，例如
+//            vitest run <p...> / eslint <p...>）；type(tsc) 本質全專案、一律忽略 scope。
+//            不帶 --scope 時行為與過往逐字一致（stop-gate / loop-driver hook 皆呼叫這支）。
 
 import { spawn } from 'node:child_process';
 import { readFileSync, existsSync, rmSync, mkdtempSync } from 'node:fs';
@@ -217,11 +220,16 @@ function collectPassedTests(perGate) {
  * - ok 但有 warning → 中性 ✓ 措辭並標 warning 數（不印 "✗"，避免把警告當失敗嚇人）。
  * - 非 ok → ✗ gate 狀態行 + error/warning 計數行，續印各筆 `file:line [code|ruleId] message`；truncated 補提示。
  */
-export function formatSummary(result) {
+export function formatSummary(result, { scope = null } = {}) {
   const failures = Array.isArray(result?.failures) ? result.failures : [];
   const gates = result?.gates ?? {};
+  // 有 scope 時在狀態行尾標註本次為 scoped 及路徑（提醒：scoped 綠 ≠ 全庫綠，且 type 仍全跑）。
+  // 無 scope → 後綴為空字串，輸出與過往逐字一致（向後相容）。JSON 契約不動，只註記人讀摘要。
+  const scopeSuffix = Array.isArray(scope) && scope.length
+    ? ` [scoped: ${scope.join(', ')} · type 仍全跑]`
+    : '';
   const gateLine = (mark) =>
-    `${mark} quality-gate: ${GATE_ORDER.map((g) => `${g} ${gates[g] ?? 'unknown'}`).join(', ')}`;
+    `${mark} quality-gate: ${GATE_ORDER.map((g) => `${g} ${gates[g] ?? 'unknown'}`).join(', ')}${scopeSuffix}`;
 
   if (result?.ok) {
     const warnings = failures.filter((f) => f?.severity === 'warning');
@@ -309,7 +317,7 @@ export function resolveConfig(cwd) {
   return raw === null ? { test: null, lint: null, type: null } : parseConfig(raw);
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const opts = {
     cwd: '.',
     gates: new Set(GATE_ORDER),
@@ -317,6 +325,7 @@ function parseArgs(argv) {
     continueOnFailure: false,
     maxFailures: DEFAULT_MAX_FAILURES,
     tail: DEFAULT_TAIL_CHARS,
+    scope: null,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -327,6 +336,7 @@ function parseArgs(argv) {
     else if (flag === '--continue-on-failure') opts.continueOnFailure = true;
     else if (flag === '--max-failures') opts.maxFailures = toPositiveInt(argv[++i], DEFAULT_MAX_FAILURES);
     else if (flag === '--tail') opts.tail = toPositiveInt(argv[++i], DEFAULT_TAIL_CHARS);
+    else if (flag === '--scope') opts.scope = parseScopeList(argv[++i]);
   }
   return opts;
 }
@@ -337,6 +347,18 @@ function parseGateList(raw) {
     .map((s) => s.trim())
     .filter((s) => GATE_ORDER.includes(s));
   return new Set(wanted.length ? wanted : GATE_ORDER);
+}
+
+/**
+ * --scope 值（逗號分隔路徑）→ 去空白、濾空段後的路徑陣列；無任何有效路徑 → null。
+ * null 代表「不 scope」，呼叫端據此走既有全跑（向後相容的預設）。
+ */
+function parseScopeList(raw) {
+  const paths = String(raw ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  return paths.length ? paths : null;
 }
 
 function toPositiveInt(raw, fallback) {
@@ -391,10 +413,11 @@ function hasEslint(cwd) {
 
 // 規劃一道閘怎麼跑：回 { command, parse, outFile? } 或 null（偵測不到 → 該閘 graceful skip）。
 // outFile 一律放進呼叫端建好的私有暫存目錄（scratchDir），由呼叫端統一清理。
-function planGate(gate, config, cwd, scripts, scratchDir) {
-  if (gate === 'test') return planTestGate(config.test, scripts, scratchDir);
-  if (gate === 'lint') return planLintGate(config.lint, scripts, cwd, scratchDir);
-  if (gate === 'type') return planTypeGate(config.type, cwd);
+// scope（路徑陣列 / null）：只餵給 test / lint（當位置參數）；type(tsc) 本質全專案 → 一律忽略 scope。
+export function planGate(gate, config, cwd, scripts, scratchDir, scope = null) {
+  if (gate === 'test') return planTestGate(config.test, scripts, scratchDir, scope);
+  if (gate === 'lint') return planLintGate(config.lint, scripts, cwd, scratchDir, scope);
+  if (gate === 'type') return planTypeGate(config.type, cwd); // tsc 無法可靠 scope → 永遠全專案
   return null;
 }
 
@@ -413,27 +436,51 @@ export function appendToolFlags(command, flags) {
   return isPackageManagerScript(command) ? `${command} -- ${suffix}` : `${command} ${suffix}`;
 }
 
+/**
+ * 把 --scope 路徑轉成可附加到指令字串的 token 陣列（各自雙引號包覆，容許路徑含空白）。
+ * 無 scope（null / 空陣列）→ []：呼叫端不附加任何 token，指令與未帶 --scope 時逐字一致（向後相容）。
+ * 引號策略與既有 `--outputFile="…"` 一致；scope 由呼叫端（loop hook）提供，屬與 gate.config 指令
+ * 同層級的受信任設定、非外部不可信輸入，故沿用同一套 shell:true + 雙引號的處理（不另拆 args 陣列）。
+ */
+function scopeArgs(scope) {
+  return (Array.isArray(scope) ? scope : [])
+    .filter((p) => typeof p === 'string' && p.length > 0)
+    .map((p) => `"${p}"`);
+}
+
 // test / lint 都把 reporter 寫進暫存檔再讀「完整 raw」，避免吃到被 tail 砍過或混入 stderr 的 stdout。
-function planTestGate(configCommand, scripts, scratchDir) {
+function planTestGate(configCommand, scripts, scratchDir, scope = null) {
   const base = configCommand ?? (scripts.test ? 'npm test' : null);
   if (!base) return null;
 
   const outFile = join(scratchDir, 'vitest.json');
-  // reporter flags 經 appendToolFlags 轉發（npm test 形式時要落在 `--` 之後才到得了 vitest）。
-  const command = appendToolFlags(base, ['--reporter=json', `--outputFile="${outFile}"`]);
+  // scope 路徑當位置參數在前（`vitest run <paths>` 即只跑這些檔）；reporter flags 續接。
+  // 一律經 appendToolFlags 轉發（npm test 形式時 scope 與 reporter flags 都要落在 `--` 之後才到得了 vitest）。
+  const command = appendToolFlags(base, [
+    ...scopeArgs(scope),
+    '--reporter=json',
+    `--outputFile="${outFile}"`,
+  ]);
   // parsePassed 收 positive-presence 訊號（通過 assertion 的 titlePath）；僅 test gate 有。
   return { command, parse: parseVitest, parsePassed: parseVitestPassed, outFile };
 }
 
-function planLintGate(configCommand, scripts, cwd, scratchDir) {
+function planLintGate(configCommand, scripts, cwd, scratchDir, scope = null) {
+  const scoped = Array.isArray(scope) && scope.length > 0;
+  // 自動偵測的 eslint fallback：有 scope 時省略 '.'（改由 scope 路徑當 lint target，才真的縮範圍），
+  // 否則照舊 `npx eslint .`。config 指令 / npm script fallback 則只「附加」scope（best-effort：
+  // 若該指令自帶固定 target，附加後仍會掃到原 target，屬既有指令語意、非本選項可控）。
   const base = configCommand
-    ?? (scripts.lint ? 'npm run lint' : hasEslint(cwd) ? 'npx eslint .' : null);
+    ?? (scripts.lint ? 'npm run lint' : hasEslint(cwd) ? (scoped ? 'npx eslint' : 'npx eslint .') : null);
   if (!base) return null;
 
   const outFile = join(scratchDir, 'eslint.json');
-  // -f json 與 --output-file 都是「給 eslint 的 flags」，一起經 appendToolFlags 轉發
-  // （F3：npm script 時兩者都得在 `--` 之後，否則 eslint 收不到 → 退化成截斷假綠）。
-  const command = appendToolFlags(base, eslintReporterFlags(base, outFile));
+  // scope 路徑（位置參數）在前，-f json 與 --output-file（給 eslint 的 flags）續接，一起經 appendToolFlags 轉發
+  // （F3：npm script 時全部都得在 `--` 之後，否則 eslint 收不到 → 退化成截斷假綠）。
+  const command = appendToolFlags(base, [
+    ...scopeArgs(scope),
+    ...eslintReporterFlags(base, outFile),
+  ]);
   return { command, parse: parseEslint, outFile };
 }
 
@@ -471,7 +518,7 @@ async function main(rawArgv) {
   try {
     let stopped = false;
     for (const gate of GATE_ORDER) {
-      const plan = (!opts.gates.has(gate) || stopped) ? null : planGate(gate, config, cwd, scripts, scratchDir);
+      const plan = (!opts.gates.has(gate) || stopped) ? null : planGate(gate, config, cwd, scripts, scratchDir, opts.scope);
       if (!plan) {
         perGate[gate] = { status: 'not-run', failures: [] };
         continue;
@@ -491,7 +538,7 @@ async function main(rawArgv) {
   }
 
   const result = buildResult(perGate, opts.maxFailures);
-  console.log(opts.json ? JSON.stringify(result, null, 2) : formatSummary(result));
+  console.log(opts.json ? JSON.stringify(result, null, 2) : formatSummary(result, { scope: opts.scope }));
   process.exit(result.ok ? 0 : 1);
 }
 

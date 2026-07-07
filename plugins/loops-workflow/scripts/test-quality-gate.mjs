@@ -24,6 +24,8 @@ import {
   runCommand,
   classifyGate,
   buildResult,
+  parseArgs,
+  planGate,
 } from './loops-quality-gate.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -690,6 +692,157 @@ await (async () => {
     'runCommand：output 含子行程 stdout "rc-ok" [T-win]',
   );
 })();
+
+// ── S --scope：test/lint 只測給定路徑、type 一律全跑、無 scope 行為不變 ──────────
+// 契約：--scope p1,p2 → opts.scope=[p1,p2]（無則 null）。有 scope 時 test/lint gate
+//       把路徑當位置參數附給底層 runner；type(tsc) 本質全專案、忽略 scope。無 --scope 時
+//       指令與過往逐字一致（向後相容——stop-gate / loop-driver hook 皆呼叫這支）。
+
+// ── S1 parseArgs：--scope 解析成路徑陣列；不給則 null（① + ④ 的預設分支）───────
+{
+  const o = parseArgs(['--scope', 'src/a.ts,src/b.ts']);
+  assert(Array.isArray(o.scope) && o.scope.length === 2, 'parseArgs：--scope 解析成陣列（2 筆）[S1/①]');
+  assert(o.scope[0] === 'src/a.ts' && o.scope[1] === 'src/b.ts', 'parseArgs：--scope 值/順序正確 [S1/①]');
+  // 去空白 + 濾空段（逗號旁多餘空白、空 segment 都不入列）
+  const o2 = parseArgs(['--scope', ' a , , b ']);
+  assert(
+    Array.isArray(o2.scope) && o2.scope.length === 2 && o2.scope[0] === 'a' && o2.scope[1] === 'b',
+    'parseArgs：--scope 去空白/濾空段 [S1]',
+  );
+  // 不給 --scope → scope=null（預設不 scope，維持既有全跑）
+  const o3 = parseArgs([]);
+  assert(o3.scope === null, 'parseArgs：不給 --scope → scope=null（預設不 scope）[S1/④]');
+  // 其餘既有 opts 欄位不受新旗標影響
+  assert(
+    o3.cwd === '.' && o3.json === false && o3.continueOnFailure === false && o3.gates instanceof Set,
+    'parseArgs：無 --scope 時其餘預設不變 [S1/④]',
+  );
+  // 空 --scope（空字串 / 只有逗號）→ null（無有效路徑即等同不 scope）
+  assert(parseArgs(['--scope', '']).scope === null, 'parseArgs：--scope 空字串 → null [S1]');
+  assert(parseArgs(['--scope', ' , , ']).scope === null, 'parseArgs：--scope 全空段 → null [S1]');
+}
+
+// ── S2 有 scope：test 與 lint gate 的指令含這些路徑（②）──────────────────────────
+{
+  const scratch = mkdtempSync(join(tmpdir(), 'qg-scope-'));
+  try {
+    const scope = ['src/a.ts', 'src/b.ts'];
+    // test gate（config=vitest run）→ command 含兩路徑（雙引號包覆）且仍附 reporter flags
+    const pt = planGate('test', { test: 'vitest run', lint: null, type: null }, scratch, {}, scratch, scope);
+    assert(pt && typeof pt.command === 'string', 'planGate(test)：回 plan 物件 [S2/②]');
+    assert(
+      pt.command.includes('"src/a.ts"') && pt.command.includes('"src/b.ts"'),
+      'planGate(test)：command 含 scope 兩路徑 [S2/②]',
+    );
+    assert(
+      pt.command.includes('--reporter=json') && pt.command.includes('vitest run'),
+      'planGate(test)：scope 是加在既有 flags 之外（不取代 reporter/base）[S2/②]',
+    );
+    // lint gate（config=eslint）→ command 含兩路徑
+    const pl = planGate('lint', { test: null, lint: 'eslint', type: null }, scratch, {}, scratch, scope);
+    assert(
+      pl && pl.command.includes('"src/a.ts"') && pl.command.includes('"src/b.ts"'),
+      'planGate(lint)：command 含 scope 兩路徑 [S2/②]',
+    );
+    // lint 自動偵測 fallback：有 scope 時以路徑當 target（不再掃 '.'），仍是同一組 eslint
+    const plAuto = planGate(
+      'lint',
+      { test: null, lint: null, type: null },
+      scratch, { lint: 'eslint .' }, scratch, scope,
+    );
+    // scripts.lint 存在 → base=npm run lint，scope 經 '--' 轉發
+    assert(
+      plAuto && plAuto.command.includes('"src/a.ts"') && plAuto.command.includes(' -- '),
+      'planGate(lint)：npm run lint fallback 時 scope 經 -- 轉發 [S2/②]',
+    );
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
+// ── S3 type gate 不受 scope 影響（③：tsc 本質全專案）────────────────────────────
+{
+  const scope = ['src/a.ts', 'src/b.ts'];
+  const cfg = { test: null, lint: null, type: 'tsc --noEmit' };
+  const withScope = planGate('type', cfg, '.', {}, '.', scope);
+  const noScope = planGate('type', cfg, '.', {}, '.', null);
+  assert(withScope && withScope.command === 'tsc --noEmit', 'planGate(type)：command 就是 type 指令、不含 scope [S3/③]');
+  assert(withScope.command === noScope.command, 'planGate(type)：帶/不帶 scope 指令逐字一致（type 一律忽略 scope）[S3/③]');
+  assert(
+    !withScope.command.includes('src/a.ts') && !withScope.command.includes('src/b.ts'),
+    'planGate(type)：command 不含任何 scope 路徑 [S3/③]',
+  );
+}
+
+// ── S4 無 scope：指令與既有組法逐字一致（④：向後相容）──────────────────────────
+{
+  const scratch = mkdtempSync(join(tmpdir(), 'qg-noscope-'));
+  try {
+    // test gate：scope=null → 指令＝既有（僅 reporter flags，用 exported appendToolFlags 逐字重建）
+    const outT = join(scratch, 'vitest.json');
+    const pt = planGate('test', { test: 'vitest run', lint: null, type: null }, scratch, {}, scratch, null);
+    const expectedT = appendToolFlags('vitest run', ['--reporter=json', `--outputFile="${outT}"`]);
+    assert(pt.command === expectedT, 'planGate(test)：無 scope → 指令與既有組法逐字一致 [S4/④]');
+
+    // lint gate：scope 只「加」token —— 無 scope 版本較短且不含任何 scope 路徑，scoped 版本才含
+    const noScope = planGate('lint', { test: null, lint: 'eslint .', type: null }, scratch, {}, scratch, null);
+    const scoped = planGate('lint', { test: null, lint: 'eslint .', type: null }, scratch, {}, scratch, ['src/x.ts']);
+    assert(scoped.command.includes('"src/x.ts"'), 'planGate(lint)：scoped 版本含路徑（對照組）[S4/④]');
+    assert(!noScope.command.includes('src/x.ts'), 'planGate(lint)：無 scope 版本不含 scope 路徑 [S4/④]');
+    assert(noScope.command.length < scoped.command.length, 'planGate(lint)：scope 純加 token（無 scope 指令較短）[S4/④]');
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
+// ── S5 端到端：--scope 真跑腳本，type 忽略 scope 仍正常、test 帶 scope 不破壞既有 wiring ─
+{
+  // S5a：type gate + --scope → scope 被忽略，type 照常判定（此處全綠 exit0）
+  const tmp = mkdtempSync(join(tmpdir(), 'qg-scope-e2e-'));
+  try {
+    mkdirSync(join(tmp, '.loops'), { recursive: true });
+    writeFileSync(join(tmp, '.loops', 'gate.config.json'), JSON.stringify({ type: 'node -e ""' }), 'utf8');
+    const res = spawnSync('node', [SCRIPT, '--cwd', tmp, '--gates', 'type', '--scope', 'src/only.ts', '--json'], { encoding: 'utf8' });
+    let json = null; try { json = JSON.parse(res.stdout); } catch { json = null; }
+    assert(res.status === 0, 'S5a：type gate + --scope → 忽略 scope 照常全綠 exit0 [S5]');
+    assert(json && json.gates && json.gates.type === 'passed', 'S5a：gates.type==="passed"（scope 不影響 type）[S5]');
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+  // S5b：test gate + --scope（FAKE reporter）→ 帶 scope 仍正確解析失敗，wiring 未被破壞
+  {
+    const { res, json } = runGate({
+      config: { test: `node "${FAKE}"` },
+      gates: 'test',
+      args: ['--scope', 'src/d.test.ts'],
+      env: { FAKE_OUT: failingVitestJson(), FAKE_EXIT: '1' },
+    });
+    assert(res.error == null, 'S5b：node 啟動成功（--scope 傳入不使 spawn 出錯）[S5]');
+    assert(json && json.gates && json.gates.test === 'failed', 'S5b：test gate + --scope 仍正確判 failed [S5]');
+    assert(
+      json && Array.isArray(json.failures) && json.failures.some((f) => f.kind === 'test' && String(f.message).includes('nope-1234')),
+      'S5b：failures 仍含該失敗筆（scope 不破壞解析）[S5]',
+    );
+  }
+}
+
+// ── S6 formatSummary：帶 scope → 摘要標註 scoped；不帶 → 輸出與過往逐字一致 ────────
+{
+  const green = {
+    ok: true,
+    status: 'passed',
+    counts: { test: 0, lint: 0, type: 0, total: 0 },
+    gates: { test: 'passed', lint: 'passed', type: 'passed' },
+    failures: [],
+    truncated: false,
+  };
+  const plain = formatSummary(green);
+  const scoped = formatSummary(green, { scope: ['src/a.ts', 'src/b.ts'] });
+  assert(plain === formatSummary(green, {}), 'formatSummary：不帶 scope（含空 opts）輸出與單參一致 [S6/④]');
+  assert(scoped.includes('scoped') && scoped.includes('src/a.ts'), 'formatSummary：帶 scope → 摘要標註 scoped 與路徑 [S6]');
+  assert(scoped !== plain, 'formatSummary：scoped 標註改變輸出 [S6]');
+  assert(!plain.includes('scoped'), 'formatSummary：無 scope 不含 scoped 字樣（向後相容）[S6/④]');
+}
 
 // ── 摘要 + exit code ─────────────────────────────────────────────────────────
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
