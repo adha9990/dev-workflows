@@ -9,7 +9,7 @@
 2. 否則 大 blast-radius / 大量 AI 生成？    → 高風險（6 核心）
 3. 否則 非 code 的實質文件 / 設定（有驗收契約）？ → product-contract + 領域 docs-devex（不入 code 級梯）
 4. 否則 瑣碎（純文件/格式/test-only/死碼/SemVer patch、無驗收契約、不碰高風險、無夾帶）？ → 0 核心
-5. 否則 符合「小孤立 code」全成立？          → 3 核心（correctness + product-contract + tests）
+5. 否則 符合「小孤立 code」全成立？          → 3 核心（correctness〔code-quality-reviewer 承接〕 + product-contract + tests）
 6. 否則（含任何 code 的一般改動）           → 6 核心（預設）
 ```
 
@@ -48,7 +48,7 @@
 
 > **含執行語意的 code 不進 0 核心**（含 <5 行邏輯改動，如改常數 / 補 guard → 走 3 核心便宜審，不是 0）。**有驗收契約的實質文件 / 設定**（一張 docs issue 的內容、對外契約文件）→ 不算瑣碎，派 `product-contract`（驗收）+ 領域 `docs-devex`。
 
-## 小孤立 code → 3 核心（correctness + product-contract + tests）
+## 小孤立 code → 3 核心（correctness〔code-quality-reviewer 承接〕 + product-contract + tests）
 
 **全部成立**才走 3 核心，任一存疑 → 6 核心：
 

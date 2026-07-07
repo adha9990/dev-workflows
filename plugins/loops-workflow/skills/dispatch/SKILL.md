@@ -20,11 +20,14 @@ description: Routes a one-line work request to the right loops-workflow stage an
 - 使用者丟一句話描述 / issue 號 / PR 號，要判斷這是「處理 issue / 設計問題 / 修正問題」。
 
 **NOT for**：
-- 要**接續**一條既有 loop（不必重跑 dispatch）—— 用 `/loops-workflow:resume <slug>`（各階段 `user-invocable: false`、不能直接喊）。
-- 把所有階段一路自動跑完 —— 那違反 Closed Loop，dispatch 只送你到起點。
-- **側用工具不歸 dispatch 路由** —— `explain`（看懂改動）、`agents-md-maintainer`（維護 repo `AGENTS.md`，documentation-only）是閉環外側用，直接喊、不進決策樹。
+- 把所有階段一路自動跑完 —— 那違反 Closed Loop，dispatch 只送你到起點。（接續既有 loop **也是 dispatch 的事**：`dispatch <slug>` 走步驟 0 的 resume 分支，見下。）
+- **側用工具不歸 dispatch 路由** —— `explain`（看懂改動）是閉環外側用工具（`user-invocable: false`）：由 iterate 內部驅動（完整迴圈完工且 `LOOPS_EXPLAIN=1` 才自動產），或使用者以自然語言請求，不進決策樹。（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 docs-policy 直接編輯，無獨立 skill。）
 
 ## Process
+
+### 0. 先判 resume（輸入是既有 loop 的 slug 就不分類）
+
+判類型**之前**，先確定性檢查輸入是不是要接續既有迴圈：算 `LOOPS_ROOT`（`git worktree list --porcelain | sed -n 's/^worktree //p' | head -1`），**若 `$LOOPS_ROOT/.loops/<輸入>/loop.md` 存在**（輸入完全比對目錄名、不做模糊匹配；slug 格式同 §2＝英數字＋連字號，含空格／斜線／`..` 的輸入不可能是 slug、直接進判類型）→ **跳過整個決策樹**，直接走 resume 協定（讀 Journal 重建狀態 → 回報停在哪個階段/gate → 問是否續跑，見 `references/journaling.md`）。這是「接續中途 loop」的唯一入口：`dispatch <slug>`。不存在才進下面的判類型。
 
 ### 1. 判類型（決策樹：先看乾淨度，再判意圖清晰度）
 
@@ -32,7 +35,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 ├─ 完全乾淨的空專案（無原始碼 / 空目錄）─────────▶ 先 scaffold 建骨架（§1.4）→ 再依下面清晰度分流
 ├─ issue 號 / 「做這個 issue」（意圖明確）────────▶ 從 goal 開始（跳過 clarify）
 ├─ PR 號 / 「reviewer / 修正回饋」（意圖明確）────▶ 從 iterate 開始（跳過 clarify）
-├─ 模糊想法 / 含糊一句話 / 不確定要落地還是研究 ─▶ 從 `clarify` 開始（一次一問釐清 + 確認 → 再判方向：define/goal/explore/iterate）
+├─ 模糊想法 / 含糊一句話 / 不確定要落地還是研究 ─▶ 從 `clarify` 開始（一次一問釐清 + 確認 → 再判方向：define→goal / explore / iterate）
 ├─ 已釐清、要追蹤成 issue ────────────────────────▶ `define`（建 template-ready issue）→ goal
 ├─ 想做功能、但不知怎麼做最好 ────────────────────▶ `define` 功能 issue（標「實作待研究」）→ goal → explore 研究怎麼做 → plan
 └─ 想先探索一塊空間再決定要做什麼 ────────────────▶ explore 研究 → 產出經 `define` 開功能 issue（**不建獨立「研究 issue」**）
@@ -40,9 +43,9 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 > 順序：**先看專案乾不乾淨**（沒架構先 scaffold），**再判意圖清晰度** —— 明確（issue#/PR#/具體到能動工）直進 goal/iterate；**模糊（一句話想法、範圍不清、不確定落地還是研究）先進 `clarify` 釐清再分流**。dispatch 自己不做訪談確認，那是 clarify 的事。
 
-顯式語法可跳過判斷：`dispatch <type> <ref>`，例如 `dispatch issue #5`、`dispatch explore "command pattern 怎麼設計"`、`dispatch iterate PR#12`。
+顯式語法可跳過判斷：`dispatch <type> <ref>`，例如 `dispatch issue #5`、`dispatch explore "command pattern 怎麼設計"`、`dispatch iterate PR#12`；接續既有 loop 用 `dispatch <slug>`（步驟 0 自動偵測）。
 
-**推進模式**：預設只在決策點停（routine 轉場不問）。加 `auto` → `dispatch auto <描述>` 開 opt-in 自動連跑（核准計畫一次後連決策也用推薦自動帶過，危險 / 失敗 / P0 / 規格模糊仍硬停，見 `references/auto-mode.md`）。
+**推進模式**：預設只在決策點停（routine 轉場不問）。**opt-in 自動連跑＝環境變數 `LOOPS_AUTO=1`**（與 `LOOPS_STOP_GATE` 等 opt-in flag 同慣例、手動設定）：dispatch 建 loop.md 前跑一次 `echo "${LOOPS_AUTO:-}"`（Bash）檢查，輸出 `1` → 本 run 推進模式＝auto（核准計畫一次後連決策也用推薦自動帶過，危險 / 失敗 / P0 / 規格模糊仍硬停，見 `references/auto-mode.md`）；否則 closed。推進模式照舊寫進 loop.md。
 
 ### 1.4 完全乾淨的空專案 → 先 scaffold 骨架，再 define
 
@@ -57,9 +60,9 @@ description: Routes a one-line work request to the right loops-workflow stage an
   - **馬上實作某一件明確的事** → 走 §1.5 `define` 把那個問題具體化成 issue → 再 goal。
   - **先盤點要做哪些事** → 走 **`explore` 發散式**（研究設計空間）→ 由 `explore → define` gate 把確認過的問題開成 **issue backlog** → 停下等後續逐步解決（不強制續進 goal）。
 
-> `scaffold-fullstack` 是 **loops-workflow 內建 skill**（`skills/scaffold-fullstack/`，自帶整棵模板樹 + scaffold 腳本）—— 無外部 plugin 依賴、永遠可用，直接 `/loops-workflow:scaffold-fullstack` 也能單獨跑。模稜兩可（已有少量檔案 / 半成品）→ 當既有專案、不 scaffold。
+> `scaffold-fullstack` 是 **loops-workflow 內建 skill**（`skills/scaffold-fullstack/`，自帶整棵模板樹 + scaffold 腳本）—— 無外部 plugin 依賴、永遠可用（internal skill：由 dispatch 路由、或自然語言請求單獨跑）。模稜兩可（已有少量檔案 / 半成品）→ 當既有專案、不 scaffold。
 
-
+### 1.5 已釐清、無 issue → define
 
 一個**已釐清、要解決 / 實作、但還沒有 GitHub issue** 的問題 → **進 `define` skill**：用 Readiness Model + repo 的 issue template + scope sizing + flowchart，把它具體化成 template-ready issue（草稿校稿 → `gh issue create --assignee @me` → 刪 tmp），slug 用 `<新 issue#>-<kebab>`、loop.md 類型 = issue，**再進 `goal`**。**若從 `clarify` 進來、需求已釐清，define 不重新訪談、只做格式化**（clarify 已把模糊收斂、判好方向）。
 

@@ -6,9 +6,40 @@
 
 ---
 
+## 5 分鐘導讀（第一次用先看這裡）
+
+**這是什麼**：一個把「你說一句話」變成「一個開好的 PR」的工作流 plugin。你只要下一個指令（`/loops-workflow:dispatch`），它會自己判斷這句話是要做功能、修 bug 還是研究，然後帶著你走完整條路——中間只在真正需要你做決定的地方停下來問。
+
+**旅程長這樣**（簡化版；完整圖見下方 §0——兩張圖描述同一流程）：
+
+```mermaid
+flowchart LR
+    A["你：一句話 / issue 號"] --> B["dispatch 判斷類型"]
+    B --> C["定目標 → 研究 → 提計畫（你拍板）"]
+    C --> D["寫測試 → 寫實作（紅綠分離）"]
+    D --> E["多位 reviewer 並行驗收"]
+    E --> F["開 PR（你核可才合）"]
+```
+
+**我想做 X，用哪個入口？**
+
+| 我想… | 怎麼做 |
+|---|---|
+| 做一個功能／修一個 bug | `/loops-workflow:dispatch 描述一句` 或 `dispatch issue #N` |
+| 接續上次做到一半的 | `/loops-workflow:dispatch <slug>`（自動偵測 resume） |
+| 先研究再決定做不做 | `dispatch explore "題目"` |
+| 看某條 loop 跑到哪 | 直接開 `.loops/<slug>/PROGRESS.md` |
+| 看懂一份改動 | 自然語言請 Claude 跑 `explain`（或設 `LOOPS_EXPLAIN=1` 完整迴圈完工自動產） |
+| 開關各種自動化（成本記錄／自動檢查／自動連跑…） | 見 [`settings.md`](settings.md)——所有可設參數一頁看完 |
+| 找某份規範文件 | 見 [`REFERENCES.md`](REFERENCES.md) 的分類導覽 |
+
+**三個常用名詞**（後文會反覆出現）：**loop**＝一條從目標到 PR 的完整任務旅程；**`.loops/<slug>/`**＝這條旅程的記事本（進度、決策、產出全在裡面，session 斷了靠它接回）；**gate**＝停下來等你拍板的檢查點。
+
+---
+
 ## 命令介面（誰是入口）
 
-使用者**唯一的 pipeline 入口是 `/loops-workflow:dispatch`**（別名 `/loops-workflow:loop`）。下面所有階段（goal / define / explore / clarify / plan / build / verify / iterate）都標 **`user-invocable: false`** —— **不出現在 `/` 選單**，由 dispatch（及階段彼此）用 Skill tool **內部驅動**。這讓「dispatch 自己判類型、分流到對的起點」成為唯一進入方式，使用者不必（也不能）手動挑階段。side / opt-in 命令仍可直接喊：`explain`、`agents-md-maintainer`、`scaffold-fullstack`、`resume`、`status`、`progress`。
+使用者**唯一的 slash 入口是 `/loops-workflow:dispatch`**。所有其他 skill——階段（goal / define / explore / clarify / plan / build / verify / iterate）與側用（`explain`、`scaffold-fullstack`）——都標 **`user-invocable: false`**、**不出現在 `/` 選單**，由 dispatch（及階段彼此）用 Skill tool **內部驅動**：explain＝完整迴圈完工且 `LOOPS_EXPLAIN=1` 才自動產、scaffold-fullstack＝dispatch 對乾淨空專案路由；兩者也可自然語言請 Claude 執行（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 `references/docs-policy.md` 直接編輯）。接續中途 loop＝`dispatch <slug>`（自動偵測 resume）；查進度＝直接讀 `.loops/<slug>/PROGRESS.md`（恆開 hook 自動重生）。
 
 ---
 
@@ -83,7 +114,7 @@ flowchart TD
 | **skill** | `scaffold-fullstack`（**loops-workflow 內建 skill**，自帶整棵模板樹 + scaffold 腳本、無外部依賴）｜**agent** 0 |
 | **何時** | dispatch 偵測目標**完全乾淨**（空目錄 / 無原始碼 / 無 `package.json` / 無 git 歷史）才觸發；既有 / 半成品專案不 scaffold |
 | **處理什麼** | 沒架構承載 issue、也沒 code 可改 → 先立專案骨架（Fastify + React 19 + TanStack + Kysely/SQLite + Vitest 分層全端 TS） |
-| **機制** | **一定停**用 `AskUserQuestion` 確認（scaffold 是大動作 + 棧定死）→ 合用就跑模板 + `pnpm install` + typecheck/lint/test 驗收 → 接後續（**發散式 explore** 盤 backlog／§1.5 **define** 單一問題）。要別的棧 → 提示自建骨架。也可直接 `/loops-workflow:scaffold-fullstack` 單獨跑 |
+| **機制** | **一定停**用 `AskUserQuestion` 確認（scaffold 是大動作 + 棧定死）→ 合用就跑模板 + `pnpm install` + typecheck/lint/test 驗收 → 接後續（**發散式 explore** 盤 backlog／§1.5 **define** 單一問題）。要別的棧 → 提示自建骨架。（internal skill，僅由 dispatch 路由；也可自然語言請求） |
 | **策略** | **內建、永遠可用**（無跨-plugin 耦合）；棧定死、不合用不硬塞 |
 
 ---
@@ -197,7 +228,7 @@ flowchart TD
 | **skill** | `iterate`（1）｜**agent** 0（修正回 build 用其 subagent）；卡關時 **opt-in cross-model**（換別的模型當對手 reviewer） |
 | **處理什麼** | 把 verify 缺口 / PR reviewer 回饋分類、修根因、決定回環或完工 |
 | **機制** | 收集回饋（`type=fix` 走 `pr-feedback-sources.md`：inline comment 要 `gh api`）→ **RECONCILE 四分類** → **Stop-the-Line 修**（DIAGNOSE 先定位失敗層 + `git bisect` → 修根因 → 每修加回歸測試）→ **修完一定再 verify** → 完工 or 回環（看收斂·≤3 圈·不收斂即 escalate） |
-| **完工交接物（依類型）** | **修正型**＝一份修正回覆 comment（`comment-policy` §8 版型：工程角度根因/怎麼修/怎麼驗＋客戶角度修正前→後；**不@reviewer**）；**完整迴圈**＝PR 收尾 comment + **自動產 explain**。follow-up 留當前 issue 不另開。PR body 放 `Closes #issue`、指派 `@me`、與 master 衝突自動合併 |
+| **完工交接物（依類型）** | **修正型**＝一份修正回覆 comment（`comment-policy` §8 版型：工程角度根因/怎麼修/怎麼驗＋客戶角度修正前→後；**不@reviewer**）；**完整迴圈**＝PR 收尾 comment + **explain（`LOOPS_EXPLAIN=1` 才產，未開跳過＋Journal 留痕）**。follow-up 留當前 issue 不另開。PR body 放 `Closes #issue`、指派 `@me`、與 master 衝突自動合併 |
 | **收尾清理（兩時機）** | ① **loop 結束時**（不論交不交 PR）清掉 loop 期間所有暫存：移除 worktree（`git worktree remove`/`prune`）、刪草稿/截圖/scratch · ② **PR 合併後**（solo 自己合併→自己清，**使用者核可後才 merge**）刪分支（`gh pr merge <PR#> --squash --delete-branch`，**一律 squash 單一 commit**、策略見 `pr-spec`〈merge 策略〉，只留 `main`+進行中）· loop 暫存一律不入庫（`.loops`/`.claude/worktrees`/`data`/`dev.json`/截圖 由 `.gitignore` 涵蓋，`git ls-files` 掃一遍） |
 | **策略** | **交 reviewer 前把問題解到最少**（actionable 一律自動全修、不問「修多少」）· severity 只決定停不停、不決定修不修 · **回環看收斂**（findings 沒變少 / 同條復現就 escalate，不等第 3 圈）· **3 圈上限 = 檢查點非硬牆**（停下問你：回頭重想 / 換跨模型 / 授權再繞重置計數） |
 | **gate** | ✋ 完工 or 回哪階段（修完再 verify 不是選項，一律再驗） |
@@ -211,18 +242,7 @@ flowchart TD
 | **skill** | `explain`（1，read-only）｜**agent** 0 |
 | **處理什麼** | 幫人**看懂一份改動**怎麼接起來 + 自測是否真懂 |
 | **機制** | 實作導讀（進入點→責任盒→介面邊→payload 流動 + mermaid + `file:line`）+ **5 題 ownership 自測** + 設計方向 recap |
-| **策略** | 給**工程師**理解用（接手 / 維護 / 確認 Claude 做了什麼），不是給 reviewer。完整迴圈完工時自動產 |
-
----
-
-## 8.5 agents-md-maintainer — AGENTS.md 文檔維運（側用，不在迴圈裡）
-
-| 項目 | 內容 |
-|---|---|
-| **skill** | `agents-md-maintainer`（1，documentation-only）｜**agent** 0 |
-| **處理什麼** | 漸進建 / 維護 repo 的 agent-facing 文檔（根 `AGENTS.md` + `docs/agent-doc-coverage.md` 追蹤表 + 各模組 `AGENTS.md`） |
-| **機制** | 決策樹：缺根檔→建+停／缺追蹤表→建+停／都在→挑一個未覆蓋 / 過期模組掃描+建檔+更新追蹤表+停。**每次一個 scope**、檔名嚴格 `AGENTS.md`、最小有用文檔原則 |
-| **策略** | **橫切文檔治理、不屬 feature 迴圈** —— 與 `explain` 同屬側用，**不被 `dispatch` 路由**；只動文檔不碰 runtime code |
+| **策略** | 給**工程師**理解用（接手 / 維護 / 確認 Claude 做了什麼），不是給 reviewer。完整迴圈完工且 `LOOPS_EXPLAIN=1` 時自動產（未開不產） |
 
 ---
 
@@ -233,9 +253,9 @@ flowchart TD
 | **記憶體** | `.loops/<slug>/`：`loop.md`（儀表板 + Journal）+ `0N-*.md`（各階段精煉產出） | Memory |
 | **隔離工作樹** | 會動 code 的迴圈在 `git worktree`（`<issue#>-<slug>` 同名 branch） | Worktrees |
 | **子代理** | build 紅綠 3 + verify 0～6 核心（步驟 1 風險梯）+ 10 條件式 + validator；各依角色靜態選 model/effort tier（見 `references/model-effort-policy.md`），高風險時 verify/build 派工才動態拉 `model: opus` | Subagents |
-| **技能** | 13 個 skill（SKILL.md 統一骨架） | Skills |
+| **技能** | 11 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
-| **自動化** | `dispatch auto`、`/loop`·`/schedule`、progress（/progress + Stop hook 自動產 PROGRESS.md） | Automations |
+| **自動化** | `LOOPS_AUTO=1` 自動連跑、`/loop`·`/schedule`（Claude Code 內建排程）、progress（Stop hook 自動產 PROGRESS.md） | Automations |
 
 **兩座標 + 一總綱**（見 `AGENTS.md`）：
 - **類型**：Closed Loop（預設，人類框架內把關）/ opt-in Open（`auto` 連跑）。
@@ -249,10 +269,10 @@ flowchart TD
 
 | | |
 |---|---|
-| **skill** | 12（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **agents-md-maintainer** 側用文檔維運）。〔`distill` 已降為文件 `docs/distill.md`、不再可呼叫〕 |
-| **agent** | 21（+ 2 個 opt-in 高風險 -deep 變體：security-reviewer-deep / architecture-reviewer-deep，opus·high）= build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + eval-judge（eval E4，無 oracle 維度評分、主迴圈/Workflow 派）+ 10 條件式領域 reviewer（accessibility / ci-cd / docs-devex / frontend-ui / migration / observability / processing-reliability / root-cause / web-performance / **multi-user-concurrency〔專案宣告多人使用才派，非改動領域觸發〕**，視改動面 / 專案宣告加派）。explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose（不計入此數）。全 21 個 frontmatter 各帶 `model`+`effort` tier（`model-effort-policy.md`：多為 sonnet·medium，窄任務 sonnet·low，referee opus·high） |
+| **skill** | 11（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架） |
+| **agent** | 21（+ 4 個 opt-in 高風險 -deep 變體：security-reviewer-deep / architecture-reviewer-deep / code-quality-reviewer-deep / finding-validator-deep，opus·high）= build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + eval-judge（eval E4，無 oracle 維度評分、主迴圈/Workflow 派）+ 10 條件式領域 reviewer（accessibility / ci-cd / docs-devex / frontend-ui / migration / observability / processing-reliability / root-cause / web-performance / **multi-user-concurrency〔專案宣告多人使用才派，非改動領域觸發〕**，視改動面 / 專案宣告加派）。explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose（不計入此數）。全 25 個（含 4 個 -deep 變體）frontmatter 各帶 `model`+`effort` tier（`model-effort-policy.md`：多為 sonnet·medium，窄任務 sonnet·low，referee opus·high） |
 | **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 10 條件式）+ N validator |
-| **reference** | 51 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification 寫碼五標準 + bdd-scenarios / code-retrieval / model-effort-policy + 9 份 per-axis 審查判準（含 multi-user-review）+ verify-triage 風險分級 + operation-first-move + instinct-schema + eval-judge-rubric 無 oracle 維度評分卡 + eval-judge-panel / eval-live-candidate Phase 3 活流程 recipe）｜**command** loop / resume / status / explain / progress｜**hook** 8 個 / 4 事件（SessionStart 恆跑、其餘 6 個 opt-in 預設關；皆永不擋路）：SessionStart(浮 active 迴圈 + instinct 注入 opt-in) + Stop(cost-tracker 估成本 + eval-gate 改檔回合多訊號注入〔eval-metrics check 退化 LOOPS_EVAL_GATE／eval-tags by-tag 失敗 tag LOOPS_EVAL_TAGS_GATE／eval-poll poll 共識 LOOPS_EVAL_POLL_GATE，三 flag 獨立〕 + stop-gate 改檔回合自動跑 quality-gate + progress-render（恆跑，每回合對本 session active loop 重生 PROGRESS.md、不注入、永不擋路）) + PostToolUse(edit-accumulator 累積改檔) + PreToolUse(suggest-compact compact 提醒 + config-protection 擋弱化 linter 設定) |
+| **reference** | 52 份（含 clean-code / clean-architecture / design-patterns / refactoring / code-simplification / minimalism-ladder 寫碼六標準 + bdd-scenarios / code-retrieval / context-diet 輸出瘦身 / model-effort-policy + 9 份 per-axis 審查判準（含 multi-user-review）+ verify-triage 風險分級 + operation-first-move + eval-judge-rubric 無 oracle 維度評分卡 + eval-judge-panel / eval-live-candidate Phase 3 活流程 recipe）｜**command** 0（唯一 slash 入口＝`dispatch` skill；resume＝`dispatch <slug>`、查進度＝讀 `PROGRESS.md`）｜**hook** 10 個 / 4 事件（三類：SessionStart 與 progress-render **恆跑**；**預設開 6 枚**〔#85 loops-path-guard＋#87 cost-tracker／eval-gate×3／config-protection（loops-scoped），僅字面 `'0'` 關〕；**opt-in 3 枚**〔stop-gate＝RCE 面、compact-hint＝中性、loop-driver＝#99 build 階段自動續跑——#87 逐枚留痕，見 journaling 決策表〕。除 deny 類與 loop-driver 的 opt-in 續跑 block 外皆永不擋路）：SessionStart(浮 active 迴圈) + Stop(cost-tracker 估成本〔預設開〕 + eval-gate 改檔回合多訊號注入〔三 flag 獨立、預設開〕 + stop-gate 改檔回合自動跑 quality-gate〔opt-in＋發現性提示〕 + progress-render（恆跑，每回合對本 session active loop 重生 PROGRESS.md、不注入、永不擋路） + loop-driver（末位掛載，build 階段自動驅動迴圈續跑〔opt-in LOOPS_LOOP_DRIVER=1；家族首支 decision:block hook；防重入／保險絲／fail-open／完工雙帳本〕）) + PostToolUse(edit-accumulator 累積改檔〔.loops 存在且任一消費 flag 啟用才記〕) + PreToolUse(suggest-compact compact 提醒〔opt-in〕 + config-protection 擋弱化 linter 設定〔預設開、loops-scoped〕 + loops-path-guard 擋 .loops 寫進 worktree〔預設開，AGENTS 規則 9 機械化〕) |
 
 ---
 
@@ -269,10 +289,9 @@ flowchart TD
 | build | 1 | **2 / 任務**（test+impl）+ referee | 衝突時 referee |
 | verify | 1 | **1–6 + 0–10 + N** | 同回合並行（multi-user 由專案宣告觸發） |
 | iterate | 1 | 0（+cross-model 選用） | 卡關時 |
-| explain（側） | 1 | 0 | 唯讀 |
-| agents-md-maintainer（側） | 1 | 0 | 維護 AGENTS.md（不入迴圈） |
+| explain（側） | 1 | 0 | 唯讀（完整迴圈完工且 LOOPS_EXPLAIN=1 才自動產） |
 | scaffold-fullstack（前置） | 1 | 0 | 完全乾淨空專案建骨架 |
 
 ---
 
-> **維護**：本檔同步自 plugin 各 `SKILL.md` / `agents/` / `references/` —— **改了流程（階段行為、agent 分工、機制、策略）就一併更新這份**，讓它跟著 SKILL 走、不 drift。這份是給人讀的全貌總覽，**正本機制仍以各 `SKILL.md` 為準**。
+> **維護**：本檔同步自 plugin 各 `SKILL.md` / `agents/` / `references/` —— **改了流程（階段行為、agent 分工、機制、策略）就一併更新這份**，讓它跟著 SKILL 走、不 drift。這份是給人讀的全貌總覽，**正本機制仍以各 `SKILL.md` 為準**。開頭〈5 分鐘導讀〉的簡化圖與 §0 詳細圖**描述同一流程——改流程時兩張圖一起改**。

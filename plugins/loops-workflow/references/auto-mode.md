@@ -4,13 +4,13 @@
 
 ## 怎麼開
 
-- `dispatch auto <描述>` —— 整個 run 走 auto。
-- 或在 `loop.md` 把 `推進模式` 設為 `auto`。
+- **環境變數 `LOOPS_AUTO=1`**（與 `LOOPS_STOP_GATE` 等 opt-in flag 同慣例、手動設定）—— dispatch 建 loop.md 前用 Bash `echo "${LOOPS_AUTO:-}"` 檢查，輸出 `1` → 整個 run 走 auto。**注意（#99）**：`loop-driver` hook（`LOOPS_LOOP_DRIVER=1` 時的 build 機械續跑）在**每次 Stop 當下**也讀這個環境變數，且**會覆蓋 loop.md 記錄的 `closed`**——殘留的 `LOOPS_AUTO=1`（如上個 session 忘了 unset）會讓 closed loop 的 build 被意外續跑；詳見 `journaling.md` loop-driver 條目。
+- 或在 `loop.md` 把 `推進模式` 設為 `auto`（既有 loop 續跑時改）。
 - 也可只對某段開：plan 拍板時說「接下來 build→verify 走 auto」。
 
 ## auto 模式做什麼
 
-核准計畫後，主線自動依序跑 `build → verify → iterate`，**每階段照樣**：寫 `.loops/` 對應 markdown、分段 commit、紅綠分離、6 reviewer fan-out。只是**不在階段之間停下等人**。
+核准計畫後，主線自動依序跑 `build → verify → iterate`，**每階段照樣**：寫 `.loops/` 對應 markdown、分段 commit、紅綠分離、多 reviewer fan-out。只是**不在階段之間停下等人**。
 
 ## 但這些情況**一定停**（auto 的硬煞車）
 

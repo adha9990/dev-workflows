@@ -34,7 +34,7 @@ coordinator（主線）看 build 的 Change Summaries + 改動檔案清單：碰
   |---|---|---|
   | 多人 / 併發 / 協作使用 | `multi-user-concurrency-reviewer` | 且本次改動觸及**共享 / 持久化狀態、授權、或會被多使用者並發走到的變更 path**（純前端樣式 / 純文件 / 單機 CLI 等不觸及並發狀態的改動不派，避免噪音） |
 
-- **要新增專案宣告條件**：在目標專案的 `AGENTS.md` 明文宣告（建議放獨立小節，讓 `agents-md-maintainer` 也維護得到），再在本表補一列 + 對應 reviewer/reference。**條件的「開關」在專案、判準在 plugin。**
+- **要新增專案宣告條件**：在目標專案的 `AGENTS.md` 明文宣告（建議放獨立小節，方便後續文檔維護），再在本表補一列 + 對應 reviewer/reference。**條件的「開關」在專案、判準在 plugin。**
 
 ## 與核心 reviewer 的分工
 

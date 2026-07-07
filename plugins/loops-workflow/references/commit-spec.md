@@ -16,7 +16,7 @@
 
 ## inspect-before-draft
 
-寫 message 前先 `git status` / `git diff --staged` / `git log` —— message 要對齊**實際 staged 的 diff**，不是憑印象。
+寫 message 前先 `git status` / `git diff --staged --stat` / `git log --oneline` 概覽（`context-diet.md` §B：需逐行內容寫 body 才開 full diff、限定路徑）—— message 要對齊**實際 staged 的 diff**，不是憑印象。
 
 ## commit splitting
 

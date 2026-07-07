@@ -16,6 +16,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { flagEnabled } from './hook-flags.mjs';
+
 const DEFAULT_BASE = 250000; // 第一級提醒門檻（tokens）
 const DEFAULT_STEP = 60000; // 每升一級的級距（tokens）
 const DEFAULT_TTL_MS = 14 * 24 * 60 * 60 * 1000; // state 過期門檻：14 天
@@ -120,7 +122,7 @@ function main() {
     return;
   }
 
-  if (process.env.LOOPS_COMPACT_HINT !== '1') return; // 預設關閉
+  if (!flagEnabled('LOOPS_COMPACT_HINT', process.env)) return; // optIn：僅字面 '1' 開
 
   let transcript;
   try {

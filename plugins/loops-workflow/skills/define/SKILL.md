@@ -1,7 +1,7 @@
 ---
 name: define
 user-invocable: false
-description: Turns any new work without a GitHub issue into a structured, template-ready feature issue — the single entry for creating ANY issue (never ad-hoc gh create), using a Readiness Model, the repo's issue template, one-question-at-a-time intake, scope sizing, and a flow-diagram policy. There is no standalone research issue: when how-to is unclear, the feature issue flags it and explore researches it during the issue's loop; or research precedes define. Routed to by dispatch for all no-issue work. NOT for an existing issue (→ goal/iterate).
+description: Turns any new work that has no GitHub issue yet into a structured, template-ready issue — the single entry for creating ANY issue (never ad-hoc gh create). There is no standalone research issue — research always serves a feature issue. Routed to by dispatch for all no-issue work. NOT for an existing issue (→ goal/iterate).
 ---
 
 # define — 把模糊問題具體化成 issue（再進 goal）

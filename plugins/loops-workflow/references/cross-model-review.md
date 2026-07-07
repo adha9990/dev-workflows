@@ -2,7 +2,7 @@
 
 > iterate / verify 用（opt-in）：同一個模型開再多 fresh context，也共享同一套盲點。當迴圈**卡住**或改動**blast radius 大**時，換一個**不同的模型 / CLI** 當對手 reviewer，抓出同模型結構性看不到的問題。
 >
-> 這是 loops-workflow 唯一沒有原生對應的 doubt-driven 機制 —— verify 的 6 reviewer、finding-validator、referee 全是**同模型** fresh context；真正不同的模型才補得了這個洞。
+> 這是 loops-workflow 唯一沒有原生對應的 doubt-driven 機制 —— verify 的各 reviewer、finding-validator、referee 全是**同模型家族** fresh context；真正不同的模型才補得了這個洞。
 
 ## 何時觸發（要先問使用者，預設不開）
 

@@ -22,6 +22,8 @@ effort: medium
 - **clean architecture**（`clean-architecture.md`）：依賴向內、副作用推到邊界、外部能力走 **port + 注入**（不在內層 `new` 基礎設施）、**落點對齊既有分層**、不憑空開頂層資料夾。
 - **安全**（`security-checklist.md`）：寫的當下就避開漏洞類別 —— 輸入在邊界驗證（allowlist）、authn/authz + ownership 檢查、SQL 參數化、敏感資料不進回應 / log、不藏密鑰。（完整威脅建模是 verify 的事；你負責**不寫出漏洞**。）
 - **重用**（`reuse-check.md`）：寫一個方法前先確認沒有既有的（稍異 ≠ 另造，優先參數化既有方法）。
+- **最小主義**（`minimalism-ladder.md`）：動手加任何新方法 / 檔案 / 抽象 / 依賴**前**，先依序爬階梯（需要做嗎 → 複用 → 標準庫 → 框架原生 → 已裝依賴 → 一行 → 最少代碼），停在最早滿足需求的那階——author-time 就砍掉不必要的，不留給 verify 抓。
+- **輸出瘦身**（`context-diet.md`）：自己跑測試／除錯命令時守紅綠不對稱（綠取末行、紅保 failure 全文＋skipped）、截斷必附 raw 落盤路徑（mktemp）；讀大檔用 offset/limit、改過的檔重讀不引舊讀。
 
 照標準寫，是讓**綠燈當下的 code 就乾淨、安全、不重造**；下一步 Refactor 是精修，**不是用來補救一開始就寫爛的 code**。
 
@@ -34,8 +36,21 @@ effort: medium
 - **過度簡化四陷阱**：別為了短而犧牲可讀性 / 把不同概念硬合併 / 刪掉看似多餘其實有用的防護 / 把顯式邏輯藏進魔法。
 - **紅旗**：若「簡化」需要改 test 才能過 → 你改的是**行為**不是結構，**立刻停**，這要走衝突仲裁或回 plan。
 
-## 回傳
+## 輸出協定（回報格式，逐字遵守）
 
-- 實作 code。
-- 重構做了什麼（對照四陷阱說明沒踩雷）。
-- 若有 test 爭議，明確標出「停下待裁決」而非自行修改。
+實作**寫進檔案**後（code 不貼回——主線跑 quality-gate 讀檔確認綠），回報**只有**這個結構化塊：
+
+```
+IMPL_COMPLETE
+status: green
+gate: <quality-gate/測試確認的一行摘要（含計數）>
+files: <改動檔數＋一行路徑摘要>
+refactor: <具名 smell→手法一行；未重構寫 none>
+deviation: <偏離 plan 之處＋為何（一行；無寫 none）——主線據此更新 living plan>
+risks: <一行；無寫 none>
+```
+
+- **test 爭議**（確信 test 與需求不符）→ **不出 `IMPL_COMPLETE`**，改出：`BLOCKED` ＋ `dispute: <test 檔:行或測試名> — <為何與需求不符（一句）>`。沿鐵律：不自行改 test，主線裁決（必要時派 referee）。
+- **抑制清單（never include）**：任務複誦、推理旁白（「首先我會…」）、慶祝語、完整 stack trace（一行＋落盤路徑即可，見 `context-diet.md`）、檔案內容全文貼回、實作 code 全文貼回。
+
+（bookend）回報一律以〈輸出協定〉收尾：sentinel 起頭、key:value、之外零 prose。

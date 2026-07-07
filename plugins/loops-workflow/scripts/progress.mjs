@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // progress.mjs —— loops-workflow 進度 renderer（取代舊的底部進度列）。
-// 兩出口：① stdout chat 儀表板（/loops-workflow:progress 用）② .loops/<slug>/PROGRESS.md（編輯器 preview）。
+// 兩出口：① stdout chat 儀表板（手動 CLI 除錯用）② .loops/<slug>/PROGRESS.md（編輯器 preview，由 progress-render hook 驅動）。
 // CLI：node progress.mjs [slug] [--write-only]。無 loop → no-op；任何錯誤吞掉 exit 0、永不擋路。
 // 純函式（extractProgress/renderChat/renderMarkdown）可直接 import 測；main() 為 IO 薄邊界 + import.meta.url 守衛。
 

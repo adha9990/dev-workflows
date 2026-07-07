@@ -50,6 +50,7 @@ Evidence checked:
 ## Coordinator 怎麼用
 
 - 輸出前合併重複的 validated finding。
+- validator 回 validated **且附降 P 級建議**（部分成立情形）→ coordinator **採用建議的新級**（理由一併留痕）；無建議＝保留原級。
 - validator 理由保留在報告的 `Validation coverage`。
 - rejected 直接丟（除非透露出有用的 non-blocking note）。
 - degraded 放「未驗證區域」或 Non-blocking notes，不放 Blocking findings，除非 coordinator 直接證明影響是 P0。

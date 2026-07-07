@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // edit-accumulator.mjs —— loops-workflow PostToolUse(Write|Edit|MultiEdit) hook：把本 session 編輯過的檔案路徑
 // 累積進 os.tmpdir() 的 state 檔，供 Stop 階段的 stop-gate / eval-gate 判斷「這趟有沒有改過檔」。
-// 純記錄、不擋路、任何錯誤 no-op exit 0。
+// 純記錄、不擋路、任何錯誤 no-op exit 0。loops-scoped（#87）：只在 payload.cwd 下存在 .loops/ 才記錄，
+// 不擾非 loops 專案。
 //
 // 分層（仿 hooks/suggest-compact.mjs）：
 //   1) 純函式（無 IO，測試直接 import）：addEdit / loadEdits / clearEdits / editsStateFile。
@@ -10,18 +11,20 @@
 //   3) IO 薄邊界：main()（讀 stdin、經上述 state IO 落盤）——被 import 時不執行（import.meta.url 守門）。
 // 依賴：僅 node 內建（fs / os / path / url / process），零外部套件。
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 // 安全檔名規則的單一真相源：沿用 suggest-compact 的 sanitizeSessionId（避免重抄正則而漂移）。
 import { sanitizeSessionId } from './suggest-compact.mjs';
+import { flagEnabled } from './hook-flags.mjs';
 
 export { sanitizeSessionId };
 
 // accumulator 的消費端旗標：任一開啟就代表有下游 gate 需要「這趟改了哪些檔」，producer 才記 edit。
-// stop-gate（LOOPS_STOP_GATE）與 eval-gate 三訊號（LOOPS_EVAL_GATE / _TAGS_GATE / _POLL_GATE）皆消費同一份 state。
+// stop-gate（LOOPS_STOP_GATE，optIn）與 eval-gate 三訊號（LOOPS_EVAL_GATE / _TAGS_GATE / _POLL_GATE，
+// defaultOn）皆消費同一份 state；各自依 hook-flags 的分類判斷開關（#87）。
 const ACCUMULATOR_FLAGS = ['LOOPS_STOP_GATE', 'LOOPS_EVAL_GATE', 'LOOPS_EVAL_TAGS_GATE', 'LOOPS_EVAL_POLL_GATE'];
 
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
@@ -98,19 +101,26 @@ export function clearEditsState(sessionId) {
 
 /**
  * PostToolUse(Edit|Write) hook 入口：把編輯過的 file_path 去重累積進本 session 的 state 檔。
- * 安全 / 永不擋路：env 預設關 / payload 壞掉 / 無檔路徑 → no-op；state 只落在 os.tmpdir()；任何例外 exit 0。
+ * 安全 / 永不擋路：先無條件讀滿 stdin 再查 flag——若先查 flag 就提前 return，子行程會在父行程仍在
+ *   寫大 payload 時提前關閉 pipe，觸發 EPIPE/EOF（見 hooks/loops-path-guard.mjs 的 P1 教訓，此處同序修復）。
+ * 消費 flag 全關 / payload 壞掉 / 無檔路徑 / cwd 下無 .loops/ → no-op；state 只落在 os.tmpdir()；任何例外 exit 0。
  */
 function main() {
-  // accumulator 的消費者是 stop-gate 與 eval-gate（含其 tags / poll 訊號）；ACCUMULATOR_FLAGS 任一開
-  // 才需要「這趟改了哪些檔」。全關時真 no-op、不寫 tmp——避免「opt-in 預設關卻仍每次寫 state」的 footprint 不一致。
-  if (!ACCUMULATOR_FLAGS.some((f) => process.env[f] === '1')) return;
-
   let payload;
   try {
     payload = JSON.parse(readStdin());
   } catch {
     return; // payload 壞 → no-op
   }
+
+  // accumulator 的消費者是 stop-gate 與 eval-gate（含其 tags / poll 訊號）；ACCUMULATOR_FLAGS 任一
+  // 依 hook-flags 判定為開，才需要「這趟改了哪些檔」。全關時真 no-op、不寫 tmp——
+  // 避免「flag 關卻仍每次寫 state」的 footprint 不一致。
+  if (!ACCUMULATOR_FLAGS.some((f) => flagEnabled(f, process.env))) return;
+
+  // loops-scoped（#87）：只在 payload.cwd 下存在 .loops/ 才記錄，不擾非 loops 專案。
+  const cwd = payload?.cwd;
+  if (typeof cwd !== 'string' || !existsSync(join(cwd, '.loops'))) return;
 
   const filePath = payload?.tool_input?.file_path;
   if (typeof filePath !== 'string' || !filePath) return; // 無檔路徑 → 無事可記

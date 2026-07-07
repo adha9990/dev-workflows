@@ -12,9 +12,13 @@
 //   node eval-tags.mjs by-tag --results <oracle-report.json>
 //   node eval-tags.mjs link   --eval <oracle-report.json> --findings <findings.json>
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+
+// 防惡意巨檔 DoS（#87 defaultOn 後自動吃 repo 可控輸入，security review）：readJson 讀檔前的
+// 位元組上限，與 eval-metrics.mjs 的 MAX_INPUT_FILE_BYTES / MAX_ORACLE_STDOUT 同款量級。
+const MAX_INPUT_FILE_BYTES = 16 * 1024 * 1024;
 
 // ── 純函式：tag 分組 / 聚合 ───────────────────────────────────────────────────────
 
@@ -102,8 +106,16 @@ function parseArgs(argv) {
   return opts;
 }
 
-function readJson(path) {
-  return JSON.parse(readFileSync(resolve(path), 'utf8'));
+/**
+ * 讀檔並 JSON.parse。maxBytes（可選，預設 MAX_INPUT_FILE_BYTES）：讀前先 statSync 檔大小，
+ * 超限 → 回安全空值 null（不讀入超限內容，不拋錯）——防惡意巨檔 DoS；讀檔 / parse 失敗仍拋錯，
+ * 交由呼叫端（cmdByTag / cmdLink）的既有 try/catch 判 exit 3（行為不變）。
+ * export 供測試 import（單一真相源，CLI 內部與測試共用同一份實作）。
+ */
+export function readJson(path, maxBytes = MAX_INPUT_FILE_BYTES) {
+  const resolved = resolve(path);
+  if (statSync(resolved).size > maxBytes) return null; // 超限 → 安全空值，不讀入內容
+  return JSON.parse(readFileSync(resolved, 'utf8'));
 }
 
 /** 容受 oracle aggregate（{tasks:[...]}）或裸陣列。 */

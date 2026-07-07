@@ -2,6 +2,21 @@
 
 > 進階：用一組**情境（scenario）+ baseline** 評估某個階段 skill 是否如預期運作。`scripts/run-eval.mjs` 驗證情境集結構（≥3 + baseline）並印出可逐條跑的 checklist。**選用**。
 
+## 入口表（目的 → 跑哪支）
+
+本檔按票號演進編年組織（E1–E7 + 活流程）；要動手先查這張表、再跳對應段：
+
+| 我要… | 跑哪支 | 段 |
+|---|---|---|
+| 驗證 scenario 檔結構＋印人工勾檢 checklist | `run-eval.mjs` | 本節（下方） |
+| 用可執行 oracle 判 task 通過與否（零 judge） | `eval-oracle.mjs` | E1 |
+| 跨 run 聚合＋回歸 gate（passRate 退化 exit≠0） | `eval-metrics.mjs` | E2 |
+| 比對執行軌跡是否符合 reference（純規則） | `eval-trajectory.mjs` | E3 |
+| 無 oracle 維度（解釋/溝通品質）rubric 評分 | `eval-judge.mjs` | E4 |
+| judge 對人工金標的 κ 校準＋多 judge 投票 | `eval-poll.mjs` | E5 |
+| live-candidate 真 pass^k（多 run 全過才算穩） | `eval-passk.mjs` | E7 |
+| 沙箱檢查／執行計畫（容器隔離跑 candidate） | `eval-sandbox.mjs` | E7（protocol 見 `evals/live/README-protocol.md`） |
+
 ## scenario 檔格式（JSON）
 
 ```json
@@ -140,11 +155,11 @@ node plugins/loops-workflow/scripts/eval-metrics.mjs check [--metrics-file <path
 node plugins/loops-workflow/scripts/eval-metrics.mjs versions [--metrics-file <path>]
 ```
 
-> MVP 交付為 CLI；自動掛回歸檢查已由 **#35 的 `eval-gate` Stop hook**（opt-in `LOOPS_EVAL_GATE`、改檔回合自動跑 `check`、退化注入）落地；`eval-results.jsonl` 由 `appendEvalRow` 內建 rotation（上限 1000 行）防無界成長。
+> MVP 交付為 CLI；自動掛回歸檢查已由 **#35 的 `eval-gate` Stop hook**（`LOOPS_EVAL_GATE`——**#87 起預設開、僅字面 `'0'` 關**（現值以 `references/journaling.md` 決策表為準）、改檔回合自動跑 `check`、退化注入）落地；`eval-results.jsonl` 由 `appendEvalRow` 內建 rotation（上限 1000 行）防無界成長。
 >
-> **多訊號 eval-gate（#49）**：同一個 Stop hook 另含兩條獨立 opt-in 訊號，共用「改檔回合（edit-accumulator）」前置、各讀已持久化 artifact、注入合併進單一 `additionalContext`、皆永不擋路（缺輸入檔/壞輸出/spawn 失敗 → 該訊號不注入、exit 0）：
-> - **`LOOPS_EVAL_TAGS_GATE=1`** → 讀 `.loops/.metrics/eval-report.json`（per-task report，**由 `eval-metrics record` 持久化**：record 跑 oracle 時順手把 report 寫在 metrics 檔同目錄）→ `eval-tags by-tag` → 只注入**本次** `failed>0` 的 tag 類別（看哪類有 eval 失敗；讀 latest-overwrite 單份快照、非跨 run 頻率；全綠靜默）。
-> - **`LOOPS_EVAL_POLL_GATE=1`** 且有 `.loops/.metrics/judge-results.jsonl`（上層 panel recipe 產）→ `eval-poll poll --score-method median` → 注入 judge panel 共識計數（judge-estimate advisory、非回歸 gate；無共識靜默）。
+> **多訊號 eval-gate（#49）**：同一個 Stop hook 另含兩條獨立訊號（**#87 起同樣預設開**），共用「改檔回合（edit-accumulator）」前置、各讀已持久化 artifact、注入合併進單一 `additionalContext`、皆永不擋路（缺輸入檔/壞輸出/spawn 失敗 → 該訊號不注入、exit 0）：
+> - **`LOOPS_EVAL_TAGS_GATE`** → 讀 `.loops/.metrics/eval-report.json`（per-task report，**由 `eval-metrics record` 持久化**：record 跑 oracle 時順手把 report 寫在 metrics 檔同目錄）→ `eval-tags by-tag` → 只注入**本次** `failed>0` 的 tag 類別（看哪類有 eval 失敗；讀 latest-overwrite 單份快照、非跨 run 頻率；全綠靜默）。
+> - **`LOOPS_EVAL_POLL_GATE`** 且有 `.loops/.metrics/judge-results.jsonl`（上層 panel recipe 產）→ `eval-poll poll --score-method median` → 注入 judge panel 共識計數（judge-estimate advisory、非回歸 gate；無共識靜默）。
 > 三 flag（GATE/TAGS/POLL）獨立、可組合；注入精簡（讀摘要非全量：tags 只列失敗類別、poll 只列計數）。
 
 ---
@@ -218,7 +233,7 @@ exit code：`validate-rubric` valid 0 / invalid 1 / 讀檔失敗 3；`parse` 產
 - `pairJudgeVsGold(records, gold)`：依 caseId 配 `gold[].id`（gold 帶 boolean `goldPass`）→ pass label pairs 餵 cohenKappa；無配對 → `unmatched`。
 
 ## 金標集（`evals/gold/<dimension>.json`）
-陣列，每筆 `{id, dimension, artifactRef, goldPass:boolean, goldScore, note, provenance}`（`id` 對 judge record 的 `caseId`、是唯一連結鍵；`artifactRef`＝指向被評 artifact 的機讀欄；`provenance`＝`synthetic-anchor`/`self-annotated-baseline`/`human`，標金標來源）。**#50 已養到 62 筆**（6 抽象錨 + 56 真實 commit 訊息 artifact，附 `artifacts/explanation-quality.json` 文字快照 + `judge-results-demo.jsonl` 獨立盲標軌）→ 跑 `eval-poll kappa` 得 **κ=0.845（strong）**。**⚠️ 但這是 `self-annotated-baseline`（LLM 套 rubric 標）非獨立人工金標**：κ 量的是 **inter-agent 一致性**（gold-annotator vs 3 段獨立盲標 judge-fleet，皆同 opus 模型家族、不同 agent context）、**非 judge-vs-人類校準**——證明 pipeline 端到端可跑 + rubric 在獨立盲標 agent pass 間應用一致（同模型家族、**非**跨不同模型），**不證明 judge 對齊人類**。真人工金標（`provenance:human`）＝唯一待人類步驟、operational 交接（見 `evals/gold/README.md`）。**Metric-Honesty**：κ 是**估算**、標來源，非確定性權威；judge-estimate 軌不污染 oracle 回歸曲線。
+陣列，每筆 `{id, dimension, artifactRef, goldPass:boolean, goldScore, note, provenance}`（`id` 對 judge record 的 `caseId`、是唯一連結鍵；`artifactRef`＝指向被評 artifact 的機讀欄；`provenance`＝`synthetic-anchor`/`self-annotated-baseline`/`human`，標金標來源）。**#50 已養到 62 筆**（6 抽象錨 + 56 真實 commit 訊息 artifact，附 `artifacts/explanation-quality.json` 文字快照）→ 曾以獨立盲標軌跑 `eval-poll kappa` 得 **κ=0.845（strong）**（demo 軌屬一次性材料、#95 清理，歷史細節見 `evals/gold/README.md`）。**⚠️ 但這是 `self-annotated-baseline`（LLM 套 rubric 標）非獨立人工金標**：κ 量的是 **inter-agent 一致性**（gold-annotator vs 3 段獨立盲標 judge-fleet，皆同 opus 模型家族、不同 agent context）、**非 judge-vs-人類校準**——證明 pipeline 端到端可跑 + rubric 在獨立盲標 agent pass 間應用一致（同模型家族、**非**跨不同模型），**不證明 judge 對齊人類**。真人工金標（`provenance:human`）＝唯一待人類步驟、operational 交接（見 `evals/gold/README.md`）。**Metric-Honesty**：κ 是**估算**、標來源，非確定性權威；judge-estimate 軌不污染 oracle 回歸曲線。
 
 ## 跑
 ```bash

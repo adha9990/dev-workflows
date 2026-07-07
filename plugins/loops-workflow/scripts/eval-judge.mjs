@@ -130,7 +130,7 @@ function coerceNumber(v) {
 // ── 純函式層：rubric 解析 + 驗證 ──────────────────────────────────────────────────
 
 /**
- * 抽 rubric 的扁平 YAML frontmatter 純量（regex，仿 instinct）+ 數 ## Evaluation steps 下的編號步驟。
+ * 抽 rubric 的扁平 YAML frontmatter 純量（regex，不引 YAML lib）+ 數 ## Evaluation steps 下的編號步驟。
  * → { dimension, scaleMin, scaleMax, threshold, schema, stepCount }（缺/壞 → 對應欄 null / 0）。
  */
 export function parseRubricMeta(text) {

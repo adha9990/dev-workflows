@@ -1,6 +1,8 @@
 # ADR 模板（含 Consequences）
 
 > plan 階段記錄設計決策用，存進 `02-plan.md`。重點是 **Alternatives Considered**（每個候選的 pros/cons + 為什麼被否決）與 **Consequences**（決策的後果，含負面）。
+>
+> **用途區分**：本模板＝**獨立 ADR 檔**用；plan 內嵌的決策留痕表＝`design-plan-schema.md` §6 欄位集（選擇 / 為什麼 / 背書 / 未採用 / 拍板人），兩者用途不同、不可混用。
 
 ## 模板
 
