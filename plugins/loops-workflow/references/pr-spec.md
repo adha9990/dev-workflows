@@ -34,6 +34,7 @@ issue-driven PR 的 **body 開頭必須放關閉關鍵字** `Closes #<issue>`（
 
 ## 收尾
 
+- **push ≠ merge：push 不需 gate、只有 merge 需**。開 PR / 同步 master / 補 commit 後**自動 `git push` branch**，**不要停下等使用者說「push」**——push 只是把已 commit 的東西送上遠端，唯一的 human gate 是 **merge**。同理，plugin 維護 / 其他 repo 的 commit 也**自動 push**（別擱著「等使用者決定 push」——那不是 gate）。（實測教訓：曾把 plugin commit 擱在本機不 push、使用者得回頭要求。）
 - **開 / 改 PR 時自動與 master 同步**：`git fetch origin master` 後若 branch 落後 / 與 master 衝突 → **自動把 master 合進 branch**（`git merge origin/master`）並解衝突（謹慎解、不盲目取單邊；真的解不清才停下用 `AskUserQuestion` 問），解完 push —— **不留帶衝突 / 落後的 PR**，再請求 review。
 - 送出前對外內容（PR body / 回覆）先寫 tmp 草稿給使用者校稿（見 `references/comment-policy.md`），確認才 post。
 - **開 / 改 PR 後驗證 `gh pr view <PR#> --json closingIssuesReferences` 已含目標 issue**（body 的 `Closes #<issue>` 生效了），不是空陣列。
@@ -53,3 +54,8 @@ gh pr merge <PR#> --squash --delete-branch \
 - **編號來源**：subject 尾綴 `(#<PR#>)`（squash commit 慣例、用 **PR 號**）、`Closes #<issue>` 放 **body**（用 **issue 號**）。PR 號 ≠ issue 號是正常，別把 subject 的 PR# 改成 issue#。
 - `--delete-branch`：合併後刪遠端分支（本機分支 / worktree 由 `skills/iterate` §6 收尾清理）。
 - merge **本身仍是 human gate** —— 使用者核可才執行；這段只規範「核可後用什麼策略合」，不改「誰決定 merge」。
+
+## worktree / 分支清理時機（refine `skills/iterate` §6）
+
+- **worktree 保留到 PR close / merge**：solo review 流程下 PR 開著期間，使用者可能還要在該 branch 的 worktree 跑 / 檢視 → **loop 完工不立即刪 worktree**，**等 PR merge / close 後**才連同分支一起清（`--delete-branch` 刪遠端、本機 worktree 這時再 `git worktree remove`）。iterate §6 的「loop 結束即清 worktree」對「solo + PR 還開著」放寬成「PR close 後清」；**tmp 草稿 / 截圖等其他暫存仍在 loop 結束就清**（只有 worktree 延後）。
+- **Windows 檔案鎖**：`git worktree remove --force` 常因 `node_modules` 被 TS server / esbuild / vitest 佔用而失敗（`Directory not empty` / `Device or resource busy`）。此時 **`git worktree prune` 仍會把它從 `git worktree list` 除名**（git 層已乾淨）；殘留目錄已被 `.gitignore`（`.claude/worktrees/`）涵蓋、**不入庫、無害**，待鎖釋放（關 IDE / 下個 session）再手動刪即可。**別為刪一個被鎖的目錄卡住流程**；也**別在 PR 還開著時就去刪 worktree**（見上條）。
