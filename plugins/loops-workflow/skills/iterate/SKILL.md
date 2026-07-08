@@ -93,7 +93,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 1. **iterate 結束本 loop 時（完工或中止）→ 清掉 loop 期間產生的臨時 scratch**：刪掉草稿 tmp（應已 post 後刪）、screenshot / gif、scratch 檔等**本機臨時產物**。**這步在 loop 收尾就做，不等 PR**。
    - **但 worktree 不在這步清（有開著的 PR 時保留到 §②）**：交了 PR、等人工驗收 / merge 這段期間，**使用者可能還要從該隔離 worktree 跑 / 檢視**（例如 `pnpm dev` 在獨立 portless 子網域驗證 PR 的改動、不擾主 checkout）—— loop 一結束就砍掉 worktree 會**破壞這段期間的驗收能力**。所以**有開著的 PR 時，該 loop 的 worktree 保留到 PR merge / close 才連同分支一起清（§②）**。
    - **只有「本 loop 沒交 PR」（純中止 / 無 PR 產出）→ 沒有要保留 worktree 的理由，loop 結束即可一併移除**（`git worktree remove --force .claude/worktrees/<slug>` → `git worktree prune`；被鎖刪不掉至少 prune）。
-2. **PR merge / close 後 → 清掉分支 + worktree**：正常流程是 reviewer 審核後才由 reviewer 合併；**本專案是 solo（作者自己合併）→ 合併後也由你自己刪分支 + 清 worktree**（**使用者核可後**用 `gh pr merge <PR#> --squash --delete-branch` —— merge 仍 human-gated、**一律 squash、單一 commit 回 master**，完整 merge 策略見 `references/pr-spec.md`〈merge 策略〉；或事後 `git push origin --delete <slug>` + `git branch -D <slug>`）。**worktree 也在這時才 `git worktree remove --force .claude/worktrees/<slug>` → `git worktree prune`**（被鎖刪不掉至少 prune；殘留目錄已 `.gitignore`、無害，詳見 `references/pr-spec.md`〈worktree / 分支清理時機〉）。**PR 被 close 未 merge 也是同一時機**——不再需要那個 worktree，同樣刪分支 + 清 worktree。遠端 / 本機**只留 `main` + 仍在處理中的 loop 分支**，不囤積已合併分支。
+2. **PR merge / close 後 → 清掉分支 + worktree**：正常流程是 reviewer 審核後才由 reviewer 合併；**本專案是 solo（作者自己合併）→ 合併後也由你自己刪分支 + 清 worktree**（**使用者核可後**用 `gh pr merge <PR#> --squash --delete-branch` —— merge 仍 human-gated、**一律 squash、單一 commit 回 master**，完整 merge 策略見 `references/pr-spec.md`〈merge 策略〉；或事後 `git push origin --delete <slug>` + `git branch -D <slug>`）。**worktree 也在這時才 `git worktree remove --force .claude/worktrees/<slug>` → `git worktree prune`**（被鎖刪不掉至少 prune；殘留目錄未被 git 追蹤（untracked）、無害，詳見 `references/pr-spec.md`〈worktree / 分支清理時機〉）。**PR 被 close 未 merge 也是同一時機**——不再需要那個 worktree，同樣刪分支 + 清 worktree。遠端 / 本機**只留 `main` + 仍在處理中的 loop 分支**，不囤積已合併分支。
 
 **loop 暫存一律不入庫**：worktree、草稿、截圖、`.loops/`、`data/`、`dev.json` 等都不該被 commit / push。repo `.gitignore` 要涵蓋 `.loops/`、`.claude/worktrees/`、`data/`、`dev.json`、截圖（缺就補）；`git ls-files` 掃一遍確認沒有暫存被追蹤。
 
@@ -144,5 +144,5 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 收尾交接物依迴圈類型：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」；完整迴圈產 PR 收尾 comment **＋三份 loop 收尾檔 `deliverables/{explain,checklist,cost}.md`（無編號、一律產）**；對外的 comment 經使用者確認才送、未自動 post、回環途中不產。
 - [ ] **AGENTS.md 同步已判**：docs-policy 檢查命中「慣例 / 規則改變」→ 主線已依 docs-policy（含〈怎麼寫〉守門）直接編輯對應段落；未命中 → 未動也未問（不對無關迴圈加噪音）。
 - [ ] follow-up 在當前 issue 內處理，沒有擅自另開新 issue。
-- [ ] **收尾清理兩時機都做了**：① loop 結束時清掉臨時 scratch（草稿 / 截圖 / gif / scratch，不等 PR）—— **有開著的 PR 時 worktree 不在這步清**（只有沒交 PR 的純中止才連 worktree 一起清）；② PR merge / close 後刪分支 + 清 worktree（solo 自己合併自己清，只留 `main` + 進行中）。loop 暫存沒被推上去（`.gitignore` 有涵蓋）。
+- [ ] **收尾清理兩時機都做了**：① loop 結束時清掉臨時 scratch（草稿 / 截圖 / gif / scratch，不等 PR）—— **有開著的 PR 時 worktree 不在這步清**（只有沒交 PR 的純中止才連 worktree 一起清）；② PR merge / close 後刪分支 + 清 worktree（solo 自己合併自己清，只留 `main` + 進行中）。loop 暫存沒被推上去（未追蹤 / `.gitignore` 涵蓋，`git ls-files` 掃一遍確認）。
 - [ ] 停在 `iterate` 決策 gate。
