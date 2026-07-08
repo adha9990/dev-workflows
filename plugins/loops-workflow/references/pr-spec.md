@@ -89,5 +89,5 @@ gh pr merge <PR#> --squash --delete-branch \
 
 ## worktree / 分支清理時機（refine `skills/iterate` §6）
 
-- **worktree 保留到 PR close / merge**：solo review 流程下 PR 開著期間，使用者可能還要在該 branch 的 worktree 跑 / 檢視 → **loop 完工不立即刪 worktree**，**等 PR merge / close 後**才連同分支一起清（`--delete-branch` 刪遠端、本機 worktree 這時再 `git worktree remove`）。iterate §6 的「loop 結束即清 worktree」對「solo + PR 還開著」放寬成「PR close 後清」；**tmp 草稿 / 截圖等其他暫存仍在 loop 結束就清**（只有 worktree 延後）。
+- **worktree 保留到 PR close / merge**：solo review 流程下 PR 開著期間，使用者可能還要在該 branch 的 worktree 跑 / 檢視（例如 `pnpm dev` 在獨立 portless 子網域驗證改動、不擾主 checkout）→ **loop 完工不立即刪 worktree**，**等 PR merge / close 後**才連同分支一起清（`--delete-branch` 刪遠端、本機 worktree 這時再 `git worktree remove`）。iterate §6 已對齊此規則：**有開著的 PR 時 worktree 保留到 PR merge / close 才清（§②）**，只有「沒交 PR 的純中止」才在 loop 結束（§①）連 worktree 一起清；**tmp 草稿 / 截圖等其他暫存仍在 loop 結束就清**（只有「PR 開著時的 worktree」延後）。
 - **Windows 檔案鎖**：`git worktree remove --force` 常因 `node_modules` 被 TS server / esbuild / vitest 佔用而失敗（`Directory not empty` / `Device or resource busy`）。此時 **`git worktree prune` 仍會把它從 `git worktree list` 除名**（git 層已乾淨）；殘留目錄已被 `.gitignore`（`.claude/worktrees/`）涵蓋、**不入庫、無害**，待鎖釋放（關 IDE / 下個 session）再手動刪即可。**別為刪一個被鎖的目錄卡住流程**；也**別在 PR 還開著時就去刪 worktree**（見上條）。
