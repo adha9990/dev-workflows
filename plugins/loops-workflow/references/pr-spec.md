@@ -22,7 +22,7 @@ issue-driven PR 的 **body 開頭必須放關閉關鍵字** `Closes #<issue>`（
 
 把這次的「完工定義 + 實作計畫 + 真實成果」整合成 PR body 第一樓（**最開頭先放 `Closes #<issue>`**，見上節）：
 
-- 做了什麼、為什麼這樣設計 —— 把設計決策 / 機制圖（mermaid）**inline 寫進 body**（GitHub 渲染）。`.loops/` 的 goal/plan/build 是**提煉來源**，**絕不在 body 連結 `.loops/<doc>` 路徑**（`.loops/` 不上 GitHub、merge 後清除＝死連結；見 `comment-policy.md §0`）。要指更細只指 PR/commit/`file:line`/issue。
+- 做了什麼、為什麼這樣設計 —— 把設計決策 / 機制圖（mermaid）**inline 寫進 body**（GitHub 渲染）。`.loops/` 的 goal/plan/build 是**提煉來源**，**絕不在 body 連結 `.loops/<doc>` 路徑**（`.loops/` 不上 GitHub、merge/close 後清除＝死連結；見 `comment-policy.md §0`）。要指更細只指 PR/commit/`file:line`/issue。
 - 成果展示（實際跑出來的證據：測試輸出、畫面、driver 結果）。
 - **設計決策只寫「做了什麼 + 為什麼」，不在其中列「不做 / out-of-scope」**。**deferred / 不做 / 後續工作（含分相位 descope 的部分）→ 開一則 follow-up comment 記錄**（輕量追蹤；不在 body 設計決策裡敘述、**也不自動開 issue**——要開 issue 由使用者決定）。
 - **不含** 內部設計更新流水帳 / commit 列表 / 後續迭代記錄 —— body 是「單一最新真相」。
