@@ -8,7 +8,7 @@
 
 issue comment / PR body / reviewer 回覆等**任何 post 上 GitHub 的內容**，**絕不可引用 `.loops/<slug>/...` 路徑**（`stages/02-plan.md` / `stages/03-build.md` / `stages/04-verify.md` / `stages/00-goal.md` / `stages/01-explore.md`）。
 
-- **為什麼**：`.loops/` 是 loops-engineering 的**本地暫存**——不 push、不上 GitHub、**PR merge/close 後就清除**。在 GitHub 內容裡指它＝**死連結**（讀者點不到、merge 後更不存在）。
+- **為什麼**：`.loops/` 是 loops-engineering 的**本地暫存**——不 push、不上 GitHub、**PR merge/close 後就清除**。在 GitHub 內容裡指它＝**死連結**（讀者點不到、merge/close 後更不存在）。
 - **怎麼做**：把要講的（設計決策 / 機制圖 / 驗收結論 / ADR）**inline 寫進訊息本體**（GitHub 原生渲染 mermaid，圖直接放）。`.loops/<doc>` 是**草稿來源**、是「從它提煉進訊息」，**不是訊息裡的連結目標**。
 - 需要指向更細時，只指**會留在 GitHub 的東西**：PR 連結、commit SHA、`file:line`（程式碼）、相關 issue/PR 編號 —— 不指 `.loops/` 檔。
 - **設計決策 / ADR 只記「做了什麼 + 為什麼」，不在其中列「不做 / out-of-scope」**；**deferred / 不做 / 後續工作 → 另開一則 follow-up comment 記錄**（輕量追蹤，不混進設計決策、**不自動開 issue**——要不要開 issue 由使用者決定）。
