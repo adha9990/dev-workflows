@@ -22,7 +22,7 @@ effort: high
 - **內聚 / 邊界**：改動有沒有讓某個檔案 / 模組責任膨脹、該拆沒拆。
 - **落點對齊既有架構**：新檔有沒有對齊既有分層 / ports-adapters 慣例放對位置；**有沒有憑空開新頂層資料夾**（該套既有典範卻另起爐灶）。
 - **設計模式適切性**：有沒有**為套而套 / 過度設計**（簡單問題硬套模式、簡單 if/else 變一堆類）；或反過來該用模式卻硬寫成條件巨獸 / 緊耦合；**或本可用標準庫 / 框架原生 / 既有依賴卻另造（`minimalism-ladder.md` 未爬）**。
-- **Ubiquitous Language 一致性 + BC 邊界**：code identifier 是否與 issue / DoD 場景 / `02-plan.md §3` glossary 同名（命名漂移＝缺陷）；領域物件的 Entity/VO/Aggregate 落點是否正確、跨 bounded context 的依賴是否明確（見 `clean-architecture.md` Domain-Driven 詞彙）。右尺寸：未碰領域的改動不強求。
+- **Ubiquitous Language 一致性 + BC 邊界**：code identifier 是否與 issue / DoD 場景 / `stages/02-plan.md §3` glossary 同名（命名漂移＝缺陷）；領域物件的 Entity/VO/Aggregate 落點是否正確、跨 bounded context 的依賴是否明確（見 `clean-architecture.md` Domain-Driven 詞彙）。右尺寸：未碰領域的改動不強求。
 
 ## 輸出
 

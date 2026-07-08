@@ -45,7 +45,7 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 
 ### 3. Restate 六欄（完工定義）
 
-訪談到信心足夠，把理解寫成 `00-goal.md`，固定六欄（schema 見 `references/goal-restate-schema.md`）。**第 1 步逐句抽出的每條 requirement 都要在六欄裡有著落**（沒著落的，不是漏抽就是該回去問）：
+訪談到信心足夠，把理解寫成 `stages/00-goal.md`，固定六欄（schema 見 `references/goal-restate-schema.md`）。**第 1 步逐句抽出的每條 requirement 都要在六欄裡有著落**（沒著落的，不是漏抽就是該回去問）：
 
 | 欄 | 內容 |
 |------|------|
@@ -61,7 +61,7 @@ DoD 的「Success / 停止條件」用 **GWT 場景（帶 ID `S1…`，見 `refe
 ### 4. 停止條件 + 直接進 explore（不問 DoD 確認）
 
 - **95% 信心**就停止訪談，不無止境追問。
-- restate 完工定義寫進 `00-goal.md` + chat 摘要給使用者看，然後**直接進 explore**。
+- restate 完工定義寫進 `stages/00-goal.md` + chat 摘要給使用者看，然後**直接進 explore**。
 - **不要停下問「DoD 正確嗎 / 可以鎖定嗎 / 要不要進 explore」** —— restate 出來就是給使用者看的，有錯他會插話改；「鎖定 DoD + 進 explore」是 **routine 轉場、不是決策點**（連 closed 模式也一樣，routine 轉場不問）。
 - **唯一在 goal 停下用 `AskUserQuestion` 的情況**：有**具體的 scope 取捨選擇**（像「行為 X 要不要納入範圍」這種有明確選項、會改變方向的決策）才把它做成選項問。把「DoD 對不對」當成這種決策來問 = 誤用。
 - 需求講不清（資訊不足以定義完工）→ 停下用 `AskUserQuestion` 問；但「whatever you think」不是把決定權丟回給你的藉口，能推得的就推。
@@ -81,7 +81,7 @@ DoD 的「Success / 停止條件」用 **GWT 場景（帶 ID `S1…`，見 `refe
 - 一則訊息塞了好幾個問題。
 - **只讀「驗收標準」段就定完工定義**，沒逐句掃完整 issue（漏掉散在描述 / 舉例 / 非目標裡的隱含需求）。
 - 第 1 步抽的 requirement 有條沒落到六欄、就直接往下。
-- 六欄有欄位空著就產 `00-goal.md`。
+- 六欄有欄位空著就產 `stages/00-goal.md`。
 - 有真正的 scope 取捨卻沒用 `AskUserQuestion` 問就逕自決定。
 - **把「DoD 正確嗎 / 可以鎖定進 explore 嗎」當 gate 停下問** —— 那是 routine 轉場，restate 給使用者看就直接進 explore（只有具體 scope 取捨選擇才問）。
 - 訪談超過必要、把非 blocking 的細節也逼問。
@@ -90,6 +90,6 @@ DoD 的「Success / 停止條件」用 **GWT 場景（帶 ID `S1…`，見 `refe
 
 - [ ] 已**逐句掃過整張 issue**抽 requirement（不只 AC 段），每條都落到六欄某處。
 - [ ] 已讀**專案 root + 就近 `CLAUDE.md`/`AGENTS.md`**，把這次改動觸及的**跨切面約定**（i18n / logging / a11y…）折進 Constraint 欄（見 `references/project-conventions.md`）。
-- [ ] `00-goal.md` 六欄齊全，每欄有實質內容。
+- [ ] `stages/00-goal.md` 六欄齊全，每欄有實質內容。
 - [ ] Success 欄 = 可驗證的停止條件（不是「做得好」這種無法驗的話）。
 - [ ] restate DoD 後**直接進 explore**，沒把「DoD 對嗎 / 可以鎖定嗎 / 要不要進 explore」當 gate 問；只有**具體 scope 取捨選擇**才用 `AskUserQuestion` 停下。

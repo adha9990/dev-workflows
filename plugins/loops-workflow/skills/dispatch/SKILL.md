@@ -21,7 +21,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 **NOT for**：
 - 把所有階段一路自動跑完 —— 那違反 Closed Loop，dispatch 只送你到起點。（接續既有 loop **也是 dispatch 的事**：`dispatch <slug>` 走步驟 0 的 resume 分支，見下。）
-- **側用工具不歸 dispatch 路由** —— `explain`（看懂改動）是閉環外側用工具（`user-invocable: false`）：由 iterate 內部驅動（完整迴圈完工且 `LOOPS_EXPLAIN=1` 才自動產），或使用者以自然語言請求，不進決策樹。（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 docs-policy 直接編輯，無獨立 skill。）
+- **側用工具不歸 dispatch 路由** —— `explain`（看懂改動）是閉環外側用工具（`user-invocable: false`）：由 iterate 內部驅動（完整迴圈完工**一律自動產** `deliverables/explain.md`，三份 deliverable 之一），或使用者以自然語言請求，不進決策樹。（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 docs-policy 直接編輯，無獨立 skill。）
 
 ## Process
 
@@ -70,7 +70,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 ### 2. 建 / 認領 loop.md
 
-slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-delete-permanent`）、無 issue 號的設計 / 研究用 `<kebab 描述>`（英文 / 數字 / 連字號）。**不加 `fix/`/`feat/` 等 type 前綴** —— 這個 slug 同時是 loop 目錄、worktree、branch 的名字。建立 `.loops/<slug>/loop.md`，寫入：
+slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-delete-permanent`）、無 issue 號的設計 / 研究用 `<kebab 描述>`（英文 / 數字 / 連字號）。**不加 `fix/`/`feat/` 等 type 前綴** —— 這個 slug 同時是 loop 目錄、worktree、branch 的名字。建立 `.loops/<slug>/loop.md`（**留在 loop 根**；各階段過程檔進 `stages/`、完工 deliverable 進 `deliverables/`，完整佈局見 `references/journaling.md`〈資料夾佈局〉），寫入：
 - **類型**（issue / design / fix）
 - **operation 性質**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`）—— 依 issue 內容判定（非自動偵測程式），決定 **build 紅燈第一步**（見 `references/operation-first-move.md`）；與**類型正交**（類型決起點 stage、operation 決紅燈起手式）。**拿不準向嚴用 `new-feature`**（標準 TDD）並在 Journal 註明。**loop.md 的建立者寫 operation**：dispatch 建 loop.md 時寫（含 `issue# → 從 goal 起`，dispatch §2 一律先建 loop.md 才進 goal）；無 issue 工作經 `define` 建 loop.md 時由 define 寫（見 define §7）。**goal 兜底**：任何成因導致 loop.md 無此欄（含 goal 被單獨呼叫、未經 dispatch）→ goal step 1 讀到就補（見 `goal` skill）。
 - **起點階段** + **當前階段**（當前階段初始＝起點階段，每進一個階段就更新；供 progress / hook 顯示）

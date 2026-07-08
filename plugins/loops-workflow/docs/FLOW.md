@@ -29,7 +29,7 @@ flowchart LR
 | 接續上次做到一半的 | `/loops-workflow:dispatch <slug>`（自動偵測 resume） |
 | 先研究再決定做不做 | `dispatch explore "題目"` |
 | 看某條 loop 跑到哪 | 直接開 `.loops/<slug>/PROGRESS.md` |
-| 看懂一份改動 | 自然語言請 Claude 跑 `explain`（或設 `LOOPS_EXPLAIN=1` 完整迴圈完工自動產） |
+| 看懂一份改動 | 完整迴圈完工一律產 `deliverables/explain.md`；也可自然語言隨時請 Claude 跑 `explain` |
 | 開關各種自動化（成本記錄／自動檢查／自動連跑…） | 見 [`settings.md`](settings.md)——所有可設參數一頁看完 |
 | 找某份規範文件 | 見 [`REFERENCES.md`](REFERENCES.md) 的分類導覽 |
 
@@ -39,7 +39,7 @@ flowchart LR
 
 ## 命令介面（誰是入口）
 
-使用者**唯一的 slash 入口是 `/loops-workflow:dispatch`**。所有其他 skill——階段（goal / define / explore / clarify / plan / build / verify / iterate）與側用（`explain`、`scaffold-fullstack`）——都標 **`user-invocable: false`**、**不出現在 `/` 選單**，由 dispatch（及階段彼此）用 Skill tool **內部驅動**：explain＝完整迴圈完工且 `LOOPS_EXPLAIN=1` 才自動產、scaffold-fullstack＝dispatch 對乾淨空專案路由；兩者也可自然語言請 Claude 執行（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 `references/docs-policy.md` 直接編輯）。接續中途 loop＝`dispatch <slug>`（自動偵測 resume）；查進度＝直接讀 `.loops/<slug>/PROGRESS.md`（恆開 hook 自動重生）。
+使用者**唯一的 slash 入口是 `/loops-workflow:dispatch`**。所有其他 skill——階段（goal / define / explore / clarify / plan / build / verify / iterate）與側用（`explain`、`scaffold-fullstack`）——都標 **`user-invocable: false`**、**不出現在 `/` 選單**，由 dispatch（及階段彼此）用 Skill tool **內部驅動**：explain＝完整迴圈完工由 iterate 一律自動產（三份 deliverable 之一）、scaffold-fullstack＝dispatch 對乾淨空專案路由；兩者也可自然語言請 Claude 執行（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 `references/docs-policy.md` 直接編輯）。接續中途 loop＝`dispatch <slug>`（自動偵測 resume）；查進度＝直接讀 `.loops/<slug>/PROGRESS.md`（恆開 hook 自動重生）。
 
 ---
 
@@ -80,7 +80,7 @@ flowchart TD
 
 **dispatch 依意圖清晰度分流**：明確（issue# / PR#）直進 goal / iterate；**模糊想法先進 `clarify`** —— 一次一問把模糊收斂成「經確認的理解 + 方向」，再分流到 define / explore / iterate（dispatch 自己不做訪談確認）。clarify 與 scaffold / define 同為 dispatch 路由的**前置階段**、不在 goal→…→iterate 迴圈圈內。
 
-**階段間記憶體**：每階段把結論寫成 `.loops/<slug>/0N-*.md`（goal→`00-goal.md`、explore→`01-explore.md`…），下一階段只讀**精煉版**、不重讀原始素材。`loop.md` 是儀表板（當前階段 / session / Journal 事件日誌）。
+**階段間記憶體**：每階段把結論寫成 `.loops/<slug>/0N-*.md`（goal→`stages/00-goal.md`、explore→`stages/01-explore.md`…），下一階段只讀**精煉版**、不重讀原始素材。`loop.md` 是儀表板（當前階段 / session / Journal 事件日誌）。
 
 ---
 
@@ -161,7 +161,7 @@ flowchart TD
 | **skill** | `plan`（1）｜**agent** **一律派 1 read-only 設計品質審查（plan 前先 verify、不論風險）**；發想多方案 opt-in Fleet |
 | **處理什麼** | 動 code 前把設計拍板留痕、拆成可獨立 verify 的任務 |
 | **機制** | 決策留痕（**ADR 五欄**）→ 套件評估（**≥3 候選**）→ **機制圖**（每機制：白話 + 運作流程圖 + 注入接線圖）→ **契約規格**（跨 API/資料/事件介面才寫，含 Hyrum's Law）→ 品質六維度 + 重用 + 設計模式對症 → **一律派設計品質審查（plan 前先 verify、不論風險，拿掉 trivial 免派）→ 折回後再審一輪（fresh context、不因機械折回跳過、圈數上限 3、比照 build verify，到頂不收斂 escalate）** → **拆可驗證任務**（垂直切片 / risk-first / XS–XL 尺寸）→ 送對齊 comment + 拍板 gate |
-| **產出** | `02-plan.md` —— **§0–§9 完整施工圖**（系統全貌 + 檔案職責表 + 機制圖 + 名詞 + 決策含具名背書 + 三角驗證 + 成果展示） |
+| **產出** | `stages/02-plan.md` —— **§0–§9 完整施工圖**（系統全貌 + 檔案職責表 + 機制圖 + 名詞 + 決策含具名背書 + 三角驗證 + 成果展示） |
 | **策略** | **最高標準不以 MVP** · **living plan**（偏離回來改）· 拍板前**渲染機制圖 + 攤「我的假設」清單**給你看，不准盲拍 · **拍板前一律先過設計審查**（plan 前先 verify、不論風險高低、無 trivial 免派） |
 | **gate** | ✋ 拍板方案 |
 
@@ -183,11 +183,11 @@ flowchart LR
     I -->|最小範圍·乾淨| GG{主線跑測試<br/>確認 Green}
     GG --> RF[Refactor<br/>refactoring + code-simplification]
     RF -->|衝突| REF[referee<br/>依 DoD 裁決]
-    RF --> SP[Save Point<br/>分段 commit + 03-build.md]
+    RF --> SP[Save Point<br/>分段 commit + stages/03-build.md]
     REF --> SP
 ```
 
-> test-author 帶 `test-rubric.md`（四層測試 / Real>Fake>Stub>Mock / pyramid 80/15/5），並依 `loop.md` 的 `operation` 性質決定**紅燈第一步**（bug-fix 先寫重現測試 / refactor 先確認全綠無紅燈相…見 `operation-first-move`）；**impl-author 帶 `clean-code.md` + `clean-architecture.md` + `security-checklist.md` + `reuse-check.md`（綠燈當下就照合併標準寫、非先寫爛再救）**；Refactor 依 `refactoring.md`（異味 → 具名手法 → 設計模式時機）+ `code-simplification.md`（安全簡化紀律、精修非補救）；偏離 plan 就回去更新 `02-plan.md`。做完直接進 verify。
+> test-author 帶 `test-rubric.md`（四層測試 / Real>Fake>Stub>Mock / pyramid 80/15/5），並依 `loop.md` 的 `operation` 性質決定**紅燈第一步**（bug-fix 先寫重現測試 / refactor 先確認全綠無紅燈相…見 `operation-first-move`）；**impl-author 帶 `clean-code.md` + `clean-architecture.md` + `security-checklist.md` + `reuse-check.md`（綠燈當下就照合併標準寫、非先寫爛再救）**；Refactor 依 `refactoring.md`（異味 → 具名手法 → 設計模式時機）+ `code-simplification.md`（安全簡化紀律、精修非補救）；偏離 plan 就回去更新 `stages/02-plan.md`。做完直接進 verify。
 
 ---
 
@@ -211,7 +211,7 @@ flowchart TD
     S2 -.觸及領域/專案宣告才加派.-> COND[N conditional：frontend-ui·a11y·web-perf<br/>observability·ci-cd·migration<br/>processing-reliability·root-cause·docs-devex<br/>multi-user-concurrency〔專案宣告多人才派〕]
     R1 & R2 & R3 & R4 & R5 & R6 & COND --> CO[③ coordinator 去重 + 跑真 app/本機 code-review<br/>→ finding-validator 二輪：真實?本次?已防護?對症?]
     CO --> S4{④ acceptance 閘<br/>每條 criterion 收斂到 已滿足/descoped?}
-    S4 -->|是·全收斂| S5[⑤ Ready → 04-verify.md → iterate]
+    S4 -->|是·全收斂| S5[⑤ Ready → stages/04-verify.md → iterate]
     S4 -.否·未收斂 / 確證根本做錯.-> ITER[Not ready → iterate 依錯在哪<br/>路由 goal / explore / plan / build]
 ```
 
@@ -228,7 +228,7 @@ flowchart TD
 | **skill** | `iterate`（1）｜**agent** 0（修正回 build 用其 subagent）；卡關時 **opt-in cross-model**（換別的模型當對手 reviewer） |
 | **處理什麼** | 把 verify 缺口 / PR reviewer 回饋分類、修根因、決定回環或完工 |
 | **機制** | 收集回饋（`type=fix` 走 `pr-feedback-sources.md`：inline comment 要 `gh api`）→ **RECONCILE 四分類** → **Stop-the-Line 修**（DIAGNOSE 先定位失敗層 + `git bisect` → 修根因 → 每修加回歸測試）→ **修完一定再 verify** → 完工 or 回環（看收斂·≤3 圈·不收斂即 escalate） |
-| **完工交接物（依類型）** | **修正型**＝一份修正回覆 comment（`comment-policy` §8 版型：工程角度根因/怎麼修/怎麼驗＋客戶角度修正前→後；**不@reviewer**）；**完整迴圈**＝PR 收尾 comment + **explain（`LOOPS_EXPLAIN=1` 才產，未開跳過＋Journal 留痕）**。follow-up 留當前 issue 不另開。PR body 放 `Closes #issue`、指派 `@me`、與 master 衝突自動合併 |
+| **完工交接物（依類型）** | **修正型**＝一份修正回覆 comment（`comment-policy` §8 版型：工程角度根因/怎麼修/怎麼驗＋客戶角度修正前→後；**不@reviewer**）；**完整迴圈**＝PR 收尾 comment ＋**三份 loop 收尾檔 `deliverables/{explain,checklist,cost}.md`（一律產、無編號）**。follow-up 留當前 issue 不另開。PR body 放 `Closes #issue`、指派 `@me`、與 master 衝突自動合併 |
 | **收尾清理（兩時機）** | ① **loop 結束時**（不論交不交 PR）清掉 loop 期間所有暫存：移除 worktree（`git worktree remove`/`prune`）、刪草稿/截圖/scratch · ② **PR 合併後**（solo 自己合併→自己清，**使用者核可後才 merge**）刪分支（`gh pr merge <PR#> --squash --delete-branch`，**一律 squash 單一 commit**、策略見 `pr-spec`〈merge 策略〉，只留 `main`+進行中）· loop 暫存一律不入庫（`.loops`/`.claude/worktrees`/`data`/`dev.json`/截圖 由 `.gitignore` 涵蓋，`git ls-files` 掃一遍） |
 | **策略** | **交 reviewer 前把問題解到最少**（actionable 一律自動全修、不問「修多少」）· severity 只決定停不停、不決定修不修 · **回環看收斂**（findings 沒變少 / 同條復現就 escalate，不等第 3 圈）· **3 圈上限 = 檢查點非硬牆**（停下問你：回頭重想 / 換跨模型 / 授權再繞重置計數） |
 | **gate** | ✋ 完工 or 回哪階段（修完再 verify 不是選項，一律再驗） |
@@ -242,7 +242,7 @@ flowchart TD
 | **skill** | `explain`（1，read-only）｜**agent** 0 |
 | **處理什麼** | 幫人**看懂一份改動**怎麼接起來 + 自測是否真懂 |
 | **機制** | 實作導讀（進入點→責任盒→介面邊→payload 流動 + mermaid + `file:line`）+ **5 題 ownership 自測** + 設計方向 recap |
-| **策略** | 給**工程師**理解用（接手 / 維護 / 確認 Claude 做了什麼），不是給 reviewer。完整迴圈完工且 `LOOPS_EXPLAIN=1` 時自動產（未開不產） |
+| **策略** | 給**工程師**理解用（接手 / 維護 / 確認 Claude 做了什麼），不是給 reviewer。完整迴圈完工一律自動產（`deliverables/explain.md`，三份 deliverable 之一） |
 
 ---
 
@@ -289,7 +289,7 @@ flowchart TD
 | build | 1 | **2 / 任務**（test+impl）+ referee | 衝突時 referee |
 | verify | 1 | **1–6 + 0–10 + N** | 同回合並行（multi-user 由專案宣告觸發） |
 | iterate | 1 | 0（+cross-model 選用） | 卡關時 |
-| explain（側） | 1 | 0 | 唯讀（完整迴圈完工且 LOOPS_EXPLAIN=1 才自動產） |
+| explain（側） | 1 | 0 | 唯讀（完整迴圈完工一律自動產 `deliverables/explain.md`） |
 | scaffold-fullstack（前置） | 1 | 0 | 完全乾淨空專案建骨架 |
 
 ---

@@ -12,10 +12,10 @@ effort: medium
 
 **探索 code 的方法**：周邊既有 code 用 codebase-memory-mcp（依本 prompt 提供的 `references/code-retrieval.md`：graph 查穩定碼、省 token）；**正在審的改動檔（diff）一律讀實檔、不信 stale graph**（worktree / 未提交 / changed_files 三類）。
 
-- 逐句對照 **issue 每一個 requirement-bearing 句子**（**不只「驗收標準」清單** —— 連散在描述 / 背景 / 舉例 / 非目標裡的隱含需求都要抓）**＋ `00-goal.md`（restate 六欄）**：每一條有沒有被實作、有沒有被滿足。**goal 的六欄可能漏抽，所以以 issue 原文為準逐句勾，不只勾六欄。**
+- 逐句對照 **issue 每一個 requirement-bearing 句子**（**不只「驗收標準」清單** —— 連散在描述 / 背景 / 舉例 / 非目標裡的隱含需求都要抓）**＋ `stages/00-goal.md`（restate 六欄）**：每一條有沒有被實作、有沒有被滿足。**goal 的六欄可能漏抽，所以以 issue 原文為準逐句勾，不只勾六欄。**
 - **範圍**：有沒有做超出 Out of scope 的東西（範圍蔓延）。
 - **非目標**：有沒有違反明確的非目標。
-- **契約規格**：`02-plan.md` 的契約規格（API / 資料 / 事件，見 `contract-spec.md`，絕對路徑由 orchestrator 在 prompt 提供）逐條對 build 成果 —— 形狀 / 錯誤碼 / 約束 / migration 有沒有照契約實作。
+- **契約規格**：`stages/02-plan.md` 的契約規格（API / 資料 / 事件，見 `contract-spec.md`，絕對路徑由 orchestrator 在 prompt 提供）逐條對 build 成果 —— 形狀 / 錯誤碼 / 約束 / migration 有沒有照契約實作。
 - 對照手法：逐句驗收 —— 把 issue（含散在 prose 的隱含項）拆成可勾選的子句，一條一條對 build 成果。
 - **驗收深度**：讀 orchestrator 在 prompt 提供的 `acceptance-review.md` 絕對路徑 —— 錯題偵測（是否在解對的問題，P0）、完成度五態（partial 算未完成）、端到端鏈路 + 持久化驗證、驗證證據強弱分級。
 

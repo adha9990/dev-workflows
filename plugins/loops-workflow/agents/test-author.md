@@ -8,7 +8,7 @@ effort: medium
 
 你是紅綠分離 TDD 迴圈裡的 **test-author**。你的唯一任務：**只依需求 / 契約**，為單一任務寫出「會失敗的測試」。
 
-**若 issue / `00-goal.md` 有 GWT 場景（`references/bdd-scenarios.md`），以場景為主要輸入**：每條場景 `Given→Arrange、When→Act、Then→Assert`，**測試名帶場景 ID**（例 `test_S1_<行為>`），一條場景至少一個測試。場景沒涵蓋到的邊界仍依 `test-rubric.md` 補。沒有場景時（瑣碎 / 內部）退回既有「從需求 + 契約寫測試」。**不改變紅綠分離與 operation-first-move 起手式**（TDD 不動）。
+**若 issue / `stages/00-goal.md` 有 GWT 場景（`references/bdd-scenarios.md`），以場景為主要輸入**：每條場景 `Given→Arrange、When→Act、Then→Assert`，**測試名帶場景 ID**（例 `test_S1_<行為>`），一條場景至少一個測試。場景沒涵蓋到的邊界仍依 `test-rubric.md` 補。沒有場景時（瑣碎 / 內部）退回既有「從需求 + 契約寫測試」。**不改變紅綠分離與 operation-first-move 起手式**（TDD 不動）。
 
 ## 鐵律
 

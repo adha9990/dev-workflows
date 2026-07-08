@@ -27,11 +27,11 @@
 
 | reference | 它管什麼 | 主要用在 |
 |---|---|---|
-| `goal-restate-schema` | 完工定義六欄格式（Outcome / User / Why now / Success / Constraint / Out of scope）；可附 BDD 場景 ID（S1…）綁 acceptance criterion | goal（`00-goal.md`） |
+| `goal-restate-schema` | 完工定義六欄格式（Outcome / User / Why now / Success / Constraint / Out of scope）；可附 BDD 場景 ID（S1…）綁 acceptance criterion | goal（`stages/00-goal.md`） |
 | `bdd-scenarios` | 用 Given-When-Then 把需求寫成可驗證的行為情境（連接 SDD↔TDD）、場景 ID 慣例、依風險縮放（小事免寫·高風險才完整） | define · goal（寫場景）· build（test-author）· verify（product-contract · acceptance） |
-| `design-plan-schema` | 設計書 §0–§9 骨架：系統全貌 / 檔案職責表 / 機制圖 / 具名背書 / 三角驗證 / 成果展示；§3 含 glossary | plan（`02-plan.md`）· iterate（提煉 PR body） |
+| `design-plan-schema` | 設計書 §0–§9 骨架：系統全貌 / 檔案職責表 / 機制圖 / 具名背書 / 三角驗證 / 成果展示；§3 含 glossary | plan（`stages/02-plan.md`）· iterate（提煉 PR body） |
 | `machine-plan-schema` | 機器可驗證的 `loops-plan` JSON 塊格式（每任務可執行 verification、acceptance ≤3、依賴無環） | plan（可選）+ `validate-plan.mjs` |
-| `change-summaries` | build 產出的 Change Summaries 三段式格式 | build（`03-build.md`） |
+| `change-summaries` | build 產出的 Change Summaries 三段式格式 | build（`stages/03-build.md`） |
 | `operation-first-move` | 依任務性質（new-feature/change-behavior/bug-fix/refactor）決定「紅燈第一步」怎麼起手＋fail-safe（單一來源） | dispatch（寫 `operation` 欄）· build（讀欄派 test-author） |
 | `quality-gate-schema` | quality-gate 腳本輸出 / failures 結構化契約（`file:line [code\|ruleId] message`） | build（派 fixer 帶 failures）· verify（gate 摘要） |
 

@@ -34,7 +34,7 @@ description: Researches how to build something before it gets planned, and lays 
 
 ### 0. 先摸架構（文檔優先）
 
-動手探索前先建立架構認知：**文檔優先** —— 讀 `CLAUDE.md` / `AGENTS.md`（最高優先）、`README` / `docs/` / ADR；文檔已說明架構就以文檔為準，只在文檔有缺口才爬 code。**文檔有缺口且 repo 已索引 `codebase-memory-mcp` → 用 `get_architecture`（package / 分層 / Leiden cluster 全貌）快速補**，比逐檔爬快。輸出 2–4 行 project context 寫進 `01-explore.md` 開頭。詳見 `references/onboarding.md`。
+動手探索前先建立架構認知：**文檔優先** —— 讀 `CLAUDE.md` / `AGENTS.md`（最高優先）、`README` / `docs/` / ADR；文檔已說明架構就以文檔為準，只在文檔有缺口才爬 code。**文檔有缺口且 repo 已索引 `codebase-memory-mcp` → 用 `get_architecture`（package / 分層 / Leiden cluster 全貌）快速補**，比逐檔爬快。輸出 2–4 行 project context 寫進 `stages/01-explore.md` 開頭。詳見 `references/onboarding.md`。
 
 **辨識 bounded context / 既有 domain model**：摸架構時先確認這次改動落在哪個領域脈絡、有沒有既有的 domain model 可重用（reuse 優先，見 `references/reuse-check.md`）；跨 BC 邊界要標出來。右尺寸：瑣碎改動跳過。產出的領域名詞交給 plan 的 §3 glossary。
 
@@ -84,7 +84,7 @@ description: Researches how to build something before it gets planned, and lays 
 
 2. **在接近真實 / 極端規模跑 benchmark，不憑感覺。** 方法**能用 ≠ 好用**，極端情況甚至不適用 —— 兩個方法在小樣本幾乎無異、在大資料量 / 高流量下可能差幾個數量級。所以 `效能` 維度：先做時間 / 空間複雜度分析鎖定可疑點，再在**接近真實 / 極端規模**實測 benchmark 證實，不靠小樣本下結論、不只做 MVP（對齊 `AGENTS.md` 規則 6 最高標準 / 規則 10 該量就量）。
 
-主線收成**比較矩陣**（候選 × 維度 + 分數 + 證據 / CITE，沒實測標 `not measured`、規模相關的**標明在多大資料量下測的**）→ 寫進 `01-explore.md` → 推薦 + **點明哪個維度是決定因素**。**單一明顯方法、無真競爭** → 跳過評估直接推薦（省成本）。
+主線收成**比較矩陣**（候選 × 維度 + 分數 + 證據 / CITE，沒實測標 `not measured`、規模相關的**標明在多大資料量下測的**）→ 寫進 `stages/01-explore.md` → 推薦 + **點明哪個維度是決定因素**。**單一明顯方法、無真競爭** → 跳過評估直接推薦（省成本）。
 
 > 上面是「**評估已知候選**」；若候選本身要先生出來（解法空間寬、沒有現成方向），用 **opt-in Fleet** 派多 agent 各從不同角度發想方案再評（見 `references/fleet.md`）。
 
@@ -92,9 +92,9 @@ description: Researches how to build something before it gets planned, and lays 
 
 共通：**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」；有搜外部就內外並排、附 CITE。停在 gate 時**一律用 `AskUserQuestion` 給選項**（每個標推薦 + 一句理由），不要用純文字要使用者打字。
 
-**收斂式 → `explore → plan`**：把候選方案 + 第 4.5 步比較矩陣整理進 `01-explore.md`（各自優缺點、適配度、CITE；內部已足夠則列內部結論 + 一句「為什麼不必外部」）。收斂時除維度分數，再看使用者價值（解痛點 painkiller / nice-to-have vitamin）+「**這方向賭什麼成立、什麼會讓它垮**」。給一個推薦 + 理由（**點明決定因素**）。gate 用 `AskUserQuestion` 把**候選方法**做成選項給使用者選 → 進 `plan`。
+**收斂式 → `explore → plan`**：把候選方案 + 第 4.5 步比較矩陣整理進 `stages/01-explore.md`（各自優缺點、適配度、CITE；內部已足夠則列內部結論 + 一句「為什麼不必外部」）。收斂時除維度分數，再看使用者價值（解痛點 painkiller / nice-to-have vitamin）+「**這方向賭什麼成立、什麼會讓它垮**」。給一個推薦 + 理由（**點明決定因素**）。gate 用 `AskUserQuestion` 把**候選方法**做成選項給使用者選 → 進 `plan`。
 
-**發散式 → `explore → define`**：把設計空間整理進 `01-explore.md` —— 每個開放問題列「選項 + 傾向（待拍板）+ 相依」，收束成一份 **issue backlog 清單**（不收斂成單一方法）。
+**發散式 → `explore → define`**：把設計空間整理進 `stages/01-explore.md` —— 每個開放問題列「選項 + 傾向（待拍板）+ 相依」，收束成一份 **issue backlog 清單**（不收斂成單一方法）。
 
 - **析相依、分兩層標記**：把 backlog 依相依切成 **基礎層**（彼此相依、要先序列建的**薄地基**，如資料模型 / 共用 port / schema）與 **獨立層**（基礎好之後彼此獨立、可多 session / 多 agent **平行**的票）。**優先薄基礎 → 寬平行** —— 別開出一長串前後相依的 issue 鏈（相依鏈會讓「多 session 並行加速」破功）。
 - gate 用 `AskUserQuestion` 確認 **backlog 範圍 + 基礎/獨立分層 + MVP 起點**（不是選一個方法）→ 核可後進 `define`（**backlog 模式**：逐條從研究結論直接開 issue、依分層設相依與優先，跳過單題 one-question intake —— 研究已做完，重訪談是冗餘）。
@@ -115,7 +115,7 @@ description: Researches how to build something before it gets planned, and lays 
 - 沒掃內部就直接搜外部 / 直接 deep-research。
 - 內部 + 需求已足夠定案，還去搜外部證據（浪費資源）。
 - 沒問同意就跑 deep-research。
-- 框架 API 沒查證就寫進 `01-explore.md`。
+- 框架 API 沒查證就寫進 `stages/01-explore.md`。
 - 把推薦寫成「已決定採用」越過使用者的選擇 gate。
 - 多個方法都走得通，卻沒做多維評估、隨便挑一個能用的。
 - **拿 `codebase-memory-mcp` graph 查「剛改 / worktree / 未提交」那塊就直接採信**（沒 `detect_changes` 驗新鮮度、沒回頭 `Read` 實檔）—— graph 只保證「已索引 baseline」，正在動的那塊以實檔為準。
@@ -123,7 +123,7 @@ description: Researches how to build something before it gets planned, and lays 
 
 ## Verification
 
-- [ ] `01-explore.md` 有方案 + 推薦；**有搜外部才內外並排**，內部 + 需求已足夠則註明為什麼不必外部。
+- [ ] `stages/01-explore.md` 有方案 + 推薦；**有搜外部才內外並排**，內部 + 需求已足夠則註明為什麼不必外部。
 - [ ] **≥2 個可行方法時**，有**多維比較矩陣**（候選 × 效能 / 體積 / 可維護 / 可擴展 / 安全 / 複雜度 / 重用 / 適配 + 分數 + 證據），推薦點明決定因素。
 - [ ] 有明確推薦 + 理由，且措辭是「待你拍板」不是「已決定」。
 - [ ] 框架 API 來源已 CITE，查不到的標 UNVERIFIED。

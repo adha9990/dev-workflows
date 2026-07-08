@@ -36,7 +36,7 @@
 
 ## Route（分流去向）
 
-- **product-contract**：與完工定義（`00-goal.md`）/ 產品行為 / UI/UX / 範圍 / 非目標 / 驗收標準有關。
+- **product-contract**：與完工定義（`stages/00-goal.md`）/ 產品行為 / UI/UX / 範圍 / 非目標 / 驗收標準有關。
 - **engineering-safety**：與正確性 / 架構 / 安全 / 效能 / 測試 / 發布風險有關。
 
 ## Coordinator 依嚴重度的合併關卡

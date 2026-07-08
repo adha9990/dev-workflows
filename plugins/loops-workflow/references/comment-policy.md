@@ -6,7 +6,7 @@
 
 ## 0. 對外訊息必須 self-contained —— 絕不引用 `.loops/` 路徑
 
-issue comment / PR body / reviewer 回覆等**任何 post 上 GitHub 的內容**，**絕不可引用 `.loops/<slug>/...` 路徑**（`02-plan.md` / `03-build.md` / `04-verify.md` / `00-goal.md` / `01-explore.md`）。
+issue comment / PR body / reviewer 回覆等**任何 post 上 GitHub 的內容**，**絕不可引用 `.loops/<slug>/...` 路徑**（`stages/02-plan.md` / `stages/03-build.md` / `stages/04-verify.md` / `stages/00-goal.md` / `stages/01-explore.md`）。
 
 - **為什麼**：`.loops/` 是 loops-engineering 的**本地暫存**——不 push、不上 GitHub、**PR merge/close 後就清除**。在 GitHub 內容裡指它＝**死連結**（讀者點不到、merge 後更不存在）。
 - **怎麼做**：把要講的（設計決策 / 機制圖 / 驗收結論 / ADR）**inline 寫進訊息本體**（GitHub 原生渲染 mermaid，圖直接放）。`.loops/<doc>` 是**草稿來源**、是「從它提煉進訊息」，**不是訊息裡的連結目標**。
@@ -52,9 +52,9 @@ issue comment / PR body / reviewer 回覆等**任何 post 上 GitHub 的內容**
 - 每題每個選項列**優缺兩面**（好處 + 代價各講清楚，不只列好處）。
 - **必標 `(Recommended)`** 在推薦選項 + 一句話講為什麼推薦。
 - 使用者選了**沒推薦**且後果重大的選項 → 主動提不同意見再確認，不默默照做。
-- **問句與選項文字套 §2 白話** —— 短、具體、講清楚「選了會怎樣」；別堆術語（選項是給使用者「一眼判斷」用的，不是技術規格）。**選項若要靠機制名（`GROUP BY` / `ETag` / `op_log seq` / `dirty invalidation` / `INDEXED BY`…）才讀得懂，就是還沒白話** —— 把機制留在 `01-explore.md`，選項只講「使用者 / 系統會怎樣 + 要付的代價」。
+- **問句與選項文字套 §2 白話** —— 短、具體、講清楚「選了會怎樣」；別堆術語（選項是給使用者「一眼判斷」用的，不是技術規格）。**選項若要靠機制名（`GROUP BY` / `ETag` / `op_log seq` / `dirty invalidation` / `INDEXED BY`…）才讀得懂，就是還沒白話** —— 把機制留在 `stages/01-explore.md`，選項只講「使用者 / 系統會怎樣 + 要付的代價」。
 - **自檢**：把選項念給不懂實作的人聽，他能不能判斷「選了會怎樣、代價是什麼」？不能 → 重寫。
-- **陷阱提醒**：剛做完技術 explore、腦裡全是 digest 行話時，最容易把術語原封搬進選項。攤開比較矩陣（帶機制名）留 `01-explore.md`；**給使用者的選項是那份矩陣的白話結論，不是矩陣本身**。
+- **陷阱提醒**：剛做完技術 explore、腦裡全是 digest 行話時，最容易把術語原封搬進選項。攤開比較矩陣（帶機制名）留 `stages/01-explore.md`；**給使用者的選項是那份矩陣的白話結論，不是矩陣本身**。
 
 **Gate 問題 術語湯 → 白話（重寫範例）：**
 
@@ -72,7 +72,7 @@ issue comment / PR body / reviewer 回覆等**任何 post 上 GitHub 的內容**
 
 ## 7. 驗收報告 comment 版型（verify findings 對外 post）
 
-把 verify 的合併安全結論（`04-verify.md`）post 成 issue / PR comment 時固定此版型。讀者是要決定能不能合併的人 —— 每點要「踩到什麼情境 → 為什麼是問題 → 怎麼修 → 補什麼測試」一條龍。
+把 verify 的合併安全結論（`stages/04-verify.md`）post 成 issue / PR comment 時固定此版型。讀者是要決定能不能合併的人 —— 每點要「踩到什麼情境 → 為什麼是問題 → 怎麼修 → 補什麼測試」一條龍。
 
 1. **開場一句方向總評**：這個 PR / 改動方向對不對 + 還剩幾個合併前要修的點、主要集中在哪。
 2. **按維度分組**（findings ≥3 才分；少就直接編號）：用 verify 軸當分組標題，例 `## 產品契約問題`、`## 工程合併安全性問題`、`## 安全性問題`、`## 效能問題`。沒命中的軸不硬湊。

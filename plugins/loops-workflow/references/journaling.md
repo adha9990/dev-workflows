@@ -2,6 +2,30 @@
 
 > `.loops/<slug>/loop.md` 不只是儀表板，還是**可續跑的事件日誌**。把每個重要動作 append 進去，新 session 只要讀它就能重建狀態、接著跑 —— 不靠對話記憶。
 
+## `.loops/<slug>/` 資料夾佈局（單一來源）
+
+一條 loop 的所有產物**都放 `.loops/<slug>/` 底下、分兩層資料夾整理**（不要全平放）：
+
+```
+.loops/<slug>/
+├── loop.md                 # 索引 + 事件日誌（Journal）——留在根、進出各階段都讀/寫它
+├── stages/                 # 各階段的過程檔（帶編號、依流程順序）
+│   ├── 00-goal.md
+│   ├── 01-explore.md
+│   ├── 02-plan.md
+│   ├── 03-build.md
+│   └── 04-verify.md
+└── deliverables/           # loop 結束的收尾產出（無編號、完工才產）
+    ├── explain.md          # 理解包（實作導讀 + ownership 自測 + 設計 recap）
+    ├── checklist.md        # 合併前手動驗證 + 已知取捨確認清單
+    └── cost.md             # 成本 / 規模輪廓（展開 outcome 度量）
+```
+
+- **`loop.md` 留在 loop 根**（不進子資料夾）——它是 resume 的唯一入口。
+- **`stages/`**：goal/explore/plan/build/verify 各寫自己那份 `NN-<stage>.md`（帶編號＝流程順序、可排序）。
+- **`deliverables/`**：iterate 完工才產、**無編號**（它們是最終交付、不是流程步驟）。完整迴圈**一律三份齊全**（見 `skills/iterate` §6）；修正型不產。
+- **所有 loop 暫存與產出一律留 `.loops/`**，不塞進 PR/issue comment、不入庫（`.loops/` 應被 gitignore）。對外 comment 是另外先寫 tmp 草稿 post 的東西、不放 `.loops/`。
+
 ## loop.md 的 journal 區段
 
 在 `loop.md` 末尾維護一個 **append-only** 的事件日誌（只加不改、保留順序）：
@@ -9,7 +33,7 @@
 ```markdown
 ## Journal（append-only）
 
-- [E1] 進入 explore：讀 00-goal.md，派 Explore 掃 codebase
+- [E1] 進入 explore：讀 stages/00-goal.md，派 Explore 掃 codebase
 - [E2] gate：explore→plan，使用者選「方案 B（擴充既有 SearchService）」
 - [E3] 進入 plan：拆 4 任務，ADR-1 記選型
 - [E4] gate：plan→build 拍板
@@ -23,6 +47,8 @@
 ## 完工 outcome 度量（完工 / 中止收尾時 append 一行）
 
 loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** outcome 度量 —— 給每條 loop 留下可回顧、可比較的**成本 / 規模輪廓**，把 `AGENTS.md` 規則 10「成本意識」從**只有意識**落實成**可觀測**。一行、pipe 分隔、緊接最後一筆 E：
+
+> 這行是 `loop.md` 索引裡的**一眼摘要**；完整迴圈完工另產 `deliverables/cost.md` 把它**展開**（各 stage token 粗估拆解、sub-agent 逐個、回環軌跡、findings 處置、交付物明細）。一行版與 `cost.md` 內容互補、同一組數字。
 
 ```text
 - ★[outcome] <結果> ｜ token≈<粗估>(<級距>)est ｜ sub-agent <n> ｜ 回環 <n> 圈 ｜ findings <validated>→<剩餘> ｜ 交付：<交付物>
@@ -51,7 +77,7 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 > | `LOOPS_LOOP_DRIVER` | **opt-in**（#99） | 家族首支 block hook——殺手鍵獨立性（要 auto 推進未必要機械續跑）；三層 opt-in（flag∧state∧auto 語意）為輔 |
 > | `LOOPS_COMPACT_HINT` | **opt-in**（#87 評估後維持） | 非已踩過坑對治、價值中性 |
 > | edit-accumulator（非 flag） | 隨消費端＋`.loops/` 存在前置（#87） | 非 loops repo 零 tmp 寫入 |
-> | `LOOPS_EXPLAIN`（skill 層 env、非 hook） | **opt-in**（#103） | 完整迴圈完工的 explain 理解包——`=1` 才自動產（iterate 觸發；與 `LOOPS_AUTO` 同慣例） |
+> | `LOOPS_EXPLAIN`（skill 層 env、非 hook） | **已淘汰（無作用）** | explain 現為完整迴圈完工**一律產**的三份 deliverable 之一（`deliverables/explain.md`），不再由此旗標 gate（見 `skills/iterate` §6） |
 > | `LOOPS_AUTO`（skill 層 env；loop-driver hook 亦直讀 `=== '1'`） | **opt-in** | 連跑推進是使用者意願、不預設替人決定——詳 `auto-mode.md` |
 >
 > **觀測 hook（#15；出錯一律 no-op exit 0、永不擋路；預設值逐列標示——#87 起 cost-tracker 預設開、compact-hint 維持 opt-in）**：
@@ -89,7 +115,7 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 任一階段被獨立呼叫、或新 session 要續跑：
 
 1. **先讀 `loop.md`**：看 `當前階段`、`停止條件`、`Journal` 最後幾筆。
-2. **重建狀態**：當前在哪一階段、上一個 gate 通過了沒、回環第幾圈、哪些 `.loops/NN-*.md` 已產出。
+2. **重建狀態**：當前在哪一階段、上一個 gate 通過了沒、回環第幾圈、`stages/` 底下哪些 `NN-*.md` 已產出（完工的話 `deliverables/` 三份齊不齊）。
 3. **回報使用者**：「這個 loop 停在 `<階段>` 的 `<gate>`，已完成 E1–En，接下來是 X，要續跑嗎？」
 4. 續跑後**繼續 append** 新事件，不覆蓋舊的。
 

@@ -24,7 +24,7 @@
    - **分層 / import 方向 / 命名 / 檔案落點**：專案特有的結構規矩。
    - **測試 / 型別 / migration** 等專案特有硬規。
 
-2. **折進 DoD（goal）**：把命中的約定寫進 `00-goal.md` 六欄的 **Constraint**（或另立「專案約定」小節），成為**隱含驗收標準**。issue 沒寫不代表不用做 —— 專案約定是預設底線。**判斷「這次改動觸及哪些約定」**：新 user-facing 字串→i18n；新功能模組/背景工作→logging；新 UI→a11y；動 auth/DB→安全/migration…（沿用 verify 右尺寸的「碰到才算」）。
+2. **折進 DoD（goal）**：把命中的約定寫進 `stages/00-goal.md` 六欄的 **Constraint**（或另立「專案約定」小節），成為**隱含驗收標準**。issue 沒寫不代表不用做 —— 專案約定是預設底線。**判斷「這次改動觸及哪些約定」**：新 user-facing 字串→i18n；新功能模組/背景工作→logging；新 UI→a11y；動 auth/DB→安全/migration…（沿用 verify 右尺寸的「碰到才算」）。
 
 3. **設計時納入（plan）**：`plan` 的品質維度過一遍時，把命中的約定當**設計輸入**（例：label 要 i18n → 設計要決定 labelKey/t() 接線，而非事後補）。
 

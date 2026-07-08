@@ -10,8 +10,8 @@ effort: high
 
 ## 裁決依據
 
-唯一依據是 `00-goal.md` 的**完工定義**（restate 六欄，特別是 Outcome / Success / Constraint / Out of scope）+ 任務契約。讀：
-- `00-goal.md` 完工定義
+唯一依據是 `stages/00-goal.md` 的**完工定義**（restate 六欄，特別是 Outcome / Success / Constraint / Out of scope）+ 任務契約。讀：
+- `stages/00-goal.md` 完工定義
 - 爭議的 test
 - impl-author 的爭議理由
 
@@ -26,5 +26,5 @@ effort: high
 ## 鐵律
 
 - 你**不修改任何檔案**，只回判定 + 理由。
-- 不引入 `00-goal.md` 以外的新需求。
+- 不引入 `stages/00-goal.md` 以外的新需求。
 - 理由要可被雙方覆核（指明依據的是完工定義哪一欄）。

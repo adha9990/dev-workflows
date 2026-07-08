@@ -1,6 +1,6 @@
 # Change Summaries 三段式
 
-> build 階段產出 `03-build.md` 的交接格式，也是 build → verify 之間的精煉 context（讓 verify 不必重讀全部原始 diff）。三段固定。
+> build 階段產出 `stages/03-build.md` 的交接格式，也是 build → verify 之間的精煉 context（讓 verify 不必重讀全部原始 diff）。三段固定。
 
 ## 模板
 

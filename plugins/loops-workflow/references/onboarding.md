@@ -19,4 +19,4 @@
 
 ## 產出
 
-2–4 行的 project context summary（架構方向 + 這次要動的東西該插哪 + 相關慣例），寫進 `01-explore.md` 開頭，供後續階段共用。
+2–4 行的 project context summary（架構方向 + 這次要動的東西該插哪 + 相關慣例），寫進 `stages/01-explore.md` 開頭，供後續階段共用。

@@ -10,7 +10,7 @@ description: Produces an engineer understanding pack for a change — implementa
 
 `explain` 產生一份「工程師理解包」，幫人**快速看懂一份改動怎麼接起來**、並**自測是否真的懂**。它是 read-only 的**側用工具**，不在 7 階段迴圈裡、不改 code、沒有 gate —— 隨時可對「built work / PR / branch / diff」呼叫。
 
-> **這隻是 comprehension debt（理解債）的對策**：loop 跑得快、容易產出沒人讀懂的 code，理解落差會累積；`explain` 就是讓人補上理解、把債還掉的工具（見 `AGENTS.md` 規則 12 後的失敗模式註）。完整迴圈完工且 **`LOOPS_EXPLAIN=1`** 時由 iterate 觸發自動產出；未開＝不產（觸發語意的單一真相源在 iterate skill）。
+> **這隻是 comprehension debt（理解債）的對策**：loop 跑得快、容易產出沒人讀懂的 code，理解落差會累積；`explain` 就是讓人補上理解、把債還掉的工具（見 `AGENTS.md` 規則 12 後的失敗模式註）。完整迴圈完工時由 iterate 觸發自動產出（**三份完工 deliverable 之一**），寫入 `.loops/<slug>/deliverables/explain.md`——**一律產、不再由 `LOOPS_EXPLAIN` gate**（觸發語意的單一真相源在 `skills/iterate` §6）；修正型不產。也可隨時以自然語言對 built work / PR / branch / diff 手動呼叫（那次不寫 `deliverables/`、只呈現）。
 
 > **對象是工程師，不是 reviewer。** 用途：接手 / 維護一段 code 想快速理解；看懂 Claude 剛建好的東西；自己確認真的懂自己做了什麼。（reviewer 要的是 verify 報告與 PR comment，不是這份。）
 
@@ -24,7 +24,7 @@ description: Produces an engineer understanding pack for a change — implementa
 
 ## 標的
 
-`explain <target>`：target 可以是當前 build 成果（讀 `.loops/03-build.md` + working tree diff）、PR 號、branch、或一段 diff。先確定要解釋哪一份改動。
+`explain <target>`：target 可以是當前 build 成果（讀 `.loops/stages/03-build.md` + working tree diff）、PR 號、branch、或一段 diff。先確定要解釋哪一份改動。
 
 ## 產出（三段，markdown）
 

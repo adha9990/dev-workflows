@@ -39,7 +39,7 @@
 
 ## 鐵律
 
-- **絕不引用 `.loops/` 路徑**（`02-plan.md`/`03-build.md`/`04-verify.md`/`00-goal.md`/`01-explore.md`）—— `.loops/` 是本地暫存、不上 GitHub、PR merge/close 後清除，在 GitHub 內容指它＝死連結。內容 **self-contained**（設計決策/機制圖/驗收 inline），要指更細只指 PR/commit/`file:line`/issue（見 `comment-policy.md §0`）。
+- **絕不引用 `.loops/` 路徑**（`stages/02-plan.md`/`stages/03-build.md`/`stages/04-verify.md`/`stages/00-goal.md`/`stages/01-explore.md`）—— `.loops/` 是本地暫存、不上 GitHub、PR merge/close 後清除，在 GitHub 內容指它＝死連結。內容 **self-contained**（設計決策/機制圖/驗收 inline），要指更細只指 PR/commit/`file:line`/issue（見 `comment-policy.md §0`）。
 - **每則對外訊息必對到上表一型**——沒有「即興格式」。找不到對應型 → 先補一型樣板再發，不臨時自創。
 - **先 tmp 草稿 → 使用者確認 → 送出 → 刪 tmp**（§5），全型適用。
 - **plan / verify / iterate comment 都是 living**：as-built 偏離時回來同步更新已 post 的版本（`gh api --method PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<tmp>`）。

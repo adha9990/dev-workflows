@@ -16,7 +16,7 @@ description: Triages verify findings or PR feedback, decides which stage to loop
 
 ## When to Use
 
-**Use when**：`04-verify.md` 出爐、或 PR 有 reviewer 回饋要處理。
+**Use when**：`stages/04-verify.md` 出爐、或 PR 有 reviewer 回饋要處理。
 
 **NOT for**：
 - 還沒驗收 —— 去 verify。
@@ -69,14 +69,18 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 ### 6. 完工收尾
 
-**前提：最近一輪 verify 無 actionable findings**（修完有再驗過，不是測試綠就收）。對照 `00-goal.md` 停止條件全部達成 → 收尾前過 `references/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
+**前提：最近一輪 verify 無 actionable findings**（修完有再驗過，不是測試綠就收）。對照 `stages/00-goal.md` 停止條件全部達成 → 收尾前過 `references/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
 
 **AGENTS.md 同步（條件式，不問）**：docs-policy 檢查若判定**本迴圈確實改變了慣例 / 規則**（AGENTS.md 維護時機命中）→ **主線直接依 `references/docs-policy.md`（時機＋〈怎麼寫〉守門同檔）編輯根 `AGENTS.md` 對應段落**（一次一 scope、documentation-only）；**不命中就不動、不問**——絕大多數功能迴圈不觸發，只有動到規則 / 慣例 / 新子系統的迴圈才會。
 
 **交接物依迴圈類型而定 —— 都先寫暫存 tmp 草稿（不進專案）→ 使用者確認 → `--body-file` post → 刪 tmp，不自動 post**：
 
 - **修正型（`type=fix`，從 PR reviewer 回饋進來、PR 已存在）→ 只產一份：修正回覆 comment**，**固定套 `references/comment-policy.md` §8「修正回覆 comment 版型」**：開場「這輪 N 個 blocking 點都修了」→ 每點「**工程角度**（根因 / 怎麼修 `<file:line>` / 怎麼驗）＋**客戶角度**（修正前 → 後）」→ 結尾 gate 綠。**不 `@` 點名 reviewer、不寫客套**；婉拒項（contract misread）只陳述技術理由。**不另寫 PR body as-built 條目、不另發 issue comment**（除非使用者明確要）。
-- **完整迴圈（`type=issue/design`，交新 PR）→ PR 收尾 comment**（`references/pr-spec.md` + `references/comment-policy.md`：成果 + 驗證證據 + 回覆）+ **explain 理解包（opt-in）**：收尾時先 Bash `echo "${LOOPS_EXPLAIN:-}"`（與 `LOOPS_AUTO` 同慣例、settings.json env 可設）——輸出 `1` → 跑 `explain` skill 產理解包（不問「要不要產」）；否則**跳過**並在 `loop.md` Journal 記一行「explain skipped（LOOPS_EXPLAIN 未開）」。**修正型維持分類排除：不查此旗標、不產、不記 skipped**（其不產與旗標無關；要理解包時以自然語言請 Claude 跑 `explain` skill 即可）。
+- **完整迴圈（`type=issue/design`，交新 PR）→ PR 收尾 comment**（`references/pr-spec.md` + `references/comment-policy.md`：成果 + 驗證證據 + 回覆）**＋固定產三份 loop 收尾檔到 `.loops/<slug>/deliverables/`（無編號檔名）**：
+  - **`explain.md`** — 理解包（跑 `explain` skill、或主線直接寫等效內容：實作導讀 + ownership 自測題 + 設計方向 recap）。
+  - **`checklist.md`** — 合併前手動驗證 + 已知取捨確認清單（尤其**只有手動守、非 CI 常駐**的點：互動行為、a11y 取捨、像素/版面等 jsdom 測不到的）。
+  - **`cost.md`** — 成本 / 規模輪廓（展開 `loop.md` Journal 的 outcome 度量：sub-agent 數 + 各 stage token 粗估 + 回環圈數 + findings + 交付物）。
+  三份**一律產、不再由 `LOOPS_EXPLAIN` gate**（旗標舊行為只 gate explain 一份；現三份都是完工標準交接物、皆放 `deliverables/`）。PR 收尾 comment 仍先 tmp 草稿→確認→post（不進 `.loops/`）。**修正型（`type=fix`）維持分類排除：不產這三份**（只產一份修正回覆 comment；要理解包時以自然語言請 Claude 跑 `explain` skill）。
 
 **follow-up 在當前 issue 內處理、不另開 issue**：發現的後續項 / 既有非本次引入的退化，預設記在當前 issue / PR thread 並在本次或本 issue 內處理，**不 spin off 新 issue**（除非使用者明確要另開）。
 
@@ -91,7 +95,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 **loop 暫存一律不入庫**：worktree、草稿、截圖、`.loops/`、`data/`、`dev.json` 等都不該被 commit / push。repo `.gitignore` 要涵蓋 `.loops/`、`.claude/worktrees/`、`data/`、`dev.json`、截圖（缺就補）；`git ls-files` 掃一遍確認沒有暫存被追蹤。
 
-**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：用 `AskUserQuestion` 確認**交 PR**（outward action 要你點頭）/ 或還要再打磨。另外只有 **回環沒收斂 / 碰 3 圈上限 escalate（檢查點，見 §5）、真正的 trade-off（修法與 `00-goal.md` 衝突）、分類模糊** 才停下問。
+**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：用 `AskUserQuestion` 確認**交 PR**（outward action 要你點頭）/ 或還要再打磨。另外只有 **回環沒收斂 / 碰 3 圈上限 escalate（檢查點，見 §5）、真正的 trade-off（修法與 `stages/00-goal.md` 衝突）、分類模糊** 才停下問。
 
 ## Common Rationalizations
 
@@ -118,7 +122,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - 把「再 verify」降級成 gate 選項讓使用者點掉。
 - **verify 出 actionable findings（含 P2/P3）還問使用者「修多少 / 要不要修」** —— actionable 一律自動全修，不是使用者決策。
 - 修正型（`type=fix`）收尾還產一堆草稿（PR body as-built / 另發 issue comment）—— 只該一份修正回覆 comment（§8）。
-- **LOOPS_EXPLAIN 未開卻自動產 explain**（未開＝跳過＋Journal 留痕）；**開了卻問「要不要產」**（`=1` 就產、不問）；**修正型被掛上旗標查詢**（修正型是分類排除、與旗標無關）。
+- **完整迴圈完工沒產齊三份 deliverable**（`explain.md` + `checklist.md` + `cost.md`）到 `.loops/<slug>/deliverables/`；或**放錯位置**（平放 loop 根、或塞進 PR comment 而非 `deliverables/`）；或**修正型卻產這三份**（修正型只該一份修正回覆 comment）。
 - 把本可在當前 issue 解決的 follow-up 擅自另開新 issue。
 - issue-driven PR 的 body 沒放關閉關鍵字 `Closes #<issue>`（只寫標題 `(#issue)` / 內文提及 = 不連結、merge 不自動關 issue，見 `references/pr-spec.md`）。
 - **合併後沒刪已合併分支 / 沒清 worktree**，囤積一堆 merged branch；或 **loop 暫存（草稿 / 截圖 / worktree / `.loops` / `data`）被 commit 推上去**。
@@ -132,9 +136,9 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 回環**看收斂**（findings 嚴格變少才續繞）；沒收斂 / 碰 3 圈上限已 escalate 當**檢查點**（讓使用者選回頭重想 / 換跨模型 / 授權再繞〔計數重置〕）；`loop.md` 有回環歷史 + 每輪 findings 數。
 - [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工。
 - [ ] 完工前最近一輪 verify 無 actionable findings。
-- [ ] 完工前對照 `00-goal.md` 停止條件全達成。
+- [ ] 完工前對照 `stages/00-goal.md` 停止條件全達成。
 - [ ] **完工 / 中止已在 `loop.md` Journal append 一行 outcome 度量**（依 `references/journaling.md`〈完工 outcome 度量〉，欄位齊全、token 帶 `est`／級距標粗估）。
-- [ ] 收尾交接物依迴圈類型：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」、完整迴圈產 PR 收尾 comment + **explain 依 LOOPS_EXPLAIN 判**（`=1` 產且沒問；未開跳過＋Journal 留痕；修正型未掛旗標查詢）；對外那份經使用者確認才送、未自動 post、回環途中不產。
+- [ ] 收尾交接物依迴圈類型：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」；完整迴圈產 PR 收尾 comment **＋三份 loop 收尾檔 `deliverables/{explain,checklist,cost}.md`（無編號、一律產）**；對外的 comment 經使用者確認才送、未自動 post、回環途中不產。
 - [ ] **AGENTS.md 同步已判**：docs-policy 檢查命中「慣例 / 規則改變」→ 主線已依 docs-policy（含〈怎麼寫〉守門）直接編輯對應段落；未命中 → 未動也未問（不對無關迴圈加噪音）。
 - [ ] follow-up 在當前 issue 內處理，沒有擅自另開新 issue。
 - [ ] **收尾清理兩時機都做了**：① loop 結束時清掉 loop 期間所有暫存（worktree / 草稿 / 截圖 / scratch，不等 PR）；② PR 合併後刪分支（solo 自己合併自己清，只留 `main` + 進行中）。loop 暫存沒被推上去（`.gitignore` 有涵蓋）。

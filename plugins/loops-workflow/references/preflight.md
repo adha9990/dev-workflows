@@ -41,9 +41,9 @@ design / walkthrough / merge-review 三軸常常從不同角度撞到**同一個
 
 ### (c) 硬規則：作者已留痕的決定不算 finding
 
-這是 preflight 最關鍵、也最容易被違反的一條。自檢的審核契約是**上游 issue / 需求**，不是作者在 alignment comment、`02-plan.md`、PR body 裡的自述。
+這是 preflight 最關鍵、也最容易被違反的一條。自檢的審核契約是**上游 issue / 需求**，不是作者在 alignment comment、`stages/02-plan.md`、PR body 裡的自述。
 
-**判準**：一條 finding 若只是**牴觸了作者已留痕的決定**（alignment comment / `02-plan.md` / PR body 寫明的拍板），就**不是有效 finding**，整條剔除（不降級、直接剔除）—— **除非**它同時是一個**獨立的正確性 / 安全 / 資料缺陷**（亦即就算沒有那個決定，它本身也是 bug）。
+**判準**：一條 finding 若只是**牴觸了作者已留痕的決定**（alignment comment / `stages/02-plan.md` / PR body 寫明的拍板），就**不是有效 finding**，整條剔除（不降級、直接剔除）—— **除非**它同時是一個**獨立的正確性 / 安全 / 資料缺陷**（亦即就算沒有那個決定，它本身也是 bug）。
 
 拆開講：
 
@@ -70,7 +70,7 @@ design / walkthrough / merge-review 三軸常常從不同角度撞到**同一個
 
 ### 步驟
 
-1. **備自檢 packet**（之後塞進每個 reviewer 的 prompt）：issue 重點（目標 / 範圍 / 驗收 / 非目標）、作者自述意圖（branch 模式改讀 alignment comment / `02-plan.md` / commit log）、diff 摘要與檔案清單、最近的 `AGENTS.md` 規則，以及 **作者已拍板決策清單**（從 alignment comment / `02-plan.md` / PR body 整理出的定案與已知取捨 —— 這份就是 (c) 規則的比對基準）。
+1. **備自檢 packet**（之後塞進每個 reviewer 的 prompt）：issue 重點（目標 / 範圍 / 驗收 / 非目標）、作者自述意圖（branch 模式改讀 alignment comment / `stages/02-plan.md` / commit log）、diff 摘要與檔案清單、最近的 `AGENTS.md` 規則，以及 **作者已拍板決策清單**（從 alignment comment / `stages/02-plan.md` / PR body 整理出的定案與已知取捨 —— 這份就是 (c) 規則的比對基準）。
 2. **跑 merge-review**：跑一輪 `verify`（核心 reviewer〔依步驟 1 風險梯右尺寸化〕+ 條件式 + finding-validator）。把 (c) 硬規則原文加進每個 reviewer 的 prompt。
 3. **跑 design + walkthrough + ownership**：跑一次 `explain`，拿三段理解包。
 4. **收斂**：先套 (c) 過濾（把誤把作者定案當問題的 finding 整條剔除）→ 再做 (b) 跨關去重 → 出 (a) 單一判定。
@@ -93,7 +93,7 @@ PR 模式只在準備階段 checkout 一次，之後所有 reviewer 一律唯讀
 
 | 念頭 | 事實 |
 |---|---|
-| 「作者這決定跟 issue 字面不同，列一條 finding」 | 先查 alignment comment / `02-plan.md` —— 留痕拍板過的就是定案，剔除（除非它本身也是獨立 bug）。 |
+| 「作者這決定跟 issue 字面不同，列一條 finding」 | 先查 alignment comment / `stages/02-plan.md` —— 留痕拍板過的就是定案，剔除（除非它本身也是獨立 bug）。 |
 | 「為了完整，把 explain 跟 verify 都從頭重做一遍邏輯」 | 別重造 —— merge-review = 直接跑 `verify`，walkthrough/ownership/方向 = 直接跑 `explain`。preflight 只加收斂層。 |
 | 「verify 出 Ready 了，那一定可送審」 | verify 只管合併安全。送審判定還要過 design-screen（方向沒偏）與 ownership（自己答得出來），三軸合一才算。 |
 | 「順手把 findings po 上 PR」 | 自檢永不碰 GitHub 寫入。要留檔走 `comment-policy.md` 的 tmp 檔流程。 |
