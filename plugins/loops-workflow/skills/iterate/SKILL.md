@@ -144,5 +144,5 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 收尾交接物依迴圈類型：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」；完整迴圈產 PR 收尾 comment **＋三份 loop 收尾檔 `deliverables/{explain,checklist,cost}.md`（無編號、一律產）**；對外的 comment 經使用者確認才送、未自動 post、回環途中不產。
 - [ ] **AGENTS.md 同步已判**：docs-policy 檢查命中「慣例 / 規則改變」→ 主線已依 docs-policy（含〈怎麼寫〉守門）直接編輯對應段落；未命中 → 未動也未問（不對無關迴圈加噪音）。
 - [ ] follow-up 在當前 issue 內處理，沒有擅自另開新 issue。
-- [ ] **收尾清理兩時機都做了**：① loop 結束時清掉臨時 scratch（草稿 / 截圖 / gif / scratch，不等 PR）—— **有開著的 PR 時 worktree 不在這步清**（只有沒交 PR 的純中止才連 worktree 一起清）；② PR merge / close 後刪分支 + 清 worktree（solo 自己合併自己清，只留 `main` + 進行中）。loop 暫存沒被推上去（`.gitignore` 有涵蓋）。
+- [ ] **收尾清理兩時機都做了**：① loop 結束時清掉臨時 scratch（草稿 / 截圖 / gif / scratch，不等 PR）—— **有開著的 PR 時 worktree 不在這步清**（只有沒交 PR 的純中止才連 worktree 一起清）；② PR merge / close 後刪分支 + 清 worktree（solo 自己合併自己清，只留 `main` + 進行中）。loop 暫存沒被推上去（未追蹤 / `.gitignore` 涵蓋，`git ls-files` 掃一遍確認）。
 - [ ] 停在 `iterate` 決策 gate。
