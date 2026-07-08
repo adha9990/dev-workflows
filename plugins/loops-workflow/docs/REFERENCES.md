@@ -1,6 +1,6 @@
 # references 目錄（幫你找到「該讀哪份規範」）
 
-> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。這頁把 **52 份 reference 依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」。
+> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。這頁把 **53 份 reference 依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」。
 >
 > 想看**流程全貌**（每階段怎麼跑）→ [`FLOW.md`](FLOW.md)；想看**可設定的參數** → [`settings.md`](settings.md)；這份是「規範字典」。（技術註：subagent 讀不到相對路徑，orchestrator 會把絕對路徑塞進 prompt——見 `AGENTS.md`〈參考檔路徑解析〉。）
 
