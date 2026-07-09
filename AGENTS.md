@@ -38,10 +38,11 @@
    - **平行寫檔一律隔離 worktree**：若同一階段（尤其 build）**同時派多個會寫檔的 subagent**（跨任務 / 跨 DAG 層平行 fan-out），**每個平行 writer 各跑在自己的隔離 worktree**（`isolation: 'worktree'`，或各自 `git worktree add`），**不可共用同一工作目錄** —— 共用會讓它們的 `pnpm` / 檔案寫入交錯競態，且各自自報的「綠」反映的是不同時間點的半成品態、**不可採信**（已踩過）。平行子任務完成後**合併回 loop 主 worktree，由主線在合併態上重跑完整 gate（`typecheck`/`lint`/`test`）才算數**，不採信任一 subagent 的自報結果。read-only subagent（verify reviewer / explore 掃描）不寫檔，無此限制。
 10. **成本意識：迴圈很貴，要設計成「負擔得起」**。一條迴圈動輒 50–200K token、回環三輪 500K–2M —— Loop Engineering 的成敗在**負擔得起**，不是能不能跑。所以全程貫徹：
     - **高上下文效率**：下一階段只讀**精煉版**（`.loops/` 的 `0N-*.md`）、不重讀原始素材；每份 < 2000 行；subagent 只塞它**需要的那段**脈絡（VISION/ARCHITECTURE/RULES 對應段 + 該軸的絕對路徑 reference），不倒整包。
-    - **便宜的先、貴的後且要 gate**：explore 內部夠就不外搜、外搜先便宜 `WebSearch` 再 gate 升級 deep-research；verify 條件式 reviewer 只在觸及領域 / 專案宣告該條件時才加派；Fleet / deep-research / 真機驗證這些貴動作預設不開、要才開。
+    - **便宜的先、貴的後且要 gate**：explore 內部夠就不外搜、外搜先便宜 `WebSearch` 再 gate 升級 deep-research；verify 條件式 reviewer 只在觸及領域 / 專案宣告該條件時才加派；Fleet / deep-research / 真機驗證這些貴動作預設不開、要才開。**這條只管「資訊蒐集與驗證動作」的執行順序，不是方案取捨準則**（方案怎麼選見下方「成本意識不外溢到方案 / 架構取捨」）。
     - **model / effort 分層（見 `references/model-effort-policy.md`）**：subagent 依角色靜態選 model+effort（多為 `sonnet`·medium；窄任務 low；referee `opus`·high）——不跟 session 跑 xhigh；高風險時 verify/build 派工才 per-dispatch 拉 `model: opus`（effort 無法 per-dispatch）。
     - **不重複勞動**：reuse 優先（不重造輪子）、living plan（偏離回去改、不留到最後重做）、修完一定再 verify（一次驗到位、不靠人來回）。
     - **fail-fast 不空轉**：停止條件**看收斂**（findings 沒變少 / 同條 finding 復現就 escalate）、回環 3 圈上限當檢查點、**不過早放棄也不無限繞**。
+    - **成本意識不外溢到方案 / 架構取捨**：推薦與拍板以**長期正確性與風險消除**為先，不以實作代價最小為預設傾向；「代價小」只能在**同等正確**的方案之間當 tie-breaker，不能是取捨主軸。「便宜但留債」的選項（退回本該完成的遷移、保留新舊雙路徑、暫留 shim）必須明標它埋的債，**不得預設標推薦（除非使用者已明示接受該債）**。實例：稽核發現半途的遷移（新舊雙路徑並存）——「撤回」與「完成遷移」都能消除雙路徑，錯不在終態、在用「哪邊省工」決定走哪個方向；遷移方向本身正確時，正確解是完成遷移，即使工程量大得多。
     - **砍的是「非必要的貴動作 + 浪費」，不是 mandatory 流程**（carve-out，邊界明寫免被理性化為跳流程）：
         - **不可省的 gate**：`define` 建 issue / issue-first（規則 12）/ human 決策 gate（規則 2）/ `verify` 獨立複查（規則 11）—— **不因成本而省**。
         - **可省的貴動作**（預設不開、需要才開）：deep-research（便宜 `WebSearch` 先試）/ Fleet 編隊（單一實作優先）/ 額外 reviewer（條件式按領域加派）/ 真機驗證（simulate 優先）。
