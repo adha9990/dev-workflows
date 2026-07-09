@@ -78,11 +78,13 @@ description: Researches how to build something before it gets planned, and lays 
 | **重用度** | 多大程度複用既有、少造輪子 |
 | **適配度** | 跟既有架構 / 分層慣例多合 |
 
-**兩個鐵則 —— 評估的價值所在：**
+**三個鐵則 —— 評估的價值所在：**
 
 1. **issue 寫的方法只是候選、不是定案。** issue 點名的套件 / 做法是**建議、不是需求** —— 它以**一個候選**身分進評估，跟內部既有做法、其他外部做法一起比；評估贏家不同就換。需求是「要達成什麼」，不是「用哪個套件」。
 
 2. **在接近真實 / 極端規模跑 benchmark，不憑感覺。** 方法**能用 ≠ 好用**，極端情況甚至不適用 —— 兩個方法在小樣本幾乎無異、在大資料量 / 高流量下可能差幾個數量級。所以 `效能` 維度：先做時間 / 空間複雜度分析鎖定可疑點，再在**接近真實 / 極端規模**實測 benchmark 證實，不靠小樣本下結論、不只做 MVP（對齊 `AGENTS.md` 規則 6 最高標準 / 規則 10 該量就量）。
+
+3. **推薦不以實作代價最小為主軸。** 收斂推薦時，決定因素是**長期正確性與風險消除**；「代價小」只能在**同等正確**的候選之間當 tie-breaker（AGENTS 規則 10：cheap-first 只管本 skill 第 2–3 步〔夠了沒判斷＋外搜分層〕資訊蒐集的執行順序，不是方案取捨準則）。候選若是「便宜但留債」（退回本該完成的遷移、保留雙路徑、暫留 shim），矩陣與推薦必須**明標它埋的風險**，**不得預設標推薦（除非使用者已明示接受該債）**。
 
 主線收成**比較矩陣**（候選 × 維度 + 分數 + 證據 / CITE，沒實測標 `not measured`、規模相關的**標明在多大資料量下測的**）→ 寫進 `stages/01-explore.md` → 推薦 + **點明哪個維度是決定因素**。**單一明顯方法、無真競爭** → 跳過評估直接推薦（省成本）。
 
@@ -92,7 +94,7 @@ description: Researches how to build something before it gets planned, and lays 
 
 共通：**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」；有搜外部就內外並排、附 CITE。停在 gate 時**一律用 `AskUserQuestion` 給選項**（每個標推薦 + 一句理由），不要用純文字要使用者打字。
 
-**收斂式 → `explore → plan`**：把候選方案 + 第 4.5 步比較矩陣整理進 `stages/01-explore.md`（各自優缺點、適配度、CITE；內部已足夠則列內部結論 + 一句「為什麼不必外部」）。收斂時除維度分數，再看使用者價值（解痛點 painkiller / nice-to-have vitamin）+「**這方向賭什麼成立、什麼會讓它垮**」。給一個推薦 + 理由（**點明決定因素**）。gate 用 `AskUserQuestion` 把**候選方法**做成選項給使用者選 → 進 `plan`。
+**收斂式 → `explore → plan`**：把候選方案 + 第 4.5 步比較矩陣整理進 `stages/01-explore.md`（各自優缺點、適配度、CITE；內部已足夠則列內部結論 + 一句「為什麼不必外部」）。收斂時除維度分數，再看使用者價值（解痛點 painkiller / nice-to-have vitamin）+「**這方向賭什麼成立、什麼會讓它垮**」。給一個推薦 + 理由（**點明決定因素**；決定因素不得是「代價最小」——見 §4.5 鐵則 3）。gate 用 `AskUserQuestion` 把**候選方法**做成選項給使用者選 → 進 `plan`。
 
 **發散式 → `explore → define`**：把設計空間整理進 `stages/01-explore.md` —— 每個開放問題列「選項 + 傾向（待拍板）+ 相依」，收束成一份 **issue backlog 清單**（不收斂成單一方法）。
 
@@ -109,6 +111,7 @@ description: Researches how to build something before it gets planned, and lays 
 | 「API 我記得大概長這樣」 | 記憶會錯。框架 API 一律查官方文件查證，查不到標 UNVERIFIED。 |
 | 「比較表先省了，直接講結論」 | 沒有攤開比較，使用者沒法在 gate 做有依據的選擇。 |
 | 「有個方法能用就用它，不用比」 | 多方法在效能 / 體積 / 維護上常有實質差，挑錯到 build 才發現貴。≥2 方法就做多維評估矩陣，挑**有依據的**、不是挑能跑的。 |
+| 「這個候選改動最小 / 最省工，推薦它」 | 代價小不是推薦理由，只是同等正確候選間的 tie-breaker。便宜但留債（雙路徑 / shim / 退回本該完成的遷移）的候選要明標債讓使用者知情拍板，不是預設贏家。 |
 
 ## Red Flags
 
@@ -118,6 +121,7 @@ description: Researches how to build something before it gets planned, and lays 
 - 框架 API 沒查證就寫進 `stages/01-explore.md`。
 - 把推薦寫成「已決定採用」越過使用者的選擇 gate。
 - 多個方法都走得通，卻沒做多維評估、隨便挑一個能用的。
+- 推薦理由是「代價最小 / 改動最少」，卻沒論證長期正確性；或「便宜但留債」候選沒明標埋藏風險就標了推薦。
 - **拿 `codebase-memory-mcp` graph 查「剛改 / worktree / 未提交」那塊就直接採信**（沒 `detect_changes` 驗新鮮度、沒回頭 `Read` 實檔）—— graph 只保證「已索引 baseline」，正在動的那塊以實檔為準。
 - 大檔整檔重複讀、或引用**已改動檔**的舊 Read 內容做推理（context-diet §C：重讀該範圍）。
 
@@ -126,6 +130,7 @@ description: Researches how to build something before it gets planned, and lays 
 - [ ] `stages/01-explore.md` 有方案 + 推薦；**有搜外部才內外並排**，內部 + 需求已足夠則註明為什麼不必外部。
 - [ ] **≥2 個可行方法時**，有**多維比較矩陣**（候選 × 效能 / 體積 / 可維護 / 可擴展 / 安全 / 複雜度 / 重用 / 適配 + 分數 + 證據），推薦點明決定因素。
 - [ ] 有明確推薦 + 理由，且措辭是「待你拍板」不是「已決定」。
+- [ ] 推薦的決定因素是長期正確性 / 風險消除；「便宜但留債」候選已明標債、未被預設標推薦（§4.5 鐵則 3）。
 - [ ] 框架 API 來源已 CITE，查不到的標 UNVERIFIED。
 - [ ] deep-research（若用）有先經同意。
 - [ ] 內部掃描**優先用 `codebase-memory-mcp`**（repo 已索引時）；**剛改 / worktree / 未提交**的 code 已用 `detect_changes` + 直接 `Read` 驗證、未採信 stale graph；未索引 / 工具不可用則 fallback 派 `Explore` agent（見 `references/code-retrieval.md`）。讀檔／輸出瘦身守 `references/context-diet.md`。
