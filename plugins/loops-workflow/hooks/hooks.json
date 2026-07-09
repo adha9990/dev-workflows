@@ -1,5 +1,5 @@
 {
-  "description": "loops-workflow hooks（三類，#87 逐 flag 拍板見 references/journaling.md 決策表：SessionStart 與 progress-render 恆跑；預設開 6 枚=loops-path-guard/cost-tracker/eval-gate×3/config-protection〔loops-scoped〕，僅字面 '0' 關；opt-in 3 枚=stop-gate〔RCE 面〕/compact-hint〔中性〕/loop-driver〔會主動 block 續跑〕；語意單一真相源=hooks/hook-flags.mjs；除 deny 類與 loop-driver 的 opt-in 續跑 block 外皆永不擋路）：SessionStart=浮出 active 迴圈；Stop(5)=cost-tracker 記估算成本(預設開) + eval-gate 改檔回合多訊號注入(三 flag 獨立、預設開、讀已持久化 artifact、不執行 repo 定義命令) + stop-gate 改檔回合自動跑 quality-gate(opt-in LOOPS_STOP_GATE=1；未開但偵測到 gate.config 時 per-session 一次發現性提示) + progress-render 恆跑：每回合對本 session active loop 重生 .loops/<slug>/PROGRESS.md + loop-driver 末位掛載：build 階段自動驅動迴圈續跑(opt-in LOOPS_LOOP_DRIVER=1；家族首支會 decision:block 的 hook；防重入 / 保險絲 / fail-open / 完工雙帳本；單 writer + atomic 寫回 state.json)；PostToolUse=edit-accumulator 累積本回合改檔(任一消費 flag 啟用且 cwd 有 .loops/ 才記)；PreToolUse(Edit|Write)=suggest-compact context 壓力提醒(opt-in LOOPS_COMPACT_HINT)、(Write|Edit|MultiEdit)=config-protection 擋弱化 linter 設定(預設開、loops-scoped；顯式 '1'=全域) + loops-path-guard 擋 .loops 寫進 worktree(預設開；AGENTS 規則 9 機械化)。",
+  "description": "loops-workflow hooks（三類，#87 逐 flag 拍板見 references/journaling.md 決策表：SessionStart 與 progress-render 恆跑；預設開 7 枚=loops-path-guard/cost-tracker/eval-gate×3/config-protection〔loops-scoped〕/outbound-comment-guard，僅字面 '0' 關；opt-in 3 枚=stop-gate〔RCE 面〕/compact-hint〔中性〕/loop-driver〔會主動 block 續跑〕；語意單一真相源=hooks/hook-flags.mjs；除 deny 類與 loop-driver 的 opt-in 續跑 block 外皆永不擋路）：SessionStart=浮出 active 迴圈；Stop(5)=cost-tracker 記估算成本(預設開) + eval-gate 改檔回合多訊號注入(三 flag 獨立、預設開、讀已持久化 artifact、不執行 repo 定義命令) + stop-gate 改檔回合自動跑 quality-gate(opt-in LOOPS_STOP_GATE=1；未開但偵測到 gate.config 時 per-session 一次發現性提示) + progress-render 恆跑：每回合對本 session active loop 重生 .loops/<slug>/PROGRESS.md + loop-driver 末位掛載：build 階段自動驅動迴圈續跑(opt-in LOOPS_LOOP_DRIVER=1；家族首支會 decision:block 的 hook；防重入 / 保險絲 / fail-open / 完工雙帳本；單 writer + atomic 寫回 state.json)；PostToolUse=edit-accumulator 累積本回合改檔(任一消費 flag 啟用且 cwd 有 .loops/ 才記)；PreToolUse(Edit|Write)=suggest-compact context 壓力提醒(opt-in LOOPS_COMPACT_HINT)、(Write|Edit|MultiEdit)=config-protection 擋弱化 linter 設定(預設開、loops-scoped；顯式 '1'=全域) + loops-path-guard 擋 .loops 寫進 worktree(預設開；AGENTS 規則 9 機械化)、(Bash)=outbound-comment-guard 擋對外 comment @點名人/客套開場(預設開；comment-policy §6/§8 機械化)。",
   "hooks": {
     "SessionStart": [
       {
@@ -68,6 +68,15 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/loops-path-guard.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/outbound-comment-guard.mjs\""
           }
         ]
       }

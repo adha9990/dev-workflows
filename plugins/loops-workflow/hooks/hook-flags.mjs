@@ -19,6 +19,7 @@ export const FLAG_DEFAULTS = {
   LOOPS_EVAL_TAGS_GATE: { defaultOn: true },
   LOOPS_EVAL_POLL_GATE: { defaultOn: true },
   LOOPS_CONFIG_PROTECTION: { defaultOn: true },
+  LOOPS_COMMENT_GUARD: { defaultOn: true },
   // optIn（3）：會自動執行 repo 控制的命令 / 注入類 / 主動 block 續跑，預設關閉，僅字面 '1' 可開啟。
   LOOPS_STOP_GATE: { defaultOn: false },
   LOOPS_COMPACT_HINT: { defaultOn: false },

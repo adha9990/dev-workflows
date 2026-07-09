@@ -3,6 +3,12 @@
 > 所有**面向人**的書面溝通共用：AskUserQuestion、issue / PR 回覆、驗收報告、端給使用者的決策、reviewer 回覆。把散在各階段的溝通規則統整在這裡。
 >
 > **每型對外訊息對到哪個樣板**：見 **`outbound-templates.md`**（統一索引：issue 建立 / plan 對齊 comment / verify 驗收報告 / iterate 修正回覆 / PR body / AskUserQuestion）。本檔是這些樣板共用的 house-style + §7/§8 兩個版型本體。
+>
+> **⛔ 硬規則（貼任何對外 comment 前必守，已被 `outbound-comment-guard` hook 機械擋）**：
+> 1. **不 `@` 點名人**（`@me` 除外）——`gh pr/issue comment`、`gh api .../comments` 的 body 含 `@人名` 會被 hook **deny**（見 §6/§8）。
+> 2. **不寫客套開場**（感謝 / 謝謝 / thanks…）——直接陳述內容（見 §6）。
+>
+> hook 是保險絲、不是免讀本檔的理由：手貼 comment 也要先套本檔版型。誤擋逃生口：`LOOPS_COMMENT_GUARD=0`。
 
 ## 0. 對外訊息必須 self-contained —— 絕不引用 `.loops/` 路徑
 
