@@ -6,7 +6,12 @@
 
 - **開 Draft PR**（先草稿，確認再轉 Ready）。
 - **標題**：`<type>: <繁中主旨> (#<issue>)`，例 `feat: 補上訂單關鍵字搜尋 (#122)`。
-- **指派給作者本人**：`gh pr create --assignee @me`（既有 PR 用 `gh pr edit <PR#> --add-assignee @me`）—— PR Assignee 標成作者自己。
+- **建 PR 一律同時帶 `--draft` + `--assignee @me`**（開成草稿 + 指派作者自己）：
+  ```
+  gh pr create --draft --assignee @me --base <default-branch> \
+    --title "<type>: <繁中主旨> (#<issue>)" --body-file <tmp>
+  ```
+  已建的 PR 忘了帶就**補救**：轉 draft 用 `gh pr ready <PR#> --undo`、補 assignee 用 `gh pr edit <PR#> --add-assignee @me`。使用者要正式請 merge 時才 `gh pr ready <PR#>` 轉 Ready。
 
 ## 連結 issue（關閉關鍵字，必做）
 

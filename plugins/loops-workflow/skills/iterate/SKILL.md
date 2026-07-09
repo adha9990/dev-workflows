@@ -97,7 +97,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 **loop 暫存一律不入庫**：worktree、草稿、截圖、`.loops/`、`data/`、`dev.json` 等都不該被 commit / push。repo `.gitignore` 要涵蓋 `.loops/`、`.claude/worktrees/`、`data/`、`dev.json`、截圖（缺就補）；`git ls-files` 掃一遍確認沒有暫存被追蹤。
 
-**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：用 `AskUserQuestion` 確認**交 PR**（outward action 要你點頭）/ 或還要再打磨。另外只有 **回環沒收斂 / 碰 3 圈上限 escalate（檢查點，見 §5）、真正的 trade-off（修法與 `stages/00-goal.md` 衝突）、分類模糊** 才停下問。
+**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：用 `AskUserQuestion` 確認**交 PR**（outward action 要你點頭）—— 核可後**一律 `gh pr create --draft --assignee @me`**（開 draft + 指派作者自己，見 `references/pr-spec.md`〈開法〉；使用者要正式請 merge 時才 `gh pr ready <PR#>` 轉 Ready）/ 或還要再打磨。另外只有 **回環沒收斂 / 碰 3 圈上限 escalate（檢查點，見 §5）、真正的 trade-off（修法與 `stages/00-goal.md` 衝突）、分類模糊** 才停下問。
 
 ## Common Rationalizations
 
@@ -128,12 +128,14 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - 把本可在當前 issue 解決的 follow-up 擅自另開新 issue。
 - issue-driven PR 的 body 沒放關閉關鍵字 `Closes #<issue>`（只寫標題 `(#issue)` / 內文提及 = 不連結、merge 不自動關 issue，見 `references/pr-spec.md`）。
 - **PR 還開著（等人工驗收 / merge）就在 loop 收尾砍掉該 loop 的 worktree** —— worktree 要保留到 PR merge / close（§②）才清；loop 結束（§①）只清臨時 scratch（tmp / 截圖 / gif / scratch）。只有「沒交 PR 的純中止」才在 loop 結束連 worktree 一起清。
+- **交 PR 沒帶 `--draft` 或沒帶 `--assignee @me`**（直接開成 Ready 請 merge、或沒指派作者本人）—— 一律先 draft + 指派自己，使用者要 merge 才 `gh pr ready` 轉正（補救：`gh pr ready <PR#> --undo` 轉回 draft、`gh pr edit <PR#> --add-assignee @me` 補指派）。見 `references/pr-spec.md`〈開法〉。
 - **合併後沒刪已合併分支 / 沒清 worktree**，囤積一堆 merged branch；或 **loop 暫存（草稿 / 截圖 / worktree / `.loops` / `data`）被 commit 推上去**。
 - **完工 / 中止沒在 `loop.md` Journal append 一行 outcome 度量**（缺成本 / 規模輪廓，違規則 10 可觀測）；或 token 欄寫成精準值沒標 `est`（違規則 5）。
 
 ## Verification
 
 - [ ] 每條回饋有 RECONCILE 分類。
+- [ ] 交 PR 一律 **draft + `--assignee @me`**（`gh pr create --draft --assignee @me`；使用者要 merge 才 `gh pr ready` 轉 Ready，見 `references/pr-spec.md`〈開法〉）。
 - [ ] verify 出的 actionable findings（不論 P2/P3）**全部自動修了**，沒問使用者「修多少 / 要不要修」。
 - [ ] 每個 actionable 修的是根因 + 有回歸測試（GUARD）。
 - [ ] 回環**看收斂**（findings 嚴格變少才續繞）；沒收斂 / 碰 3 圈上限已 escalate 當**檢查點**（讓使用者選回頭重想 / 換跨模型 / 授權再繞〔計數重置〕）；`loop.md` 有回環歷史 + 每輪 findings 數。
