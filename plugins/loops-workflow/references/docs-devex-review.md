@@ -12,6 +12,7 @@
 - 設定 / migration / 升級步驟改了，有沒有對應的 upgrade / migration note。
 - 專案專屬命令（產生程式碼、建置、初始化等）的用法變了，對應指引是否同步。
 - **docs 宣稱 vs 實作交叉驗證**：對**改動觸及的子系統**，把該區 `docs/<topic>.md` 裡的具體宣稱（範例 payload / 檔案格式 / 回傳形狀 / 欄位）**逐一對照實際 code 行為**，不符即報——**即使該不符早於本次改動**（例：doc 寫「匯出下載的就是 raw overrides」，實際是含 `version`/`type`/`exportedAt` 的 envelope）。改動 IN 該子系統時，這份 doc 就是接手者會照著做的權威；照它做會失敗 = P1/P2。（與上面「這次改動讓既有文件變誤導」互補：這條抓的是「文件本來就與實作不符、而本次正好碰到該區」。）
+- **行為變更 → 全 `docs/` 關鍵字掃（別只查改動檔附近的 doc）**：當本次改動改的是一個**行為 / 契約**（不只某個檔案），doc 漂移要照「**改了哪個行為**」找、不是照「改了哪些檔」找——描述舊行為的文件常散在**離改動 code 很遠**的 topic doc 裡。作法：拿「被改掉的**舊行為**關鍵字」（例：某模型扁平化後的 `recursive X` / `X tree` / `parent_id`；某 API 改形狀後的舊欄位名 / 舊端點）**grep 整個 `docs/`（＋所有 `AGENTS.md`/`CLAUDE.md`）**，逐一核每個命中是否還在教舊行為。只更新「改動檔旁邊那幾份 doc」是最常見的漏抓。（實例：#219 tag 扁平化，貼著 code 的 `smart-folder/AGENTS.md` 有改，但 `docs/services/smart-folder-query-compiler.md`、`item-query.md`、`agent-doc-coverage.md` 三份 topic doc 仍描述舊的 recursive tag tree、漏抓，拖到人工 reviewer 才發現。）
 
 ## 二、PR body 驗證證據品質
 

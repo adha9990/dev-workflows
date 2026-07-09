@@ -35,3 +35,12 @@
 - 需求 / issue 寫得不好本身 —— 那是 PM / 規格問題，不是這份改動的 blocking finding。
 
 > 每個 reviewer 在共用底線之外，可再套自己那軸的假警報清單（見各軸 review reference）。
+
+## 三、找到一個缺陷就掃同類 + 優先在共用層修（全軸適用）
+
+任一 reviewer 找到一個缺陷（**不只 bug-fix 軸**），出手前先做兩件事：
+
+- **掃同類的所有姊妹點**：同一個 pattern / 呼叫 / 疏漏往往有**多個入口**（例：某處 `recordMany` 無界 → 其他 caller 也無界；某個舊欄位名 → 別處也還在用）。只報 / 只修觸發的那一條，換個入口就復發。找到一個就 grep 同詞根 / 同呼叫 / 同形狀，把同類一起列出。
+- **建議修正時優先在「共用層」修**（共用函式 / 基底 / adapter），而非逐呼叫點修——**class 級修法自動擴及所有 caller，call-site 修法不會**。若某類風險（如 bind-limit、未分批、未驗證）在共用入口就能一次擋掉，就別建議在每個呼叫點各修一遍。
+
+> `root-cause-review` 軸的〈同類入口掃描〉是這條規則對 **bug-fix** 的特例；這裡把它**推廣到所有軸、所有 finding**。實例：#219 `merge` 的 `recordMany` 分批只修在**呼叫點**、沒掃到 `remove_from_all_groups` 同一個無界 pattern；正解是把分批修進 `recordMany` **本身**（共用層），一次保護所有 caller。
