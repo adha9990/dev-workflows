@@ -10,10 +10,11 @@
 //   - optIn 類：未設 / 空字串 / 任何非 '1' 的怪值一律視為「關」，只有字面 '1' 才開啟。
 // 這樣「使用者手滑打錯值」永遠不會意外打開危險行為，也不會意外關掉安全防護。
 
-// ── 對外契約：9 個 flag 的分類表（值即契約，逐欄釘死）─────────────────────────────
+// ── 對外契約：10 個 flag 的分類表（值即契約，逐欄釘死）────────────────────────────
 export const FLAG_DEFAULTS = {
-  // defaultOn（6）：安全防護 / 觀測類，預設啟用，僅字面 '0' 可關閉。
+  // defaultOn（7）：安全防護 / 觀測類，預設啟用，僅字面 '0' 可關閉。
   LOOPS_PATH_CONTAINMENT: { defaultOn: true },
+  LOOPS_WORKTREE_GUARD: { defaultOn: true },
   LOOPS_COST_TRACKER: { defaultOn: true },
   LOOPS_EVAL_GATE: { defaultOn: true },
   LOOPS_EVAL_TAGS_GATE: { defaultOn: true },

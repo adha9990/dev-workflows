@@ -22,7 +22,10 @@ description: Implements each planned task into working, test-protected code. Use
 - 計畫還沒拍板 —— 回 plan。
 - 改完要驗收 —— 去 verify。
 
-> **動 code 前先確認在 worktree 裡**：在獨立 git worktree（自帶 branch）寫，不在使用者主 checkout 直接改（dispatch 對 issue/fix 已開；純設計迴圈走到這裡才開 —— `git worktree add .claude/worktrees/<slug> -b <slug> <base>`，branch / worktree 名 = slug，不加 type 前綴）。見 `AGENTS.md` 規則 9。
+> **Step 0（硬性 gate，派任何 test-author/impl-author 之前先做，不是可選前言）——確認在 worktree 裡**：會動 code 的 loop（issue/fix）**必須**在獨立 git worktree（自帶 branch）寫，**不在使用者主 checkout 直接改／`checkout -b`**。先驗證：`git rev-parse --show-toplevel` 應指向 `.claude/worktrees/<slug>`；不是 → **先開再往下**（`git worktree add .claude/worktrees/<slug> -b <slug> <base>`，branch/worktree 名 = slug、不加 type 前綴；dispatch 對 issue/fix 可能已開）。
+> - ⚠️ **不得用 session／harness 的「work in place」「skip EnterWorktree」等設定當藉口跳過本 gate**：那些管「整個 session 是否隔離進 worktree」，與「為 loop 的 code 開 worktree、session 仍留主 repo」是**不同層且相容**——session 留主 repo、worktree 只放 code，正是要的樣子。把它讀成「不用 worktree」= 繞過 `AGENTS.md` 規則 9（已踩過：在主 checkout `checkout -b` 做了一輪才被使用者抓）。
+> - 機械擋：`hooks/worktree-guard.mjs`（PreToolUse Bash deny、預設開）偵測到對已建 loop 的 `checkout -b`／`switch -c` 在主 checkout 執行即擋、導向 `git worktree add`。逃生口 `LOOPS_WORKTREE_GUARD=0`。
+> - **worktree 需自己的依賴**（node_modules 不隨 worktree 共享）→ 開完先在 worktree 跑一次安裝（如 `pnpm -C <worktree> install`）才能跑測試。之後測試/commit 一律 `pnpm -C <worktree>` / `git -C <worktree>`。**`.loops/` 續留主 repo 絕對路徑、不寫進 worktree**。見 `AGENTS.md` 規則 9。
 
 > **step-0 迴圈外置（#99，opt-in）**：`LOOPS_LOOP_DRIVER=1` 且 auto 語意成立（loop.md `推進模式：auto` 或 `LOOPS_AUTO=1`）時，進 build 先把 `stages/02-plan.md` 任務拆解一次性解析寫入 `$LOOPS_ROOT/.loops/<slug>/state.json`（schema/欄位語意見 `references/journaling.md` loop-driver 條目；**既有 state 不歸零**——`session` 更新為當前、`tasks[].status` 依 03-build 軌跡/quality-gate 推導保留、iteration 歸 1）。之後每任務完成（step 7 Save Point 後）把該任務 `status` 翻 `done`（atomic、單欄——cursor 由 hook 推導、不另記 index）；**build 全完進 verify 前主線刪 state.json**（正常收攤；loop-driver 完工路徑的刪除＝同 session crash 兜底）。closed 且未設 LOOPS_AUTO＝不建 state、行為完全不變。跨 session 孤兒 state 惰性無害（永不匹配），同 slug 重跑接管或手刪。
 
@@ -60,6 +63,7 @@ description: Implements each planned task into working, test-protected code. Use
 
 ## Red Flags
 
+- **在主 checkout（非 worktree）直接 `checkout -b` 或改 code**，或拿 session／harness 的「work in place」「skip EnterWorktree」設定當藉口跳過 Step 0 worktree gate（違反規則 9；已踩過——做了一輪才被使用者抓）。
 - 主線自己寫 test 或 impl（沒派 agent）。
 - test-author 的 context 裡出現了 implementation。
 - impl-author 改了 test 來轉綠。
@@ -69,6 +73,7 @@ description: Implements each planned task into working, test-protected code. Use
 
 ## Verification
 
+- [ ] **Step 0 worktree gate 過**：code 在 `.claude/worktrees/<slug>` worktree 裡改（`git rev-parse --show-toplevel` 指向該 worktree），**不在主 checkout `checkout -b`**；worktree 已裝依賴；沒拿 session「work in place」設定當藉口跳過（規則 9）。
 - [ ] 每個任務都有「Red 確認 → Green 確認」軌跡記在 `stages/03-build.md`。
 - [ ] Red/Green 確認點是跑 quality-gate 讀**精簡摘要**（不收完整 `pnpm typecheck && lint && test` 輸出）；派 fixer 只帶結構化 failures（見〈quality-gate 整合〉）。
 - [ ] test-author / impl-author prompt 已含 `references/context-diet.md` 絕對路徑；quality-gate 以外的原始輸出守其紀律（紅綠不對稱／截斷附落盤路徑）。
