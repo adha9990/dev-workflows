@@ -82,7 +82,12 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
   - **`cost.md`** — 成本 / 規模輪廓（展開 `loop.md` Journal 的 outcome 度量：sub-agent 數 + 各 stage token 粗估 + 回環圈數 + findings + 交付物）。
   三份**一律產、不再由 `LOOPS_EXPLAIN` gate**（旗標舊行為只 gate explain 一份；現三份都是完工標準交接物、皆放 `deliverables/`）。PR 收尾 comment 仍先 tmp 草稿→確認→post（不進 `.loops/`）。**修正型（`type=fix`）維持分類排除：不產這三份**（只產一份修正回覆 comment；要理解包時以自然語言請 Claude 跑 `explain` skill）。
 
-**follow-up 在當前 issue 內處理、不另開 issue**：發現的後續項 / 既有非本次引入的退化，預設記在當前 issue / PR thread 並在本次或本 issue 內處理，**不 spin off 新 issue**（除非使用者明確要另開）。
+**follow-up：能當圈做完的一律當圈做完，不留在 PR 上當延後項**。發現的後續項分兩種、處置不同：
+
+- **actionable（本迴圈能收的真問題 / 清理）→ 當圈做完，不寫成「PR 上的 follow-up」延後**。它就是個 actionable，服從 §2–3「所有 actionable 一律自動全修」——把它列成 PR/issue 的 follow-up 註記＝把該修的 actionable 偷渡成不修，正是要防的事。**交出去的 PR 原則上不帶「待辦 follow-up」清單**：reviewer 撞到的問題要在內部先解到最少（本 skill 核心原則），留一串 follow-up 給人＝把內部沒收乾淨的工作外包給 reviewer。改到共用元件 / 跨切面的清理也一樣當圈補測試做掉、再 verify。
+- **genuinely out-of-scope（需獨立拍板 / 等外部輸入 / 屬另一張 issue 的範圍，本迴圈收不了）→ 才記成 follow-up**，且**記在當前 issue / PR thread、不 spin off 新 issue**（除非使用者明確要另開）。這種註記要**帶留痕理由**（為什麼是 out-of-scope、需要誰之後拍板），不是拿來堆放「懶得做的 actionable」。
+
+判準：問「這條現在做得完嗎？」——做得完就是 actionable、當圈做；只有「現在做不完、需要別人先決定」才是可延後的 follow-up。**PR 帶 follow-up 清單前，先自問每一條是不是其實當圈就能做完**（多半是）。
 
 > 這些只在「完工」這條分支產；回環途中不產。
 
@@ -125,6 +130,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **verify 出 actionable findings（含 P2/P3）還問使用者「修多少 / 要不要修」** —— actionable 一律自動全修，不是使用者決策。
 - 修正型（`type=fix`）收尾還產一堆草稿（PR body as-built / 另發 issue comment）—— 只該一份修正回覆 comment（§8）。
 - **完整迴圈完工沒產齊三份 deliverable**（`explain.md` + `checklist.md` + `cost.md`）到 `.loops/<slug>/deliverables/`；或**放錯位置**（平放 loop 根、或塞進 PR comment 而非 `deliverables/`）；或**修正型卻產這三份**（修正型只該一份修正回覆 comment）。
+- **把當圈能做完的 actionable 寫成「PR 上的 follow-up 待辦」延後**（＝把該修的 actionable 偷渡成不修）；交出去的 PR 帶一串本可當圈做掉的 follow-up 清單。
 - 把本可在當前 issue 解決的 follow-up 擅自另開新 issue。
 - issue-driven PR 的 body 沒放關閉關鍵字 `Closes #<issue>`（只寫標題 `(#issue)` / 內文提及 = 不連結、merge 不自動關 issue，見 `references/pr-spec.md`）。
 - **PR 還開著（等人工驗收 / merge）就在 loop 收尾砍掉該 loop 的 worktree** —— worktree 要保留到 PR merge / close（§②）才清；loop 結束（§①）只清臨時 scratch（tmp / 截圖 / gif / scratch）。只有「沒交 PR 的純中止」才在 loop 結束連 worktree 一起清。
@@ -145,6 +151,6 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] **完工 / 中止已在 `loop.md` Journal append 一行 outcome 度量**（依 `references/journaling.md`〈完工 outcome 度量〉，欄位齊全、token 帶 `est`／級距標粗估）。
 - [ ] 收尾交接物依迴圈類型：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」；完整迴圈產 PR 收尾 comment **＋三份 loop 收尾檔 `deliverables/{explain,checklist,cost}.md`（無編號、一律產）**；對外的 comment 經使用者確認才送、未自動 post、回環途中不產。
 - [ ] **AGENTS.md 同步已判**：docs-policy 檢查命中「慣例 / 規則改變」→ 主線已依 docs-policy（含〈怎麼寫〉守門）直接編輯對應段落；未命中 → 未動也未問（不對無關迴圈加噪音）。
-- [ ] follow-up 在當前 issue 內處理，沒有擅自另開新 issue。
+- [ ] **actionable 的 follow-up 都當圈做完了**（沒把能做完的 actionable 寫成 PR 上的延後待辦）；只有 genuinely out-of-scope（需獨立拍板 / 等外部輸入）才記成帶留痕理由的 follow-up，且在當前 issue / PR thread、沒擅自另開新 issue。
 - [ ] **收尾清理兩時機都做了**：① loop 結束時清掉臨時 scratch（草稿 / 截圖 / gif / scratch，不等 PR）—— **有開著的 PR 時 worktree 不在這步清**（只有沒交 PR 的純中止才連 worktree 一起清）；② PR merge / close 後刪分支 + 清 worktree（solo 自己合併自己清，只留 `main` + 進行中）。loop 暫存沒被推上去（未追蹤 / `.gitignore` 涵蓋，`git ls-files` 掃一遍確認）。
 - [ ] 停在 `iterate` 決策 gate。
