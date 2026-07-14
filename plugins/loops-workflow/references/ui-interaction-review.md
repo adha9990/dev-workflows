@@ -42,6 +42,7 @@
 - **虛擬化清單**：selection / focus / 右鍵目標應綁**資料 identity**，不綁 row index —— 滾動 DOM 復用會讓高亮 / 操作落到錯的項。
 - 多選批量操作後，選取態是否一致。
 - **極端資料下的交互正確性**（與效能不同軸）：超長文字、極多關聯、壞資源、極大資料量下，選取 / 開啟 / 預覽等操作是否仍可預測、不錯亂。
+- **空 / 零資料態不得是 dead-end**：清單 / 管理 / 挑選頁在**完全沒有資料**時（新 workspace、全新帳號、空清單），主要的建立 / 新增入口（新增第一筆、primary create-affordance）**必須仍可達** —— 不能把空訊息（「尚無 X」）連同整個操作面板 / 建立按鈕一起藏掉，否則使用者根本無法建立第一筆（dead-end）。特別留意「空狀態 early-return 只渲染一句空訊息、跳過整個含建立入口的正常版面」這個常見反例。**空狀態的測試要斷言「建立入口仍在 / 仍可建第一筆」，不只「空訊息有出現」**。
 - **使用者內容進 DOM 的 sink（安全交集）**：把使用者 / 外來內容塞進 `innerHTML` / `dangerouslySetInnerHTML` / `v-html`，或 `href` / `src` 帶 `javascript:` 之類 scheme —— **框架的自動 escape 只擋文字插值、不擋這些 sink**，要顯式 escape / sanitize。這同時是安全面（見 `security-checklist`）。
 
 ## 七、Finding 證據門檻
