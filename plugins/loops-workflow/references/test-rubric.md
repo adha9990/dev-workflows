@@ -46,6 +46,7 @@
 - **streaming 回應別直接 `.json()`** —— 串流沒有完整 JSON，要逐行解析；每個 event 收進 list，最後對 `events[-1]` 做 assertion。
 - **一定要設 timeout 上限** —— SSE / 串流可能無限等，固定一個 worst-case 上限（例：30s）才不會卡死整套。
 - **斷線重連分開測**：mock 一次連線中斷（kill TCP / block proxy）→ 驗 client 端重連 + resume。
+- **測「有界 / 不無限迴圈」用呼叫次數安全閥，別靠 runner timeout**：要證明某段程式碼有界（重試上限、不會無限重抓 / 無限遞迴），**不要依賴 per-test timeout 判紅** —— 緊的同步 / 微任務遞迴會**餓死 macrotask 佇列**（`setTimeout` 永遠輪不到）並在 timeout 觸發前就 **OOM 把整個 test runner 打掛**、遮蔽其他測試（壞測試衛生，reviewer 會打回）。改用 fake / mock 的**呼叫次數安全閥**：計數，超過一個明顯高於正常上界的 cap（如 10）就 `throw` / `reject`，然後斷言**精確呼叫次數**（如「首抓 + 至多一次重抓 = 2」）+ `rejects.toThrow()`。這樣修好版秒過、還原修正版是**乾淨的「呼叫 N 次 ≠ 預期」斷言失敗**而非 OOM。（單看 `rejects.toThrow()` 是假綠陷阱——未修版撞安全閥也會 throw；真正守住「有界」的是那條精確次數斷言。）
 
 ## 4. 新 repo / data-layer 覆蓋清單
 
