@@ -17,7 +17,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 
 ## 預設開（想關才需要設，值填 `"0"`）
 
-這 6 個是安全防護／觀測類，裝好 plugin 就生效，**只有字面 `"0"` 能關**：
+這 8 個是安全防護／觀測類，裝好 plugin 就生效，**只有字面 `"0"` 能關**：
 
 | 參數 | 幫你做什麼 | 想關掉 |
 |---|---|---|
@@ -27,6 +27,8 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 | `LOOPS_EVAL_TAGS_GATE` | 同上，提醒「哪一類 eval 在失敗」 | `"LOOPS_EVAL_TAGS_GATE": "0"` |
 | `LOOPS_EVAL_POLL_GATE` | 同上，顯示 judge panel 共識計數 | `"LOOPS_EVAL_POLL_GATE": "0"` |
 | `LOOPS_CONFIG_PROTECTION` | 擋住「為了讓 lint 過而弱化 eslint/prettier 等設定檔」——預設只在有 `.loops/` 的 repo 生效，日常編輯不受影響；顯式設 `"1"`＝擴大為全域生效（不限 `.loops/` repo） | `"LOOPS_CONFIG_PROTECTION": "0"` |
+| `LOOPS_WORKTREE_GUARD` | 擋住「在主 checkout 直接 `git checkout -b`／`switch -c` 開 loop 分支」（loop 的 code 應在隔離 worktree 做）——擋下時指路 `git worktree add` | `"LOOPS_WORKTREE_GUARD": "0"` |
+| `LOOPS_COMMENT_GUARD` | 擋住對外 comment 的 @點名真人與客套開場（comment-policy §6/§8 機械化） | `"LOOPS_COMMENT_GUARD": "0"` |
 
 ## 預設關（想用才需要設，值填 `"1"`）
 

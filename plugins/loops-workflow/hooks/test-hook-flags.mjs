@@ -9,7 +9,7 @@
 // 這就是 TDD 的紅燈起點。實作補齊後，下方斷言才有機會逐條轉綠。
 //
 // 對外契約（拍板後，見 issue #87 討論；#99 loop-driver 併入後追加 LOOPS_LOOP_DRIVER）：
-//   FLAG_DEFAULTS：9 個 flag 的分類表（defaultOn / optIn）。
+//   FLAG_DEFAULTS：11 個 flag 的分類表（defaultOn / optIn）。
 //   flagEnabled(name, env)：純函式，env 物件參數（非直接讀 process.env）。
 //   - defaultOn 類（LOOPS_PATH_CONTAINMENT / LOOPS_COST_TRACKER / LOOPS_EVAL_GATE /
 //     LOOPS_EVAL_TAGS_GATE / LOOPS_EVAL_POLL_GATE / LOOPS_CONFIG_PROTECTION）：
