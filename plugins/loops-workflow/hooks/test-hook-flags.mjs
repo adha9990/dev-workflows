@@ -11,8 +11,9 @@
 // 對外契約（拍板後，見 issue #87 討論；#99 loop-driver 併入後追加 LOOPS_LOOP_DRIVER）：
 //   FLAG_DEFAULTS：11 個 flag 的分類表（defaultOn / optIn）。
 //   flagEnabled(name, env)：純函式，env 物件參數（非直接讀 process.env）。
-//   - defaultOn 類（LOOPS_PATH_CONTAINMENT / LOOPS_COST_TRACKER / LOOPS_EVAL_GATE /
-//     LOOPS_EVAL_TAGS_GATE / LOOPS_EVAL_POLL_GATE / LOOPS_CONFIG_PROTECTION）：
+//   - defaultOn 類（LOOPS_PATH_CONTAINMENT / LOOPS_WORKTREE_GUARD / LOOPS_COST_TRACKER /
+//     LOOPS_EVAL_GATE / LOOPS_EVAL_TAGS_GATE / LOOPS_EVAL_POLL_GATE /
+//     LOOPS_CONFIG_PROTECTION / LOOPS_COMMENT_GUARD）：
 //     僅字面 '0' 關；'1' / '' / 未設 / 'true' / 'off' / '2' 等怪值皆開（不會關）。
 //   - optIn 類（LOOPS_STOP_GATE / LOOPS_COMPACT_HINT / LOOPS_LOOP_DRIVER）：
 //     僅字面 '1' 開；其餘（未設 / '' / '0' / 'true' / 'yes' 等）皆關。
