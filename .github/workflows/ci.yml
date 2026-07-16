@@ -6,6 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     strategy:
@@ -14,9 +17,9 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # 鎖 major 不鎖 patch（現行 LTS）
           node-version: '24'
@@ -25,9 +28,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob
+          shopt -s nullglob globstar
           count=0
-          for f in plugins/loops-workflow/hooks/test-*.mjs plugins/loops-workflow/scripts/test-*.mjs; do
+          for f in plugins/**/test-*.mjs; do
             echo "== $f"
             node "$f"
             count=$((count+1))
