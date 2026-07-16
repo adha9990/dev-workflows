@@ -79,7 +79,7 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 - **停止條件雛形**（goal 階段會精煉）
 - **Journal（append-only 事件日誌）**（空，每階段 append 一筆，見 `references/journaling.md`）
 
-**Worktree（會動 code 的迴圈才開）**：type 是 issue / fix → loop 啟動時開**隔離 worktree（自帶 branch）做 code**，**主 checkout 不動**：用 `EnterWorktree`，或 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`（**branch / worktree 名 = slug `<issue#>-<slug>`，例 `137-trash-delete-permanent`，不加 type 前綴**）；fix 型把該 PR branch checkout 進 worktree。**但 `.loops/<slug>/` 一律建在主 repo、絕不放進 worktree** —— **開 worktree 前先確定性錨定**：`LOOPS_ROOT="$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -1)"`（第一筆＝主 worktree 根、不隨 cwd 改變），loop 目錄一律用 `$LOOPS_ROOT/.loops/<slug>/` 的**絕對路徑**建立與寫入；worktree 只放 code。**即使之後 cd / `EnterWorktree` 進了 worktree，仍用這個絕對路徑寫回主 repo，嚴禁在 `.claude/worktrees/*/` 底下建立或寫入任何 `.loops/`**（未追蹤的 `.loops/` 放 worktree 會在 clean/refresh/remove 時被一起刪掉、且造成 loop 記憶體「有些在 worktree、有些在 master」的分裂）。純設計 / 研究免開（走到 build 再開）。見 `AGENTS.md` 規則 9。
+**Worktree（會動 code 的迴圈才開）**：①**何時開**：type 是 issue / fix → loop 啟動時開；純設計 / 研究免開（走到 build 再開）。②**怎麼開**：`EnterWorktree`，或 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`（branch / worktree 名 = slug、不加 type 前綴）；fix 型把該 PR branch checkout 進 worktree。③**`.loops/<slug>/` 一律建在主 repo**（`$LOOPS_ROOT` 絕對路徑），不進 worktree。完整規範、落點錨定公式與理由見 `AGENTS.md` 規則 9（loops-path-guard／worktree-guard 已機械化）。
 
 **Resume**：若 `.loops/<slug>/loop.md` 已存在 → 不覆蓋，走 resume 協定（讀 Journal 重建狀態 → 回報「停在哪個階段 / 哪個 gate、已完成 E1–En」→ 問使用者是否續跑，見 `references/journaling.md`）。
 

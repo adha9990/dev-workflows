@@ -28,7 +28,7 @@ description: Turns a vague or ambiguous one-liner into a clear, confirmed unders
 ### 1. 一次一問收斂理解
 - 一則訊息只問一個問題，用 `AskUserQuestion` 給 2–4 選項並標推薦（依 `references/comment-policy.md`）。
 - 每問內部記 **HYPOTHESIS + CONFIDENCE**（0–100），優先打最低信心、最影響方向的點。
-- **should-want 偵測**：使用者用「我**應該**…/ 好的工程**會**…」這種對誰交代的措辭作答時，追問一次「**不用對任何人交代，你真正想要的是什麼？**」。
+- **should-want 偵測**：見 `references/goal-restate-schema.md`（表演式「應該／好的工程會」作答 → 追問一次真意圖）。
 - **能從素材推得的不要問**；只問會改變方向的 blocking 點。
 
 ### 2. Restate 理解 + 一次確認
