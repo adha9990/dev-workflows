@@ -71,7 +71,7 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 > |---|---|---|
 > | `LOOPS_PATH_CONTAINMENT` | 開（#85） | 「嚴禁」級硬規範、已踩過坑 |
 > | `LOOPS_COST_TRACKER` | 開（#87） | 零風險觀測、僅 `.loops/` repo 動作 |
-> | `LOOPS_EVAL_GATE`/`TAGS`/`POLL` | 開（#87） | 無 artifact 即 no-op；不執行 repo 定義命令 |
+> | `LOOPS_EVAL_GATE`/`LOOPS_EVAL_TAGS_GATE`/`LOOPS_EVAL_POLL_GATE` | 開（#87） | 無 artifact 即 no-op；不執行 repo 定義命令 |
 > | `LOOPS_CONFIG_PROTECTION` | 開（#87，loops-scoped） | 防 AI 弱化 linter；`.loops/` 存在才生效、日常編輯零外溢 |
 > | `LOOPS_WORKTREE_GUARD` | 開 | AGENTS 規則 9「主 checkout 不 checkout -b」機械化、已踩過坑 |
 > | `LOOPS_COMMENT_GUARD` | 開 | comment-policy §6/§8（@點名/客套）機械化、對外 P0 面已出過包 |

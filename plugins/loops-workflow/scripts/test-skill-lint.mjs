@@ -611,6 +611,422 @@ const NOTE_LINE =
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// 11.（#128）flagSyncCheck / hooksWiringCheck / parseFlagDefaults
+// 三個新符號尚未實作：一律動態 await import()＋try-catch，讓本組逐條紅（斷言失敗），
+// 不讓整檔在載入期崩潰、不影響上面 1–10 組與後面 IO-1..8 既有測試照常執行。
+// 案例編號對映 issue #128 契約：
+//   [128-0]=parseFlagDefaults 直測（乾淨 fixture）        [128-1]=settings 漏一旗標→P1
+//   [128-2]=歸類錯段（defaultOn 落在預設關段）→P1         [128-3]=header 計數矛盾→P1
+//   [128-4]=hooks.json 引用不存在腳本→P1                  [128-5]=multi-name cell 併列三全名→綠
+//   [128-6]=FLAG_DEFAULTS 結構改壞「無法解析」→P1          [128-7]=未知 LOOPS_*（拼錯名）→P2 note
+//   [128-7b]=allowlist（LOOPS_AUTO 等）不誤報              [128-8]=乾淨 fixture→全綠
+//   [128-9]=fixtures／test-*／hook-flags.mjs 路徑不報 P2
+// 真 repo 整合煙測（對映契約案例⑩）見後面 IO-9。
+// ══════════════════════════════════════════════════════════════════════════
+let parseFlagDefaults;
+let flagSyncCheck;
+let hooksWiringCheck;
+let buildReport;
+let walk;
+try {
+  const mod128 = await import('./skill-lint.mjs');
+  parseFlagDefaults = mod128.parseFlagDefaults;
+  flagSyncCheck = mod128.flagSyncCheck;
+  hooksWiringCheck = mod128.hooksWiringCheck;
+  buildReport = mod128.buildReport;
+  walk = mod128.walk;
+} catch (e) {
+  console.error(`  ✗ #128 新符號 import 失敗：${e && e.message}`);
+}
+
+// fixture 建構 helper —— 皆內嵌字串、抄真實 hook-flags.mjs／settings.md／journaling.md 的形狀
+// （headers 含括號後綴、決策表帶 "> " blockquote 前綴，比照 hooks/hook-flags.mjs、docs/settings.md、
+// references/journaling.md 原檔）。
+function makeHookFlagsContent({ flags, totalClaim, defaultOnClaim, optInClaim }) {
+  const onFlags = flags.filter((f) => f.defaultOn);
+  const offFlags = flags.filter((f) => !f.defaultOn);
+  return [
+    '// hook-flags.mjs 測試 fixture —— loops-workflow flag 分類單一真相源。',
+    `// 把「${totalClaim} 個 flag」各自屬於 defaultOn 還是 optIn 都收斂到這一處。`,
+    'export const FLAG_DEFAULTS = {',
+    `  // defaultOn（${defaultOnClaim}）：安全防護類，預設啟用，僅字面 '0' 可關閉。`,
+    ...onFlags.map((f) => `  ${f.name}: { defaultOn: true },`),
+    `  // optIn（${optInClaim}）：會自動執行命令類，預設關閉，僅字面 '1' 可開啟。`,
+    ...offFlags.map((f) => `  ${f.name}: { defaultOn: false },`),
+    '};',
+    '',
+  ].join('\n');
+}
+
+function makeSettingsContent({ defaultOnSection, optInSection }) {
+  const rows = (names) => names.map((n) => `| \`${n}\` | 說明文字。 |`).join('\n');
+  return [
+    '# settings.md 測試 fixture',
+    '',
+    '## 預設開（想關才需要設，值填 `"0"`）',
+    '',
+    '| 參數 | 幫你做什麼 |',
+    '|---|---|',
+    rows(defaultOnSection),
+    '',
+    '## 預設關（想用才需要設，值填 `"1"`）',
+    '',
+    '| 參數 | 幫你做什麼 |',
+    '|---|---|',
+    rows(optInSection),
+    '',
+  ].join('\n');
+}
+
+function makeJournalingContent(rows) {
+  const tableRows = rows.map((r) => `> | ${r.cell} | ${r.classification} | ${r.reason} |`).join('\n');
+  return [
+    '# journaling.md 測試 fixture',
+    '',
+    '> **flag 決策表**：',
+    '>',
+    '> | flag | 預設 | 一句理由 |',
+    '> |---|---|---|',
+    tableRows,
+    '',
+  ].join('\n');
+}
+
+const BASELINE_FLAGS = [
+  { name: 'LOOPS_ALPHA_GUARD', defaultOn: true },
+  { name: 'LOOPS_BETA_TRACKER', defaultOn: true },
+  { name: 'LOOPS_GAMMA_GATE', defaultOn: false },
+  { name: 'LOOPS_DELTA_HINT', defaultOn: false },
+];
+
+function baselineHookFlagsContent() {
+  return makeHookFlagsContent({ flags: BASELINE_FLAGS, totalClaim: 4, defaultOnClaim: 2, optInClaim: 2 });
+}
+function baselineSettingsContent() {
+  return makeSettingsContent({
+    defaultOnSection: ['LOOPS_ALPHA_GUARD', 'LOOPS_BETA_TRACKER'],
+    optInSection: ['LOOPS_GAMMA_GATE', 'LOOPS_DELTA_HINT'],
+  });
+}
+function baselineJournalingContent() {
+  return makeJournalingContent([
+    { cell: '`LOOPS_ALPHA_GUARD`', classification: '開', reason: '理由 A' },
+    { cell: '`LOOPS_BETA_TRACKER`', classification: '開', reason: '理由 B' },
+    { cell: '`LOOPS_GAMMA_GATE`', classification: 'opt-in', reason: '理由 C' },
+    { cell: '`LOOPS_DELTA_HINT`', classification: 'opt-in', reason: '理由 D' },
+  ]);
+}
+
+// ── [128-0] parseFlagDefaults：乾淨 fixture → 正確抽出 flags[] 與 headerClaims{} ──────
+{
+  const parsed = parseFlagDefaults && parseFlagDefaults(baselineHookFlagsContent());
+  assert(
+    parsed && Array.isArray(parsed.flags) && parsed.flags.length === 4,
+    `parseFlagDefaults：乾淨 fixture → flags.length===4（實際：${JSON.stringify(parsed)}）[128-0]`,
+  );
+  assert(
+    parsed &&
+      Array.isArray(parsed.flags) &&
+      parsed.flags.some((f) => f.name === 'LOOPS_ALPHA_GUARD' && f.defaultOn === true),
+    'parseFlagDefaults：flags 含 {name:"LOOPS_ALPHA_GUARD", defaultOn:true} [128-0]',
+  );
+  assert(
+    parsed &&
+      Array.isArray(parsed.flags) &&
+      parsed.flags.some((f) => f.name === 'LOOPS_GAMMA_GATE' && f.defaultOn === false),
+    'parseFlagDefaults：flags 含 {name:"LOOPS_GAMMA_GATE", defaultOn:false} [128-0]',
+  );
+  assert(
+    parsed && parsed.headerClaims && Number(parsed.headerClaims.total) === 4,
+    `parseFlagDefaults：headerClaims.total===4（實際：${JSON.stringify(parsed && parsed.headerClaims)}）[128-0]`,
+  );
+  assert(
+    parsed && parsed.headerClaims && Number(parsed.headerClaims.defaultOn) === 2,
+    'parseFlagDefaults：headerClaims.defaultOn===2 [128-0]',
+  );
+  assert(
+    parsed && parsed.headerClaims && Number(parsed.headerClaims.optIn) === 2,
+    'parseFlagDefaults：headerClaims.optIn===2 [128-0]',
+  );
+}
+
+// ── [128-1] settings 漏一旗標 → P1 ──────────────────────────────────────────
+{
+  const settingsContent = makeSettingsContent({
+    defaultOnSection: ['LOOPS_ALPHA_GUARD'], // 漏了 LOOPS_BETA_TRACKER
+    optInSection: ['LOOPS_GAMMA_GATE', 'LOOPS_DELTA_HINT'],
+  });
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: baselineHookFlagsContent(),
+    settingsContent,
+    journalingContent: baselineJournalingContent(),
+  });
+  const f = (findings || []).find(
+    (x) => x.check === 'flag-sync' && x.severity === 'P1' && JSON.stringify(x).includes('LOOPS_BETA_TRACKER'),
+  );
+  assert(
+    !!f,
+    `flagSyncCheck：settings.md 漏列 LOOPS_BETA_TRACKER → P1 finding（實際：${JSON.stringify(findings)}）[128-1]`,
+  );
+}
+
+// ── [128-2] 歸類錯段（defaultOn 出現在預設關段）→ P1 ─────────────────────────
+{
+  const settingsContent = makeSettingsContent({
+    defaultOnSection: ['LOOPS_ALPHA_GUARD'],
+    optInSection: ['LOOPS_GAMMA_GATE', 'LOOPS_DELTA_HINT', 'LOOPS_BETA_TRACKER'], // 錯段
+  });
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: baselineHookFlagsContent(),
+    settingsContent,
+    journalingContent: baselineJournalingContent(),
+  });
+  const f = (findings || []).find(
+    (x) => x.check === 'flag-sync' && x.severity === 'P1' && JSON.stringify(x).includes('LOOPS_BETA_TRACKER'),
+  );
+  assert(
+    !!f,
+    `flagSyncCheck：defaultOn 旗標 LOOPS_BETA_TRACKER 出現在「預設關」段 → P1 finding（實際：${JSON.stringify(findings)}）[128-2]`,
+  );
+}
+
+// ── [128-3] header 計數矛盾 → P1 ────────────────────────────────────────────
+{
+  // 實際 FLAG_DEFAULTS 仍是 4 個（2+2），但 header 宣稱總數 5 個——單一維度矛盾，
+  // settings/journaling 皆與「實際 4 個」保持一致，隔離只讓 header 計數這一件事觸發。
+  const hookFlagsContent = makeHookFlagsContent({
+    flags: BASELINE_FLAGS,
+    totalClaim: 5,
+    defaultOnClaim: 2,
+    optInClaim: 2,
+  });
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent,
+    settingsContent: baselineSettingsContent(),
+    journalingContent: baselineJournalingContent(),
+  });
+  const f = (findings || []).find(
+    (x) => x.check === 'flag-sync' && x.severity === 'P1' && JSON.stringify(x).includes('5'),
+  );
+  assert(
+    !!f,
+    `flagSyncCheck：header 宣稱「5 個 flag」對實際 4 個 → P1 finding 含數字 5（實際：${JSON.stringify(findings)}）[128-3]`,
+  );
+}
+
+// ── [128-4] hooks.json 引用不存在腳本 → P1 ──────────────────────────────────
+{
+  const hooksJsonContent = JSON.stringify(
+    {
+      hooks: {
+        Stop: [
+          {
+            hooks: [
+              { type: 'command', command: 'node "${CLAUDE_PLUGIN_ROOT}/hooks/real-hook-a.mjs"' },
+              { type: 'command', command: 'node "${CLAUDE_PLUGIN_ROOT}/hooks/ghost-hook.mjs"' },
+            ],
+          },
+        ],
+      },
+    },
+    null,
+    2,
+  );
+  const hookFiles = ['hooks/real-hook-a.mjs']; // ghost-hook.mjs 刻意不在清單內
+  const findings = hooksWiringCheck && hooksWiringCheck(hooksJsonContent, hookFiles);
+  const f = (findings || []).find(
+    (x) => x.check === 'hooks-wiring' && x.severity === 'P1' && JSON.stringify(x).includes('ghost-hook.mjs'),
+  );
+  assert(
+    !!f,
+    `hooksWiringCheck：hooks.json 引用不存在的 ghost-hook.mjs → P1 finding（實際：${JSON.stringify(findings)}）[128-4]`,
+  );
+  assert(
+    !(findings || []).some((x) => JSON.stringify(x).includes('real-hook-a.mjs')),
+    'hooksWiringCheck：正常掛載的 real-hook-a.mjs 不誤報 [128-4]',
+  );
+}
+
+// ── [128-5] multi-name cell（`/` 併列三全名、共用「開」）→ 綠 ────────────────
+{
+  const evalFlags = [
+    { name: 'LOOPS_EVAL_ALPHA', defaultOn: true },
+    { name: 'LOOPS_EVAL_BETA', defaultOn: true },
+    { name: 'LOOPS_EVAL_GAMMA', defaultOn: true },
+  ];
+  const hookFlagsContent = makeHookFlagsContent({ flags: evalFlags, totalClaim: 3, defaultOnClaim: 3, optInClaim: 0 });
+  const settingsContent = makeSettingsContent({
+    defaultOnSection: ['LOOPS_EVAL_ALPHA', 'LOOPS_EVAL_BETA', 'LOOPS_EVAL_GAMMA'],
+    optInSection: [],
+  });
+  const journalingContent = makeJournalingContent([
+    {
+      cell: '`LOOPS_EVAL_ALPHA`/`LOOPS_EVAL_BETA`/`LOOPS_EVAL_GAMMA`',
+      classification: '開',
+      reason: '三合一評測旗標，仿真實 journaling.md 的 `LOOPS_EVAL_GATE`/`TAGS`/`POLL` 併列寫法',
+    },
+  ]);
+  const findings = flagSyncCheck && flagSyncCheck({ hookFlagsContent, settingsContent, journalingContent });
+  assert(
+    Array.isArray(findings) && findings.length === 0,
+    `flagSyncCheck：journaling multi-name cell 併列三全名、分類與實際一致 → 無 finding（實際：${JSON.stringify(findings)}）[128-5]`,
+  );
+}
+
+// ── [128-6]「無法解析」（FLAG_DEFAULTS 結構被改壞）→ P1，絕不靜默綠 ─────────
+{
+  const brokenContent = [
+    '// hook-flags.mjs 測試 fixture —— 結構已損壞（模擬 GUARD 情境）。',
+    '// FLAG_DEFAULTS object literal 被改壞成非預期形狀，parseFlagDefaults 應回傳可辨識的解析失敗。',
+    'export const FLAG_DEFAULTS_RENAMED = "not an object literal any more";',
+    '',
+  ].join('\n');
+
+  const parsed = parseFlagDefaults && parseFlagDefaults(brokenContent);
+  assert(
+    parsed && parsed.error,
+    `parseFlagDefaults：FLAG_DEFAULTS 結構抽不到 → 回傳可辨識的 {error}（實際：${JSON.stringify(parsed)}）[128-6]`,
+  );
+
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: brokenContent,
+    settingsContent: baselineSettingsContent(),
+    journalingContent: baselineJournalingContent(),
+  });
+  const f = (findings || []).find((x) => x.check === 'flag-sync' && x.severity === 'P1');
+  assert(
+    !!f,
+    `flagSyncCheck：hook-flags.mjs 無法解析時上層仍出 P1、不靜默綠（實際：${JSON.stringify(findings)}）[128-6]`,
+  );
+  assert(
+    !!f && /解析|parse|FLAG_DEFAULTS/i.test(JSON.stringify(f)),
+    `flagSyncCheck：無法解析的 P1 finding 內容可辨識出是解析失敗（含「解析」/parse/FLAG_DEFAULTS 字樣）（實際：${JSON.stringify(f)}）[128-6]`,
+  );
+}
+
+// ── [128-7] 未知 LOOPS_*（拼錯名，不在 FLAG_DEFAULTS 也不在 allowlist）→ P2 note ──
+{
+  const settingsContent = makeSettingsContent({
+    defaultOnSection: ['LOOPS_ALPHA_GUARD', 'LOOPS_BETA_TRACKER'],
+    // 額外一行拼錯名：LOOPS_ALPHA_GRUAD（非 FLAG_DEFAULTS 亦非 allowlist）
+    optInSection: ['LOOPS_GAMMA_GATE', 'LOOPS_DELTA_HINT', 'LOOPS_ALPHA_GRUAD'],
+  });
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: baselineHookFlagsContent(),
+    settingsContent,
+    journalingContent: baselineJournalingContent(),
+  });
+  const p2 = (findings || []).find(
+    (x) => x.severity === 'P2' && JSON.stringify(x).includes('LOOPS_ALPHA_GRUAD'),
+  );
+  assert(
+    !!p2,
+    `flagSyncCheck：未知 LOOPS_ALPHA_GRUAD（拼錯名）→ P2 finding（實際：${JSON.stringify(findings)}）[128-7]`,
+  );
+  assert(
+    !(findings || []).some((x) => x.severity === 'P1' && JSON.stringify(x).includes('LOOPS_ALPHA_GRUAD')),
+    'flagSyncCheck：未知旗標拼錯名不升級為 P1（僅 P2 note）[128-7]',
+  );
+}
+
+// ── [128-7b] allowlist（LOOPS_AUTO 等）不誤報 ────────────────────────────────
+{
+  const settingsContent = makeSettingsContent({
+    defaultOnSection: ['LOOPS_ALPHA_GUARD', 'LOOPS_BETA_TRACKER'],
+    // LOOPS_AUTO 是 allowlist 成員（skill 層 env、非 hook-flags.mjs 管的 flag）
+    optInSection: ['LOOPS_GAMMA_GATE', 'LOOPS_DELTA_HINT', 'LOOPS_AUTO'],
+  });
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: baselineHookFlagsContent(),
+    settingsContent,
+    journalingContent: baselineJournalingContent(),
+  });
+  assert(
+    !(findings || []).some((x) => JSON.stringify(x).includes('LOOPS_AUTO')),
+    `flagSyncCheck：allowlist 成員 LOOPS_AUTO 出現在文件中不誤報（P1 或 P2 皆不應提及）（實際：${JSON.stringify(findings)}）[128-7b]`,
+  );
+}
+
+// ── [128-8] 乾淨 fixture → 全綠（flagSyncCheck 與 hooksWiringCheck 各自）────
+{
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: baselineHookFlagsContent(),
+    settingsContent: baselineSettingsContent(),
+    journalingContent: baselineJournalingContent(),
+  });
+  assert(
+    Array.isArray(findings) && findings.length === 0,
+    `flagSyncCheck：乾淨 fixture（4 旗標、settings/journaling 皆一致）→ 無 finding（實際：${JSON.stringify(findings)}）[128-8]`,
+  );
+}
+{
+  const hooksJsonContent = JSON.stringify(
+    {
+      hooks: {
+        Stop: [
+          {
+            hooks: [
+              { type: 'command', command: 'node "${CLAUDE_PLUGIN_ROOT}/hooks/real-hook-a.mjs"' },
+              { type: 'command', command: 'node "${CLAUDE_PLUGIN_ROOT}/hooks/real-hook-b.mjs"' },
+            ],
+          },
+        ],
+      },
+    },
+    null,
+    2,
+  );
+  const hookFiles = ['hooks/real-hook-a.mjs', 'hooks/real-hook-b.mjs'];
+  const findings = hooksWiringCheck && hooksWiringCheck(hooksJsonContent, hookFiles);
+  assert(
+    Array.isArray(findings) && findings.length === 0,
+    `hooksWiringCheck：乾淨 fixture（引用 vs 清單完全對齊）→ 無 finding（實際：${JSON.stringify(findings)}）[128-8]`,
+  );
+}
+
+// ── [128-9] fixtures／test-*／hook-flags.mjs 路徑不報 P2（未掛載排除規則）───
+{
+  const hooksJsonContent = JSON.stringify(
+    {
+      hooks: {
+        Stop: [
+          { hooks: [{ type: 'command', command: 'node "${CLAUDE_PLUGIN_ROOT}/hooks/real-hook-a.mjs"' }] },
+        ],
+      },
+    },
+    null,
+    2,
+  );
+  const hookFiles = [
+    'hooks/real-hook-a.mjs', // 掛載，對齊 → 無 finding
+    'hooks/real-b-unmounted.mjs', // 控制組：未掛載且非排除路徑 → 應報 P2（證明偵測本身有效）
+    'hooks/fixtures/loop-driver/gate-malformed/fake-gate.mjs', // fixtures 段 → 應被排除
+    'hooks/test-something.mjs', // test-*.mjs → 應被排除
+    'hooks/hook-flags.mjs', // 檔名 hook-flags.mjs → 應被排除
+  ];
+  const findings = hooksWiringCheck && hooksWiringCheck(hooksJsonContent, hookFiles);
+  const controlP2 = (findings || []).find(
+    (x) => x.severity === 'P2' && JSON.stringify(x).includes('real-b-unmounted.mjs'),
+  );
+  assert(
+    !!controlP2,
+    `hooksWiringCheck：控制組 real-b-unmounted.mjs（未掛載、非排除路徑）→ P2 finding（實際：${JSON.stringify(findings)}）[128-9]`,
+  );
+  assert(
+    !(findings || []).some((x) => JSON.stringify(x).includes('fake-gate.mjs')),
+    'hooksWiringCheck：hooks/fixtures/.../fake-gate.mjs 不被報 P2（fixtures 段排除）[128-9]',
+  );
+  assert(
+    !(findings || []).some((x) => JSON.stringify(x).includes('test-something.mjs')),
+    'hooksWiringCheck：hooks/test-something.mjs 不被報 P2（test-*.mjs 排除）[128-9]',
+  );
+  assert(
+    !(findings || []).some((x) => JSON.stringify(x).includes('hook-flags.mjs')),
+    'hooksWiringCheck：hooks/hook-flags.mjs 不被報 P2（檔名排除）[128-9]',
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // IO/CLI 整合（spawnSync 真跑 skill-lint.mjs --root <repo根>）
 // ══════════════════════════════════════════════════════════════════════════
 function writeFiles(root, filesObj) {
@@ -865,6 +1281,74 @@ function runCli(root, args = ['--json']) {
     lines.some((l) => l.includes('scaffold-fullstack')),
     'IO-8：真 repo smoke 非 --json 輸出含 scaffold-fullstack 提醒行（notes 在 plain 模式可見）[IO-8]',
   );
+}
+
+// IO-9（#128 真 repo 整合煙測，對映契約案例⑩）：flagSyncCheck/hooksWiringCheck 對
+// REAL_REPO_ROOT 的真實 hooks/hook-flags.mjs、docs/settings.md、references/journaling.md、
+// hooks/hooks.json 直接跑，斷言零 P1；並動態 import buildReport 對 REAL_REPO_ROOT 跑一次
+// （比照上面既有 IO-8 模式）確認不崩、若其彙總結果已含 flag-sync/hooks-wiring 項目也零 P1。
+// 實作前紅：本檔開頭第 11 節動態 import 的 flagSyncCheck/hooksWiringCheck 為 undefined，
+// 下面第一組 typeof===function 斷言即標紅；guard 住深層計算，不對 undefined 呼叫崩潰。
+{
+  assert(typeof flagSyncCheck === 'function', 'IO-9：flagSyncCheck 已作為具名 export 存在 [IO-9-pre]');
+  assert(typeof hooksWiringCheck === 'function', 'IO-9：hooksWiringCheck 已作為具名 export 存在 [IO-9-pre]');
+  assert(typeof walk === 'function', 'IO-9：walk 可從 skill-lint.mjs import（既有 export）[IO-9-pre]');
+
+  if (typeof flagSyncCheck === 'function' && typeof hooksWiringCheck === 'function' && typeof walk === 'function') {
+    const PLUGIN_PREFIX = 'plugins/loops-workflow/';
+    const fullMap = walk(REAL_REPO_ROOT);
+    const hookFlagsContent = fullMap[`${PLUGIN_PREFIX}hooks/hook-flags.mjs`];
+    const settingsContent = fullMap[`${PLUGIN_PREFIX}docs/settings.md`];
+    const journalingContent = fullMap[`${PLUGIN_PREFIX}references/journaling.md`];
+    assert(
+      typeof hookFlagsContent === 'string' && hookFlagsContent.length > 0,
+      'IO-9：真 repo hooks/hook-flags.mjs 讀得到內容 [IO-9-pre]',
+    );
+    assert(
+      typeof settingsContent === 'string' && settingsContent.length > 0,
+      'IO-9：真 repo docs/settings.md 讀得到內容 [IO-9-pre]',
+    );
+    assert(
+      typeof journalingContent === 'string' && journalingContent.length > 0,
+      'IO-9：真 repo references/journaling.md 讀得到內容 [IO-9-pre]',
+    );
+
+    const flagFindings = flagSyncCheck({ hookFlagsContent, settingsContent, journalingContent });
+    const flagP1 = Array.isArray(flagFindings) ? flagFindings.filter((f) => f.severity === 'P1') : flagFindings;
+    assert(
+      Array.isArray(flagFindings) && flagP1.length === 0,
+      `IO-9：真 repo flagSyncCheck 零 P1（實際 P1：${JSON.stringify(flagP1)}；全部：${JSON.stringify(flagFindings)}）[IO-9]`,
+    );
+
+    const { readFileSync } = await import('node:fs');
+    const hooksJsonContent = readFileSync(join(REAL_REPO_ROOT, `${PLUGIN_PREFIX}hooks/hooks.json`), 'utf8');
+    const hookFiles = Object.keys(fullMap)
+      .filter((f) => f.startsWith(`${PLUGIN_PREFIX}hooks/`) && f.endsWith('.mjs'))
+      .map((f) => f.slice(PLUGIN_PREFIX.length));
+    assert(hookFiles.length > 0, 'IO-9：真 repo hooks/*.mjs 檔清單非空 [IO-9-pre]');
+
+    const wiringFindings = hooksWiringCheck(hooksJsonContent, hookFiles);
+    const wiringP1 = Array.isArray(wiringFindings) ? wiringFindings.filter((f) => f.severity === 'P1') : wiringFindings;
+    assert(
+      Array.isArray(wiringFindings) && wiringP1.length === 0,
+      `IO-9：真 repo hooksWiringCheck 零 P1（實際 P1：${JSON.stringify(wiringP1)}；全部：${JSON.stringify(wiringFindings)}）[IO-9]`,
+    );
+  }
+
+  if (typeof buildReport === 'function') {
+    const result = buildReport(REAL_REPO_ROOT);
+    const combined = [
+      ...(Array.isArray(result?.findings) ? result.findings : []),
+      ...(Array.isArray(result?.notes) ? result.notes : []),
+    ];
+    const relatedP1 = combined.filter(
+      (x) => (x.check === 'flag-sync' || x.check === 'hooks-wiring') && x.severity === 'P1',
+    );
+    assert(
+      relatedP1.length === 0,
+      `IO-9：真 repo buildReport 彙總結果中 flag-sync/hooks-wiring 零 P1（實際：${JSON.stringify(relatedP1)}）[IO-9-buildReport]`,
+    );
+  }
 }
 
 // ── 摘要 + exit code ─────────────────────────────────────────────────────────
