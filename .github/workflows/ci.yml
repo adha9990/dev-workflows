@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # 鎖 major 不鎖 patch（現行 LTS）
+          node-version: '24'
+
+      - name: Run tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          count=0
+          for f in plugins/loops-workflow/hooks/test-*.mjs plugins/loops-workflow/scripts/test-*.mjs; do
+            echo "== $f"
+            node "$f"
+            count=$((count+1))
+          done
+          echo "ran $count test files"
+          if [ "$count" -lt 1 ]; then
+            echo "::error::glob 零命中——一個測試檔都沒跑到（防假綠斷言）"
+            exit 1
+          fi
+
+      - name: skill-lint
+        shell: bash
+        run: node plugins/loops-workflow/scripts/skill-lint.mjs
