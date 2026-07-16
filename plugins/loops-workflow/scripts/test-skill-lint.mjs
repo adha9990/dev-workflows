@@ -612,8 +612,12 @@ const NOTE_LINE =
 
 // ══════════════════════════════════════════════════════════════════════════
 // 11.（#128）flagSyncCheck / hooksWiringCheck / parseFlagDefaults
-// 三個新符號尚未實作：一律動態 await import()＋try-catch，讓本組逐條紅（斷言失敗），
-// 不讓整檔在載入期崩潰、不影響上面 1–10 組與後面 IO-1..8 既有測試照常執行。
+// 三個新符號若尚未實作：改用動態 await import()＋解構取代靜態 import——ESM 動態 import
+// 對「請求但不存在的具名 export」不會 throw，解構到的只是 undefined（不像靜態 import 在缺
+// export 時於連結期就整檔崩潰）；undefined 之後由下面 IO-9-pre 的 typeof===function 存在性
+// 斷言把關，逐條紅在斷言失敗，不是崩潰。try-catch 真正要接住的是另一種情況——import() 本身
+// reject（模組檔案不存在／語法錯誤／模組頂層拋例外），那才會讓上面的賦值整段被跳過。
+// 不影響上面 1–10 組（皆為靜態 import 既有符號）與後面 IO-1..8 既有測試照常執行。
 // 案例編號對映 issue #128 契約：
 //   [128-0]=parseFlagDefaults 直測（乾淨 fixture）        [128-1]=settings 漏一旗標→P1
 //   [128-2]=歸類錯段（defaultOn 落在預設關段）→P1         [128-3]=header 計數矛盾→P1
@@ -768,6 +772,10 @@ function baselineJournalingContent() {
     !!f,
     `flagSyncCheck：settings.md 漏列 LOOPS_BETA_TRACKER → P1 finding（實際：${JSON.stringify(findings)}）[128-1]`,
   );
+  assert(
+    !!f && f.file === 'docs/settings.md',
+    `flagSyncCheck：settings 漏列 finding 的 file 欄位指向 docs/settings.md（實際：${JSON.stringify(f)}）[128-1]`,
+  );
 }
 
 // ── [128-2] 歸類錯段（defaultOn 出現在預設關段）→ P1 ─────────────────────────
@@ -806,11 +814,15 @@ function baselineJournalingContent() {
     journalingContent: baselineJournalingContent(),
   });
   const f = (findings || []).find(
-    (x) => x.check === 'flag-sync' && x.severity === 'P1' && JSON.stringify(x).includes('5'),
+    (x) =>
+      x.check === 'flag-sync' &&
+      x.severity === 'P1' &&
+      JSON.stringify(x).includes('5') &&
+      JSON.stringify(x).includes('flag 總數'),
   );
   assert(
     !!f,
-    `flagSyncCheck：header 宣稱「5 個 flag」對實際 4 個 → P1 finding 含數字 5（實際：${JSON.stringify(findings)}）[128-3]`,
+    `flagSyncCheck：header 宣稱「5 個 flag」（標籤「flag 總數」）對實際 4 個 → P1 finding 同時含數字與標籤字樣，非湊巧命中別處的「5」（實際：${JSON.stringify(findings)}）[128-3]`,
   );
 }
 
@@ -942,6 +954,10 @@ function baselineJournalingContent() {
     journalingContent: baselineJournalingContent(),
   });
   assert(
+    Array.isArray(findings) && findings.length === 0,
+    `flagSyncCheck：allowlist 成員 LOOPS_AUTO 以外其餘 4 個真旗標仍全部對齊 → findings 應為空陣列，不是「湊巧沒中」（實際：${JSON.stringify(findings)}）[128-7b]`,
+  );
+  assert(
     !(findings || []).some((x) => JSON.stringify(x).includes('LOOPS_AUTO')),
     `flagSyncCheck：allowlist 成員 LOOPS_AUTO 出現在文件中不誤報（P1 或 P2 皆不應提及）（實際：${JSON.stringify(findings)}）[128-7b]`,
   );
@@ -1023,6 +1039,210 @@ function baselineJournalingContent() {
   assert(
     !(findings || []).some((x) => JSON.stringify(x).includes('hook-flags.mjs')),
     'hooksWiringCheck：hooks/hook-flags.mjs 不被報 P2（檔名排除）[128-9]',
+  );
+}
+
+// ── [128-10] journaling 漏列一個真旗標（F1a）→ P1，且 file 指向 journaling.md ───
+{
+  const journalingContent = makeJournalingContent([
+    { cell: '`LOOPS_ALPHA_GUARD`', classification: '開', reason: '理由 A' },
+    { cell: '`LOOPS_BETA_TRACKER`', classification: '開', reason: '理由 B' },
+    { cell: '`LOOPS_GAMMA_GATE`', classification: 'opt-in', reason: '理由 C' },
+    // LOOPS_DELTA_HINT 整列刻意拿掉：這是「漏列」，不是「分類寫錯」（128-11 測那個）
+  ]);
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: baselineHookFlagsContent(),
+    settingsContent: baselineSettingsContent(),
+    journalingContent,
+  });
+  const f = (findings || []).find(
+    (x) => x.check === 'flag-sync' && x.severity === 'P1' && JSON.stringify(x).includes('LOOPS_DELTA_HINT'),
+  );
+  assert(
+    !!f,
+    `flagSyncCheck：journaling.md 整列漏列 LOOPS_DELTA_HINT → P1 finding（實際：${JSON.stringify(findings)}）[128-10]`,
+  );
+  assert(
+    !!f && /未出現/.test(JSON.stringify(f)),
+    `flagSyncCheck：漏列 finding 內容含「未出現」字樣（實際：${JSON.stringify(f)}）[128-10]`,
+  );
+  assert(
+    !!f && f.file === 'references/journaling.md',
+    `flagSyncCheck：漏列 finding 的 file 欄位指向 references/journaling.md（實際：${JSON.stringify(f)}）[128-10]`,
+  );
+}
+
+// ── [128-11] journaling 分類反轉（F1b）：defaultOn 旗標決策表寫成 opt-in → P1 ────
+{
+  const journalingContent = makeJournalingContent([
+    { cell: '`LOOPS_ALPHA_GUARD`', classification: 'opt-in', reason: '理由 A（刻意寫反，應為「開」）' },
+    { cell: '`LOOPS_BETA_TRACKER`', classification: '開', reason: '理由 B' },
+    { cell: '`LOOPS_GAMMA_GATE`', classification: 'opt-in', reason: '理由 C' },
+    { cell: '`LOOPS_DELTA_HINT`', classification: 'opt-in', reason: '理由 D' },
+  ]);
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: baselineHookFlagsContent(),
+    settingsContent: baselineSettingsContent(),
+    journalingContent,
+  });
+  const f = (findings || []).find(
+    (x) => x.check === 'flag-sync' && x.severity === 'P1' && JSON.stringify(x).includes('LOOPS_ALPHA_GUARD'),
+  );
+  assert(
+    !!f,
+    `flagSyncCheck：defaultOn 旗標 LOOPS_ALPHA_GUARD 決策表分類寫成 opt-in → P1 finding（實際：${JSON.stringify(findings)}）[128-11]`,
+  );
+  assert(
+    !!f && /不一致/.test(JSON.stringify(f)),
+    `flagSyncCheck：分類反轉 finding 內容含「不一致」字樣（實際：${JSON.stringify(f)}）[128-11]`,
+  );
+  assert(
+    !!f && f.file === 'references/journaling.md',
+    `flagSyncCheck：分類反轉 finding 的 file 欄位指向 references/journaling.md（實際：${JSON.stringify(f)}）[128-11]`,
+  );
+}
+
+// ── [128-12] 同旗標雙檔同漏（F1c）：settings 與 journaling 都漏 → 恰 2 筆獨立 P1 ──
+{
+  const settingsContent = makeSettingsContent({
+    defaultOnSection: ['LOOPS_ALPHA_GUARD', 'LOOPS_BETA_TRACKER'],
+    optInSection: ['LOOPS_DELTA_HINT'], // 漏了 LOOPS_GAMMA_GATE
+  });
+  const journalingContent = makeJournalingContent([
+    { cell: '`LOOPS_ALPHA_GUARD`', classification: '開', reason: '理由 A' },
+    { cell: '`LOOPS_BETA_TRACKER`', classification: '開', reason: '理由 B' },
+    // LOOPS_GAMMA_GATE 整列同樣漏掉，模擬兩檔各自獨立忘了更新同一個旗標
+    { cell: '`LOOPS_DELTA_HINT`', classification: 'opt-in', reason: '理由 D' },
+  ]);
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: baselineHookFlagsContent(),
+    settingsContent,
+    journalingContent,
+  });
+  const gammaP1 = (findings || []).filter(
+    (x) => x.check === 'flag-sync' && x.severity === 'P1' && JSON.stringify(x).includes('LOOPS_GAMMA_GATE'),
+  );
+  assert(
+    gammaP1.length === 2,
+    `flagSyncCheck：LOOPS_GAMMA_GATE 同時漏於 settings 與 journaling → 恰 2 筆獨立 P1（實際：${JSON.stringify(gammaP1)}）[128-12]`,
+  );
+  assert(
+    gammaP1.some((x) => x.file === 'docs/settings.md') && gammaP1.some((x) => x.file === 'references/journaling.md'),
+    `flagSyncCheck：兩筆 P1 分別來自 docs/settings.md 與 references/journaling.md（兩檔各自獨立判定，非同一筆重複計）（實際：${JSON.stringify(gammaP1)}）[128-12]`,
+  );
+}
+
+// ── [128-14] header 只留「N 個 flag」總數宣稱，沒寫 defaultOn（N）/optIn（N）（P2）──
+// 只比對「存在的宣稱」：total 有寫且對 → 不報；defaultOn/optIn 沒寫就該保持 undefined，
+// 不能被誤判成 0（那會在下一步跟 actualCounts.defaultOn/optIn 比對時假警報）。
+{
+  const partialHeaderContent = [
+    `// hook-flags.mjs 測試 fixture —— header 只留「${BASELINE_FLAGS.length} 個 flag」總數宣稱，`,
+    '// 故意不寫 defaultOn（N）/optIn（N）這兩行，模擬維護者只更新其中一個宣稱的情境。',
+    'export const FLAG_DEFAULTS = {',
+    ...BASELINE_FLAGS.map((f) => `  ${f.name}: { defaultOn: ${f.defaultOn} },`),
+    '};',
+    '',
+  ].join('\n');
+
+  const parsed = parseFlagDefaults && parseFlagDefaults(partialHeaderContent);
+  assert(
+    parsed && parsed.headerClaims && parsed.headerClaims.total === BASELINE_FLAGS.length,
+    `parseFlagDefaults：partial header 仍解出 headerClaims.total===${BASELINE_FLAGS.length}（實際：${JSON.stringify(parsed && parsed.headerClaims)}）[128-14]`,
+  );
+  assert(
+    parsed && parsed.headerClaims && parsed.headerClaims.defaultOn == null && parsed.headerClaims.optIn == null,
+    `parseFlagDefaults：沒寫的 defaultOn/optIn 保持 undefined，不是誤判出的 0（實際：${JSON.stringify(parsed && parsed.headerClaims)}）[128-14]`,
+  );
+
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: partialHeaderContent,
+    settingsContent: baselineSettingsContent(),
+    journalingContent: baselineJournalingContent(),
+  });
+  assert(
+    Array.isArray(findings) && findings.length === 0,
+    `flagSyncCheck：header 只宣稱「N 個 flag」（無 defaultOn/optIn 宣稱）且與實際一致 → 不誤報、不崩（實際：${JSON.stringify(findings)}）[128-14]`,
+  );
+}
+
+// ── [128-15] journaling 列存在但分類欄不可辨識（如「已淘汰」）→ 仍算已提及、不誤報 ──
+// 用真實 allowlist 成員 LOOPS_EXPLAIN（不在 FLAG_DEFAULTS）模擬：分類欄寫「已淘汰（無作用）」
+// 這種「開」／"opt-in" 兩個關鍵字都不含的列。mentionedNames 該收到它（有沒有被提及，跟分類
+// 辨不辨得出來是兩回事）；allowlist 已保證不誤報 unknown-flag P2，這裡額外鎖住不崩、也不會被
+// 誤判進「分類一致性」P1（那段邏輯只走 FLAG_DEFAULTS 收錄的 flags，LOOPS_EXPLAIN 不在其中）。
+{
+  const journalingContent = makeJournalingContent([
+    { cell: '`LOOPS_ALPHA_GUARD`', classification: '開', reason: '理由 A' },
+    { cell: '`LOOPS_BETA_TRACKER`', classification: '開', reason: '理由 B' },
+    { cell: '`LOOPS_GAMMA_GATE`', classification: 'opt-in', reason: '理由 C' },
+    { cell: '`LOOPS_DELTA_HINT`', classification: 'opt-in', reason: '理由 D' },
+    { cell: '`LOOPS_EXPLAIN`', classification: '已淘汰（無作用）', reason: '仿真實情境：已不再使用，僅保留紀錄' },
+  ]);
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: baselineHookFlagsContent(),
+    settingsContent: baselineSettingsContent(),
+    journalingContent,
+  });
+  assert(
+    Array.isArray(findings),
+    `flagSyncCheck：journaling 含「已淘汰」這種不可分類列時仍正常回傳陣列、不崩（實際：${JSON.stringify(findings)}）[128-15]`,
+  );
+  assert(
+    !(findings || []).some((x) => x.severity === 'P2' && JSON.stringify(x).includes('LOOPS_EXPLAIN')),
+    `flagSyncCheck：LOOPS_EXPLAIN（allowlist 成員）即使分類欄不可辨識，仍不誤報 unknown-flag P2（實際：${JSON.stringify(findings)}）[128-15]`,
+  );
+  assert(
+    !(findings || []).some((x) => x.severity === 'P1' && JSON.stringify(x).includes('LOOPS_EXPLAIN')),
+    `flagSyncCheck：LOOPS_EXPLAIN 不在 FLAG_DEFAULTS，不會被誤判進分類一致性 P1 檢查（實際：${JSON.stringify(findings)}）[128-15]`,
+  );
+}
+
+// ── [128-16] journaling 分類欄用裝飾形（issue 號附註、粗體包 opt-in）→ 仍正確辨識 ──
+{
+  const journalingContent = makeJournalingContent([
+    { cell: '`LOOPS_ALPHA_GUARD`', classification: '開（#85）', reason: '理由 A（裝飾形分類）' },
+    { cell: '`LOOPS_BETA_TRACKER`', classification: '開（#85）', reason: '理由 B（裝飾形分類）' },
+    { cell: '`LOOPS_GAMMA_GATE`', classification: '**opt-in**（#87 評估後維持）', reason: '理由 C（裝飾形分類）' },
+    { cell: '`LOOPS_DELTA_HINT`', classification: '**opt-in**（#87 評估後維持）', reason: '理由 D（裝飾形分類）' },
+  ]);
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: baselineHookFlagsContent(),
+    settingsContent: baselineSettingsContent(),
+    journalingContent,
+  });
+  assert(
+    Array.isArray(findings) && findings.length === 0,
+    `flagSyncCheck：journaling 分類欄用裝飾形「開（#85）」／「**opt-in**（#87 評估後維持）」仍正確辨識、無誤報（實際：${JSON.stringify(findings)}）[128-16]`,
+  );
+}
+
+// ── [128-17] optIn 旗標整個錯放進「預設開」段 → P1（128-2 的反向案例）───────────
+{
+  const settingsContent = makeSettingsContent({
+    defaultOnSection: ['LOOPS_ALPHA_GUARD', 'LOOPS_BETA_TRACKER', 'LOOPS_GAMMA_GATE'], // 錯段：GAMMA_GATE 是 optIn
+    optInSection: ['LOOPS_DELTA_HINT'],
+  });
+  const findings = flagSyncCheck && flagSyncCheck({
+    hookFlagsContent: baselineHookFlagsContent(),
+    settingsContent,
+    journalingContent: baselineJournalingContent(),
+  });
+  const f = (findings || []).find(
+    (x) => x.check === 'flag-sync' && x.severity === 'P1' && JSON.stringify(x).includes('LOOPS_GAMMA_GATE'),
+  );
+  assert(
+    !!f,
+    `flagSyncCheck：optIn 旗標 LOOPS_GAMMA_GATE 出現在「預設開」段 → P1 finding（實際：${JSON.stringify(findings)}）[128-17]`,
+  );
+  // 兩筆 P1 都會觸發（「未出現在預設關」+「卻出現在預設開」，同 128-2 反向對稱）；
+  // 特別挑「卻出現在」這筆核對方向性措辭，不是隨手抓 find() 命中的第一筆。
+  const otherSectionFinding = (findings || []).find(
+    (x) => x.check === 'flag-sync' && x.severity === 'P1' && JSON.stringify(x).includes('LOOPS_GAMMA_GATE') && JSON.stringify(x).includes('卻出現'),
+  );
+  assert(
+    !!otherSectionFinding && /預設開/.test(JSON.stringify(otherSectionFinding)),
+    `flagSyncCheck：「卻出現在」finding 內容含「預設開」字樣（確認方向性措辭正確，不是複製 128-2 的「預設關」字串）（實際：${JSON.stringify(otherSectionFinding)}）[128-17]`,
   );
 }
 
@@ -1348,6 +1568,40 @@ function runCli(root, args = ['--json']) {
       relatedP1.length === 0,
       `IO-9：真 repo buildReport 彙總結果中 flag-sync/hooks-wiring 零 P1（實際：${JSON.stringify(relatedP1)}）[IO-9-buildReport]`,
     );
+  }
+}
+
+// ── [128-13] hooks.json 讀不到（buildReport 對真 repo 的 IO 邊界）→ P1，先紅等 impl 修 F2 ──
+// 編號屬 #128 契約組，但這條需要真實檔案系統（buildReport 內部靠 readTextMaybe 讀
+// hooks/hooks.json），比照上面既有 IO 系列的 makeRepo/tmp-dir 模式，物理上放在 IO 區塊。
+// 現行 buildFlagAndWiringResults 讀不到 hooks/hooks.json 時直接 `continue`（靜默略過），
+// 完全不產生任何 finding —— 這是 verify 抓到的 F2：讀不到設定檔不該悄悄放行，應該跟其他
+// 「解析失敗」情境（如 128-6 的 parseFlagDefaults 錯誤）一樣明確報 P1。
+// 本案例先紅，等 impl 把那段 continue 改成「讀不到就出 P1」後才會轉綠——不要為了先讓它綠
+// 而回頭改 skill-lint.mjs。
+{
+  const dir = mkdtempSync(join(tmpdir(), 'skl-hooks-missing-'));
+  try {
+    writeFiles(dir, {
+      'plugins/loops-workflow/hooks/hook-flags.mjs': baselineHookFlagsContent(),
+      'plugins/loops-workflow/docs/settings.md': baselineSettingsContent(),
+      'plugins/loops-workflow/references/journaling.md': baselineJournalingContent(),
+      // 刻意不寫 plugins/loops-workflow/hooks/hooks.json —— 模擬「讀不到」情境
+    });
+    const result = buildReport && buildReport(dir);
+    const hooksWiringFindings = (result && Array.isArray(result.findings) ? result.findings : [])
+      .filter((x) => x.check === 'hooks-wiring');
+    const f = hooksWiringFindings.find((x) => x.severity === 'P1');
+    assert(
+      !!f,
+      `buildReport：hooks/hooks.json 不存在時 findings 應含 hooks-wiring P1、不可靜默略過（實際 hooks-wiring findings：${JSON.stringify(hooksWiringFindings)}）[128-13]`,
+    );
+    assert(
+      !!f && /讀不到|缺.{0,4}hooks\.json/i.test(JSON.stringify(f)),
+      `buildReport：讀不到 hooks.json 的 P1 finding 內容可辨識出是「缺檔／讀不到」（實際：${JSON.stringify(f)}）[128-13]`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 }
 

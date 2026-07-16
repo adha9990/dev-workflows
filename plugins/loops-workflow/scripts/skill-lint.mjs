@@ -946,7 +946,15 @@ function buildFlagAndWiringResults(fullMap, root) {
     for (const f of flagFindings) (f.severity === 'P1' ? findings : notes).push(f);
 
     const hooksJsonContent = readTextMaybe(join(pluginDir, 'hooks', 'hooks.json'));
-    if (hooksJsonContent == null) continue;
+    if (hooksJsonContent == null) {
+      findings.push({
+        check: 'hooks-wiring',
+        severity: 'P1',
+        file: `${pluginRel}/hooks/hooks.json`,
+        detail: '讀不到 hooks.json，無法核對 hook 掛載是否同步',
+      });
+      continue;
+    }
     const hookFiles = Object.keys(fullMap)
       .filter((k) => k.startsWith(`${pluginRel}/hooks/`) && k.endsWith('.mjs'))
       .map((k) => k.slice(pluginRel.length + 1));
