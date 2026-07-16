@@ -6,6 +6,8 @@
 |---|---|---|
 | **loops-workflow** | 7 階段閉環開發工作流（**既有專案**內加功能 / 設計 / 修問題）+ 內建 greenfield 專案 scaffold | `/loops-workflow:dispatch <一句話>` |
 
+**CI**：push 到 `master`、開 PR 會自動跑全部 hooks/scripts 測試 + skill-lint（ubuntu + windows 雙平台）。
+
 ## 安裝
 
 ```
