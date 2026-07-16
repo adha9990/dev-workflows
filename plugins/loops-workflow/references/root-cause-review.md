@@ -30,6 +30,12 @@ bug fix 應能交代（PR body 或改動本身要看得出）：
 - 同一 parser / 正規化 / 轉換邏輯的**其他入口**是否一併修到。
 - 只修了觸發 bug 的那一條路徑、漏了同類入口 → 換個操作就復發。
 
+**修法動到某個判斷點（predicate / guard / branch / filter）時，掃它的 sibling 分支、別只修被報的那一支**：
+
+- **枚舉那個判斷式的每一條分支**，逐一問「同一個對抗情境下，這支也對嗎」。修了 `if (local)` 那支，旁邊的 `!local`（或 `else` / 各 `case`）常是同一類 bug 的另一面——只補一支、漏 sibling，下一輪換個狀態就以變形復發。
+- **競態 / 排序 / 同步類的病根，要窮舉「抵達同一個合流點的所有事件順序」**，不是只修被報的那一種交錯。同一個 merge / reconcile 點，create-vs-delete 亂序修好了，還要問 create-vs-create、delete-vs-poll、retry-vs-clear… 每一種順序下結果對不對。少枚舉一種順序 = 留一個等外部 reviewer 抓的 sibling 競態。
+- **判準**：finding 若指出「修法只覆蓋被報的那一支 / 那一種順序、沒證明 sibling 分支或其他事件順序也安全」，當**可行 finding**（同類復發風險，severity 依影響）。
+
 ## 四、回歸測試合格標準
 
 bug fix 的回歸測試要過五問（前四問對齊 `test-rubric.md` §7、第五問為本軸加強；缺 regression guard ≥P2，核心 / 高復發升 P1）：

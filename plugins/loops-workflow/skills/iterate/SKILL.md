@@ -55,6 +55,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 **修了任何 actionable（含 step 3 自己 Stop-the-Line 修的）→ 一定再過一輪 `verify`**。「測試綠 / typecheck 0 / lint 0」**不能取代 verify** —— 綠燈只證明沒打破現有測試，證不了「修正 + 其波及面」對其他軸（契約 / 安全 / 既有 consumer 行為）安全。**改到共用元件 / 跨切面時，再 verify 要涵蓋波及面**（誰在用被改的東西），不是只看改的那幾行。
 
+**再驗一律走 `verify` step-1 選軸、不臨場手挑 reviewer**：回環再驗**不是**「orchestrator 憑印象派兩三個 reviewer」，而是**照 verify 步驟 1 依改動領域定軸 + 加派 conditional reviewer**（並發／同步→`multi-user-concurrency`、bug fix→`root-cause`、queue／背景→`processing-reliability`、migration→`migration`…，見 verify §1）。手挑子集的風險是**把改動所在領域最該派的那個 lens 系統性跳過**——例如修同步 / 併發競態卻只派 `code-quality`＋`tests`，那個「唯一工作就是窮舉事件順序 / 亂序 / lost-update」的 `multi-user-concurrency-reviewer` 就每輪缺席，於是 sibling 競態一輪一輪被外部 reviewer 才抓到、而不是內部一次收斂。**改動命中哪個領域，該領域的 conditional lens 就按規則被派，不靠當下記得。**
+
 **完工只在「最近一輪 verify 已無 actionable findings」時才可達** —— 即「跑完 verify → iterate 這輪沒東西要修」。修完直接跳完工 = 抄捷徑。
 
 ### 5. 回環上限：3 圈 + 收斂感知（escalate 是檢查點，不是放棄）
@@ -126,6 +128,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - 修正回覆 comment 堆客套 / 沒給驗證證據 / `@` 點名 reviewer（§8 規定不點名）。
 - **修完沒再跑 verify 就完工**（拿「測試綠 / typecheck 0」當 verify 替代品）。
 - 改到共用元件 / 跨切面，只看綠燈、沒對**波及面**派 fresh reviewer 再驗。
+- **delta re-verify 用手挑的 reviewer 子集充當、沒走 `verify` step-1 選軸** —— 改動所在領域該派的 conditional lens（並發→`multi-user-concurrency`、bug fix→`root-cause`…）被系統性跳過，該類問題只能等外部 reviewer 抓。
 - 把「再 verify」降級成 gate 選項讓使用者點掉。
 - **verify 出 actionable findings（含 P2/P3）還問使用者「修多少 / 要不要修」** —— actionable 一律自動全修，不是使用者決策。
 - 修正型（`type=fix`）收尾還產一堆草稿（PR body as-built / 另發 issue comment）—— 只該一份修正回覆 comment（§8）。
@@ -145,7 +148,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] verify 出的 actionable findings（不論 P2/P3）**全部自動修了**，沒問使用者「修多少 / 要不要修」。
 - [ ] 每個 actionable 修的是根因 + 有回歸測試（GUARD）。
 - [ ] 回環**看收斂**（findings 嚴格變少才續繞）；沒收斂 / 碰 3 圈上限已 escalate 當**檢查點**（讓使用者選回頭重想 / 換跨模型 / 授權再繞〔計數重置〕）；`loop.md` 有回環歷史 + 每輪 findings 數。
-- [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工。
+- [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工；**且再驗走 `verify` step-1 選軸（依領域自動派 conditional reviewer），不是臨場手挑 reviewer 子集**。
 - [ ] 完工前最近一輪 verify 無 actionable findings。
 - [ ] 完工前對照 `stages/00-goal.md` 停止條件全達成。
 - [ ] **完工 / 中止已在 `loop.md` Journal append 一行 outcome 度量**（依 `references/journaling.md`〈完工 outcome 度量〉，欄位齊全、token 帶 `est`／級距標粗估）。

@@ -74,7 +74,7 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 
 - 每個 finding 標 **P0–P2（P3 落 Non-blocking notes）+ Confidence(50/75/100) + Route**（見 `references/reviewer-severity.md`），先工程視角（哪檔哪行 + 機制 + 驗證）再使用者視角（什麼操作會踩到 + 看到什麼）；沒實跑標 `not measured`（**Metric-Honesty**）。
 - 主線 merge 成 **Ready / Not ready** 寫 `stages/04-verify.md` + 摘要，**直接進 iterate**（routine 不問）；**只有出 P0** 才停下用 `AskUserQuestion` 問（先修 / 接受風險 / 看細節）。
-- **回環再驗（delta re-verify）**：iterate 修完回來，聚焦「改了什麼 + **波及面**（誰用到被改的）」再派 fresh reviewer 驗一輪 —— 不是只重跑 diff、更不是只看測試綠；改到共用元件要把 consumer 一起納入。修完一律再驗，是 closed-loop 預設、不是選項。
+- **回環再驗（delta re-verify）**：iterate 修完回來，聚焦「改了什麼 + **波及面**（誰用到被改的）」再派 fresh reviewer 驗一輪 —— 不是只重跑 diff、更不是只看測試綠；改到共用元件要把 consumer 一起納入。修完一律再驗，是 closed-loop 預設、不是選項。**再驗一律走本 skill 步驟 1 選軸**（依 fix + 波及面的領域定核心軸 + 加派 conditional reviewer），**不是臨場手挑幾個 reviewer 充當再驗** —— 手挑子集會把改動所在領域最該派的 lens 系統性跳過（例：修同步 / 併發競態卻沒派 `multi-user-concurrency-reviewer`〔專門窮舉事件順序 / 亂序 / lost-update / read-your-writes〕、修 bug 沒派 `root-cause`），於是 sibling 競態 / 同類入口一輪一輪被外部 reviewer 才抓到、而非內部一次收斂。
 
 > 要把結論 post 成 PR/issue comment（給人審）→ 套 `references/comment-policy.md` §7 版型（tmp 草稿、送出後刪）。送審前自檢（單一送審判定 + 「作者已留痕的決定不算 finding」硬規則）見 `references/preflight.md`。
 
@@ -89,6 +89,7 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 - 判 Ready 卻沒對 issue 逐條勾稽 acceptance（findings 清完 ≠ 做到 issue）。
 - 確證「根本做錯」卻還對其他 finding 逐條修，而非整個退回（交 iterate 路由回 goal/explore/plan/build）。
 - 連 2+ 輪 reviewer 都出 substantive finding 卻 **0 條 actionable** = 在背書不是審查（rubber-stamp），停下重看 validator 是不是把該修的都 rationalize 掉了。
+- **delta re-verify 沒走步驟 1 選軸、改用臨場手挑的 reviewer 子集** —— 改動命中的領域 lens（並發→`multi-user-concurrency`、bug fix→`root-cause`、queue→`processing-reliability`…）被系統性跳過，該類問題（sibling 競態 / 同類入口）拖到外部 reviewer 才抓。
 - **改動新增 / 動到 `docs/<topic>.md` 卻沒派 `docs-devex`（用 mainline 自查頂替）** —— 教學文檔的**自足品質**（引用 issue/PR 號、塞「現狀與後續 / Phase X 已交付 / 後續 follow-up」狀態段、把限制寫成進度、不白話 / 寫給已懂的人）會整個漏審，拖到人類 reviewer 才抓（見 `references/docs-devex-review.md §四`）。**docs 有增/改 ＝ 必派 `docs-devex`，不 mainline 自查頂替。**
 
 ## Verification
