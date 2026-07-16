@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // skill-lint.mjs —— 掃 loops-workflow plugin 樹，抓 skill/agent 描述膨脹、審查內容漂移、
-// reference 斷鏈/孤兒、文件計數失準、已刪指令殘留五類維護債。
+// reference 斷鏈/孤兒、文件計數失準、已刪指令殘留、flag 分類與 hooks 掛載未同步七類維護債。
 // 分層：
 //   1) 解析 / 判定層（純函式，無 IO）：parseDescription / footprintCheck / wordSet / jaccard /
 //      stripDeepVariantNote / stripFrontmatter / duplicateCheck / deepSyncCheck /
-//      referenceIntegrityCheck / countLintCheck / deadCommandCheck / formatSummary ——
-//      給單元測試直接 import。
+//      referenceIntegrityCheck / countLintCheck / deadCommandCheck / parseFlagDefaults /
+//      flagSyncCheck / hooksWiringCheck / formatSummary —— 給單元測試直接 import。
 //   2) IO 薄邊界：walk（掃檔）與 CLI main（組裝、印出、決定 exit code）——
 //      main 被 import 時不執行（import.meta.url 守門）。
 // 依賴：僅 node 內建（fs / path / url / process），無外部套件。
@@ -411,6 +411,293 @@ export function deadCommandCheck(map) {
   return findings;
 }
 
+// ── #128：flag 分類三方同步（hook-flags.mjs⇄settings.md⇄journaling.md）＋ hooks.json 掛載對帳 ──
+
+// 「N 個 flag」不錨定收尾括號——真實 hook-flags.mjs 的引號是「「11 個 flag 各自屬於 defaultOn
+// 還是 optIn」與「怎麼判斷開關」...」，收尾 」 在 optIn 之後，不是緊跟在 flag 後面；只認「數字＋
+// 個＋flag」這段子字串，不要求它自成一個完整的「」引號單位（測試 fixture 剛好兩種寫法都收得到）。
+const FLAG_HEADER_TOTAL_RE = /(\d+)\s*個\s*flag/;
+const FLAG_HEADER_DEFAULT_ON_RE = /defaultOn（(\d+)）/;
+const FLAG_HEADER_OPT_IN_RE = /optIn（(\d+)）/;
+const FLAG_DEFAULTS_BLOCK_RE = /FLAG_DEFAULTS\s*=\s*\{([\s\S]*?)\n\}\s*;/;
+const FLAG_ENTRY_RE = /^\s*(LOOPS_[A-Z_]+):\s*\{\s*defaultOn:\s*(true|false)\s*\}/;
+
+/**
+ * 解析 hook-flags.mjs 內容 → { flags:[{name,defaultOn}], headerClaims:{total?,defaultOn?,optIn?} }。
+ * FLAG_DEFAULTS 物件字面量抽不到、或抽到區塊內一個 flag 都解不出 → 回傳 {error}（不是空陣列）——
+ * 呼叫端 flagSyncCheck 靠這個分支判斷「檔案本身壞了」，不能讓它看起來像「檔案裡剛好沒 flag」而
+ * 悄悄放行。
+ */
+export function parseFlagDefaults(content) {
+  const text = String(content ?? '');
+  const blockMatch = text.match(FLAG_DEFAULTS_BLOCK_RE);
+  if (!blockMatch) {
+    return { error: '找不到 FLAG_DEFAULTS = { ... } 物件字面量區塊' };
+  }
+
+  const flags = [];
+  for (const line of blockMatch[1].split(/\r?\n/)) {
+    const m = line.match(FLAG_ENTRY_RE);
+    if (m) flags.push({ name: m[1], defaultOn: m[2] === 'true' });
+  }
+  if (flags.length === 0) {
+    return { error: 'FLAG_DEFAULTS 區塊內找不到任何 "LOOPS_X: { defaultOn: true|false }" 行' };
+  }
+
+  const headerClaims = {};
+  const totalMatch = text.match(FLAG_HEADER_TOTAL_RE);
+  if (totalMatch) headerClaims.total = Number(totalMatch[1]);
+  const defaultOnMatch = text.match(FLAG_HEADER_DEFAULT_ON_RE);
+  if (defaultOnMatch) headerClaims.defaultOn = Number(defaultOnMatch[1]);
+  const optInMatch = text.match(FLAG_HEADER_OPT_IN_RE);
+  if (optInMatch) headerClaims.optIn = Number(optInMatch[1]);
+
+  return { flags, headerClaims };
+}
+
+// settings.md「## 預設開／預設關」兩段各自的內文（容忍標題後綴文字，如「（想關才需要設...）」）；
+// 段落邊界＝下一個任意層級 2 標題或檔尾，找不到指定標題 → 空字串（呼叫端得到空 Set，等同「這個
+// 分類段落沒有任何旗標」）。
+const SETTINGS_DEFAULT_ON_HEADER_RE = /^##\s*預設開/;
+const SETTINGS_OPT_IN_HEADER_RE = /^##\s*預設關/;
+const ANY_H2_HEADER_RE = /^##\s/;
+// 非 blockquote 版表格列（settings.md 的表格沒有 `> ` 前綴，journaling.md 決策表另有專屬 regex）。
+const MARKDOWN_TABLE_ROW_RE = /^\|(.+)\|\s*$/;
+const FLAG_NAME_CELL_RE = /`(LOOPS_[A-Z_]+)`/g;
+
+function sliceMarkdownSection(content, headerRe) {
+  const lines = String(content ?? '').split(/\r?\n/);
+  const start = lines.findIndex((l) => headerRe.test(l));
+  if (start === -1) return '';
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i += 1) {
+    if (ANY_H2_HEADER_RE.test(lines[i])) { end = i; break; }
+  }
+  return lines.slice(start + 1, end).join('\n');
+}
+
+// 只看每個表格列的**第一欄**（旗標名欄）——不掃整段文字，避免說明欄／「想關」範例欄裡順帶提到
+// 的其他旗標名被誤當成「這段落也記載了它」（表頭列「參數」、分隔列「---」天然不含反引號旗標名，
+// 不需要另外偵測跳過）。
+function extractTableFirstColumnFlagNames(sectionText) {
+  const names = new Set();
+  for (const line of String(sectionText ?? '').split(/\r?\n/)) {
+    const m = line.match(MARKDOWN_TABLE_ROW_RE);
+    if (!m) continue;
+    const firstCell = m[1].split('|')[0] ?? '';
+    for (const nm of firstCell.matchAll(FLAG_NAME_CELL_RE)) names.add(nm[1]);
+  }
+  return names;
+}
+
+function parseSettingsSections(settingsContent) {
+  return {
+    defaultOnNames: extractTableFirstColumnFlagNames(sliceMarkdownSection(settingsContent, SETTINGS_DEFAULT_ON_HEADER_RE)),
+    optInNames: extractTableFirstColumnFlagNames(sliceMarkdownSection(settingsContent, SETTINGS_OPT_IN_HEADER_RE)),
+  };
+}
+
+// journaling.md 決策表：以第一個 `> ` 前綴的 blockquote 表列為表頭起點，連續同形列（含
+// |---|---|---| 分隔列）都算表格一部分，遇到第一個非 blockquote 表列的行即表格結束——藉此跟本檔
+// 更早、非 blockquote 的「outcome 度量格式」表格區分開來（那張表沒有 `> ` 前綴）。
+const JOURNALING_TABLE_ROW_RE = /^>\s*\|(.+)\|\s*$/;
+
+function journalingTableDataRows(journalingContent) {
+  const lines = String(journalingContent ?? '').split(/\r?\n/);
+  const start = lines.findIndex((l) => JOURNALING_TABLE_ROW_RE.test(l));
+  if (start === -1) return [];
+
+  const rows = [];
+  for (let i = start; i < lines.length; i += 1) {
+    const m = lines[i].match(JOURNALING_TABLE_ROW_RE);
+    if (!m) break;
+    rows.push(m[1]);
+  }
+  return rows.slice(2); // 跳過表頭列與 |---|---|---| 分隔列
+}
+
+/**
+ * journaling.md 決策表 → { classification: Map<flagName,'defaultOn'|'optIn'>, mentionedNames: Set }。
+ * 兩者都只看每列**第一欄**（旗標名欄，可用 `/` 併列多個反引號全名共用同一分類，比照真實
+ * journaling.md 的 `LOOPS_EVAL_GATE`/`LOOPS_EVAL_TAGS_GATE`/`LOOPS_EVAL_POLL_GATE` 三合一寫法）——
+ * 「一句理由」欄常順帶提到別的旗標名做舉例／對比，那不代表「這份文件記載了它」，第三欄一律不看。
+ * 分類欄含「開」→ defaultOn；含 "opt-in"（不分大小寫）→ optIn；兩者皆無（如「已淘汰」列）→
+ * classification 略過該名字，但仍算 mentionedNames（列出現過，只是分類文字辨識不出來）。
+ */
+function parseJournalingFlagTable(journalingContent) {
+  const classification = new Map();
+  const mentionedNames = new Set();
+
+  for (const row of journalingTableDataRows(journalingContent)) {
+    const cells = row.split('|');
+    const names = [...(cells[0] ?? '').matchAll(FLAG_NAME_CELL_RE)].map((mm) => mm[1]);
+    if (names.length === 0) continue;
+    for (const name of names) mentionedNames.add(name);
+
+    const classCell = cells[1] ?? '';
+    let cls = null;
+    if (classCell.includes('開')) cls = 'defaultOn';
+    else if (/opt-in/i.test(classCell)) cls = 'optIn';
+    if (!cls) continue;
+
+    for (const name of names) classification.set(name, cls);
+  }
+
+  return { classification, mentionedNames };
+}
+
+// hook-flags.mjs 不管、但合法出現在文件裡的 LOOPS_*（skill 層 env、內部測試參數、或純代稱非真
+// 環境變數）——flag-sync 的「未知旗標」P2 檢查不誤報這些（見 docs/settings.md「進階／內部」一節）。
+const FLAG_NAME_ALLOWLIST = new Set([
+  'LOOPS_AUTO',
+  'LOOPS_EXPLAIN',
+  'LOOPS_SANDBOX_RUNNER',
+  'LOOPS_LOOP_DRIVER_GATE_SCRIPT',
+  'LOOPS_ROOT',
+]);
+
+const HEADER_CLAIM_LABELS = { total: 'flag 總數', defaultOn: 'defaultOn 數', optIn: 'optIn 數' };
+
+/**
+ * hook-flags.mjs（單一真相源）⇄ settings.md「## 預設開/關」⇄ journaling.md 決策表 三方對帳，
+ * 外加「兩文檔出現不屬於任何一邊的 LOOPS_*」反向掃描。hook-flags.mjs 解析失敗 → 單一 P1 直接
+ * 返回（沒有 flags[] 可比對，其餘子檢查連跑都跑不起來，跑了也只是噪音）。
+ */
+export function flagSyncCheck({ hookFlagsContent, settingsContent, journalingContent } = {}) {
+  const parsed = parseFlagDefaults(hookFlagsContent);
+  if (parsed.error) {
+    return [{
+      check: 'flag-sync',
+      severity: 'P1',
+      file: 'hooks/hook-flags.mjs',
+      detail: `無法解析 FLAG_DEFAULTS：${parsed.error}`,
+    }];
+  }
+
+  const { flags, headerClaims } = parsed;
+  const findings = [];
+  const actualDefaultOn = flags.filter((f) => f.defaultOn).length;
+  const actualCounts = { total: flags.length, defaultOn: actualDefaultOn, optIn: flags.length - actualDefaultOn };
+
+  for (const key of ['total', 'defaultOn', 'optIn']) {
+    if (headerClaims[key] == null || Number(headerClaims[key]) === actualCounts[key]) continue;
+    findings.push({
+      check: 'flag-sync',
+      severity: 'P1',
+      file: 'hooks/hook-flags.mjs',
+      detail: `header 宣稱 ${HEADER_CLAIM_LABELS[key]} 為 ${headerClaims[key]}，實際 FLAG_DEFAULTS 有 ${actualCounts[key]} 個`,
+    });
+  }
+
+  const settingsSections = parseSettingsSections(settingsContent);
+  const journalingTable = parseJournalingFlagTable(journalingContent);
+
+  for (const flag of flags) {
+    const expectedCls = flag.defaultOn ? 'defaultOn' : 'optIn';
+    const ownNames = flag.defaultOn ? settingsSections.defaultOnNames : settingsSections.optInNames;
+    const otherNames = flag.defaultOn ? settingsSections.optInNames : settingsSections.defaultOnNames;
+    const ownSectionLabel = flag.defaultOn ? '預設開' : '預設關';
+    const otherSectionLabel = flag.defaultOn ? '預設關' : '預設開';
+
+    if (!ownNames.has(flag.name)) {
+      findings.push({
+        check: 'flag-sync',
+        severity: 'P1',
+        file: 'docs/settings.md',
+        detail: `${flag.name}（${expectedCls}）未出現在「${ownSectionLabel}」段`,
+      });
+    }
+    if (otherNames.has(flag.name)) {
+      findings.push({
+        check: 'flag-sync',
+        severity: 'P1',
+        file: 'docs/settings.md',
+        detail: `${flag.name}（${expectedCls}）卻出現在「${otherSectionLabel}」段`,
+      });
+    }
+
+    const journalingCls = journalingTable.classification.get(flag.name);
+    if (journalingCls == null) {
+      findings.push({
+        check: 'flag-sync',
+        severity: 'P1',
+        file: 'references/journaling.md',
+        detail: `${flag.name} 未出現在 flag 決策表`,
+      });
+    } else if (journalingCls !== expectedCls) {
+      findings.push({
+        check: 'flag-sync',
+        severity: 'P1',
+        file: 'references/journaling.md',
+        detail: `${flag.name} 決策表分類（${journalingCls}）與 hook-flags.mjs（${expectedCls}）不一致`,
+      });
+    }
+  }
+
+  const knownNames = new Set(flags.map((f) => f.name));
+  const settingsNames = new Set([...settingsSections.defaultOnNames, ...settingsSections.optInNames]);
+  const journalingNames = journalingTable.mentionedNames;
+  for (const name of new Set([...settingsNames, ...journalingNames])) {
+    if (knownNames.has(name) || FLAG_NAME_ALLOWLIST.has(name)) continue;
+    const sources = [];
+    if (settingsNames.has(name)) sources.push('docs/settings.md');
+    if (journalingNames.has(name)) sources.push('references/journaling.md');
+    findings.push({
+      check: 'flag-sync',
+      severity: 'P2',
+      file: sources.join(', '),
+      detail: `未知旗標 ${name}：不在 FLAG_DEFAULTS 也不在 allowlist，疑似拼錯名或待補`,
+    });
+  }
+
+  return findings;
+}
+
+// hooks.json 內 `${CLAUDE_PLUGIN_ROOT}/hooks/X.mjs` 形狀的指令引用；greedy 到第一個 ".mjs" 即可
+// （hook 路徑段不含裸 ".mjs" 字面量），不需要 non-greedy。
+const HOOK_COMMAND_REF_RE = /\$\{CLAUDE_PLUGIN_ROOT\}\/(hooks\/[\w./-]+\.mjs)/g;
+
+// fixtures/ 段（任一路徑段等於 fixtures）、test-*.mjs、hook-flags.mjs：這三類本就不是「該被
+// hooks.json 掛載執行」的 hook 本體（測試 fixture／單元測試／純資料表），未掛載不算 P2。
+function isHookWiringExempt(relPath) {
+  const segments = String(relPath ?? '').split('/');
+  if (segments.includes('fixtures')) return true;
+  const base = segments[segments.length - 1] ?? '';
+  return base === 'hook-flags.mjs' || /^test-.*\.mjs$/.test(base);
+}
+
+/**
+ * hooks.json 的 `${CLAUDE_PLUGIN_ROOT}/hooks/X.mjs` 引用 ⇄ 實際 hooks/*.mjs 檔案清單對帳。
+ * 引用不存在的檔 → P1（執行期真的會噴錯）；存在卻沒被任何 entry 引用的檔 → P2（較可能只是死檔
+ * 或漏接線，不像引用不存在那麼致命）。
+ */
+export function hooksWiringCheck(hooksJsonContent, hookFiles) {
+  const files = Array.isArray(hookFiles) ? hookFiles : [];
+  const fileSet = new Set(files);
+  const findings = [];
+
+  const referenced = new Set(
+    [...String(hooksJsonContent ?? '').matchAll(HOOK_COMMAND_REF_RE)].map((m) => m[1]),
+  );
+
+  for (const ref of referenced) {
+    if (fileSet.has(ref)) continue;
+    findings.push({ check: 'hooks-wiring', severity: 'P1', file: 'hooks/hooks.json', detail: `引用不存在的 ${ref}` });
+  }
+
+  for (const file of files) {
+    if (referenced.has(file) || isHookWiringExempt(file)) continue;
+    findings.push({
+      check: 'hooks-wiring',
+      severity: 'P2',
+      file,
+      detail: '存在卻未被 hooks.json 任何 entry 引用',
+    });
+  }
+
+  return findings;
+}
+
 // notes 形狀不只一種（footprint finding 形＝{check,file,detail}；countLintCheck 非強制鍵形＝
 // {check,file,key,claimed,actual}；呼叫端也可能自帶 {file,message} 形）——依序 fallback 取得可讀
 // 的一行，避免因缺欄位印出 "undefined"。
@@ -560,6 +847,16 @@ function readJsonMaybe(path) {
   }
 }
 
+// hooks.json 要餵給 hooksWiringCheck 的是原始文字（該函式自己用正則掃 command 字串），
+// 不是 readJsonMaybe 的已解析物件——用途跟 readJsonMaybe 不同，各自留著。
+function readTextMaybe(path) {
+  try {
+    return readFileSync(path, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
 function countDirs(path) {
   try {
     return readdirSync(path, { withFileTypes: true }).filter((e) => e.isDirectory()).length;
@@ -626,7 +923,49 @@ function buildDeepSyncPairs(agentsList) {
   return pairs;
 }
 
-/** 掃描 root，跑五類檢查，組成完整結果物件（--json 與人讀摘要共用同一份）。 */
+/**
+ * flagSyncCheck／hooksWiringCheck 接線：只對「有採用 hook-flags.mjs 慣例」的 plugin 跑（目前僅
+ * loops-workflow；其餘 plugin 若未來也導入這慣例，加了 hook-flags.mjs 就會自動被納入，不必改這
+ * 裡）。hooks.json 不是 .md/.mjs，不在 walk() 的掃描面內，另外直接讀檔。P1 併入 findings、
+ * P2 併入 notes——與 footprint／countLint 的 non-forced-key notes 走同一套分流慣例。
+ */
+function buildFlagAndWiringResults(fullMap, root) {
+  const findings = [];
+  const notes = [];
+
+  for (const pluginDir of listPluginRoots(root)) {
+    const pluginRel = toRelPosix(root, pluginDir);
+    const hookFlagsKey = `${pluginRel}/hooks/hook-flags.mjs`;
+    if (!(hookFlagsKey in fullMap)) continue;
+
+    const flagFindings = flagSyncCheck({
+      hookFlagsContent: fullMap[hookFlagsKey],
+      settingsContent: fullMap[`${pluginRel}/docs/settings.md`],
+      journalingContent: fullMap[`${pluginRel}/references/journaling.md`],
+    });
+    for (const f of flagFindings) (f.severity === 'P1' ? findings : notes).push(f);
+
+    const hooksJsonContent = readTextMaybe(join(pluginDir, 'hooks', 'hooks.json'));
+    if (hooksJsonContent == null) {
+      findings.push({
+        check: 'hooks-wiring',
+        severity: 'P1',
+        file: `${pluginRel}/hooks/hooks.json`,
+        detail: '讀不到 hooks.json，無法核對 hook 掛載是否同步',
+      });
+      continue;
+    }
+    const hookFiles = Object.keys(fullMap)
+      .filter((k) => k.startsWith(`${pluginRel}/hooks/`) && k.endsWith('.mjs'))
+      .map((k) => k.slice(pluginRel.length + 1));
+    const wiringFindings = hooksWiringCheck(hooksJsonContent, hookFiles);
+    for (const f of wiringFindings) (f.severity === 'P1' ? findings : notes).push(f);
+  }
+
+  return { findings, notes };
+}
+
+/** 掃描 root，跑七類檢查，組成完整結果物件（--json 與人讀摘要共用同一份）。 */
 export function buildReport(root) {
   const fullMap = walk(root);
   const lintScanMap = buildLintScanMap(fullMap);
@@ -640,6 +979,7 @@ export function buildReport(root) {
   const deepSyncFindings = deepSyncCheck(buildDeepSyncPairs(agentsList), DEEP_SYNC_THRESHOLD);
   const countLint = countLintCheck(countLintMap, computeActualCounts(root));
   const deadCommandFindings = deadCommandCheck(lintScanMap);
+  const flagAndWiring = buildFlagAndWiringResults(fullMap, root);
 
   // footprint 命中降為 informational notes（與 countLint 的非強制鍵 notes 同機制）：
   // 提醒既有內容該瘦身，但不因既有債把每次跑判紅、擋住其餘檢查的綠燈。
@@ -649,8 +989,9 @@ export function buildReport(root) {
     ...deepSyncFindings,
     ...countLint.findings,
     ...deadCommandFindings,
+    ...flagAndWiring.findings,
   ];
-  const notes = [...footprint.findings, ...countLint.notes];
+  const notes = [...footprint.findings, ...countLint.notes, ...flagAndWiring.notes];
 
   return {
     ok: findings.length === 0,
