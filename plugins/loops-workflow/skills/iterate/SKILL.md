@@ -55,7 +55,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 **修了任何 actionable（含 step 3 自己 Stop-the-Line 修的）→ 一定再過一輪 `verify`**。「測試綠 / typecheck 0 / lint 0」**不能取代 verify** —— 綠燈只證明沒打破現有測試，證不了「修正 + 其波及面」對其他軸（契約 / 安全 / 既有 consumer 行為）安全。**改到共用元件 / 跨切面時，再 verify 要涵蓋波及面**（誰在用被改的東西），不是只看改的那幾行。
 
-**再驗一律走 `verify` step-1 選軸、不臨場手挑 reviewer**：回環再驗**不是**「orchestrator 憑印象派兩三個 reviewer」，而是**照 verify 步驟 1 依改動領域定軸 + 加派 conditional reviewer**（並發／同步→`multi-user-concurrency`、bug fix→`root-cause`、queue／背景→`processing-reliability`、migration→`migration`…，見 verify §1）。手挑子集的風險是**把改動所在領域最該派的那個 lens 系統性跳過**——例如修同步 / 併發競態卻只派 `code-quality`＋`tests`，那個「唯一工作就是窮舉事件順序 / 亂序 / lost-update」的 `multi-user-concurrency-reviewer` 就每輪缺席，於是 sibling 競態一輪一輪被外部 reviewer 才抓到、而不是內部一次收斂。**改動命中哪個領域，該領域的 conditional lens 就按規則被派，不靠當下記得。**
+**再驗一律走 `verify` step-1 選軸、不臨場手挑 reviewer**：回環再驗**不是**「orchestrator 憑印象派兩三個 reviewer」，而是**照 verify 步驟 1 依改動領域定軸 + 加派 conditional reviewer**（並發／同步→`multi-user-concurrency`、bug fix→`root-cause`、queue／背景→`processing-reliability`、migration→`migration`…，見 verify §1）。手挑子集的風險是**把改動所在領域最該派的那個 lens 系統性跳過**——例如修同步 / 併發競態卻只派 `code-quality`＋`tests`，那個「唯一工作就是窮舉事件順序 / 亂序 / lost-update」的 `multi-user-concurrency-reviewer` 就每輪缺席，於是 sibling 競態一輪一輪被外部 reviewer 才抓到、而不是內部一次收斂。**改動命中哪個領域，該領域的 conditional lens 就按規則被派，不靠當下記得。** 反向失效模式同樣要防：**手挑了「領域匹配」的 reviewer、反而把 CORE 軸略掉**——例如修一個 UI 顯示 bug 只派 `frontend-ui`（領域對了），卻跳過核心 `code-quality`（簡潔 / code smell / 重用 lens），於是「這段 chained `.replace()` 本可收斂成查表」這類簡化到外部 reviewer 才被指出。走 step-1 選軸 = **核心軸（含 `code-quality`）＋ 領域 conditional lens 一起派**，不是「挑到對的領域 lens 就夠了」的二選一。
 
 **完工只在「最近一輪 verify 已無 actionable findings」時才可達** —— 即「跑完 verify → iterate 這輪沒東西要修」。修完直接跳完工 = 抄捷徑。
 
