@@ -38,14 +38,16 @@ function callSafe(fn) {
   }
 }
 
-// defaultOn 類（6）：未設 / 怪值一律「開」，只有字面 '0' 才關。
+// defaultOn 類（8）：未設 / 怪值一律「開」，只有字面 '0' 才關。
 const DEFAULT_ON_FLAGS = [
   'LOOPS_PATH_CONTAINMENT',
+  'LOOPS_WORKTREE_GUARD',
   'LOOPS_COST_TRACKER',
   'LOOPS_EVAL_GATE',
   'LOOPS_EVAL_TAGS_GATE',
   'LOOPS_EVAL_POLL_GATE',
   'LOOPS_CONFIG_PROTECTION',
+  'LOOPS_COMMENT_GUARD',
 ];
 // optIn 類（3）：未設 / 怪值一律「關」，只有字面 '1' 才開。
 const OPT_IN_FLAGS = [
@@ -58,7 +60,7 @@ const OPT_IN_FLAGS = [
 // A) FLAG_DEFAULTS：分類表本身的契約（值即契約，逐欄釘死）
 // =============================================================================
 
-// ── A1：FLAG_DEFAULTS 是物件，含全部 8 個 flag 的分類 ─────────────────────────
+// ── A1：FLAG_DEFAULTS 是物件，含全部 11 個 flag 的分類 ────────────────────────
 {
   assert(FLAG_DEFAULTS && typeof FLAG_DEFAULTS === 'object', 'FLAG_DEFAULTS：是物件 [A1]');
   for (const name of DEFAULT_ON_FLAGS) {
