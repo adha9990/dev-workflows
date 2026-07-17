@@ -18,7 +18,7 @@
 // undefined 呼叫拋例外把整個測試檔打斷（本檔沒有整檔 try-catch，一次未捕捉例外會讓後面所有
 // 案例的輸出全部消失，違反 context-diet 的紅燈全文原則）。
 
-import { rmSync, existsSync } from 'node:fs';
+import { rmSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -351,6 +351,19 @@ function runHook(payload, env = {}) {
   } finally {
     rmSync(stateFile, { force: true });
   }
+}
+
+// =============================================================================
+// E14: hooks.json 接線斷言（#130 慣例）—— PostToolUse 存在 matcher==="Read" 且 command 含
+//      read-accumulator.mjs 的 entry（釘住 read-accumulator 確實掛在 PostToolUse(Read)，不是
+//      寫好函式卻忘了接進 hooks.json；仿 test-outbound-comment-guard.mjs 的 E1 慣例）
+// =============================================================================
+{
+  const hooksConfig = JSON.parse(readFileSync(join(HERE, 'hooks.json'), 'utf8'));
+  const entry = (hooksConfig.hooks.PostToolUse || []).find((e) =>
+    e.matcher === 'Read' && (e.hooks || []).some((h) => typeof h.command === 'string' && h.command.includes('read-accumulator.mjs')));
+  assert(entry !== undefined,
+    'E14：hooks.json 的 PostToolUse 存在 matcher==="Read" 且 command 含 read-accumulator.mjs 的 entry [E14]');
 }
 
 // ── 摘要 + exit code ─────────────────────────────────────────────────────────

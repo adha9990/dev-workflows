@@ -465,5 +465,327 @@ function runHookV2(payload, env = {}) {
   }
 }
 
+// =============================================================================
+// G) #131 verify 回饋補強 —— 行為修正案例（多 body 複合指令 / stdin idiom / size cap /
+//    §7 摘要錯配，現況應紅、等 impl 修）+ 覆蓋補齊（issue-edit／pr-edit read-gate 三態、
+//    graphql 邊界、多重違規疊加、不存在檔案、亂碼端到端、絕對路徑合法用法，預期即綠）。
+//    行為修正案例一律 seed 兩份受管文件（comment-policy.md + outbound-templates.md），把
+//    read-gate 從變因中排除，讓斷言只釘住本節真正要測的機械規則/格式規則本身。
+// =============================================================================
+const MULTI_BODY_HINT_RE = /拆成多次|多個\s*(body|comment)/i;
+
+// ── G1/G2：複合指令（`&&` 接兩個 gh 指令）現況只驗第一段 body，第二段違規會漏放行（現況紅）──
+{
+  const sessionId = freshV2Session('g1-compound-same-kind');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md', 'outbound-templates.md']);
+    const cmd = 'gh pr comment 2 --body "乾淨繁中" && gh issue comment 1 --body "@someone 讚"';
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: cmd } });
+    assert(out.includes('"deny"'),
+      `[G1] 複合指令雙 body，第二段含 @someone → deny（現況只驗第一段乾淨就放行；實際：${JSON.stringify(out)}）`);
+    assert(MULTI_BODY_HINT_RE.test(out),
+      `[G1b] deny 理由含「拆成多次」或「多個 body」語意（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+{
+  const sessionId = freshV2Session('g2-compound-mixed-kind');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md', 'outbound-templates.md']);
+    const cmd = 'gh issue create --title t --body "乾淨繁中" && gh pr comment 1 --body "@bob hi"';
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: cmd } });
+    assert(out.includes('"deny"'),
+      `[G2] 混型複合指令（issue create + pr comment），第二段含 @bob → deny（現況只驗第一段乾淨就放行；實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+
+// ── G3：body 以 @me 開頭會讓 mention 正則命中就停手，後面真點名被吞（現況紅）──────────
+{
+  const sessionId = freshV2Session('g3-me-then-real-mention');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md', 'outbound-templates.md']);
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: 'gh pr comment 1 --body "@me 自我指派後 @realuser 請看"' } });
+    assert(out.includes('"deny"'),
+      `[G3] "@me ... @realuser ..." → deny（現況 mention 正則只抓第一個 @me 就不繼續找，放行；實際：${JSON.stringify(out)}）`);
+    assert(out.includes('realuser'),
+      `[G3b] deny 理由含 "realuser"（不是只擋到 @me 就滿足）（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+
+// ── G4/G4b：--body-file - / -F body=@- 是 stdin idiom，讀不到內容現況 fail-open 直接放行
+//    （看不到就該擋，不是看不到就放行）（現況紅）───────────────────────────────────
+{
+  const sessionId = freshV2Session('g4-stdin-bodyfile');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md', 'outbound-templates.md']);
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: 'gh pr comment 1 --body-file -' } });
+    assert(out.includes('"deny"'),
+      `[G4] --body-file - （stdin idiom）→ deny（現況讀不到檔案 fail-open 直接放行；實際：${JSON.stringify(out)}）`);
+    assert(/stdin|看不到內容/.test(out),
+      `[G4b] deny 理由含 "stdin" 或「看不到內容」語意（實際：${JSON.stringify(out)}）`);
+    assert(/tmp\s*檔|暫存檔/.test(out),
+      `[G4c] deny 理由含「改用 tmp 檔路徑」提示（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+{
+  const sessionId = freshV2Session('g4b-stdin-ffile');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md', 'outbound-templates.md']);
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: 'gh api --method PATCH repos/x/y/issues/comments/1 -F body=@-' } });
+    assert(out.includes('"deny"'),
+      `[G4b-1] -F body=@-（stdin idiom）→ deny（現況讀不到檔案 fail-open 直接放行；實際：${JSON.stringify(out)}）`);
+    assert(/stdin|看不到內容/.test(out),
+      `[G4b-2] deny 理由含 "stdin" 或「看不到內容」語意（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+
+// ── G5：readFileSafe 現況沒有檔案大小上限，會把超大檔整讀進來判定 —— 用「內含真違規」的
+//    700KB 大檔反向驗證：現況會讀進來抓到 @someone → deny；size cap 修好後該視為讀不到 →
+//    fail-open 放行。本案例斷言「放行」，現況是 deny，正確地紅。───────────────────────
+{
+  const sessionId = freshV2Session('g5-bigfile-cap');
+  const stateFile = readsStateFileForF(sessionId);
+  const g5Tmp = mkdtempSync(join(tmpdir(), 'ocg-g5-'));
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md', 'outbound-templates.md']);
+    const bigFile = join(g5Tmp, 'big-violation.md');
+    const bigBody = `@someone ${'x'.repeat(700 * 1024)}`; // >600KB 且內含真違規（@someone）
+    writeFileSync(bigFile, bigBody);
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: `gh pr comment 1 --body-file ${bigFile}` } });
+    assert(out.trim() === '',
+      `[G5] --body-file 指向 >600KB 大檔（內含 @someone 真違規）→ 應視為讀不到（size cap）、`
+      + `fail-open 放行，不讀入判定（現況沒有 size cap、整讀進來抓到 @someone → deny；實際 stdout：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+    rmSync(g5Tmp, { recursive: true, force: true });
+  }
+}
+// ── G5b：--body-file 指向目錄（非一般檔）—— characterization：現況 readFileSync 對目錄 throw
+//    （EISDIR）→ readFileSafe 的 catch 接住 → null → 放行，不崩。若現況已綠就是釘住這個
+//    「不崩潰」的既有行為，不是在追新 bug。────────────────────────────────────────
+{
+  const sessionId = freshV2Session('g5b-dir-as-bodyfile');
+  const stateFile = readsStateFileForF(sessionId);
+  const g5bTmp = mkdtempSync(join(tmpdir(), 'ocg-g5b-'));
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md', 'outbound-templates.md']);
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: `gh pr comment 1 --body-file ${g5bTmp}` } });
+    assert(out.trim() === '',
+      `[G5b] --body-file 指向目錄（非一般檔）→ 放行不崩（characterization：現況 readFileSync 對`
+      + `目錄 throw → catch → null → 放行）（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+    rmSync(g5bTmp, { recursive: true, force: true });
+  }
+}
+
+// ── G6：buildReadGateReason('comment') 把 §7 誤描述成 §8 專屬的「工程角度／客戶角度」格式
+//    （comment-policy.md 裡 §7 其實是「固定四小節」、§8 才是雙視角）（現況紅）──────────
+{
+  const commentReason = buildReadGateReason && buildReadGateReason('comment');
+  assert(typeof commentReason === 'string' && commentReason.includes('§7') && commentReason.includes('§8'),
+    `[G6-pre] buildReadGateReason('comment') 同時提到 §7 與 §8（結構前提，供下方就近判斷用）（實際：${JSON.stringify(commentReason)}）`);
+
+  // 用「工程角度前 30 字窗口」而非整句掃描找「兩種都／兩者都」這類把 §7 也算進去的量詞——避免
+  // 句子後段其他「都不 @ 點名」之類無關量詞誤觸（過度耦合到現況措辭）。
+  const idxEng = typeof commentReason === 'string' ? commentReason.indexOf('工程角度') : -1;
+  const windowBefore = idxEng >= 0 ? commentReason.slice(Math.max(0, idxEng - 30), idxEng) : '';
+  assert(idxEng === -1 || !/兩種都|兩者都|两种都|两者都/.test(windowBefore),
+    `[G6] buildReadGateReason('comment') 的「工程角度」前方不得緊接「兩種都／兩者都」這類把 §7 `
+    + `也算進去的量詞（那是 §8 專屬格式，§7 是固定四小節）（實際前文窗口：${JSON.stringify(windowBefore)}）`);
+
+  assert(typeof commentReason === 'string'
+    && (commentReason.includes('四小節') || (/情境/.test(commentReason) && /為什麼/.test(commentReason) && /怎麼修/.test(commentReason))),
+    `[G6b] buildReadGateReason('comment') 需正確帶出 §7 真實結構「四小節」或情境/為什麼/怎麼修語`
+    + `意（實際：${JSON.stringify(commentReason)}）`);
+}
+
+// ── G7：issue-edit 的 read-gate 三態覆蓋（F5 只測過 comment / issue-create / pr-create，
+//    issue-edit 缺測試釘住；預期即綠，characterization）────────────────────────────
+{
+  const sessionId = freshV2Session('g7-issue-edit-unread-deny');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: 'gh issue edit 5 --body "這次修好了三個問題，詳細記錄如下。"' } });
+    assert(out.includes('"deny"'), `[G7-1] gh issue edit + 未讀 read state → deny（實際：${JSON.stringify(out)}）`);
+    assert(out.includes('outbound-templates'), `[G7-1b] deny 理由含 "outbound-templates"（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+{
+  const sessionId = freshV2Session('g7-issue-edit-read-pass');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['outbound-templates.md']);
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: 'gh issue edit 5 --body "這次修好了三個問題，詳細記錄如下。"' } });
+    assert(out.trim() === '', `[G7-2] gh issue edit + 已讀 outbound-templates.md + 乾淨 body → 放行（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+{
+  const sessionId = freshV2Session('g7-issue-edit-wrongdoc-deny');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md']); // 讀過的是「另一份」文件
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: 'gh issue edit 5 --body "這次修好了三個問題，詳細記錄如下。"' } });
+    assert(out.includes('"deny"'), `[G7-3] gh issue edit 只讀 comment-policy.md（非對應文件）→ 仍 deny（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+
+// ── G8：pr-edit 的 read-gate 三態覆蓋（同 G7，換 gh pr edit；預期即綠，characterization）──
+{
+  const sessionId = freshV2Session('g8-pr-edit-unread-deny');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: 'gh pr edit 5 --body "這次修好了三個問題，詳細記錄如下。"' } });
+    assert(out.includes('"deny"'), `[G8-1] gh pr edit + 未讀 read state → deny（實際：${JSON.stringify(out)}）`);
+    assert(out.includes('outbound-templates'), `[G8-1b] deny 理由含 "outbound-templates"（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+{
+  const sessionId = freshV2Session('g8-pr-edit-read-pass');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['outbound-templates.md']);
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: 'gh pr edit 5 --body "這次修好了三個問題，詳細記錄如下。"' } });
+    assert(out.trim() === '', `[G8-2] gh pr edit + 已讀 outbound-templates.md + 乾淨 body → 放行（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+{
+  const sessionId = freshV2Session('g8-pr-edit-wrongdoc-deny');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md']); // 讀過的是「另一份」文件
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: 'gh pr edit 5 --body "這次修好了三個問題，詳細記錄如下。"' } });
+    assert(out.includes('"deny"'), `[G8-3] gh pr edit 只讀 comment-policy.md（非對應文件）→ 仍 deny（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+
+// ── G9：gh api graphql -f query='mutation { addComment(...) }' —— classifyOutboundCommand
+//    回 null（已知限制，未受管；純函式層直呼叫，釘住現況不受管、不透過本 hook 攔）─────────
+assert(
+  classifyOutboundCommand
+  && classifyOutboundCommand('gh api graphql -f query=\'mutation { addComment(subjectId: "X", body: "@someone hi") }\'') === null,
+  '[G9] gh api graphql -f query=... mutation 型 → classifyOutboundCommand 回 null（已知限制，characterization）',
+);
+
+// ── G10：body 同時踩兩條機械規則（.loops/ 路徑外洩 + @ 點名）→ deny 理由同時含兩個原因
+//    （單一指令、非複合，預期即綠：兩條規則本就各自獨立疊加）──────────────────────────
+{
+  const sessionId = freshV2Session('g10-multi-violation');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md', 'outbound-templates.md']);
+    const out = runHookV2({
+      session_id: sessionId,
+      // 注意：@someone 前面須是空白或行首，mention 正則才抓得到——全形逗號「，」不算 \s，
+      // 曾用「說明，@someone」誤把這條寫成永遠抓不到 @ 的假紅，改用空白分隔避免誤判。
+      tool_input: { command: 'gh pr comment 1 --body "詳見 .loops/x/stages/02-plan.md 的說明 @someone 請看"' },
+    });
+    assert(out.includes('"deny"'), `[G10] 同時含 .loops/ 路徑與 @someone → deny（實際：${JSON.stringify(out)}）`);
+    assert(out.includes('@someone'), `[G10a] deny 理由含 @someone 這條原因（實際：${JSON.stringify(out)}）`);
+    assert(out.includes('.loops/') || out.includes('stages/'), `[G10b] deny 理由含 .loops/ 路徑外洩這條原因（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+
+// ── G11：read-gate 通過 + --body-file 指向不存在路徑 → 放行不崩（真 spawn；預期即綠）────
+{
+  const sessionId = freshV2Session('g11-missing-bodyfile');
+  const stateFile = readsStateFileForF(sessionId);
+  const missingPath = join(tmpdir(), `ocg-g11-missing-${process.pid}-${Date.now()}.md`);
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md', 'outbound-templates.md']);
+    const r = spawnSync(process.execPath, [HOOK], {
+      input: JSON.stringify({ session_id: sessionId, tool_input: { command: `gh pr comment 1 --body-file ${missingPath}` } }),
+      encoding: 'utf8',
+      env: { ...process.env },
+    });
+    assert(r.error == null, `[G11] spawn 無 error（存活）（實際：${r.error}）`);
+    assert((r.stdout || '').trim() === '', `[G11b] read-gate 通過 + --body-file 不存在路徑 → 放行不崩（空輸出）（實際：${JSON.stringify(r.stdout)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+
+// ── G12：AC3 端到端 —— issue-create + body-file 含 U+FFFD（已讀 outbound-templates）→ deny
+//    含亂碼原因（預期即綠）────────────────────────────────────────────────────────
+{
+  const sessionId = freshV2Session('g12-mojibake-create');
+  const stateFile = readsStateFileForF(sessionId);
+  const g12Tmp = mkdtempSync(join(tmpdir(), 'ocg-g12-'));
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['outbound-templates.md']);
+    const filePath = join(g12Tmp, 'mojibake-issue.md');
+    writeFileSync(filePath, '這是一段測試內容�包含亂碼字元');
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: `gh issue create --title t --body-file ${filePath}` } });
+    assert(out.includes('"deny"'), `[G12] issue-create + 已讀 outbound-templates + body-file 含 U+FFFD → deny（實際：${JSON.stringify(out)}）`);
+    assert(out.includes('亂碼'), `[G12b] deny 理由含亂碼原因（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+    rmSync(g12Tmp, { recursive: true, force: true });
+  }
+}
+
+// ── G13：絕對路徑 body-file（乾淨內容、已讀 state）→ 放行——釘住「絕對路徑仍可正常使用」
+//    的現況合法用法，避免 G5 的 size/type cap 修法誤殺一般絕對路徑 tmp 檔慣例（預期即綠）───
+{
+  const sessionId = freshV2Session('g13-abspath-clean');
+  const stateFile = readsStateFileForF(sessionId);
+  const g13Tmp = mkdtempSync(join(tmpdir(), 'ocg-g13-'));
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md', 'outbound-templates.md']);
+    const filePath = join(g13Tmp, 'clean-body.md'); // mkdtempSync(join(tmpdir(), ...)) 保證絕對路徑
+    writeFileSync(filePath, '這次修好了三個問題，詳細記錄如下。');
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: `gh pr comment 1 --body-file ${filePath}` } });
+    assert(out.trim() === '', `[G13] 絕對路徑 body-file（乾淨內容）+ 已讀 state → 放行（實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+    rmSync(g13Tmp, { recursive: true, force: true });
+  }
+}
+
 console.log(`\n${passed} passed, ${failed.length} failed`);
 process.exit(failed.length === 0 ? 0 : 1);

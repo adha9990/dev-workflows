@@ -15,6 +15,12 @@
 //      deny、指路去讀。沒有 session_id（舊呼叫形態 / smoke）一律 fail-open 放行此關，只跑機械規則。
 //   3) findFormatViolations：新增三條機械規則（.loops/ 路徑外洩／亂碼／整段技術英文未轉譯）。
 //   4) 既有 @ 點名／客套開場規則現在對全部五型都管，不只 comment。
+//   5) verify 回饋修正：複合指令（多 body／多受管子指令，例如用 && 接兩個 gh comment）一律 deny、
+//      要求拆成多次呼叫；@ 點名掃描改 global（避免開頭 @me 擋住視野、漏放後面的真點名）；
+//      --body-file - / -F body=@- 這類 stdin idiom（指令本身看不到內容）明確 deny，不再落入
+//      「讀不到檔案→fail-open 放行」的一般路徑；readFileSafe 加 512KB／非一般檔上限；
+//      buildReadGateReason('comment') 的 §7/§8 摘要修正為與 comment-policy.md 原文結構一致
+//      （§7 是固定四小節、§8 才是雙視角，不能兩者混為一談）。
 //
 // 預設啟用（defaultOn）；env LOOPS_COMMENT_GUARD='0' 可關（誤擋逃生口，同時關掉 read-accumulator）。
 // fail-open：payload 壞 / 讀不到 body / 任何例外一律放行 exit 0，永不因 hook 故障卡住使用者。
@@ -27,7 +33,7 @@
 // 依賴：node 內建（fs / path / url）+ 同目錄 hook-flags、read-accumulator；除 stdin / body-file /
 // read state 檔外零 I/O。
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
@@ -76,6 +82,39 @@ export function classifyOutboundCommand(cmd) {
   return null;
 }
 
+// ── #131 verify 回饋：複合指令偵測（純函式）────────────────────────────────────────
+// 一條 shell 指令裡串了多個受管子指令或多個 body 參數（例如用 && 接兩個 gh comment）時，下面
+// main() 抽 body 的邏輯只認得第一段——第二段（甚至更後面）的違規會直接漏放。countManagedSegments
+// 數「受管子指令」出現幾次、countBodyFlags 數「body 參數旗標」出現幾次，任一 >1 就代表指令疑似
+// 複合了不只一則對外訊息，main 據此在 read-gate 前直接 deny、要求拆開送出。
+
+const MANAGED_SUBCOMMAND_RE_G = /\bgh\s+(?:pr\s+comment|issue\s+comment|issue\s+create|pr\s+create|issue\s+edit|pr\s+edit|api)\b/g;
+const BODY_FLAG_RE_G = /(?:^|\s)(?:-b|--body)(?:\s|=)|(?:^|\s)--body-file(?:\s|=)|(?:^|\s)-[fF]\s+body=/g;
+
+function countManagedSegments(cmd) {
+  if (typeof cmd !== 'string') return 0;
+  const matches = cmd.match(MANAGED_SUBCOMMAND_RE_G);
+  return matches ? matches.length : 0;
+}
+
+function countBodyFlags(cmd) {
+  if (typeof cmd !== 'string') return 0;
+  const matches = cmd.match(BODY_FLAG_RE_G);
+  return matches ? matches.length : 0;
+}
+
+/**
+ * 這條指令是不是用 stdin idiom 餵 body（`--body-file -` 或 `-F body=@-` / `-f body=@-`）——這種
+ * 寫法指令本身看不到實際內容（內容來自另一個行程 pipe 進來），guard 讀不到就該明確 deny，不能
+ * 落入下面 readFileSafe「讀不到檔案 → fail-open 放行」的一般路徑（那等於允許繞過整個內容檢查）。
+ */
+function isStdinBodyIdiom(cmd) {
+  if (typeof cmd !== 'string') return false;
+  if (/--body-file[=\s]+-(?:\s|$)/.test(cmd)) return true;
+  if (/-[fF]\s+body=@-(?:\s|$)/.test(cmd)) return true;
+  return false;
+}
+
 /**
  * 從指令抽出 comment 的 body 文字。優先 file 形式（`--body-file <path>` / `-F body=@<path>`），
  * 讀不到就回 null（→ fail-open、不判定）；否則抓 inline 形式（`--body <text>` / `-b` /
@@ -121,9 +160,16 @@ export function findOutboundViolations(body) {
 
   // (a) @ 點名人：行首或空白後的 @handle（GitHub handle：英數+連字號、1–39），
   //     排除 @me、排除 scoped-package（後面接 /）、排除 email（@ 前是非空白，被 (^|\s) 擋掉）。
-  const mention = prose.match(/(?:^|\s)@([A-Za-z0-9][A-Za-z0-9-]{0,38})(?![\w/-])/);
-  if (mention && mention[1].toLowerCase() !== 'me') {
-    violations.push(`comment 不 @ 點名人（找到 "@${mention[1]}"）——見 comment-policy §6/§8`);
+  //     #131 verify 回饋：global 掃描全部 @handle、不是只看第一個——避免 body 開頭先出現 @me
+  //     （本身放行）後，後面真正的點名（如 "@me 自我指派後 @realuser 請看"）被第一個 match 擋住
+  //     視野而漏放。
+  const mentionRe = /(?:^|\s)@([A-Za-z0-9][A-Za-z0-9-]{0,38})(?![\w/-])/g;
+  let mentionHandle = null;
+  for (const m of prose.matchAll(mentionRe)) {
+    if (m[1].toLowerCase() !== 'me') { mentionHandle = m[1]; break; }
+  }
+  if (mentionHandle) {
+    violations.push(`comment 不 @ 點名人（找到 "@${mentionHandle}"）——見 comment-policy §6/§8`);
   }
 
   // (b) 客套開場：body（去標題/空白後）以 感謝 / 謝謝 / thanks / thank you 起頭。
@@ -141,6 +187,9 @@ const URL_RE = /https?:\/\/\S+/g;
 const CJK_CHAR_RE = /[一-鿿]/g; // CJK Unified Ideographs（涵蓋繁中常用字）
 const LONG_NON_CJK_PROSE_THRESHOLD = 120;
 const MIN_CJK_COUNT = 10;
+// #131 verify 回饋：--body-file 指向的檔案上限——超過就視為「讀不到」同一 fail-open 路徑，避免
+// 把巨大檔案整讀進記憶體判定（也避免用超大檔夾帶違規內容規避掃描的疑慮）。
+const MAX_BODY_FILE_BYTES = 512 * 1024;
 
 function countCJKChars(text) {
   const matches = text.match(CJK_CHAR_RE);
@@ -193,12 +242,17 @@ const OUTBOUND_TEMPLATES_PATH = join(REFERENCES_DIR, 'outbound-templates.md');
  * 章節摘要，附「先讀再送」引導與 code fence 提示。
  * comment → comment-policy.md（§7 驗收報告版型／§8 修正回覆版型）；
  * issue-create / pr-create / issue-edit / pr-edit → outbound-templates.md（樣板索引 + 通則摘要）。
+ * 注意：comment 分支的 §7/§8 摘要文字需與 references/comment-policy.md 該兩節原文同步維護——
+ * §7 是逐點固定四小節（會發生什麼情境／為什麼是問題／建議怎麼修／建議補測試），§8 才是工程角度／
+ * 客戶角度雙視角；兩者結構不同，摘要不能把 §7 也描述成雙視角格式。
  */
 export function buildReadGateReason(kind) {
   if (kind === 'comment') {
     return (
       '這則對外 comment 送出前，本 session 還沒讀過 comment-policy.md——那裡有 §7 驗收報告版型、'
-      + '§8 修正回覆版型，兩種都套固定格式（工程角度／客戶角度雙視角、不 @ 點名、不客套）。\n'
+      + '§8 修正回覆版型：§7 逐點用固定四小節（會發生什麼情境／為什麼是問題／建議怎麼修／建議補'
+      + '測試）；§8 逐點用工程角度／客戶角度雙視角（根因與怎麼修／修正前後）。兩邊皆不 @ 點名、'
+      + '不客套。\n'
       + `請先讀 ${COMMENT_POLICY_PATH}，套用對應版型後再送出這則 comment。\n`
       + '內容如果含 code fence，記得先確認 fence 內外的分界正確（fence 內的程式碼片段不受這些格式規則管）。\n'
       + '確需繞過：設 LOOPS_COMMENT_GUARD=0。'
@@ -246,6 +300,18 @@ function main() {
   const kind = classifyOutboundCommand(cmd);
   if (!kind) return; // 非受管指令 → 放行
 
+  // #131 verify 回饋：複合指令——一條 shell 指令裡串了多個 body 參數或多個受管子指令（例如用
+  // && 接兩個 gh comment），下面的抽 body 邏輯只認得第一段，後段違規會漏放。在 read-gate 前擋
+  // 下，要求拆成多次呼叫、逐一過完整檢查。
+  if (countManagedSegments(cmd) > 1 || countBodyFlags(cmd) > 1) {
+    denyWith(
+      '這條指令疑似把多個對外發訊動作（多個 body 參數或多個受管子指令）複合在同一次呼叫裡——'
+      + '一次只能送一則，請拆成多次呼叫，讓每則各自過 read-gate／內容檢查後再送。'
+      + '確需繞過：設 LOOPS_COMMENT_GUARD=0。',
+    );
+    return;
+  }
+
   // read-gate（#131）：本 session 有沒有讀過 kind 對應的規範檔——只在 payload 帶 session_id 時查；
   // 缺 session_id（舊呼叫形態 / smoke 測試）一律 fail-open 放行此關，退回只跑下面的機械規則。
   const sessionId = payload?.session_id;
@@ -257,10 +323,27 @@ function main() {
     }
   }
 
+  // #131 verify 回饋：stdin idiom（--body-file - / -F body=@-）指令本身看不到實際內容（內容來自
+  // 另一個行程 pipe 進來）——不能落入下面「讀不到檔案 → fail-open 放行」的一般路徑，那等於允許
+  // 繞過整個內容檢查。明確 deny、指路改用 tmp 檔路徑。
+  if (isStdinBodyIdiom(cmd)) {
+    denyWith(
+      '這條指令用 --body-file - 或 -F body=@- 從 stdin 讀 body，指令本身看不到實際內容、無法判'
+      + '定是否違規，一律 deny。請改用 tmp 檔路徑：先把內容寫進暫存檔，再用 --body-file <tmp 檔'
+      + '路徑> 送出。確需繞過：設 LOOPS_COMMENT_GUARD=0。',
+    );
+    return;
+  }
+
   const cwd = typeof payload?.cwd === 'string' ? payload.cwd : process.cwd();
   const readFileSafe = (p) => {
     try {
-      return readFileSync(resolve(cwd, p), 'utf8');
+      const resolved = resolve(cwd, p);
+      const stat = statSync(resolved);
+      // 非一般檔（目錄等）或超過大小上限 → 視為「讀不到」同一 fail-open 路徑——不誤讀非檔案內容，
+      // 也不把巨大檔案整讀進記憶體判定。
+      if (!stat.isFile() || stat.size > MAX_BODY_FILE_BYTES) return null;
+      return readFileSync(resolved, 'utf8');
     } catch {
       return null; // 讀不到 → 無從判定，放行（fail-open）
     }
