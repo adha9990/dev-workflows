@@ -580,9 +580,9 @@ const MULTI_BODY_HINT_RE = /拆成多次|多個\s*(body|comment)/i;
     rmSync(g5Tmp, { recursive: true, force: true });
   }
 }
-// ── G5b：--body-file 指向目錄（非一般檔）—— characterization：現況 readFileSync 對目錄 throw
-//    （EISDIR）→ readFileSafe 的 catch 接住 → null → 放行，不崩。若現況已綠就是釘住這個
-//    「不崩潰」的既有行為，不是在追新 bug。────────────────────────────────────────
+// ── G5b：--body-file 指向目錄（非一般檔）—— statSync 硬化後：readFileSafe 先查
+//    stat.isFile()===false 即回 null → 放行（與缺檔同一 fail-open 路徑、不會走到 readFileSync）。
+//    本案例釘住「不崩潰、放行」的行為，不是在追新 bug。────────────────────────────
 {
   const sessionId = freshV2Session('g5b-dir-as-bodyfile');
   const stateFile = readsStateFileForF(sessionId);
@@ -592,8 +592,8 @@ const MULTI_BODY_HINT_RE = /拆成多次|多個\s*(body|comment)/i;
     seedReadsF(sessionId, ['comment-policy.md', 'outbound-templates.md']);
     const out = runHookV2({ session_id: sessionId, tool_input: { command: `gh pr comment 1 --body-file ${g5bTmp}` } });
     assert(out.trim() === '',
-      `[G5b] --body-file 指向目錄（非一般檔）→ 放行不崩（characterization：現況 readFileSync 對`
-      + `目錄 throw → catch → null → 放行）（實際：${JSON.stringify(out)}）`);
+      `[G5b] --body-file 指向目錄（非一般檔）→ 放行不崩（statSync isFile()===false → null`
+      + `→ 放行，與缺檔同一 fail-open 路徑）（實際：${JSON.stringify(out)}）`);
   } finally {
     rmSync(stateFile, { force: true });
     rmSync(g5bTmp, { recursive: true, force: true });
@@ -785,6 +785,35 @@ assert(
     rmSync(stateFile, { force: true });
     rmSync(g13Tmp, { recursive: true, force: true });
   }
+}
+
+// ── G14：複合指令但第二段是無關 gh api 呼叫（無 body、非 /comments）—— countManagedSegments 的
+//    api 分支只要看到 `gh api` 就計入複合判定，連 `gh api rate_limit` 這種純讀取也算，誤判成
+//    複合對外發訊 → deny（現況紅；第二段根本不是受管的對外訊息，正確行為應放行）───────────
+{
+  const sessionId = freshV2Session('g14-unrelated-gh-api');
+  const stateFile = readsStateFileForF(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    seedReadsF(sessionId, ['comment-policy.md', 'outbound-templates.md']);
+    const cmd = 'gh pr comment 1 --body "乾淨繁中內容" && gh api rate_limit';
+    const out = runHookV2({ session_id: sessionId, tool_input: { command: cmd } });
+    assert(out.trim() === '',
+      `[G14] 複合指令，第二段 gh api rate_limit 無 body 參數、非 /comments → 應放行（現況 `
+      + `countManagedSegments 的 api 分支把無關 gh api 也計入複合判定，誤判成複合指令 → deny；`
+      + `實際：${JSON.stringify(out)}）`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+
+// ── G15：buildReadGateReason('comment') 的 §8 摘要漏了「怎麼驗」—— comment-policy.md §8（:108）
+//    工程角度固定三項（根因／怎麼修／怎麼驗），現況摘要只提到「根因與怎麼修」，漏第三項（現況紅）──
+{
+  const commentReason = buildReadGateReason && buildReadGateReason('comment');
+  assert(typeof commentReason === 'string' && commentReason.includes('怎麼驗'),
+    `[G15] buildReadGateReason('comment') 的 §8 摘要含「怎麼驗」（工程角度三項：根因／怎麼修／`
+    + `怎麼驗，見 comment-policy.md :108；現況摘要漏這項）（實際：${JSON.stringify(commentReason)}）`);
 }
 
 console.log(`\n${passed} passed, ${failed.length} failed`);

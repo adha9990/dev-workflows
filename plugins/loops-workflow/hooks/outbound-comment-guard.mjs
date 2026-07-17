@@ -88,13 +88,22 @@ export function classifyOutboundCommand(cmd) {
 // 數「受管子指令」出現幾次、countBodyFlags 數「body 參數旗標」出現幾次，任一 >1 就代表指令疑似
 // 複合了不只一則對外訊息，main 據此在 read-gate 前直接 deny、要求拆開送出。
 
-const MANAGED_SUBCOMMAND_RE_G = /\bgh\s+(?:pr\s+comment|issue\s+comment|issue\s+create|pr\s+create|issue\s+edit|pr\s+edit|api)\b/g;
+const MANAGED_SUBCOMMAND_RE_G = /\bgh\s+(?:pr\s+comment|issue\s+comment|issue\s+create|pr\s+create|issue\s+edit|pr\s+edit)\b/g;
+const GH_API_RE_G = /\bgh\s+api\b/g;
 const BODY_FLAG_RE_G = /(?:^|\s)(?:-b|--body)(?:\s|=)|(?:^|\s)--body-file(?:\s|=)|(?:^|\s)-[fF]\s+body=/g;
 
 function countManagedSegments(cmd) {
   if (typeof cmd !== 'string') return 0;
   const matches = cmd.match(MANAGED_SUBCOMMAND_RE_G);
-  return matches ? matches.length : 0;
+  let count = matches ? matches.length : 0;
+  // gh api 比照 isCommentKind 對 gh api 的判定條件——只在整條指令同時「路徑含 /comments」且
+  // 「帶 body 參數」時才計入受管段；純讀取的 gh api（如 gh api rate_limit）不算受管，不該觸發
+  // 複合指令判定。
+  if (/\/comments\b/.test(cmd) && hasBodyArg(cmd)) {
+    const apiMatches = cmd.match(GH_API_RE_G);
+    if (apiMatches) count += apiMatches.length;
+  }
+  return count;
 }
 
 function countBodyFlags(cmd) {
@@ -251,7 +260,7 @@ export function buildReadGateReason(kind) {
     return (
       '這則對外 comment 送出前，本 session 還沒讀過 comment-policy.md——那裡有 §7 驗收報告版型、'
       + '§8 修正回覆版型：§7 逐點用固定四小節（會發生什麼情境／為什麼是問題／建議怎麼修／建議補'
-      + '測試）；§8 逐點用工程角度／客戶角度雙視角（根因與怎麼修／修正前後）。兩邊皆不 @ 點名、'
+      + '測試）；§8 逐點用工程角度／客戶角度雙視角（根因／怎麼修／怎麼驗＋修正前後）。兩邊皆不 @ 點名、'
       + '不客套。\n'
       + `請先讀 ${COMMENT_POLICY_PATH}，套用對應版型後再送出這則 comment。\n`
       + '內容如果含 code fence，記得先確認 fence 內外的分界正確（fence 內的程式碼片段不受這些格式規則管）。\n'
