@@ -30,6 +30,8 @@
 // 依賴：node 內建（fs / path / url）+ 同目錄 hook-flags、outbound-comment-guard（stripCode /
 // extractCommentBody / makeHardenedReadFileSafe）、worktree-guard（findLoopRoot /
 // extractWorktreeSlug）——三閘與分支判定不重抄兄弟 hook 已寫好、已測過的邏輯。
+// stripQuotedValues／readGitBranch 對外 export：供 merge-guard.mjs 重用（#133）——同一套「剝殼視圖
+// 判子指令詞」「讀 .git 判分支」邏輯，不重抄。
 
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
@@ -47,7 +49,7 @@ import { findLoopRoot, extractWorktreeSlug } from './worktree-guard.mjs';
  * 的 stripCode 思路：那邊去 code span/fence、這裡去引號值，用途都是把「不該被當成指令本體」的
  * 內文濾掉再判定）。不處理巢狀或跳脫引號（shell 指令本就不支援），對本 hook 的判定用途已足夠。
  */
-function stripQuotedValues(cmd) {
+export function stripQuotedValues(cmd) {
   return cmd.replace(/'[^']*'/g, ' ').replace(/"[^"]*"/g, ' ');
 }
 
@@ -137,7 +139,7 @@ function buildClosesDenyReason(issueNumber) {
  * （detached HEAD，無 `ref:` 前綴）、遍歷 12 層仍找不到 `.git`、或任何讀檔失敗 → null（判不出、
  * 由呼叫端決定放行）。
  */
-function readGitBranch(cwd) {
+export function readGitBranch(cwd) {
   let dir = resolve(cwd);
   let gitPath = null;
   let stat;
