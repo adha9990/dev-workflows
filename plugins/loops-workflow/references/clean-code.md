@@ -35,6 +35,10 @@
 ## 六、註解講 why 不講 what
 
 - 解釋「**為什麼**」（意圖、取捨、外部限制、踩過的坑）的註解保留；複述 code 在做什麼的刪掉（細節見 `code-simplification.md`）。
+- **來源追溯歸 commit / PR，不進 code 註解**：issue / PR 編號、「當時怎麼壞→怎麼修」的情境敘事寫進 commit message / PR body（`git blame` 一步可達），不複寫進 code。「踩過的坑」留的是**坑的約束**，不是坑的故事：
+  - ✗ `// Issue #NNN：當時 tooltip 會在關閉後彈回，因為…（20 行修 bug 史 + review 出處）`
+  - ✓ `// 套件在 outside 關閉時不做 focus-return，flag 需在此解除，否則吃掉下一次合法 hover`
+- **密度對齊鄰近同類檔**：同專案同類元件的註解佔比是基準，單檔明顯高出（如 16% vs 鄰檔 7–8%）＝敘事過多的訊號；每處 why 以 2–5 行為度。
 
 ## 七、重複：產品碼適度 DRY、測試碼 DAMP
 
@@ -53,5 +57,5 @@
 - [ ] 命名揭示意圖，沒有需要靠註解才看懂的縮寫 / 魔法。
 - [ ] 函式單一職責、同一抽象層級，邊界 / 錯誤用 guard clause 先處理。
 - [ ] 無 `any` / 空 catch / silent failure；錯誤型別化、帶 context。
-- [ ] 無裸魔法值；註解只剩 why。
+- [ ] 無裸魔法值；註解只剩 why，無 issue/PR 編號與情境敘事，密度不高於鄰近同類檔。
 - [ ] 沒有重複造輪子（對照 `reuse-check.md`）。
