@@ -6,7 +6,8 @@
 // 全綠 → exit 0；任一斷言失敗 → exit 1（主線用此 exit code 判紅綠）。
 //
 // 覆蓋：S1 active-loop 提醒逐字特徵＋#84 死指令錨定（單一入口 dispatch）；
-// S5 worktree 掃描分支；S6 markdown 表格欄位解析分支。
+// S5 worktree 掃描分支；S6 markdown 表格欄位解析分支；
+// S7～S9（#135 T2）lastJournalLine cap：恰 200 字元不截斷／201 字元截斷／超長（>1,000）仍只截前 200。
 // （原 instinct 注入相關案例已隨 instinct 功能鏈於 #95 整條移除。）
 
 import {
@@ -97,6 +98,7 @@ function makeLoopCwd({
   withLoop = true,
   slug = 'demo-feature',
   format = 'inline', // 'inline' |「label：value」行；'table' | markdown 表格列
+  journal = LOOP_JOURNAL, // inline 格式專用：覆寫 Journal 內容（table 格式固定用 TABLE_JOURNAL，不受此影響）
   worktreeLoop = null, // {wt, slug}：額外在 .claude/worktrees/<wt>/.loops/<slug>/ 建迴圈
 } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'session-start-smoke-'));
@@ -106,7 +108,7 @@ function makeLoopCwd({
     // 重構特徵測試的已知 active-loop 形狀：當前階段 + 推進模式 + 一行 Journal。
     writeFileSync(
       join(loopDir, 'loop.md'),
-      format === 'table' ? tableLoopMd(slug) : inlineLoopMd(slug),
+      format === 'table' ? tableLoopMd(slug) : inlineLoopMd(slug, journal),
     );
   }
   if (worktreeLoop) {
@@ -202,6 +204,100 @@ const out = (res) => (typeof res.stdout === 'string' ? res.stdout : '');
       'S6：表格列「| 當前階段 | verify |」→ 階段值由 table 分支抽出為 verify（非 "?"）[S6]');
     assert(out(res).includes(expectedTableLine(slug)),
       'S6：表格格式 loop.md 的整行逐字（階段：verify｜模式：open，table 分支）[S6]');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// =============================================================================
+// S7～S9（#135 T2：lastJournalLine cap）：journal 內容（loop.md 最後一條 `- [E\d+] …`
+// 行、trim 後）字元數 > 200 才截斷；截斷輸出＝前 200 字元 + 截斷記號（記號本身不占 200
+// 預算）；行格式前綴（slug｜階段｜模式｜最後：）不變，cap 只作用於 journal 子字串。
+// 短行回歸（LOOP_JOURNAL／TABLE_JOURNAL 均遠短於 200 字元、原樣輸出無記號）已由既有
+// S1／S5／S6 斷言覆蓋（expectedInlineLine／expectedTableLine 皆逐字比對、無截斷記號），
+// 此處不重複建案例。
+// =============================================================================
+
+const CAP_LIMIT = 200;
+const CAP_MARKER = '…（截斷；完整 Journal 見該 loop.md）'; // 記號本身不計入 200 字元預算
+const CAP_FILLER = 'あ'; // 全形字元、非代理對（surrogate pair）；UTF-16 code unit 與 code point 計數一致，避免計數方式歧義
+const CAP_PREFIX = '- [E1] '; // 7 字元；contract 明定構造時把此前綴算進 200 字元預算
+
+// 恰 200 字元（含 CAP_PREFIX）＝ 7 + 193 個填充字元。
+const CAP_JOURNAL_200 = CAP_PREFIX + CAP_FILLER.repeat(193);
+// 201 字元＝ CAP_JOURNAL_200 多一個填充字元；其前 200 字元與 CAP_JOURNAL_200 逐字相同。
+const CAP_JOURNAL_201 = CAP_JOURNAL_200 + CAP_FILLER;
+// 超長（>1,000 字）＝ CAP_JOURNAL_200 重複 10 次（2,000 字元）；其前 200 字元仍與 CAP_JOURNAL_200 逐字相同。
+const CAP_JOURNAL_LONG = CAP_JOURNAL_200.repeat(10);
+
+// 預期的「截斷後」per-loop 行：前綴不變 + journal 前 200 字元 + 截斷記號（逐字鏡射 S1 的 expectedInlineLine 慣例）。
+function expectedTruncatedInlineLine(slug, fullJournal) {
+  return `  - ${slug}｜階段：${LOOP_STAGE}｜模式：${LOOP_MODE}｜最後：${fullJournal.slice(0, CAP_LIMIT)}${CAP_MARKER}`;
+}
+// per-loop 行的固定前綴（不含 journal 內容）——單獨驗「cap 只作用於 journal 子字串」（契約項 5）。
+function expectedLinePrefix(slug) {
+  return `  - ${slug}｜階段：${LOOP_STAGE}｜模式：${LOOP_MODE}｜最後：`;
+}
+
+// ── S7（邊界＝恰 200 字元）：journal 長度＝CAP_LIMIT → 原樣輸出、無截斷記號 ──
+//    注意：cap 未實作前，目前行為（原樣輸出不截斷任何長度）在此邊界本就會通過——
+//    這不是「意外變綠」，而是此邊界的本質（未截斷 vs 尚未實作截斷在此重合）；
+//    S7 鎖的是「未來實作不可用 >= 200 誤判、把恰 200 也截掉」的迴歸，非本輪紅燈來源。
+{
+  const slug = 'feat-cap-200';
+  const { dir } = makeLoopCwd({ withLoop: true, slug, journal: CAP_JOURNAL_200 });
+  try {
+    const res = runSessionStart(dir);
+    assert(res.error == null, 'S7：spawn 無 error [S7]');
+    assert(res.status === 0, 'S7：exit 0 [S7]');
+    assert(CAP_JOURNAL_200.length === CAP_LIMIT,
+      'S7：fixture 前提——CAP_JOURNAL_200 本身確為 200 字元（含 CAP_PREFIX 7 字元）[S7]');
+    assert(out(res).includes(expectedInlineLine(slug, CAP_JOURNAL_200)),
+      'S7：恰 200 字元 journal → 原樣輸出、無截斷記號（邊界，cap 條件為 >200 非 >=200）[S7]');
+    assert(!out(res).includes(CAP_MARKER),
+      'S7：恰 200 字元不觸發截斷記號（stdout 全文不含截斷記號）[S7]');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// ── S8（邊界＝201 字元）：journal 長度＝CAP_LIMIT+1 → 前 200 字元＋截斷記號 ──
+{
+  const slug = 'feat-cap-201';
+  const { dir } = makeLoopCwd({ withLoop: true, slug, journal: CAP_JOURNAL_201 });
+  try {
+    const res = runSessionStart(dir);
+    assert(res.error == null, 'S8：spawn 無 error [S8]');
+    assert(res.status === 0, 'S8：exit 0 [S8]');
+    assert(CAP_JOURNAL_201.length === CAP_LIMIT + 1,
+      'S8：fixture 前提——CAP_JOURNAL_201 本身確為 201 字元 [S8]');
+    assert(out(res).includes(expectedTruncatedInlineLine(slug, CAP_JOURNAL_201)),
+      'S8：201 字元 journal → 前 200 字元＋截斷記號（記號不計入 200 預算，剛好越界 1 字元即觸發）[S8]');
+    assert(out(res).includes(expectedLinePrefix(slug)),
+      'S8：截斷後行格式前綴（slug｜階段｜模式｜最後：）不變，cap 只作用於 journal 子字串 [S8]');
+    assert(!out(res).includes(CAP_JOURNAL_201),
+      'S8：stdout 不含未截斷的完整 201 字元 journal（確實被截短，非原樣輸出）[S8]');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// ── S9（超長 >1,000 字）：journal 長度 2,000 字元 → 仍只截前 200 字元＋截斷記號（非等比例截法）──
+{
+  const slug = 'feat-cap-long';
+  const { dir } = makeLoopCwd({ withLoop: true, slug, journal: CAP_JOURNAL_LONG });
+  try {
+    const res = runSessionStart(dir);
+    assert(res.error == null, 'S9：spawn 無 error [S9]');
+    assert(res.status === 0, 'S9：exit 0 [S9]');
+    assert(CAP_JOURNAL_LONG.length > 1000,
+      'S9：fixture 前提——CAP_JOURNAL_LONG 本身超過 1,000 字元 [S9]');
+    assert(out(res).includes(expectedTruncatedInlineLine(slug, CAP_JOURNAL_LONG)),
+      'S9：超長（2,000 字元）journal → 仍只取前 200 字元＋截斷記號（固定 cap，非依全長比例截斷）[S9]');
+    assert(out(res).includes(expectedLinePrefix(slug)),
+      'S9：截斷後行格式前綴不變 [S9]');
+    assert(!out(res).includes(CAP_JOURNAL_LONG),
+      'S9：stdout 不含未截斷的完整超長 journal [S9]');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

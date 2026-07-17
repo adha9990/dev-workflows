@@ -38,8 +38,8 @@
 - 沒有對應的 code smell 就「順手重構」（製造風險 diff）。
 - 沒有綠燈測試保護就動結構。
 - 為了套設計模式而套（pattern 上癮 / 過度設計）。
-- 一次塞多個手法進一個大 commit、難 review 難 revert。
-- 把複雜度**搬家**（塞進別的 module / wrapper）而非真的消除。
+- 一次塞多個手法進一個大 commit（大而難 review——同 `code-simplification.md` 紅旗）。
+- 把複雜度**搬家**而非真的消除（完整判準見 `code-simplification.md` 紅旗「把複雜度搬家」條）。
 
 ## Verification
 
