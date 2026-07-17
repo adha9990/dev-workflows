@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// test-worktree-guard.mjs —— worktree-guard.mjs（PreToolUse Bash deny hook）紅綠斷言
+// test-worktree-guard.mjs —— worktree-guard.mjs（PreToolUse Bash|PowerShell deny hook）紅綠斷言
 // （自帶極簡 harness，仿同目錄 test-path-guard.mjs，不引測試框架）。
 //
 // 用法（cwd = plugins/loops-workflow）：node hooks/test-worktree-guard.mjs
@@ -204,6 +204,7 @@ try {
     assert(typeof matcher === 'string', '[C1] hooks.json 的 PreToolUse 找得到 worktree-guard.mjs 所在 entry 的 matcher');
     assert(new RegExp(matcher).test('Bash') === true, '[C2] matcher 對 "Bash" 仍 match（現有行為不退化）');
     assert(new RegExp(matcher).test('PowerShell') === true, '[C3] matcher 對 "PowerShell" 要 match（#130：現況必紅——matcher 目前僅 "Bash"）');
+    assert(matcher === 'Bash|PowerShell', '[C3b] matcher 精確等於 "Bash|PowerShell"（防截斷值假綠——unanchored .test() 對 "Bash|Power" 也會過）[C]');
   }
 
   // ── C4：PowerShell payload —— 主 checkout 對已建 loop 的 checkout -b → deny ──────────────

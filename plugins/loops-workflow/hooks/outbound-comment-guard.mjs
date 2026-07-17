@@ -2,7 +2,7 @@
 // outbound-comment-guard.mjs —— loops-workflow PreToolUse deny hook：把「對外 comment 不 @ 點名
 // 人 / 不寫客套開場」（references/comment-policy.md §6/§8）從「只有載了 reference 才會遵守」
 // 變成「動作當下機械擋下」。攔 `gh pr comment` / `gh issue comment` / `gh api .../comments`
-// （POST/PATCH）這類貼 / 改 comment 的 Bash 指令：body 內含 @人名（排除 @me）或開頭客套就 deny。
+// （POST/PATCH）這類貼 / 改 comment 的 shell 指令（Bash/PowerShell）：body 內含 @人名（排除 @me）或開頭客套就 deny。
 //
 // 起因：反覆出包——規則寫在 reference，手貼 comment 沒走 outbound 流程就沒載規則、整條漏掉。
 // 這跟 loops-path-guard 機械擋「.loops 寫進 worktree」同一招：規則機械化、不靠人記得。

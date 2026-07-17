@@ -88,6 +88,7 @@ try {
   assert(typeof matcher === 'string', '[E1] hooks.json 的 PreToolUse 找得到 outbound-comment-guard.mjs 所在 entry 的 matcher');
   assert(new RegExp(matcher).test('Bash') === true, '[E2] matcher 對 "Bash" 仍 match（現有行為不退化）');
   assert(new RegExp(matcher).test('PowerShell') === true, '[E3] matcher 對 "PowerShell" 要 match（#130：現況必紅——matcher 目前僅 "Bash"）');
+  assert(matcher === 'Bash|PowerShell', '[E3b] matcher 精確等於 "Bash|PowerShell"（防截斷值假綠——unanchored .test() 對 "Bash|Power" 也會過）[C]');
 }
 
 // ── E4-E5：PowerShell payload —— guard 腳本本身不讀 tool_name，只要 payload 送得到就會判 ──────

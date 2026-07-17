@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// worktree-guard.mjs —— loops-workflow PreToolUse(Bash) deny hook：機械化 AGENTS 規則 9 的
+// worktree-guard.mjs —— loops-workflow PreToolUse(Bash|PowerShell) deny hook：機械化 AGENTS 規則 9 的
 // 「code 變更在 worktree 裡做、不在主 checkout 直接 `checkout -b` loop branch」。
 // 這是 loops-path-guard（擋 .loops 寫進 worktree）的**姊妹規則**：那個管 .loops 落點，本檔管 code 落點。
 //
-// 觸發：Bash 指令是「對一個『已建 loop』的 branch 做 `git checkout -b <slug>` / `git switch -c <slug>`」，
+// 觸發：shell 指令（Bash/PowerShell）是「對一個『已建 loop』的 branch 做 `git checkout -b <slug>` / `git switch -c <slug>`」，
 //       且 cwd 在主 checkout（不在 .claude/worktrees/ 底下）→ deny，導向 `git worktree add`。
 //       「已建 loop」＝從 cwd 往上任一層存在 `.loops/<slug>/loop.md`（否則放行——非 loop branch）。
 // 預設啟用（defaultOn）；env LOOPS_WORKTREE_GUARD='0'（字面 '0'）可關閉。
@@ -26,7 +26,7 @@ import { flagEnabled } from './hook-flags.mjs';
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
 
 /**
- * 從 Bash 指令字串抽出「建立並切入一個 branch」的 branch 名（`git checkout -b <name>` /
+ * 從 shell 指令（Bash/PowerShell）字串抽出「建立並切入一個 branch」的 branch 名（`git checkout -b <name>` /
  * `git switch -c <name>`），沒有則回 null。只抓 checkout -b / switch -c（會把當前工作目錄切到新
  * branch 的動作）——不抓 `git branch <name>`（只建 ref、不切、不構成「在主 checkout 做 code」）。
  * 保守解析：git 與 checkout/switch 之間允許夾 flag（如 `-C path`），但不跨 ; & | 邊界。
@@ -91,7 +91,7 @@ function denyReason(slug) {
 }
 
 /**
- * PreToolUse(Bash) hook 入口：主 checkout 對已建 loop 的 `checkout -b/switch -c` → deny；其餘放行。
+ * PreToolUse(Bash|PowerShell) hook 入口：主 checkout 對已建 loop 的 `checkout -b/switch -c` → deny；其餘放行。
  * fail-open：payload 壞 / 缺欄位 / 非 loop branch 一律放行。
  */
 function main() {
