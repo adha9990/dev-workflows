@@ -38,6 +38,7 @@ description: Implements each planned task into working, test-protected code. Use
 > - **fallback / 漏偵測**：gate **全** `not-run`（無 `.loops/gate.config.json` 又偵測不到任何工具）→ 回退到該專案既有的驗證指令並建議補 config。**任一預期 gate 落 `not-run`**（如缺 `tsconfig.json` / lint script 沒被偵測到、但 test 綠）→ **不可當綠**，提示在 `.loops/gate.config.json` 指明該 gate 指令（見 schema）。
 > - **務實邊界**：目標是把確認點輸出**從 ~100k 壓到 ~2k**，不是「消除 agent 看輸出」（Claude Code `Workflow` 沙箱不能 spawn 測試 → 由主線 Bash 跑腳本讀摘要）。
 > - **quality-gate 以外的原始輸出**（手跑單套測試、建置、除錯命令）依 `references/context-diet.md`（紅綠不對稱＋截斷必附落盤路徑＋skipped 必列）——quality-gate 契約不變、context-diet 補它未覆蓋的路徑。
+> - **多個完整 test / quality-gate 不併發跑**（共用 port / cache / DB 檔會競態出 spurious failures）——完整 gate 一律**序跑**。並行 agent 作業期間要判單檔乾淨，用 targeted 測試＋typecheck＋per-file lint 對基線，別各自起完整 gate。
 
 ## Process（每個任務跑一遍紅 → 綠 → 重構 7 步）
 
