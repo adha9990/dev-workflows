@@ -4,7 +4,7 @@
 // 用法（cwd = plugins/loops-workflow）：node hooks/test-outbound-comment-guard.mjs
 // 全綠 → exit 0；任一斷言失敗 → exit 1。
 
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -73,6 +73,38 @@ try {
   assert(runHook('not json', tmp).trim() !== undefined, '[D6] 存活（fail-open smoke）');
 } finally {
   rmSync(tmp, { recursive: true, force: true });
+}
+
+// =============================================================================
+// E) #130 PowerShell matcher —— hooks.json 的 PreToolUse matcher 要同時涵蓋 Bash 與 PowerShell
+// =============================================================================
+
+// ── E1-E3：matcher regex 斷言（紅燈載體）—— PowerShell 呼叫此 hook 目前會被 matcher 擋在門外 ──
+{
+  const hooksConfig = JSON.parse(readFileSync(new URL('./hooks.json', import.meta.url), 'utf8'));
+  const entry = (hooksConfig.hooks.PreToolUse || []).find((e) =>
+    (e.hooks || []).some((h) => typeof h.command === 'string' && h.command.includes('outbound-comment-guard.mjs')));
+  const matcher = entry?.matcher;
+  assert(typeof matcher === 'string', '[E1] hooks.json 的 PreToolUse 找得到 outbound-comment-guard.mjs 所在 entry 的 matcher');
+  assert(new RegExp(matcher).test('Bash') === true, '[E2] matcher 對 "Bash" 仍 match（現有行為不退化）');
+  assert(new RegExp(matcher).test('PowerShell') === true, '[E3] matcher 對 "PowerShell" 要 match（#130：現況必紅——matcher 目前僅 "Bash"）');
+  assert(matcher === 'Bash|PowerShell', '[E3b] matcher 精確等於 "Bash|PowerShell"（防截斷值假綠——unanchored .test() 對 "Bash|Power" 也會過）[C]');
+}
+
+// ── E4-E5：PowerShell payload —— guard 腳本本身不讀 tool_name，只要 payload 送得到就會判 ──────
+//          （characterization：現況已綠；#130 要修的是讓 matcher 在真實 PowerShell 呼叫時
+//           把 payload 送到這裡——見上面 E3）
+function runHookRaw(rawInput) {
+  const r = spawnSync('node', [HOOK], { input: rawInput, encoding: 'utf8', env: { ...process.env } });
+  return r.stdout || '';
+}
+{
+  const raw = JSON.stringify({ tool_name: 'PowerShell', tool_input: { command: 'gh pr comment 1 --body "@someone 感謝"' }, cwd: HERE });
+  assert(runHookRaw(raw).includes('"deny"'), '[E4] tool_name="PowerShell" + inline "@someone 感謝" → deny');
+}
+{
+  const raw = JSON.stringify({ tool_name: 'PowerShell', tool_input: { command: 'gh pr view 1' }, cwd: HERE });
+  assert(runHookRaw(raw).trim() === '', '[E5] tool_name="PowerShell" + 非 comment 指令 gh pr view 1 → 放行（零誤擋）');
 }
 
 console.log(`\n${passed} passed, ${failed.length} failed`);
