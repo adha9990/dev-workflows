@@ -152,8 +152,10 @@ export function extractCommentBody(cmd, readFileSafe) {
 }
 
 /** 去掉 markdown 程式碼（```fenced``` 與 `inline`）——避免 code 片段裡的 @param / @Component /
- *  @scope/pkg / user@host 誤判成點名，也避免 fence 內的 .loops/ 範例路徑誤判成外洩。 */
-function stripCode(text) {
+ *  @scope/pkg / user@host 誤判成點名，也避免 fence 內的 .loops/ 範例路徑誤判成外洩。
+ *  export 給 pr-gate.mjs 重用（#132）：PR body 的行首 Closes #N 檢查同樣要先去 code span/fence，
+ *  避免 fence 內範例文字誤判成真的關聯宣告——同一段邏輯不重抄一份。 */
+export function stripCode(text) {
   return text.replace(/```[\s\S]*?```/g, ' ').replace(/`[^`]*`/g, ' ');
 }
 
@@ -278,6 +280,26 @@ export function buildReadGateReason(kind) {
 
 // ── IO 薄邊界：main()（被 import 時不執行）────────────────────────────────────────
 
+/**
+ * 建一個綁定 cwd 的「安全讀檔」函式：resolve(cwd, p) 後 statSync 檢查（非一般檔／超過
+ * MAX_BODY_FILE_BYTES 一律視為「讀不到」同一 fail-open 路徑），才 readFileSync；任何例外
+ * （含不存在）一律回 null。
+ * export 給 pr-gate.mjs 重用（#132）：--body-file 的硬化讀檔邏輯只有這一份真相源，main() 自身
+ * 也改呼叫這個 factory（不再各自維護一份閉包），避免兩處 statSync／size cap 判定漂移。
+ */
+export function makeHardenedReadFileSafe(cwd) {
+  return (p) => {
+    try {
+      const resolved = resolve(cwd, p);
+      const stat = statSync(resolved);
+      if (!stat.isFile() || stat.size > MAX_BODY_FILE_BYTES) return null;
+      return readFileSync(resolved, 'utf8');
+    } catch {
+      return null; // 讀不到 → 無從判定，放行（fail-open）
+    }
+  };
+}
+
 function readStdin() {
   return readFileSync(0, 'utf8');
 }
@@ -345,18 +367,7 @@ function main() {
   }
 
   const cwd = typeof payload?.cwd === 'string' ? payload.cwd : process.cwd();
-  const readFileSafe = (p) => {
-    try {
-      const resolved = resolve(cwd, p);
-      const stat = statSync(resolved);
-      // 非一般檔（目錄等）或超過大小上限 → 視為「讀不到」同一 fail-open 路徑——不誤讀非檔案內容，
-      // 也不把巨大檔案整讀進記憶體判定。
-      if (!stat.isFile() || stat.size > MAX_BODY_FILE_BYTES) return null;
-      return readFileSync(resolved, 'utf8');
-    } catch {
-      return null; // 讀不到 → 無從判定，放行（fail-open）
-    }
-  };
+  const readFileSafe = makeHardenedReadFileSafe(cwd);
 
   const body = extractCommentBody(cmd, readFileSafe);
   if (body == null) return; // 抽不到 body → 放行
