@@ -17,7 +17,7 @@
 //     - fail-open：stdin 非 JSON / 缺 command → 放行
 
 import { tmpdir } from 'node:os';
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -189,6 +189,42 @@ try {
     });
     assert(res.error == null && res.status === 0 && stdoutOf(res).trim() === '',
       '[B11] opt-out＋256KB payload → 無 spawn error、放行（stdin 已讀滿）');
+  }
+
+  // =============================================================================
+  // C) #130 PowerShell matcher —— hooks.json 的 PreToolUse matcher 要同時涵蓋 Bash 與 PowerShell
+  // =============================================================================
+
+  // ── C1-C3：matcher regex 斷言（紅燈載體）—— PowerShell 呼叫此 hook 目前會被 matcher 擋在門外 ──
+  {
+    const hooksConfig = JSON.parse(readFileSync(new URL('./hooks.json', import.meta.url), 'utf8'));
+    const entry = (hooksConfig.hooks.PreToolUse || []).find((e) =>
+      (e.hooks || []).some((h) => typeof h.command === 'string' && h.command.includes('worktree-guard.mjs')));
+    const matcher = entry?.matcher;
+    assert(typeof matcher === 'string', '[C1] hooks.json 的 PreToolUse 找得到 worktree-guard.mjs 所在 entry 的 matcher');
+    assert(new RegExp(matcher).test('Bash') === true, '[C2] matcher 對 "Bash" 仍 match（現有行為不退化）');
+    assert(new RegExp(matcher).test('PowerShell') === true, '[C3] matcher 對 "PowerShell" 要 match（#130：現況必紅——matcher 目前僅 "Bash"）');
+  }
+
+  // ── C4：PowerShell payload —— 主 checkout 對已建 loop 的 checkout -b → deny ──────────────
+  //        （characterization：guard 腳本本身不讀 tool_name，只要 payload 送得到就會判；
+  //         #130 要修的是讓 matcher 在真實 PowerShell 呼叫時把 payload 送到這裡——見上面 C3）
+  {
+    const res = runHook({
+      rawInput: JSON.stringify({ tool_name: 'PowerShell', tool_input: { command: 'git checkout -b 206-foo master' }, cwd: MAIN_ROOT }),
+    });
+    assert(res.error == null && res.status === 0, '[C4] spawn 無 error、exit 0');
+    assert(parseOut(res)?.hookSpecificOutput?.permissionDecision === 'deny',
+      '[C4] tool_name="PowerShell" + 主 checkout 對已建 loop 的 checkout -b → deny（現況已綠）');
+  }
+
+  // ── C5：PowerShell payload —— 乾淨指令 git status → 放行（零誤擋）────────────────────────
+  {
+    const res = runHook({
+      rawInput: JSON.stringify({ tool_name: 'PowerShell', tool_input: { command: 'git status' }, cwd: MAIN_ROOT }),
+    });
+    assert(res.status === 0 && stdoutOf(res).trim() === '',
+      '[C5] tool_name="PowerShell" + git status（非建立指令）→ 放行（stdout 空，零誤擋）');
   }
 } finally {
   rmSync(SANDBOX, { recursive: true, force: true });
