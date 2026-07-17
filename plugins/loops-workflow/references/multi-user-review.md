@@ -39,5 +39,5 @@
 ## 六、分工與 Finding 寫法
 
 - 與 `security-reviewer` 有重疊（授權）、與 `performance-reviewer` 有重疊（transaction / 鎖）—— 本 reviewer 的獨到價值是**以「多人同時」為前提串起整條威脅模型**，不是逐點重審。同一問題被兩軸抓到，coordinator 去重即可，別為了不重疊而漏審。
-- **作者已在 plan/issue/PR 留痕、明確接受的並發取捨不算 finding**（`preflight.md`）；但作者以「單人使用」為由略過、卻與專案的多人宣告矛盾 → 要標出。
+- **作者已在 plan/issue/PR 留痕、明確接受的並發取捨不算 finding**（`finding-author-decision-rule.md`）；但作者以「單人使用」為由略過、卻與專案的多人宣告矛盾 → 要標出。
 - 每筆：**P0–P3 + Confidence + Route**（`reviewer-severity.md`），工程視角（哪個並發 / 授權 / 交易 path、哪檔哪行、race window、修法）＋使用者視角（多人同時用會踩到什麼）。沒實跑並發情境標 `not measured`。

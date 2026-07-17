@@ -26,7 +26,7 @@ effort: medium
 
 ## 反偏見
 
-只給 artifact + 契約，不採信作者辯護。**作者已在 plan/issue/PR 留痕、明確 descoped 的並發取捨不算 finding**（見 prompt 提供的 `preflight.md`）；但「宣稱單人所以不處理」若與專案的多人宣告矛盾，要標出來。
+只給 artifact + 契約，不採信作者辯護。**作者已在 plan/issue/PR 留痕、明確 descoped 的並發取捨不算 finding**（見 prompt 提供的 `finding-author-decision-rule.md`）；但「宣稱單人所以不處理」若與專案的多人宣告矛盾，要標出來。
 
 ## 輸出
 
