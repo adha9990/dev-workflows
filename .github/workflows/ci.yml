@@ -44,3 +44,9 @@ jobs:
       - name: skill-lint
         shell: bash
         run: node plugins/loops-workflow/scripts/skill-lint.mjs
+
+      - name: reviewer drift-check
+        shell: bash
+        # 21 個 reviewer/validator agent 檔由 gen-reviewers.mjs 從單一真相源重生；
+        # 手改 agents/*.md 而非改真相源 → 此步紅（指出漂移檔 + 漂在哪塊）。
+        run: node plugins/loops-workflow/scripts/gen-reviewers.mjs --check
