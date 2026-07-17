@@ -30,7 +30,7 @@
    - **auto 模式**（環境變數 `LOOPS_AUTO=1` 開啟）：連上面的決策也用推薦選項自動帶過，只剩安全停（見 `references/auto-mode.md`）。
 3. **`.loops/<slug>/` 是階段間記憶體**。每階段把結論寫成對應 markdown（`00-goal.md` / `01-explore.md` … 每階段一個），下一階段只讀精煉版、不重讀原始素材。任一階段被獨立呼叫時，**先讀 `loop.md`** 認領狀態。**進入一個階段時更新 `loop.md` 的「當前階段」+ append 一筆 Journal**（供 progress / resume）；**完工時把「當前階段」設為「完工」**。每份檔保持 **< 2000 行**（context window ≠ attention budget）。
 4. **模糊就 surface，不要猜**。需求 / 分類 / 方案不清楚時停下來問，不自行假設往下做。
-5. **Metric-Honesty**：任何「效能 / 覆蓋率 / 通過」宣稱，沒有實際跑出來就標 `not measured`，不得憑感覺寫數字。
+5. **Metric-Honesty**：任何「效能 / 覆蓋率 / 通過」宣稱，沒有實際跑出來就標 `not measured`，不得憑感覺寫數字。狀態類操作結果（merge SHA / CI 結論 / mergeable / 測試數）同樣適用：只能引用**實際跑過的單一乾淨指令**回傳的值，工具沒回傳就不得敘述。寧可回報『查不到 / 卡住』並請人介入，不可補一個看起來合理的值。
 6. **重用優先、不以 MVP、照 clean code / clean architecture 寫**：動手前先搜既有實作、避免重複造輪子（稍異 ≠ 另造，優先參數化既有方法，見 `references/reuse-check.md`）；in-scope 實作不以 MVP，照最高標準做（對可預見的規模退化預先用對演算法與結構）；**寫的當下就照 clean code（`references/clean-code.md`：命名 / 小函式 / guard clause / 顯式錯誤 / 型別契約）+ clean architecture（`references/clean-architecture.md`：依賴向內 / port + 注入 / 落點對齊）標準**，不是先寫爛再靠 refactor 救（refactor 精修見 `references/code-simplification.md`；異味 → 具名手法 → 設計模式時機見 `references/refactoring.md`）。
 7. **文件紀律**：完工前依 `references/docs-policy.md` 判斷 —— 新子系統 / 跨切面 / 不直觀設計寫 `docs/<topic>.md`（+ 維護 `docs/README.md` 索引）；慣例 / 規則改變才更新 `AGENTS.md` · `CLAUDE.md`；小功能不塞 docs。
 8. **對外溝通**：所有面向人的書面（AskUserQuestion / issue · PR 回覆 / 驗收報告 / 端決策）依 `references/comment-policy.md` —— 繁中白話、雙視角紀錄、AskUserQuestion 標推薦、對外內容先寫**暫存 tmp 草稿**校稿（不進專案 / 不進版控）+ **送出後刪 tmp**、不寫客套。

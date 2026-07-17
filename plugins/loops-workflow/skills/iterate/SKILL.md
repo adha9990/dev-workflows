@@ -140,6 +140,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **交 PR 沒帶 `--draft` 或沒帶 `--assignee @me`**（直接開成 Ready 請 merge、或沒指派作者本人）—— 一律先 draft + 指派自己，使用者要 merge 才 `gh pr ready` 轉正（補救：`gh pr ready <PR#> --undo` 轉回 draft、`gh pr edit <PR#> --add-assignee @me` 補指派）。見 `references/pr-spec.md`〈開法〉。
 - **合併後沒刪已合併分支 / 沒清 worktree**，囤積一堆 merged branch；或 **loop 暫存（草稿 / 截圖 / worktree / `.loops` / `data`）被 commit 推上去**。
 - **完工 / 中止沒在 `loop.md` Journal append 一行 outcome 度量**（缺成本 / 規模輪廓，違規則 10 可觀測）；或 token 欄寫成精準值沒標 `est`（違規則 5）。
+- 收尾敘述的 merge SHA / CI 狀態 / 測試數**不是剛用指令查回來的**——狀態類每步用單一乾淨指令驗證後才可寫進回報；查不到就說卡住，不編一個合理值（規則 5）。
 
 ## Verification
 

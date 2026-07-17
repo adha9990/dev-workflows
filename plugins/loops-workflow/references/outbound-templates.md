@@ -37,9 +37,13 @@
 | 5 | **PR body** | `iterate` 完整迴圈收尾 | **`pr-spec.md`**（as-built 提煉；含 `Closes #<issue>` 關閉關鍵字）|
 | 6 | **AskUserQuestion**（端給使用者的問題）| 各階段決策點 | **`comment-policy.md §4`**（每選項列優缺 + 必標 `(Recommended)` + 一句理由；重大且選非推薦項要主動提異見）|
 
+## 先辨文體，再選樣板
+
+§7 / §8 只給**審查結論 / 修正回覆**兩種文體；**工程提案、研究結論、設計說明是另一種文體**——套 #1 issue 建立的結構（repo template 或 define generic fallback 的章節）寫成一份自足的設計文件，不硬套雙視角 list。
+
 ## 鐵律
 
 - **絕不引用 `.loops/` 路徑**（`stages/02-plan.md`/`stages/03-build.md`/`stages/04-verify.md`/`stages/00-goal.md`/`stages/01-explore.md`）—— `.loops/` 是本地暫存、不上 GitHub、PR merge/close 後清除，在 GitHub 內容指它＝死連結。內容 **self-contained**（設計決策/機制圖/驗收 inline），要指更細只指 PR/commit/`file:line`/issue（見 `comment-policy.md §0`）。
-- **每則對外訊息必對到上表一型**——沒有「即興格式」。找不到對應型 → 先補一型樣板再發，不臨時自創。
+- **每則對外訊息必對到上表一型**——沒有「即興格式」。找不到對應型 → 先補一型樣板再發，不臨時自創、**也不塞最接近的近似型**（例：把工程提案硬套 §8 修正回覆的雙視角格式＝實證踩過的錯型）。
 - **先 tmp 草稿 → 使用者確認 → 送出 → 刪 tmp**（§5），全型適用。
 - **plan / verify / iterate comment 都是 living**：as-built 偏離時回來同步更新已 post 的版本（`gh api --method PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<tmp>`）。
