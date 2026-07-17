@@ -57,13 +57,34 @@ export function isInsideWorktree(cwd) {
   );
 }
 
+/**
+ * cwd（解析後）若落在 `.claude/worktrees/<slug>` 之下，回傳該 slug（保留原始大小寫，只正規化
+ * 路徑分隔符）；不在任何 worktree 底下則回 null。isInsideWorktree 只回布林、判不出實際 slug 是
+ * 誰——pr-gate.mjs（#132）需要知道「現在是哪個 loop」，故拆出獨立函式，不與 isInsideWorktree
+ * 共用同一次掃描（那個只需要布林、這個需要抓值，回傳型別不同）。
+ * 掃描邏輯同 isInsideWorktree：段完全相等比對（大小寫不敏感），正／反斜線皆正規化為 `/` 再切。
+ */
+export function extractWorktreeSlug(cwd) {
+  const normalized = resolve(cwd).replace(/\\/g, '/');
+  const segments = normalized.split('/').filter((s) => s.length > 0);
+  for (let i = 0; i < segments.length - 1; i += 1) {
+    if (segments[i].toLowerCase() === '.claude' && segments[i + 1].toLowerCase() === 'worktrees') {
+      return segments[i + 2] ?? null;
+    }
+  }
+  return null;
+}
+
 // ── IO 薄邊界（被 import 時不執行 main）──────────────────────────────────────────
 
 /**
  * 從 startDir 往上走訪祖先，找第一個存在 `<dir>/.loops/<slug>/loop.md` 的層 → 回該 dir；找不到回 null。
  * 有界（最多 12 層）避免退化。判「slug 是不是一個已建 loop」＝這個檔在不在。
+ * export 給 pr-gate.mjs 重用（#132）：同一套「slug 反查 loop 根」邏輯，worktree cwd 剝
+ * `.claude/worktrees/<slug>` 後綴不過 3 層、主 checkout 巢狀 cwd 也在 12 層界內，兩種情境不必
+ * 分別維護一份走訪邏輯。
  */
-function findLoopRoot(startDir, slug) {
+export function findLoopRoot(startDir, slug) {
   let dir = resolve(startDir);
   for (let i = 0; i < 12; i++) {
     if (existsSync(join(dir, '.loops', slug, 'loop.md'))) return dir;
