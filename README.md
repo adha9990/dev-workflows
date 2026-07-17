@@ -6,6 +6,8 @@
 |---|---|---|
 | **loops-workflow** | 7 階段閉環開發工作流（**既有專案**內加功能 / 設計 / 修問題）+ 內建 greenfield 專案 scaffold | `/loops-workflow:dispatch <一句話>` |
 
+**CI**：push 到 `master`、開 PR 會自動跑全部 hooks/scripts 測試 + skill-lint（ubuntu + windows 雙平台）。
+
 ## 安裝
 
 ```
@@ -52,7 +54,7 @@ dispatch → goal → explore → plan → build → verify → iterate
                                                         └──▶ 完工（交 PR / 收尾）
 ```
 
-> **只在真正該你選的決策點才停**（用 `AskUserQuestion`）：explore 選做法 / plan 拍板 / iterate 完工或回環 / 真正的 scope 取捨 / 安全停（分類模糊·危險操作·P0·規格不清）。**其餘 routine 轉場直接往下**，產出寫進 `.loops/`。**修完一定再過一輪 verify**（不是「測試綠」就算完）。需要時設 `LOOPS_AUTO=1` 開 opt-in 自動連跑。
+> **只在真正該你選的決策點才停**（用 `AskUserQuestion`）：explore 選做法 / plan 拍板 / iterate 完工或回環 / 真正的 scope 取捨 / 內容型交付的載體 / 安全停（分類模糊·危險操作·P0·規格不清）。**其餘 routine 轉場直接往下**，產出寫進 `.loops/`。**修完一定再過一輪 verify**（不是「測試綠」就算完）。需要時設 `LOOPS_AUTO=1` 開 opt-in 自動連跑。
 
 ### 每個階段在做什麼
 
@@ -62,7 +64,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 |---|---|---|
 | **dispatch**（入口） | 僅分類模糊 / 要 scaffold 才停 | 判類型分流：乾淨空專案→scaffold / issue→goal / 沒 issue 的待辦→define / 純研究→explore / PR 回饋→iterate。建 `loop.md`、進起點階段 |
 | **define**（前置） | 有 blocking 決策才停 | 模糊點子 → 一次一問釐清 → 用 repo 的 issue 模板開一張 template-ready issue → 再進 goal |
-| **goal** | 有 scope 取捨才停 | 逐句掃 issue 抽出需求（不只 AC 段）→ 訪談 → 寫成「六欄完工定義」+ 可驗證的停止條件 |
+| **goal** | scope 取捨 / 內容型交付的載體 / 需求講不清才停 | 逐句掃 issue 抽出需求（不只 AC 段）→ 訪談 → 寫成「六欄完工定義」+ 可驗證的停止條件 |
 | **explore** | ✋ 選做法 | 先找內部可重用的 → 不夠才搜外部（省資源）→ 攤開比較 + 推薦讓你選；框架 API 查官方文件 |
 | **plan** | ✋ 拍板方案 | 決策留痕 + 畫機制圖（拍板時渲染給你看）+ 新套件 ≥3 候選評估 + 拆成能各自驗證的任務 |
 | **build** | 危險 / 卡關才停 | 逐任務**紅綠分離**：test-author 只看需求寫測試（看不到實作）、impl-author 只負責轉綠（不准改測試）→ 重構 → 分段 commit |

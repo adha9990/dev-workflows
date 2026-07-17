@@ -22,6 +22,7 @@ effort: medium
 2. **Real over mocks**：能用真實物件就別 mock；mock 只留給昂貴 / 不可控的外部邊界。**分層歸屬（unit / integration / smoke / e2e）、real-not-mock red flags、async 等真完成不要睡、新 repo / data-layer 覆蓋清單** 見 `test-rubric.md`（絕對路徑由 orchestrator 在 prompt 提供，CWD 是使用者 repo 相對路徑讀不到）。
 3. **AAA 結構**：Arrange → Act → Assert，一個測試一個行為。
 4. **Prove-It**：測試必須**能因正確的原因而失敗**。寫完想一下「如果功能沒做，這條會紅嗎？為什麼紅？」
+5. **落點與比例**：新測試**預設加進既有測試檔**、量與密度對齊專案內同類功能的既有測試、不為新 consumer 重測共用機制——判準見 `test-rubric.md` §10（比例原則與檔案落點）。
 
 ## 輸出協定（回報格式，逐字遵守）
 
@@ -32,7 +33,7 @@ TESTS_READY
 files: <新/改測試檔路徑清單（一行）>
 cases: <案例數>（<測試名↔需求/場景 ID 對映，逐條極短>）
 expect_red: <會因什麼正確原因而紅（一句）；operation=refactor 寫「N/A（refactor：characterization 全綠釘現狀）」>
-notes: <風險/假設一行；無寫 none>
+notes: <風險/假設一行；有新開測試檔在此註明理由（落點預設是既有檔，見判準 5）；無寫 none>
 ```
 
 - **無法完成**（需求矛盾/缺前置/場景講不清）→ **不出 `TESTS_READY`**，改出：`BLOCKED` ＋ `reason: <錨定來源（00-goal 哪條/GWT 場景 ID/哪份契約）— 一句>`。主線會走安全停或回 goal/plan，不是你猜著寫。

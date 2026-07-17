@@ -71,7 +71,7 @@ issue comment / PR body / reviewer 回覆等**任何 post 上 GitHub 的內容**
 
 ## 5. tmp 草稿校稿
 
-對外內容（issue comment / PR body / reviewer 回覆 / explain 包）**先寫進暫存位置**（tmp 檔，**不放進專案目錄、不進版控**）讓使用者本地逐字校稿，不只貼 chat；確認後用 `--body-file` 從同檔讀、逐字送出；**送出後把 tmp 草稿刪掉**，不留殘檔。
+對外內容（issue comment / PR body / reviewer 回覆 / explain 包）**先寫進暫存位置**（tmp 檔，**不放進專案目錄、不進版控**）讓使用者本地逐字校稿，不只貼 chat；確認後用 `--body-file` 從同檔讀、逐字送出；**送出後把 tmp 草稿刪掉**，不留殘檔。**Windows 送中文 body 一律用 git-bash ＋ `-F body=@<tmp>` / `--body-file <tmp>` 從檔案讀**；別用 PowerShell 管線 / `Get-Content` 餵字串——cp950 code page 會把 UTF-8 中文變亂碼。
 
 ## 6. 不寫客套
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// worktree-guard.mjs —— loops-workflow PreToolUse(Bash) deny hook：機械化 AGENTS 規則 9 的
+// worktree-guard.mjs —— loops-workflow PreToolUse(Bash|PowerShell) deny hook：機械化 AGENTS 規則 9 的
 // 「code 變更在 worktree 裡做、不在主 checkout 直接 `checkout -b` loop branch」。
 // 這是 loops-path-guard（擋 .loops 寫進 worktree）的**姊妹規則**：那個管 .loops 落點，本檔管 code 落點。
 //
-// 觸發：Bash 指令是「對一個『已建 loop』的 branch 做 `git checkout -b <slug>` / `git switch -c <slug>`」，
+// 觸發：shell 指令（Bash/PowerShell）是「對一個『已建 loop』的 branch 做 `git checkout -b <slug>` / `git switch -c <slug>`」，
 //       且 cwd 在主 checkout（不在 .claude/worktrees/ 底下）→ deny，導向 `git worktree add`。
 //       「已建 loop」＝從 cwd 往上任一層存在 `.loops/<slug>/loop.md`（否則放行——非 loop branch）。
 // 預設啟用（defaultOn）；env LOOPS_WORKTREE_GUARD='0'（字面 '0'）可關閉。
@@ -26,7 +26,7 @@ import { flagEnabled } from './hook-flags.mjs';
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
 
 /**
- * 從 Bash 指令字串抽出「建立並切入一個 branch」的 branch 名（`git checkout -b <name>` /
+ * 從 shell 指令（Bash/PowerShell）字串抽出「建立並切入一個 branch」的 branch 名（`git checkout -b <name>` /
  * `git switch -c <name>`），沒有則回 null。只抓 checkout -b / switch -c（會把當前工作目錄切到新
  * branch 的動作）——不抓 `git branch <name>`（只建 ref、不切、不構成「在主 checkout 做 code」）。
  * 保守解析：git 與 checkout/switch 之間允許夾 flag（如 `-C path`），但不跨 ; & | 邊界。
@@ -57,13 +57,34 @@ export function isInsideWorktree(cwd) {
   );
 }
 
+/**
+ * cwd（解析後）若落在 `.claude/worktrees/<slug>` 之下，回傳該 slug（保留原始大小寫，只正規化
+ * 路徑分隔符）；不在任何 worktree 底下則回 null。isInsideWorktree 只回布林、判不出實際 slug 是
+ * 誰——pr-gate.mjs（#132）需要知道「現在是哪個 loop」，故拆出獨立函式，不與 isInsideWorktree
+ * 共用同一次掃描（那個只需要布林、這個需要抓值，回傳型別不同）。
+ * 掃描邏輯同 isInsideWorktree：段完全相等比對（大小寫不敏感），正／反斜線皆正規化為 `/` 再切。
+ */
+export function extractWorktreeSlug(cwd) {
+  const normalized = resolve(cwd).replace(/\\/g, '/');
+  const segments = normalized.split('/').filter((s) => s.length > 0);
+  for (let i = 0; i < segments.length - 1; i += 1) {
+    if (segments[i].toLowerCase() === '.claude' && segments[i + 1].toLowerCase() === 'worktrees') {
+      return segments[i + 2] ?? null;
+    }
+  }
+  return null;
+}
+
 // ── IO 薄邊界（被 import 時不執行 main）──────────────────────────────────────────
 
 /**
  * 從 startDir 往上走訪祖先，找第一個存在 `<dir>/.loops/<slug>/loop.md` 的層 → 回該 dir；找不到回 null。
  * 有界（最多 12 層）避免退化。判「slug 是不是一個已建 loop」＝這個檔在不在。
+ * export 給 pr-gate.mjs 重用（#132）：同一套「slug 反查 loop 根」邏輯，worktree cwd 剝
+ * `.claude/worktrees/<slug>` 後綴不過 3 層、主 checkout 巢狀 cwd 也在 12 層界內，兩種情境不必
+ * 分別維護一份走訪邏輯。
  */
-function findLoopRoot(startDir, slug) {
+export function findLoopRoot(startDir, slug) {
   let dir = resolve(startDir);
   for (let i = 0; i < 12; i++) {
     if (existsSync(join(dir, '.loops', slug, 'loop.md'))) return dir;
@@ -91,7 +112,7 @@ function denyReason(slug) {
 }
 
 /**
- * PreToolUse(Bash) hook 入口：主 checkout 對已建 loop 的 `checkout -b/switch -c` → deny；其餘放行。
+ * PreToolUse(Bash|PowerShell) hook 入口：主 checkout 對已建 loop 的 `checkout -b/switch -c` → deny；其餘放行。
  * fail-open：payload 壞 / 缺欄位 / 非 loop branch 一律放行。
  */
 function main() {

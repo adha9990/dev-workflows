@@ -24,10 +24,18 @@ function pickLoopField(md, label) {
   return inlineLine ? inlineLine[1].trim() : '?';
 }
 
-/** loop.md 內最後一條 Journal 行（- [E\d+] …）；無 → '(無 Journal)'。 */
+/** journal 內容 cap（#135）：>200 字元才截斷（恰 200 原樣）；截斷記號不計入預算。 */
+const MAX_JOURNAL_LINE_CHARS = 200;
+const JOURNAL_TRUNCATION_MARKER = '…（截斷；完整 Journal 見該 loop.md）';
+
+/** loop.md 內最後一條 Journal 行（- [E\d+] …）；無 → '(無 Journal)'；超過 cap 截前 200 字元＋記號。 */
 function lastJournalLine(md) {
   const journalLines = md.split('\n').filter((line) => /^\s*-\s*\[E\d+\]/.test(line));
-  return journalLines.length ? journalLines[journalLines.length - 1].trim() : '(無 Journal)';
+  if (!journalLines.length) return '(無 Journal)';
+  const last = journalLines[journalLines.length - 1].trim();
+  return last.length > MAX_JOURNAL_LINE_CHARS
+    ? last.slice(0, MAX_JOURNAL_LINE_CHARS) + JOURNAL_TRUNCATION_MARKER
+    : last;
 }
 
 /** 單一 active loop 的提醒行（字串格式為既有特徵測試所釘，不可變）。 */

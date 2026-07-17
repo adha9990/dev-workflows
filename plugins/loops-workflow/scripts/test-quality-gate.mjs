@@ -476,12 +476,15 @@ function runGate({ config = null, files = {}, gates, args = [], env = {} } = {})
   }
 }
 // 大型 eslint JSON（error 在最前、總長 > 80000 字）—— 給 G1
+// 長度上限約束：內容經 FAKE_OUT 環境變數傳給子行程——Linux 單一 env 字串上限 MAX_ARG_STRLEN=131072，
+// 超過會 execve E2BIG（spawn error）；Windows 無此限制，故本機綠、CI ubuntu 紅（#129 CI 首跑實抓）。
+// 取 800 筆 ≈ 99K：仍超 tail 上限（>80000）、又安全低於 128KB。G1 有上下界雙斷言守住。
 function bigEslintErrorFirst() {
   const msgs = [{ ruleId: 'no-debugger', severity: 2, message: 'Unexpected debugger statement.', line: 1, column: 1 }];
-  for (let i = 0; i < 1500; i++) {
+  for (let i = 0; i < 800; i++) {
     msgs.push({ ruleId: 'max-len', severity: 1, message: `This over-length line is occurrence number ${i} of many.`, line: i + 2, column: 1 });
   }
-  return JSON.stringify([{ filePath: 'src/huge.ts', messages: msgs, errorCount: 1, warningCount: 1500 }]);
+  return JSON.stringify([{ filePath: 'src/huge.ts', messages: msgs, errorCount: 1, warningCount: 800 }]);
 }
 // 含 1 失敗的 vitest JSON —— 給 G2/G3
 function failingVitestJson() {
@@ -505,6 +508,7 @@ function failingVitestJson() {
 {
   const big = bigEslintErrorFirst();
   assert(big.length > 80000, 'G1 前置：eslint JSON > 80000 字（超 tail 上限）[G1]');
+  assert(big.length < 131072, 'G1 前置：eslint JSON < 131072 字（Linux env 單字串上限，防 E2BIG）[G1]');
   const { res, json } = runGate({
     config: { lint: `node "${FAKE}"` },
     gates: 'lint',

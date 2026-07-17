@@ -1,6 +1,6 @@
 # references 目錄（幫你找到「該讀哪份規範」）
 
-> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。這頁把 **54 份 reference 依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」。
+> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。這頁把 **55 份 reference 依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」。
 >
 > 想看**流程全貌**（每階段怎麼跑）→ [`FLOW.md`](FLOW.md)；想看**可設定的參數** → [`settings.md`](settings.md)；這份是「規範字典」。（技術註：subagent 讀不到相對路徑，orchestrator 會把絕對路徑塞進 prompt——見 `AGENTS.md`〈參考檔路徑解析〉。）
 
@@ -43,7 +43,8 @@
 | `context-diet` | 讓輸出從源頭就省 token：測試綠燈只留摘要、紅燈保 failure 全文＋skipped 必列、截斷必附落盤路徑、gh/git 先篩欄位、改過的檔重讀 | build · verify · explore · iterate · test-author · impl-author |
 | `reviewer-severity` | 審查發現（finding）怎麼分級：P0–P3 嚴重度 + Confidence（50/75/100）+ 該路由給誰 | verify（全 reviewer） |
 | `finding-validation` | 抓到的問題先過二輪四問（是真的嗎/這次引入的嗎/已有防護嗎/修法對症嗎）再算數——結論三態 validated / rejected / degraded，防誤報 | verify（finding-validator） |
-| `preflight` | 送審前作者自檢：可送審 / 建議先修 / 資訊不足三態判定＋硬規則「作者已留痕的決定不算 finding」 | verify（送審自檢 + 全 reviewer） |
+| `preflight` | 送審前作者自檢：可送審 / 建議先修 / 資訊不足三態判定（硬規則已抽至 finding-author-decision-rule） | verify（送審自檢） |
+| `finding-author-decision-rule` | finding 判準硬規則：作者已留痕的決定不算 finding（含 durability 取捨不自動免審、三類回報）——reviewer 與自檢共用單源 | verify（全 reviewer prompt）＋ preflight |
 | `optional-reviewers` | 哪種改動要加派哪個領域 reviewer（前端 / a11y / 可觀測性 / CI-CD / migration / bug-fix / docs…）＋專案宣告條件（宣告多人使用→併發審查） | verify（1.5 加派） |
 | `project-conventions` | **專案 CLAUDE.md/AGENTS.md 宣告的跨切面約定**（i18n / logging / a11y / 錯誤處理 / 安全…）是每條 loop 的隱含 DoD + verify 檢查項（issue 沒寫也要做）；通過機械 gate ≠ 滿足約定；完工交付列出「除 issue 外依約定額外做的事」 | goal（折 DoD）· plan（設計輸入）· verify（逐條核）· iterate（交付列出） |
 | `verify-triage` | 這次改動風險多大、該派幾軸審查（0~6）：高風險硬閘清單 / 小事從簡的判準 / 夾帶無關改動就否決從簡（tangling veto）/ 「做錯東西就整個退回」判準 | verify（步驟 1 選軸判級） |

@@ -47,7 +47,7 @@ function getStatusLabel(item: Item): string {
 }
 ```
 
-註解原則：解釋「**what**」的註解（`// increment counter` 配 `count++`）刪掉，code 本身夠清楚；解釋「**why**」的（`// 因為 API 高負載下會抖，所以重試`）保留，它帶的是 code 表達不出的意圖。
+註解原則見 `clean-code.md`〈六、註解講 why 不講 what〉（本體）；例：解釋「**what**」的（`// increment counter` 配 `count++`）刪掉，解釋「**why**」的（`// 因為 API 高負載下會抖，所以重試`）保留。
 
 ## 五、Common Rationalizations
 
@@ -57,7 +57,7 @@ function getStatusLabel(item: Item): string {
 | 「少行一定更簡單」 | 一行巢狀三元不比五行 if/else 簡單。簡單是「看懂的速度」，不是行數。 |
 | 「順手把這段無關的也簡化」 | 越界簡化＝雜訊 diff + 你沒打算改的 code 也可能 regression。 |
 | 「型別會自我說明」 | 型別說明結構，不說明意圖。好的命名解釋 why，型別只解釋 what。 |
-| 「這抽象以後可能有用」 | 別留投機抽象。現在沒用就是沒價值的複雜度，要時再加。 |
+| 「這抽象以後可能有用」 | 見 `clean-code.md` 紅旗「投機抽象」條——沒價值的複雜度，要時再加。 |
 | 「原作者一定有理由」 | 也許。查 `git blame`、套 Chesterton's Fence。但累積的複雜度常常沒理由，只是壓力下迭代的殘渣。 |
 
 ## 六、Red Flags

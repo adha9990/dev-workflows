@@ -45,7 +45,7 @@ Evidence checked:
 - 沒有具體失敗情境的 style / 抽象偏好。
 - 與需求明示意圖或專案文件化慣例衝突。
 - 講不出哪個使用者 / API caller / operator / 持久化資料狀態會受害。
-- **只是牴觸了作者已留痕的決定**（alignment comment / `stages/02-plan.md` / PR body 寫明的拍板）—— 整條剔除（不降級），**除非**它本身同時是獨立的正確性 / 安全 / 資料缺陷（就算沒那決定也是 bug）。完整判準見 `references/preflight.md` §(c)。
+- **只是牴觸了作者已留痕的決定**（alignment comment / `stages/02-plan.md` / PR body 寫明的拍板）—— 整條剔除（不降級），**除非**它本身同時是獨立的正確性 / 安全 / 資料缺陷（就算沒那決定也是 bug）。完整判準見 `references/finding-author-decision-rule.md`。
 
 ## Coordinator 怎麼用
 
