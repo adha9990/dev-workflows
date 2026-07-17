@@ -12,9 +12,10 @@
 // 判「現在是不是在 loop 分支上」全靠讀檔案（路徑段比對 + 讀 `.git/HEAD` 文字），不 spawn `git`
 // 指令（hook 熱路徑、零 process 開銷）：
 //   ①cwd 路徑含 `.claude/worktrees/<slug>` 段 → slug（worktree 慣例主路徑）；
-//   ②否則讀 cwd 的 `.git`（檔案形 `gitdir: <path>` 指標 → 讀該 gitdir/HEAD；目錄形 → 讀
-//     `.git/HEAD`）取 `ref: refs/heads/<branch>` → branch=slug（主 checkout 兜底：有人手動
-//     `checkout` 到 loop 分支）；裸 SHA（detached HEAD，無 `ref:` 前綴）→ 判不出、放行。
+//   ②否則從 cwd 起向上最多 12 層找第一個存在的 `.git`（檔案形 `gitdir: <path>` 指標 → 讀該
+//     gitdir/HEAD；目錄形 → 讀 `.git/HEAD`）取 `ref: refs/heads/<branch>` → branch=slug（主
+//     checkout 兜底：有人手動 `checkout` 到 loop 分支，且 cwd 可能是 root 底下的子目錄）；裸
+//     SHA（detached HEAD，無 `ref:` 前綴）→ 判不出、放行。
 // 兩種情況都只是「slug 候選」，還要向上找 `.loops/<slug>/loop.md` 反查存在才算「已建 loop」
 // （重用 worktree-guard.mjs 的 findLoopRoot——它的祖先上溯天然涵蓋 worktree cwd 剝
 // `.claude/worktrees/<slug>` 後綴的那幾層，不必另外維護一條「捷徑」路徑）。
@@ -31,7 +32,7 @@
 // extractWorktreeSlug）——三閘與分支判定不重抄兄弟 hook 已寫好、已測過的邏輯。
 
 import { readFileSync, existsSync, statSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { flagEnabled } from './hook-flags.mjs';
@@ -40,9 +41,25 @@ import { findLoopRoot, extractWorktreeSlug } from './worktree-guard.mjs';
 
 // ── 純函式層（無 IO）──────────────────────────────────────────────────────────────
 
-/** 這條指令是不是 `gh pr create`（非此一律放行，判定排在最前——即使 cwd 本身三閘全違規也不管）。 */
+/**
+ * 把指令字串中被引號包住的參數值（單引號或雙引號各自成對的整段）置換成空白——只給
+ * isPrCreateCommand 的「這是不是 gh pr create 子指令」偵測使用（仿 outbound-comment-guard.mjs
+ * 的 stripCode 思路：那邊去 code span/fence、這裡去引號值，用途都是把「不該被當成指令本體」的
+ * 內文濾掉再判定）。不處理巢狀或跳脫引號（shell 指令本就不支援），對本 hook 的判定用途已足夠。
+ */
+function stripQuotedValues(cmd) {
+  return cmd.replace(/'[^']*'/g, ' ').replace(/"[^"]*"/g, ' ');
+}
+
+/**
+ * 這條指令是不是 `gh pr create`（非此一律放行，判定排在最前——即使 cwd 本身三閘全違規也不管）。
+ * 比對前先用 stripQuotedValues 剝掉引號包住的參數值，避免「gh pr create」字樣只是出現在別的指令
+ * 的引號值裡（例如 `gh issue comment` 的 `--body` 內文提到這幾個字）被誤判成真的 gh pr create
+ * 子指令。注意：只有這裡的偵測用剝殼視圖——後續 hasDraftFlag / hasAssigneeMe / extractCommentBody
+ * 等仍作用於原始字串，不能連真正的旗標與 body 內容都被剝掉。
+ */
 export function isPrCreateCommand(cmd) {
-  return typeof cmd === 'string' && /\bgh\s+pr\s+create\b/.test(cmd);
+  return typeof cmd === 'string' && /\bgh\s+pr\s+create\b/.test(stripQuotedValues(cmd));
 }
 
 /** 指令是否帶 `--draft`（獨立旗標，後面不接值）。 */
@@ -50,9 +67,13 @@ export function hasDraftFlag(cmd) {
   return typeof cmd === 'string' && /(^|\s)--draft(?=\s|$)/.test(cmd);
 }
 
-/** 指令是否帶 `--assignee @me`（空白或 `=` 皆可，值須是字面 `@me`，指派給別人不算）。 */
+/**
+ * 指令是否帶 `--assignee @me`（空白或 `=` 皆可，值須是字面 `@me`——可不加引號、也可用單或雙引號
+ * 包住（`'@me'`/`"@me"`），仿 outbound-comment-guard.mjs 的 extractCommentBody 引號交替寫法；
+ * 指派給別人不算）。
+ */
 export function hasAssigneeMe(cmd) {
-  return typeof cmd === 'string' && /(^|\s)--assignee(?:\s+|=)@me(?=\s|$)/.test(cmd);
+  return typeof cmd === 'string' && /(^|\s)--assignee(?:\s+|=)(?:'@me'|"@me"|@me)(?=\s|$)/.test(cmd);
 }
 
 /** slug 是不是「issue 編號開頭」（`<數字>-...`），是的話回該編號字串，否則回 null（gate③ 停用）。 */
@@ -62,14 +83,15 @@ export function issueNumberFromSlug(slug) {
 }
 
 /**
- * body（已 stripCode 去 code span/fence）是否有一行以純文字 `Closes #<issueNumber>` 開頭。
+ * body（已 stripCode 去 code span/fence）是否有一行以純文字 `Closes #<issueNumber>` 開頭
+ * （關鍵字大小寫不敏感，對齊 GitHub closing keyword 解析語意——`closes`/`Closes`/`CLOSES` 皆算）。
  * 行首要求刻意比 GitHub 解析更嚴（house rule）：獨立一行、不能是行中片段，也不能只在 code
  * span/fence 裡——呼叫端要自己先 stripCode 再傳進來（本函式不重做去 code，職責單一）。
  * `(?!\d)` 邊界避免 issue #21 誤配到「Closes #210」這種數字前綴相同的情況。
  */
 export function hasClosesLine(strippedBody, issueNumber) {
   if (typeof strippedBody !== 'string') return false;
-  const re = new RegExp(`^Closes #${issueNumber}(?!\\d)`, 'm');
+  const re = new RegExp(`^Closes #${issueNumber}(?!\\d)`, 'mi');
   return re.test(strippedBody);
 }
 
@@ -82,10 +104,13 @@ function buildVerifyDenyReason(slug) {
   );
 }
 
-function buildDraftAssigneeDenyReason(slug) {
+function buildDraftAssigneeDenyReason(slug, missingDraft, missingAssignee) {
+  const missingParts = [];
+  if (missingDraft) missingParts.push('`--draft`');
+  if (missingAssignee) missingParts.push('`--assignee @me`');
   return (
     `這是 loop \`${slug}\` 的分支，開 PR 要同時帶 \`--draft\` 且 \`--assignee @me\`` +
-    `（house rule：先開成 draft、指派給自己，人核可後才轉正式）——目前指令缺其中之一。` +
+    `（house rule：先開成 draft、指派給自己，人核可後才轉正式）——目前指令缺 ${missingParts.join('、')}。` +
     `請補齊旗標後重送，例如：\n` +
     `  gh pr create --draft --assignee @me --title <title> --body <body>\n` +
     `確需繞過：設 LOOPS_PR_GATE=0。`
@@ -104,19 +129,32 @@ function buildClosesDenyReason(issueNumber) {
 // ── IO 薄邊界（被 import 時不執行 main）──────────────────────────────────────────
 
 /**
- * 讀 cwd 的 `.git` 判斷目前 branch 名（不上溯——payload.cwd 就是 Bash 呼叫當下的實際目錄）：
- * 檔案形（worktree，內容 `gitdir: <path>` 指標，改讀該 gitdir 下的 HEAD）或目錄形（主
- * checkout，直接讀 `.git/HEAD`）。HEAD 內容 `ref: refs/heads/<branch>` → 回 branch；裸 SHA
- * （detached HEAD，無 `ref:` 前綴）或任何讀檔失敗 → null（判不出、由呼叫端決定放行）。
+ * 從 cwd 起向上最多 12 層找第一個存在的 `.git`，藉此判斷目前 branch 名（cwd 未必就是 `.git` 所在
+ * 那層——例如主 checkout 裡 Bash 呼叫當下的 cwd 是 repo 內某個子目錄；祖先上溯的界數與寫法比照
+ * 同目錄 worktree-guard.mjs 的 findLoopRoot，兩者同樣「最多 12 層、到檔案系統根就停」）：找到的
+ * `.git` 是檔案形（worktree，內容 `gitdir: <path>` 指標，改讀該 gitdir 下的 HEAD）或目錄形（主
+ * checkout，直接讀 `<dir>/.git/HEAD`）。HEAD 內容 `ref: refs/heads/<branch>` → 回 branch；裸 SHA
+ * （detached HEAD，無 `ref:` 前綴）、遍歷 12 層仍找不到 `.git`、或任何讀檔失敗 → null（判不出、
+ * 由呼叫端決定放行）。
  */
 function readGitBranch(cwd) {
-  const gitPath = join(resolve(cwd), '.git');
+  let dir = resolve(cwd);
+  let gitPath = null;
   let stat;
-  try {
-    stat = statSync(gitPath);
-  } catch {
-    return null;
+  for (let i = 0; i < 12; i++) {
+    const candidate = join(dir, '.git');
+    try {
+      stat = statSync(candidate);
+      gitPath = candidate;
+      break;
+    } catch {
+      // 這層沒有 .git，往上一層找
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break; // 已到檔案系統根，無法再上溯
+    dir = parent;
   }
+  if (!gitPath) return null;
 
   let headPath;
   if (stat.isDirectory()) {
@@ -130,7 +168,7 @@ function readGitBranch(cwd) {
     }
     const gitdirMatch = pointer.match(/^gitdir:\s*(.+?)\s*$/m);
     if (!gitdirMatch) return null;
-    headPath = join(resolve(cwd, gitdirMatch[1]), 'HEAD');
+    headPath = join(resolve(dir, gitdirMatch[1]), 'HEAD');
   }
 
   let headContent;
@@ -194,8 +232,10 @@ function main() {
   }
 
   // 閘②：--draft 且 --assignee @me 齊全。
-  if (!hasDraftFlag(command) || !hasAssigneeMe(command)) {
-    denyWith(buildDraftAssigneeDenyReason(slug));
+  const missingDraft = !hasDraftFlag(command);
+  const missingAssignee = !hasAssigneeMe(command);
+  if (missingDraft || missingAssignee) {
+    denyWith(buildDraftAssigneeDenyReason(slug, missingDraft, missingAssignee));
     return;
   }
 
