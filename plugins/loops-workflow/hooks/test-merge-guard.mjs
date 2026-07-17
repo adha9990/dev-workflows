@@ -471,6 +471,169 @@ try {
       '[M6-15] isApiPutMergeCommand(\'gh api -X PUT "repos/x/y/pulls/1/merge"\') === true（路徑被引號包住，原始字串比對仍抓到）');
     assert(getPath === false, "[M6-16] isApiPutMergeCommand('gh api repos/x/y/pulls/1/merge')（無 PUT）=== false");
   }
+
+  // =============================================================================
+  // N —— verify 二次仲裁回饋補充：#133 現況 bug 案例（等 impl 修，預期紅）＋ characterization/直測
+  // 補齊（預期即綠）。N1–N4 記錄的是「現況行為」不是「目標行為」——impl 修好後才會轉綠；N5–N7 是
+  // 覆蓋率補齊與既有正確行為的防退化釘住，本來就該綠。
+  // =============================================================================
+
+  // -----------------------------------------------------------------------------
+  // N1/N1b/N1c —— isPushToMainDestination 的 fallback（isMainRefLike(lastShellToken(cmd))）只看
+  // 字串「最後一個 token」；真正目的地 master/main 若後面還接尾隨 flag（--force-with-lease／-f／
+  // --set-upstream），這條 fallback 就抓不到目的地（REFSPEC_MAIN_RE 無冒號不中、DELETE_MAIN_RE 無
+  // --delete 不中）→ 現況誤放行（應 deny 卻 allow）＝紅。黑箱＋M6 純函式各補。
+  // -----------------------------------------------------------------------------
+  {
+    const res = runHook({ command: 'git push origin master --force-with-lease', cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[N1-1] "git push origin master --force-with-lease"（目的地後夾尾隨 flag）→ deny（現況預期紅：lastShellToken 被 --force-with-lease 打穿）');
+  }
+  {
+    const res = runHook({ command: 'git push origin master -f', cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[N1b-1] "git push origin master -f" → deny（現況預期紅：lastShellToken 被 -f 打穿）');
+  }
+  {
+    const res = runHook({ command: 'git push origin main --set-upstream', cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[N1c-1] "git push origin main --set-upstream" → deny（現況預期紅：lastShellToken 被 --set-upstream 打穿）');
+  }
+  {
+    let r1, r2, r3;
+    try {
+      r1 = mergeGuardModule.isPushToMainDestination('git push origin master --force-with-lease');
+      r2 = mergeGuardModule.isPushToMainDestination('git push origin master -f');
+      r3 = mergeGuardModule.isPushToMainDestination('git push origin main --set-upstream');
+    } catch {
+      r1 = r2 = r3 = undefined;
+    }
+    assert(r1 === true, "[N1-2] isPushToMainDestination('git push origin master --force-with-lease') === true（現況預期紅）");
+    assert(r2 === true, "[N1b-2] isPushToMainDestination('git push origin master -f') === true（現況預期紅）");
+    assert(r3 === true, "[N1c-2] isPushToMainDestination('git push origin main --set-upstream') === true（現況預期紅）");
+  }
+
+  // -----------------------------------------------------------------------------
+  // N2 —— 多 ref push（git push 支援一次推多個 ref），master 不是最後一個位置引數：同 N1 病根，
+  // lastShellToken 只看字串尾端的 "gh-pages"，真正高風險的 master 目的地夾在中間被漏判 → 現況誤
+  // 放行＝紅。
+  // -----------------------------------------------------------------------------
+  {
+    const res = runHook({ command: 'git push origin master gh-pages', cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[N2-1] "git push origin master gh-pages"（多 ref，master 非最後）→ deny（現況預期紅）');
+  }
+  {
+    let r;
+    try {
+      r = mergeGuardModule.isPushToMainDestination('git push origin master gh-pages');
+    } catch {
+      r = undefined;
+    }
+    assert(r === true, "[N2-2] isPushToMainDestination('git push origin master gh-pages') === true（現況預期紅）");
+  }
+
+  // -----------------------------------------------------------------------------
+  // N3 —— REFSPEC_MAIN_RE 對「原始未剝殼字串」做全字串冒號掃描，本意抓 refspec（如 `any:master`），
+  // 但 --push-option="note:master" 這種選項值裡湊巧也有「冒號+master」圖樣、又緊接收尾引號（符合
+  // lookahead），造成誤中；真正目的地其實是安全的 feature-x → 現況誤擋（應 allow 卻 deny）＝紅。
+  // -----------------------------------------------------------------------------
+  {
+    const res = runHook({ command: 'git push origin feature-x --push-option="note:master"', cwd: NEUTRAL_CWD });
+    assert(isAllow(res), '[N3-1] \'git push origin feature-x --push-option="note:master"\'（真正目的地安全，選項值誤含冒號+master 圖樣）→ 放行（現況預期紅：REFSPEC_MAIN_RE 全字串誤中）');
+  }
+  {
+    let r;
+    try {
+      r = mergeGuardModule.isPushToMainDestination('git push origin feature-x --push-option="note:master"');
+    } catch {
+      r = undefined;
+    }
+    assert(r === false, '[N3-2] isPushToMainDestination(\'git push origin feature-x --push-option="note:master"\') === false（現況預期紅）');
+  }
+
+  // -----------------------------------------------------------------------------
+  // N4 —— isApiPutMergeCommand 對路徑用裸 cmd.includes('/merge')；"/pulls/1/mergeable" 這個查詢
+  // mergeable 狀態的合法端點字面上就以 "/merge" 開頭（mergeable = merge + able），被 includes 誤中
+  // → 現況誤擋（應 allow 卻 deny）＝紅。
+  // -----------------------------------------------------------------------------
+  {
+    const res = runHook({ command: 'gh api repos/x/y/pulls/1/mergeable -X PUT', cwd: NEUTRAL_CWD });
+    assert(isAllow(res), '[N4-1] "gh api repos/x/y/pulls/1/mergeable -X PUT"（查 mergeable 狀態，非真正合併端點）→ 放行（現況預期紅：裸 includes("/merge") 誤中 "/mergeable"）');
+  }
+  {
+    let r;
+    try {
+      r = mergeGuardModule.isApiPutMergeCommand('gh api repos/x/y/pulls/1/mergeable -X PUT');
+    } catch {
+      r = undefined;
+    }
+    assert(r === false, '[N4-2] isApiPutMergeCommand(\'gh api repos/x/y/pulls/1/mergeable -X PUT\') === false（現況預期紅）');
+  }
+
+  // -----------------------------------------------------------------------------
+  // N5 —— isGitMergeCommand 直測補齊：五個 export 純函式中唯一只被 classifyMergeCommand 間接覆蓋、
+  // 沒有獨立直測案例的一個（同 M6 對其餘四個純函式的直測規格）。行為現況已正確，非 bug——這裡只補
+  // 測試覆蓋率，預期本來就綠。
+  // -----------------------------------------------------------------------------
+  {
+    let quoted, bare;
+    try {
+      quoted = mergeGuardModule.isGitMergeCommand('gh issue comment 5 --body "...git merge..."');
+      bare = mergeGuardModule.isGitMergeCommand('git merge x');
+    } catch {
+      quoted = bare = undefined;
+    }
+    assert(quoted === false,
+      '[N5-1] isGitMergeCommand(\'gh issue comment 5 --body "...git merge..."\') === false（引號內文，剝殼視圖防誤判）');
+    assert(bare === true, "[N5-2] isGitMergeCommand('git merge x') === true（裸指令）");
+  }
+
+  // -----------------------------------------------------------------------------
+  // N6 —— 對照組釘住：這三條在現況（N1 修前）已經是 deny，理由是它們各自另外命中 REFSPEC_MAIN_RE／
+  // DELETE_MAIN_RE 的全字串掃描（不依賴 lastShellToken），與 N1 的病根無關。修 N1 時若誤動了這兩條
+  // 既有 regex 的比對範圍，這裡會先破——釘住現況、防退化。
+  // -----------------------------------------------------------------------------
+  {
+    const res = runHook({ command: 'git push --force origin master', cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[N6-1] "git push --force origin master"（master 仍是最後一個 token）→ deny（現況已綠，修 N1 後仍須維持）');
+  }
+  {
+    const res = runHook({ command: 'git push origin any:master --force', cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[N6-2] "git push origin any:master --force"（REFSPEC_MAIN_RE 命中，與 lastShellToken 無關）→ deny（現況已綠，修 N1 後仍須維持）');
+  }
+  {
+    const res = runHook({ command: 'git push origin --delete master --force', cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[N6-3] "git push origin --delete master --force"（DELETE_MAIN_RE 命中，與 lastShellToken 無關）→ deny（現況已綠，修 N1 後仍須維持）');
+  }
+
+  // -----------------------------------------------------------------------------
+  // N7 —— git push（無參數）：已知設計取捨——不解析 remote.origin.*/branch.*.merge 等 git config
+  // 判斷「無參數 push 實際會推到哪個分支」，一律放行（fail-open 精神的延伸：判不出目的地就不擋）。
+  // 釘住現況、防修 N1 時被連帶改成誤擋。
+  // -----------------------------------------------------------------------------
+  {
+    const res = runHook({ command: 'git push', cwd: NEUTRAL_CWD });
+    assert(isAllow(res), '[N7-1] "git push"（無參數，目的地依賴 git config，不解析）→ 放行（已知設計取捨，釘住現況）');
+  }
+
+  // -----------------------------------------------------------------------------
+  // N8/N8b —— contract 軸實跑重現的 P1：isGitMergeCommand 的 /\bgit\s+merge\b/ 邊界對 "-" 這種非
+  // word 字元一樣成立（\b 只要求 word/非word 字元轉換，"e" 與 "-" 之間就有邊界），導致 `git merge-base`
+  // /`git merge-tree`（真正的唯讀查詢類子指令，不是合併動作）被誤判成 `git merge`。cwd 在主幹時
+  // 因而誤 deny → 現況預期紅。
+  // -----------------------------------------------------------------------------
+  {
+    const res = runHook({ command: 'git merge-base HEAD origin/master', cwd: MASTER_ROOT });
+    assert(isAllow(res), '[N8-1] cwd 所在分支=master ＋ "git merge-base HEAD origin/master"（查共同祖先，非真的合併）→ 放行（現況預期紅：\\bgit\\s+merge\\b 邊界誤中 merge-base）');
+  }
+  {
+    let mergeBase, mergeTree;
+    try {
+      mergeBase = mergeGuardModule.isGitMergeCommand('git merge-base a b');
+      mergeTree = mergeGuardModule.isGitMergeCommand('git merge-tree x');
+    } catch {
+      mergeBase = mergeTree = undefined;
+    }
+    assert(mergeBase === false, "[N8b-1] isGitMergeCommand('git merge-base a b') === false（現況預期紅：merge-base 被誤中）");
+    assert(mergeTree === false, "[N8b-2] isGitMergeCommand('git merge-tree x') === false（現況預期紅：merge-tree 被誤中）");
+  }
 } finally {
   rmSync(SANDBOX, { recursive: true, force: true });
 }

@@ -43,18 +43,25 @@ import { stripQuotedValues, readGitBranch } from './pr-gate.mjs';
 /**
  * 是不是 `gh pr merge`（任意 flag 組合）。比對前先用 stripQuotedValues 剝掉引號包住的參數值，
  * 避免字樣只出現在別的指令的引號值裡（例如 `gh issue comment --body "...gh pr merge..."`）被
- * 誤判成真的執行（仿 pr-gate.mjs 的 isPrCreateCommand）。
+ * 誤判成真的執行（仿 pr-gate.mjs 的 isPrCreateCommand）。`merge` 收尾用 `(?=\s|$)` 取代 `\b`：
+ * `\b` 在 word/非word 字元轉換處就成立（`e`→`-` 也算），為防未來出現 `gh pr merge-xxx` 這種
+ * 形狀的子指令誤中，收尾一律要求後面接空白或字串結尾（同 isGitMergeCommand 修法，N8 同病根、
+ * 順手一致處理）。
  */
 export function isPrMergeCommand(cmd) {
-  return typeof cmd === 'string' && /\bgh\s+pr\s+merge\b/.test(stripQuotedValues(cmd));
+  return typeof cmd === 'string' && /\bgh\s+pr\s+merge(?=\s|$)/.test(stripQuotedValues(cmd));
 }
 
 /**
  * 是不是 `git merge`（不判斷 branch——branch 判斷交給 classifyMergeCommand／呼叫端，因為「併到
- * 哪個分支才算高風險」需要外部脈絡）。同樣剝殼視圖判，理由同上。
+ * 哪個分支才算高風險」需要外部脈絡）。同樣剝殼視圖判，理由同上。`merge` 收尾用 `(?=\s|$)` 取代
+ * `\b`：`\b` 在 `e`→`-` 這種 word/非word 字元轉換處一樣成立，會把 `git merge-base`／
+ * `git merge-tree`／`git merge-file` 這些唯讀查詢類 plumbing 子指令（不是真的合併動作）一併
+ * 誤中；`(?=\s|$)` 只認「merge 後面接空白或字串結尾」兩者才算，這些 plumbing 指令放行，
+ * `git merge x` 這種真的合併指令不受影響。
  */
 export function isGitMergeCommand(cmd) {
-  return typeof cmd === 'string' && /\bgit\s+merge\b/.test(stripQuotedValues(cmd));
+  return typeof cmd === 'string' && /\bgit\s+merge(?=\s|$)/.test(stripQuotedValues(cmd));
 }
 
 /** branch 是不是 main/master（非字串——含 null，判不出分支時的傳入值——一律 false）。 */
@@ -63,15 +70,28 @@ export function isMainBranch(branch) {
 }
 
 /**
- * 取指令字串最後一個 shell token（尊重單/雙引號包住的整段，回傳去引號後的內容）。
- * `git push` 的目的地不論是 bare positional（`origin master`）、refspec（`origin any:master`）
- * 或 `--delete <branch>`，該值都落在指令的最後一個 token——三形不必分開解析、統一從尾端抽取即可。
- * 找不到（例如空字串）回 null。
+ * 把指令字串切成 shell token（尊重單/雙引號包住的整段，回傳去引號後的值＋是否為引號 token）。
+ * 只做字面「切詞＋去引號」，不解讀完整 shell 語意（無變數展開／管線），足夠應付本檔要判的
+ * `git push` 指令形狀。
  */
-function lastShellToken(cmd) {
-  const m = cmd.match(/(?:'([^']*)'|"([^"]*)"|(\S+))\s*$/);
-  if (!m) return null;
-  return m[1] ?? m[2] ?? m[3] ?? null;
+function tokenizeShellLike(cmd) {
+  const tokens = [];
+  const re = /'([^']*)'|"([^"]*)"|(\S+)/g;
+  let m;
+  while ((m = re.exec(cmd)) !== null) {
+    const quoted = m[1] !== undefined || m[2] !== undefined;
+    tokens.push({ value: m[1] ?? m[2] ?? m[3], quoted });
+  }
+  return tokens;
+}
+
+/**
+ * 是不是「flag token」：未被引號包住、且字面開頭是 `-`。`--x=value` 整顆算一個 flag token 一起
+ * 丟棄（不拆 `=` 兩側，值不會被單獨當成 positional 誤判）；被引號包住的 token 一律不算 flag
+ * （即使字面內容剛好以 `-` 開頭），因為引號代表呼叫端明確把它標記成一個值。
+ */
+function isFlagToken(tok) {
+  return !tok.quoted && tok.value.startsWith('-');
 }
 
 /** value（bare 分支名或 refspec 右側）是否指向 main/master（含 refs/heads/ 完整形）。 */
@@ -81,39 +101,52 @@ function isMainRefLike(value) {
   return dest === 'master' || dest === 'main' || dest === 'refs/heads/master' || dest === 'refs/heads/main';
 }
 
-// refspec「冒號右側＝main/master」：掃整段原始字串（不限最後一個 token，容忍前面還有其他 flag），
-// 右側容忍被引號包住（引號可能緊接冒號後、或收在分支名後——`"HEAD:master"` 這種整段refspec被引號
-// 包住時，冒號後直接是分支名，分支名後接收尾引號）。左側（冒號前）不論內容為何。
-const REFSPEC_MAIN_RE = /:['"]?(?:refs\/heads\/)?(?:master|main)(?=['"\s]|$)/;
-// `--delete <branch>` 形：同樣掃整段原始字串，不限最後一個 token。
-const DELETE_MAIN_RE = /--delete\s+['"]?(?:refs\/heads\/)?(?:master|main)(?=['"\s]|$)/;
-
 /**
- * 是不是「`git push` 到 main/master」。對『原始未剝殼』cmd 判：先用剝殼視圖確認是 `git push`
- * （避免指令詞誤判，同①②），destination 判定一律對原始字串——bare positional／refspec 冒號右側
- * （左側不論、容忍引號包裹整段）／`--delete` 值，三形皆算，`--delete` 不豁免。push 到 feature
- * 分支（含 `--delete feature`）放行。
+ * 是不是「`git push` 到 main/master」。子指令詞判定沿用剝殼視圖確認是 `git push`（避免指令詞
+ * 誤判，同①②）；destination 判定改**token 化 positional 解析**（取代舊版「只看字串最後一個
+ * token」＋「REFSPEC/`--delete` 全字串正則另外掃」的雙軌做法——舊版任一目的地後面夾尾隨 flag
+ * （`--force-with-lease`／`-f`／`--set-upstream`）或一次 push 多個 ref（master 不是最後一個）
+ * 就會漏判，且全字串正則會被 flag 值裡湊巧出現的「冒號+master」圖樣（如
+ * `--push-option="note:master"`）誤中）：把指令尊重引號切成 token、丟棄 flag token（含
+ * `--x=value` 整顆丟——flag 值不會被單獨當成 positional），取 `push` 之後剩下的 positional
+ * 序列 [remote, ref1, ref2, …]。ref 群（positional 中 remote 之後全部——`git push` 可一次推
+ * 多個 ref，目的地不保證是最後一個）任一命中 isMainRefLike（bare 分支名／refspec 冒號右側，
+ * 引號包住的整個 positional 已在切 token 時去引號）即算；`--delete master` 因 `--delete` 被
+ * 丟棄、`master` 落入 ref 群，三形（bare／refspec／`--delete`）統一由這條路徑涵蓋，`--delete`
+ * 不豁免。少於兩個 positional（只有 remote 或完全沒有，例如裸 `git push` 依 tracking 設定推、
+ * 目的地無法從指令本身判斷）→ false（fail-open 精神：判不出目的地就不擋）。
  */
 export function isPushToMainDestination(cmd) {
   if (typeof cmd !== 'string') return false;
   if (!/\bgit\s+push\b/.test(stripQuotedValues(cmd))) return false;
-  if (REFSPEC_MAIN_RE.test(cmd)) return true;
-  if (DELETE_MAIN_RE.test(cmd)) return true;
-  return isMainRefLike(lastShellToken(cmd));
+
+  const tokens = tokenizeShellLike(cmd);
+  const pushIdx = tokens.findIndex((t) => !t.quoted && t.value === 'push');
+  if (pushIdx === -1) return false; // 理論上不會發生（上面已確認剝殼視圖含 "git push"），防呆放行
+
+  const positionals = tokens.slice(pushIdx + 1).filter((t) => !isFlagToken(t)).map((t) => t.value);
+  if (positionals.length < 2) return false; // 只有 remote（或完全沒有）：無目的地可判
+
+  return positionals.slice(1).some(isMainRefLike);
 }
+
+// `/merge` 路徑右邊界：後面要接引號／空白／`?`（query string 起點）／字串結尾才算，避免
+// `/pulls/1/mergeable`（查 mergeable 狀態的合法唯讀端點，字面恰好以 "/merge" 開頭）被裸
+// `includes('/merge')` 誤中。
+const API_MERGE_PATH_RE = /\/merge(?:["'\s?]|$)/;
 
 /**
  * 是不是「`gh api` 用 PUT 打 `/pulls/.../merge` 路徑」。`gh api`／PUT 判定用剝殼視圖（避免指令詞
  * 誤判，同①②③的「是不是這個子指令」判定），路徑判定對原始字串（AND、不要求 `/pulls/` 與 `/merge`
  * 鄰接、容忍路徑被引號包住——剝殼視圖會把引號內路徑一併消掉，造成偽陰性）。GET（無 -X/--method）
- * 或路徑非 `/merge` 放行。
+ * 或路徑非 `/merge`（含 `/mergeable` 這種右邊界不對的近似路徑）放行。
  */
 export function isApiPutMergeCommand(cmd) {
   if (typeof cmd !== 'string') return false;
   const stripped = stripQuotedValues(cmd);
   if (!/\bgh\s+api\b/.test(stripped)) return false;
   if (!/(^|\s)(-X\s+PUT|--method[\s=]PUT)(?=\s|$)/.test(stripped)) return false;
-  return cmd.includes('/pulls/') && cmd.includes('/merge');
+  return cmd.includes('/pulls/') && API_MERGE_PATH_RE.test(cmd);
 }
 
 /**
@@ -164,6 +197,14 @@ function denyWith(reason) {
 /**
  * PreToolUse(Bash|PowerShell) hook 入口：四型高風險合併指令一律 deny；其餘放行。fail-open：
  * payload 壞 / 缺 command / 判不出分支一律放行。
+ *
+ * 判定順序刻意把「便宜判定」放前面：四型分類中只有 git-merge-main 需要 branch（readGitBranch 有
+ * 檔案系統成本——讀 .git／沿祖先目錄上溯），其餘三型（pr-merge／push-main／api-put-merge）與
+ * branch 無關。故先用零 IO 成本的 isGitMergeCommand 剝殼判定「這是不是 git merge 指令」，只有
+ * 命中才呼叫 readGitBranch；絕大多數 Bash/PowerShell 呼叫（不是 git merge 的任何指令，這個
+ * matcher 攔的是全部 Bash/PowerShell 呼叫）完全不觸發檔案系統存取。行為與「一律先讀 branch」
+ * 等價：classifyMergeCommand 只有在 isGitMergeCommand(cmd) 為真時才會用到 branch 參數，沒命中
+ * 時傳 null 進去效果相同（該分支的 isMainBranch 檢查根本不會被求值）。
  */
 function main() {
   // 先無條件讀滿 stdin 再判（與家族 sibling 同序，避免大 payload EPIPE）。
@@ -179,8 +220,11 @@ function main() {
   const command = payload?.tool_input?.command;
   if (typeof command !== 'string') return; // 缺 command → 放行
 
-  const cwd = typeof payload?.cwd === 'string' ? payload.cwd : process.cwd();
-  const branch = readGitBranch(cwd); // 判不出（無 .git／detached HEAD）→ null，②自然放行
+  let branch = null;
+  if (isGitMergeCommand(command)) {
+    const cwd = typeof payload?.cwd === 'string' ? payload.cwd : process.cwd();
+    branch = readGitBranch(cwd); // 判不出（無 .git／detached HEAD）→ null，②自然放行
+  }
 
   const kind = classifyMergeCommand(command, branch);
   if (!kind) return;
