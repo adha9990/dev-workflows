@@ -137,7 +137,7 @@ flowchart TD
 | **skill** | `goal`（1）｜**agent** 0（主線一次一問訪談） |
 | **處理什麼** | 把模糊需求逼成「明確完工定義 + 可驗證停止條件」 |
 | **機制** | **逐句掃整張 issue**抽每個 requirement（不只看驗收標準段）→ **一次一問**訪談（記 HYPOTHESIS+CONFIDENCE、should-want 偵測）→ restate **六欄 DoD**（Outcome / User / Why now / Success / Constraint / Out of scope）+ 停止條件 |
-| **策略** | 95% 信心就停；restate 六欄後做**一次 DoD 確認**再進 explore（單次對齊、非反覆逐欄逼問）。**issue 寫的實作做法 / 套件記成「建議」不是「需求」**，留給 explore 評估 |
+| **策略** | 95% 信心就停；restate 六欄給使用者看後**直接進 explore**（routine 轉場、非 gate；只有具體 scope 取捨 / 內容型交付的載體 / 需求講不清才停下問）。**issue 寫的實作做法 / 套件記成「建議」不是「需求」**，留給 explore 評估 |
 
 ---
 
@@ -197,7 +197,7 @@ flowchart LR
 |---|---|
 | **skill** | `verify`（1）｜**agent** **依風險 0～6 核心（步驟 1 風險梯）+ 0～10 條件式（含專案宣告觸發的 multi-user）+ N 個 finding-validator**（同一回合並行） |
 | **處理什麼** | 合併前把關：多個獨立視角各審一軸，再二輪驗證 findings |
-| **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`）· **作者已留痕的決定不算 finding** · **獨立安全網非第一道品質關**（標準已在 build shift-left 套用，verify 複查 + 抓盲點） |
+| **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`、狀態值只引用工具實際回傳）· **作者已留痕的決定不算 finding** · **獨立安全網非第一道品質關**（標準已在 build shift-left 套用，verify 複查 + 抓盲點） |
 
 ```mermaid
 flowchart TD
