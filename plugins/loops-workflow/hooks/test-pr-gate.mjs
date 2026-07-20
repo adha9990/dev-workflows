@@ -805,8 +805,11 @@ try {
     const argsOut = join(SANDBOX, 'fake-gh-argv.txt');
     const runRealSpawn = (json) => {
       rmSync(argsOut, { force: true });
+      // 不注入 LOOPS_PR_CONFLICT_STUB → readMergeability 走真 execFileSync 分支（非 stub 短路）。
+      // 本測試「父」行程的 process.env 本就不含它——C 系列的 stub 是塞給「子」行程 env、非父行程，
+      // 故 `...process.env` 自然無 stub、不必再 delete。走的是不是真 spawn 由 G2 的 argv 落檔獨立
+      // 把關：若誤走 stub，假 gh 不會被 spawn、argv 檔為空 → G2 紅，不會假綠。
       const env = { ...process.env, PATH: `${binDir}:${process.env.PATH}`, LOOPS_PR_CONFLICT_GATE: '1', FAKE_GH_JSON: json, FAKE_GH_ARGS_OUT: argsOut };
-      delete env.LOOPS_PR_CONFLICT_STUB; // 確保不注入 stub → 逼真 execFileSync 路徑
       return spawnSync(process.execPath, [HOOK_SCRIPT], {
         input: JSON.stringify({ cwd: WT_CWD_FULL, tool_input: { command: 'gh pr comment --body x' } }),
         cwd: NEUTRAL_CWD, env, encoding: 'utf8',
