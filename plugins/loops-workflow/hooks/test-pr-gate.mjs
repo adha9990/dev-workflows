@@ -40,7 +40,7 @@
 //   （worktree-guard.mjs）、flagEnabled（hook-flags.mjs）。
 
 import { tmpdir } from 'node:os';
-import { mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync, readFileSync, existsSync, chmodSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -787,6 +787,44 @@ try {
     assert(isDeny(res) && reasonOf(res).includes('verify'),
       '[F5-2] LOOPS_PR_REALRUN_GATE=0 只關④；①②③ 仍 defaultOn → 缺 04-verify 的 create 仍在閘① deny（證明兩 flag 互不牽連）');
   }
+
+  // ===========================================================================
+  // G —— 閘⑤ 真 spawn 端到端（假 gh binary，非 stub）：釘死 execFileSync 真的接進 main() 的 deny
+  //     路徑、且傳給 gh 的 argv 精確。stub 短路 spawn，C 系列證不到「execFileSync 真跑 + argv 正確 +
+  //     解析真 subprocess 輸出」；本組放一個真的可執行 `gh`（印 canned JSON、把收到的 argv 落檔）到
+  //     PATH 前綴，逼 readMergeability 走 execFileSync 真路徑。POSIX 專屬（Windows 的 shell:false
+  //     execFileSync 只認 gh.exe、假 sh 腳本無法當 gh，故該平台跳過——CI ubuntu 會跑到，是權威訊號）。
+  // ===========================================================================
+  if (process.platform !== 'win32') {
+    const binDir = join(SANDBOX, 'fakebin');
+    mkdirSync(binDir, { recursive: true });
+    const ghPath = join(binDir, 'gh');
+    // 假 gh：把收到的所有 argv（$*）落檔供斷言，再把 env FAKE_GH_JSON 原樣印到 stdout 供 hook 解析。
+    writeFileSync(ghPath, ['#!/bin/sh', 'printf "%s" "$*" >> "$FAKE_GH_ARGS_OUT"', 'printf "%s" "$FAKE_GH_JSON"', ''].join('\n'));
+    chmodSync(ghPath, 0o755);
+    const argsOut = join(SANDBOX, 'fake-gh-argv.txt');
+    const runRealSpawn = (json) => {
+      rmSync(argsOut, { force: true });
+      const env = { ...process.env, PATH: `${binDir}:${process.env.PATH}`, LOOPS_PR_CONFLICT_GATE: '1', FAKE_GH_JSON: json, FAKE_GH_ARGS_OUT: argsOut };
+      delete env.LOOPS_PR_CONFLICT_STUB; // 確保不注入 stub → 逼真 execFileSync 路徑
+      return spawnSync(process.execPath, [HOOK_SCRIPT], {
+        input: JSON.stringify({ cwd: WT_CWD_FULL, tool_input: { command: 'gh pr comment --body x' } }),
+        cwd: NEUTRAL_CWD, env, encoding: 'utf8',
+      });
+    };
+    {
+      const res = runRealSpawn('{"mergeable":"CONFLICTING","mergeStateStatus":"CLEAN"}');
+      assert(isDeny(res) && reasonOf(res).includes('衝突'),
+        '[G1] 真 execFileSync spawn 假 gh 回 CONFLICTING → 閘⑤ deny（證明 spawn+解析真 subprocess 輸出+判定確實接進 main()，非只走 stub）');
+      const argv = existsSync(argsOut) ? readFileSync(argsOut, 'utf8') : '';
+      assert(argv === 'pr view --json mergeable,mergeStateStatus',
+        `[G2] execFileSync 傳給 gh 的 argv 精確 = "pr view --json mergeable,mergeStateStatus"（實收："${argv}"）——證明 GH_MERGEABILITY_ARGS 真的送到 gh，欄名拼錯此條會紅`);
+    }
+    {
+      const res = runRealSpawn('{"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN"}');
+      assert(isAllow(res), '[G3] 真 spawn 假 gh 回 MERGEABLE+CLEAN → 閘⑤ allow（解析真輸出的非衝突路徑）');
+    }
+  }
 } finally {
   rmSync(SANDBOX, { recursive: true, force: true });
 }
@@ -795,5 +833,5 @@ const total = passed + failed.length;
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
 console.log(`(共 ${total} 條斷言：P1–P8／EXTRA／WIN＝#132 三閘與接線、Q1–Q8＝#132 verify 修正輪邊界、`
   + `R＝#152 閘④ real-run receipt、C＝#152 閘⑤ 合併衝突、N＝#152 新純函式直測、`
-  + `F5＝三 flag 互不牽連；R5b/c·N9–N11·C10/11·F5＝#152 verify 修正輪)`);
+  + `F5＝三 flag 互不牽連、G＝閘⑤ 真 gh spawn 端到端（假 gh，POSIX/CI）；R5b/c·N9–N11·C10/11·F5·G＝#152 verify/wiring 修正輪)`);
 process.exit(failed.length > 0 ? 1 : 0);
