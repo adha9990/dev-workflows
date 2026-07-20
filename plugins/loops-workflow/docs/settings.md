@@ -17,7 +17,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 
 ## 預設開（想關才需要設，值填 `"0"`）
 
-這 10 個是安全防護／觀測類，裝好 plugin 就生效，**只有字面 `"0"` 能關**：
+這 12 個是安全防護／觀測類，裝好 plugin 就生效，**只有字面 `"0"` 能關**：
 
 | 參數 | 幫你做什麼 | 想關掉 |
 |---|---|---|
@@ -30,6 +30,8 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 | `LOOPS_WORKTREE_GUARD` | 擋住「在主 checkout 直接 `git checkout -b`／`switch -c` 開 loop 分支」（loop 的 code 應在隔離 worktree 做）——擋下時指路 `git worktree add` | `"LOOPS_WORKTREE_GUARD": "0"` |
 | `LOOPS_COMMENT_GUARD` | 擋住對外訊息（comment／issue／PR 的建立與編輯）沒先讀過規範就送出，外加 @點名真人、客套開場、`.loops/` 路徑外洩、亂碼、整段技術英文未轉譯成中文（comment-policy 機械化，#131 v2） | `"LOOPS_COMMENT_GUARD": "0"` |
 | `LOOPS_PR_GATE` | 在 loop 分支上擋住「還沒過三閘就 `gh pr create`」——①build 完沒先跑 verify ②沒帶 `--draft`／`--assignee @me` ③issue 編號 slug 的 PR body 沒行首寫 `Closes #issue`；非 loop 分支不管（#132） | `"LOOPS_PR_GATE": "0"` |
+| `LOOPS_PR_REALRUN_GATE` | 在 loop 分支上，`gh pr create`／`gh pr ready` 前要求已有真機驗證截圖——`.loops/<slug>/deliverables/real-run/` 下有截圖（`*.png`/`*.jpg`/`*.jpeg`）或非空 `no-ui.md`（純後端／純文檔宣告無畫面可截）才放行；jsdom/單元測試綠 ≠ 真機正確（#152） | `"LOOPS_PR_REALRUN_GATE": "0"` |
+| `LOOPS_PR_CONFLICT_GATE` | 在 loop 分支上，`gh pr create`／`ready`／`comment` 前查 GitHub 已算好的 mergeability（`gh pr view --json mergeable,mergeStateStatus`），`CONFLICTING`／`DIRTY` 才擋、要求先解衝突；判不出／無 PR／gh 錯誤一律放行；指令帶顯式 PR 號則跳過（#152） | `"LOOPS_PR_CONFLICT_GATE": "0"` |
 | `LOOPS_MERGE_GUARD` | 擋住「合併回主幹」類指令——不限 loop 分支：`gh pr merge`／目前分支是 main/master 時的 `git merge`／`git push` 到 main/master／`gh api` PUT `/pulls/.../merge`，四型任一命中即擋，導向讓人類親自執行或按下合併鍵（#133） | `"LOOPS_MERGE_GUARD": "0"` |
 
 ## 預設關（想用才需要設，值填 `"1"`）
@@ -54,4 +56,5 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 
 - `LOOPS_SANDBOX_RUNNER`（`docker`/`podman`/`none`）：eval sandbox 用哪個容器執行器——跑 eval harness 的人才需要，詳 `references/eval-harness.md`。
 - `LOOPS_LOOP_DRIVER_GATE_SCRIPT`：loop-driver 測試注入用的內部參數，不要在正常使用設定。
+- `LOOPS_PR_CONFLICT_STUB`：pr-gate 閘⑤ 測試注入用的內部參數——有值時把它當「`gh pr view` 會印的原始 JSON」餵給 mergeability 判定（跳過真 gh spawn），供 `test-pr-gate.mjs` 黑箱測試用，不要在正常使用設定。
 - 你可能在文檔看到的 `LOOPS_ROOT`：那是「主 repo 根目錄」的**代稱**（文檔與錯誤訊息用語），不是環境變數；`CLAUDE_CODE_SESSION_ID` 由 Claude Code 自動帶入，不用手設。

@@ -15,15 +15,16 @@
 │   ├── 02-plan.md
 │   ├── 03-build.md
 │   └── 04-verify.md
-└── deliverables/           # loop 結束的收尾產出（無編號、完工才產）
+└── deliverables/           # loop 的收尾 / 驗收產出（無編號）
     ├── explain.md          # 理解包（實作導讀 + ownership 自測 + 設計 recap）
     ├── checklist.md        # 合併前手動驗證 + 已知取捨確認清單
-    └── cost.md             # 成本 / 規模輪廓（展開 outcome 度量）
+    ├── cost.md             # 成本 / 規模輪廓（展開 outcome 度量）
+    └── real-run/           # 真機驗證證據（截圖 *.png/*.jpg，或非空 no-ui.md）——驗證階段產、非三份完工文件
 ```
 
 - **`loop.md` 留在 loop 根**（不進子資料夾）——它是 resume 的唯一入口。
 - **`stages/`**：goal/explore/plan/build/verify 各寫自己那份 `NN-<stage>.md`（帶編號＝流程順序、可排序）。
-- **`deliverables/`**：iterate 完工才產、**無編號**（它們是最終交付、不是流程步驟）。完整迴圈**一律三份齊全**（見 `skills/iterate` §6）；修正型不產。
+- **`deliverables/`**：放兩類收尾產出——①**三份完工文件**（`explain.md`＋`checklist.md`＋`cost.md`）：iterate 完工才產、**無編號**、完整迴圈一律三份齊全（見 `skills/iterate` §6）、修正型不產；②**`real-run/` 真機驗證證據**：驗證改動時把真機截圖（或非視覺 loop 的非空 `no-ui.md`）存這裡，**在開 PR 之前**就產（不是完工才產），是 pr-gate 閘④ 查驗的 receipt（`LOOPS_PR_REALRUN_GATE`）。兩類都隨 `.loops/` gitignore、不入庫。`real-run/` 是**驗證證據、非臨時 scratch**，收尾清理時不當截圖 scratch 一併刪（見 `skills/iterate` 收尾清理）。
 - **所有 loop 暫存與產出一律留 `.loops/`**，不塞進 PR/issue comment、不入庫（`.loops/` 應被 gitignore）。對外 comment 是另外先寫 tmp 草稿 post 的東西、不放 `.loops/`。
 
 ## loop.md 的 journal 區段
@@ -76,6 +77,8 @@ loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** o
 > | `LOOPS_WORKTREE_GUARD` | 開 | AGENTS 規則 9「主 checkout 不 checkout -b」機械化、已踩過坑 |
 > | `LOOPS_COMMENT_GUARD` | 開 | comment-policy §6/§8（@點名/客套）機械化、對外 P0 面已出過包 |
 > | `LOOPS_PR_GATE` | 開（#132） | loop 分支上「build 完先 verify／--draft+--assignee @me／Closes #issue」三閘機械化，換取合併前品質底線一致 |
+> | `LOOPS_PR_REALRUN_GATE` | 開（#152） | loop 分支上 `gh pr create`／`ready` 前要求 `deliverables/real-run/` 有真機截圖（或非空 `no-ui.md`）——jsdom 綠≠真機正確、dogfood 反覆漏真機驗證；獨立 flag 讓這道最新、friction 較高的閘可單獨關、不牽連①②③ |
+> | `LOOPS_PR_CONFLICT_GATE` | 開（#152） | loop 分支上 `gh pr create`／`ready`／`comment` 前查 GitHub mergeability，明確 `CONFLICTING`／`DIRTY` 才擋；獨立 flag（家族唯一 spawn `gh`、觸發面含 comment、操作特性與檔案閘不同）——判不出／無 PR／gh 錯誤一律 fail-open |
 > | `LOOPS_MERGE_GUARD` | 開（#133） | 「合併回主幹是 human gate」機械化，不限 loop 分支，四型合併類指令一律擋 |
 > | `LOOPS_STOP_GATE` | **opt-in**（#87 評估後維持） | 開＝自動執行 repo 的 gate.config 命令（#17 RCE 面）；補發現性提示消滅資訊差 |
 > | `LOOPS_LOOP_DRIVER` | **opt-in**（#99） | 家族首支 block hook——殺手鍵獨立性（要 auto 推進未必要機械續跑）；三層 opt-in（flag∧state∧auto 語意）為輔 |

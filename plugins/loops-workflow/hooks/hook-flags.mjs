@@ -1,6 +1,6 @@
 // hook-flags.mjs —— loops-workflow 全部 opt-in/opt-out 環境旗標的單一真相源（issue #87「hook 預設值翻轉」）。
 // 過去各 hook 各自散抄 `process.env.LOOPS_X === '1'`（optIn）或 `!== '0'`（defaultOn），語意分散、
-// 容易漂移。本檔把「13 個 flag 各自屬於 defaultOn 還是 optIn」與「怎麼判斷開關」都收斂到這一處：
+// 容易漂移。本檔把「15 個 flag 各自屬於 defaultOn 還是 optIn」與「怎麼判斷開關」都收斂到這一處：
 //   - FLAG_DEFAULTS：分類表（值即契約），逐 flag 標記 defaultOn: true/false。
 //   - flagEnabled(name, env)：純函式，只吃傳入的 env 參數（不直接讀 process.env），方便測試與呼叫端
 //     一致（呼叫端仍是 `flagEnabled('LOOPS_X', process.env)`）。
@@ -12,7 +12,7 @@
 
 // ── 對外契約：13 個 flag 的分類表（值即契約，逐欄釘死）────────────────────────────
 export const FLAG_DEFAULTS = {
-  // defaultOn（10）：安全防護 / 觀測類，預設啟用，僅字面 '0' 可關閉。
+  // defaultOn（12）：安全防護 / 觀測類，預設啟用，僅字面 '0' 可關閉。
   LOOPS_PATH_CONTAINMENT: { defaultOn: true },
   LOOPS_WORKTREE_GUARD: { defaultOn: true },
   LOOPS_COST_TRACKER: { defaultOn: true },
@@ -22,6 +22,8 @@ export const FLAG_DEFAULTS = {
   LOOPS_CONFIG_PROTECTION: { defaultOn: true },
   LOOPS_COMMENT_GUARD: { defaultOn: true },
   LOOPS_PR_GATE: { defaultOn: true },
+  LOOPS_PR_REALRUN_GATE: { defaultOn: true },
+  LOOPS_PR_CONFLICT_GATE: { defaultOn: true },
   LOOPS_MERGE_GUARD: { defaultOn: true },
   // optIn（3）：會自動執行 repo 控制的命令 / 注入類 / 主動 block 續跑，預設關閉，僅字面 '1' 可開啟。
   LOOPS_STOP_GATE: { defaultOn: false },
