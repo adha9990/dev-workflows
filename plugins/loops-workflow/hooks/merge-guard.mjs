@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // merge-guard.mjs —— loops-workflow PreToolUse(Bash|PowerShell) deny hook：機械化「合併回主幹是人核可
-// （human gate）的動作，不能由 Claude 直接執行」（issue #133）。與 pr-gate.mjs（擋 loop 分支上未過三閘
-// 的 `gh pr create`）是姊妹規則：那個管「開 PR 前要過的閘」、本檔管「合併這個動作本身要人核可」——
+// （human gate）的動作，不能由 Claude 直接執行」（issue #133）。與 pr-gate.mjs（擋 loop 分支上未過閘的
+// `gh pr create`／`ready`／`comment`，#152 起五閘）是姊妹規則：那個管「開 PR / 轉正 / 留言前要過的閘」、本檔管「合併這個動作本身要人核可」——
 // 不限 loop 分支，任何 cwd 偵測到以下四型指令一律 deny：
 //   ① `gh pr merge`（任意 flag 組合）——PR 合併鍵要人類按，不能 Claude 直接呼叫。
 //   ② cwd 目前所在分支是 main/master 時的 `git merge <ref>`——把別的分支併入主幹前要有人核可；

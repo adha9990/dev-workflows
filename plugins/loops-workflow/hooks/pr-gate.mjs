@@ -79,29 +79,39 @@ export function stripQuotedValues(cmd) {
 }
 
 /**
- * 這條指令是不是 `gh pr create`（非此一律放行，判定排在最前——即使 cwd 本身三閘全違規也不管）。
- * 比對前先用 stripQuotedValues 剝掉引號包住的參數值，避免「gh pr create」字樣只是出現在別的指令
- * 的引號值裡（例如 `gh issue comment` 的 `--body` 內文提到這幾個字）被誤判成真的 gh pr create
- * 子指令。注意：只有這裡的偵測用剝殼視圖——後續 hasDraftFlag / hasAssigneeMe / extractCommentBody
- * 等仍作用於原始字串，不能連真正的旗標與 body 內容都被剝掉。
+ * 這條指令有沒有一段「命令段開頭」是 `gh pr <sub>`。兩道防誤判：
+ *   ①先 stripQuotedValues 剝掉引號包住的參數值——避免字樣只出現在別的指令的引號值裡（例如
+ *     `gh issue comment` 的 `--body` 內文提到這幾個字）被誤判。
+ *   ②要求 `gh` 出現在**命令段開頭**（字串開頭，或 `;`／`&`／`|`／換行／`(`／`` ` ``／`{` 這些命令
+ *     分隔符之後）——避免未加引號的 heredoc／`-F -` 本文（如 `git commit` 的 message body 行中提到
+ *     「gh pr comment 流程」）被當成真的在執行 `gh pr <sub>`（#152 verify 實測踩過：commit 訊息含
+ *     這幾個字被誤擋）。收尾 `(?=\s|$)` 防 `create-xxx`／`ready-xxx` 這類未來子指令誤中。
+ * 注意：只有這裡的偵測用剝殼視圖——後續 hasDraftFlag / hasAssigneeMe / extractCommentBody 等仍
+ * 作用於原始字串，不能連真正的旗標與 body 內容都被剝掉。
+ */
+function prSubcommandAtSegmentStart(cmd, sub) {
+  if (typeof cmd !== 'string') return false;
+  // 收尾 lookahead 允許空白／字串結尾／shell 分隔符（`)` `;` `&` `|`）——後者涵蓋 `(gh pr ready)`
+  // 這類子 shell 包住的情形；仍擋 `ready-xxx`／`create-xxx`（`-` 不在收尾集合）這類未來子指令誤中。
+  return new RegExp(String.raw`(?:^|[\n;&|(\`{])\s*gh\s+pr\s+${sub}(?=[\s)|;&]|$)`).test(stripQuotedValues(cmd));
+}
+
+/**
+ * 這條指令是不是在命令段開頭執行 `gh pr create`（非此一律放行，判定排在最前——即使 cwd 本身三閘
+ * 全違規也不管）。
  */
 export function isPrCreateCommand(cmd) {
-  return typeof cmd === 'string' && /\bgh\s+pr\s+create\b/.test(stripQuotedValues(cmd));
+  return prSubcommandAtSegmentStart(cmd, 'create');
 }
 
-/**
- * 是不是 `gh pr ready`（轉 draft PR 為 Ready）。同樣剝殼視圖判、收尾 `(?=\s|$)` 防未來 `ready-xxx`
- * 子指令誤中（比照 merge-guard 的 `merge` 收尾慣例）。
- */
+/** 是不是在命令段開頭執行 `gh pr ready`（轉 draft PR 為 Ready）。 */
 export function isPrReadyCommand(cmd) {
-  return typeof cmd === 'string' && /\bgh\s+pr\s+ready(?=\s|$)/.test(stripQuotedValues(cmd));
+  return prSubcommandAtSegmentStart(cmd, 'ready');
 }
 
-/**
- * 是不是 `gh pr comment`（對 PR 留言）。剝殼視圖判——避免 `--body "...gh pr comment..."` 內文誤中。
- */
+/** 是不是在命令段開頭執行 `gh pr comment`（對 PR 留言）。 */
 export function isPrCommentCommand(cmd) {
-  return typeof cmd === 'string' && /\bgh\s+pr\s+comment(?=\s|$)/.test(stripQuotedValues(cmd));
+  return prSubcommandAtSegmentStart(cmd, 'comment');
 }
 
 /**
@@ -172,9 +182,11 @@ export function isMergeConflict(info) {
 }
 
 /**
- * 指令是否帶「顯式 PR 目標」（子指令 ready/comment 後緊接一個非 flag 的 positional token：PR 號 /
- * url / branch，如 `gh pr comment 123`）。有的話針對的未必是當前分支的 PR，閘⑤ 該跳過（查當前分支
- * mergeability 會誤擋）。create 永遠沒有 PR 目標（新建當前分支的 PR）→ 一律 false。
+ * 指令是否指向「未必是當前分支的 PR」——有的話閘⑤ 該跳過（查當前分支 mergeability 會誤擋）。兩種情形：
+ *   ①子指令 ready/comment 後緊接一個非 flag 的 positional token（PR 號 / url / branch，如
+ *     `gh pr comment 123`）；②帶 `-R` / `--repo`（跨 repo 目標，絕不會是當前分支的 PR，即使 PR 號
+ *     positional 被夾在 flag 之後也涵蓋，如 `gh pr comment --repo o/r 123`）。
+ * create 永遠沒有 PR 目標（新建當前分支的 PR）→ 一律 false。
  * 尊重引號切 token（`gh pr comment "123"` 也算顯式目標）；被引號包住的內文不會被誤拆（整段一顆
  * token），故 `--body "...gh pr comment 5..."` 不會誤判。
  */
@@ -186,6 +198,12 @@ export function hasExplicitPrTarget(cmd, kind) {
   while ((m = re.exec(cmd)) !== null) {
     tokens.push({ value: m[1] ?? m[2] ?? m[3], quoted: m[1] !== undefined || m[2] !== undefined });
   }
+  // ②跨 repo：任一 flag token 是 -R / --repo / --repo=…（引號包住的不算 flag）→ 顯式目標。
+  const hasRepoFlag = tokens.some(
+    (t) => !t.quoted && (t.value === '-R' || t.value === '--repo' || t.value.startsWith('--repo=')),
+  );
+  if (hasRepoFlag) return true;
+  // ①子指令緊接的下一個 token 是非 flag positional → 顯式目標。
   for (let i = 0; i + 2 < tokens.length; i += 1) {
     if (tokens[i].value === 'gh' && tokens[i + 1].value === 'pr' && tokens[i + 2].value === kind) {
       const next = tokens[i + 3];
@@ -306,9 +324,10 @@ export function readGitBranch(cwd) {
 }
 
 /**
- * 閘④：`.loops/<slug>/deliverables/real-run/` 是否已有有效真機驗證 receipt——任一截圖檔
- * （*.png/*.jpg/*.jpeg），或任一**非空**的 `no-ui*` 標記檔即算有。目錄不存在 / 讀不到 / 全空
- * → false（→ deny）。非空判定（statSync size>0）擋純 `touch no-ui.md` 繞過、逼作者寫一行理由。
+ * 閘④：`.loops/<slug>/deliverables/real-run/` 是否已有有效真機驗證 receipt——任一**非空的一般檔**
+ * 且檔名是截圖（*.png/*.jpg/*.jpeg）或 `no-ui*` 標記。目錄不存在 / 讀不到 / 全空 → false（→ deny）。
+ * **非空一般檔判定（statSync isFile && size>0）對截圖與 no-ui 一視同仁**——擋 `touch shot.png` 空檔
+ * 或同名子目錄（`mkdir shot.png`）這類「假裝有跑過」的繞過，逼真的產出截圖 / 寫一行理由。
  */
 export function realRunReceiptExists(loopRoot, slug) {
   const dir = join(loopRoot, '.loops', slug, 'deliverables', 'real-run');
@@ -319,14 +338,12 @@ export function realRunReceiptExists(loopRoot, slug) {
     return false; // 目錄不存在 / 讀不到 → 無 receipt
   }
   for (const name of names) {
-    if (isScreenshotFile(name)) return true;
-    if (isNoUiMarker(name)) {
-      try {
-        const st = statSync(join(dir, name));
-        if (st.isFile() && st.size > 0) return true;
-      } catch {
-        // 這個 marker 讀不到 → 不當有效 receipt，繼續看下一個
-      }
+    if (!isScreenshotFile(name) && !isNoUiMarker(name)) continue;
+    try {
+      const st = statSync(join(dir, name));
+      if (st.isFile() && st.size > 0) return true; // 非空一般檔才算 receipt
+    } catch {
+      // 這個項目讀不到 → 不當有效 receipt，繼續看下一個
     }
   }
   return false;
@@ -339,6 +356,11 @@ export function realRunReceiptExists(loopRoot, slug) {
  * 兩條路徑共用下面同一段 JSON.parse（讓解析路徑受測、非注入已解析結果）。gh 未安裝 / 無對應 PR /
  * 非零離開 / timeout / 非 JSON → null（→ 放行）。hook spawn 的 gh 子行程不遞迴觸發 PreToolUse。
  */
+// 閘⑤ 查 mergeability 的 gh argv（抽成 export 常數：讓測試釘死子指令與 `--json` 欄名，避免把
+// `mergeable`／`mergeStateStatus` 拼錯或改壞而 stub 測試照樣綠——stub 會短路真 spawn，不 pin 這條就
+// 無斷言守住真實 argv）。欄名 = isMergeConflict 讀的兩欄；「不帶 PR 號」讓 gh 從 cwd 當前分支推斷。
+export const GH_MERGEABILITY_ARGS = ['pr', 'view', '--json', 'mergeable,mergeStateStatus'];
+
 export function readMergeability(cwd, env = process.env) {
   let raw;
   const stub = env?.LOOPS_PR_CONFLICT_STUB;
@@ -346,7 +368,7 @@ export function readMergeability(cwd, env = process.env) {
     raw = stub; // 測試注入：gh 會印的原始 JSON 字串
   } else {
     try {
-      raw = execFileSync('gh', ['pr', 'view', '--json', 'mergeable,mergeStateStatus'], {
+      raw = execFileSync('gh', GH_MERGEABILITY_ARGS, {
         cwd,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore'],

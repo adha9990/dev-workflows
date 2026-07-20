@@ -218,6 +218,10 @@ try {
   const WT_CWD_NOUI = mkGate4Fixture('wt-realrun-noui', 'realrun-noui', (r, s) => { const d = realRunDir(r, s); mkdirSync(d, { recursive: true }); writeFileSync(join(d, 'no-ui.md'), '純 hook 改動、無可見畫面；已跑 hook 單元測試驗證。'); });
   // real-run 內只有「空」no-ui.md（0 bytes）→ 閘④ deny（P2-5：純 touch 不算 receipt）。
   const WT_CWD_EMPTYNOUI = mkGate4Fixture('wt-realrun-emptynoui', 'realrun-emptynoui', (r, s) => { const d = realRunDir(r, s); mkdirSync(d, { recursive: true }); writeFileSync(join(d, 'no-ui.md'), ''); });
+  // real-run 內只有「空」shot.png（0 bytes，等同 touch）→ 閘④ deny（verify F1：截圖與 no-ui 一致擋純 touch）。
+  const WT_CWD_EMPTYPNG = mkGate4Fixture('wt-realrun-emptypng', 'realrun-emptypng', (r, s) => { const d = realRunDir(r, s); mkdirSync(d, { recursive: true }); writeFileSync(join(d, 'shot.png'), ''); });
+  // real-run 內只有「同名子目錄」shot.png（mkdir 而非檔案）→ 閘④ deny（isFile 守衛，verify F1）。
+  const WT_CWD_DIRPNG = mkGate4Fixture('wt-realrun-dirpng', 'realrun-dirpng', (r, s) => { mkdirSync(join(realRunDir(r, s), 'shot.png'), { recursive: true }); });
 
   // Body 內容（多行，含/不含行首 Closes）＋ --body-file 用的 tmp 檔。
   const OK_BODY = '## 成果\n\nCloses #210\n\n修好了 A、B、C 三個問題。';
@@ -630,6 +634,14 @@ try {
     assert(isDeny(res), '[R5] create：real-run 內只有「空」no-ui.md（0 bytes）→ 閘④ deny（純 touch 不算 receipt）');
   }
   {
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_EMPTYPNG });
+    assert(isDeny(res), '[R5b] create：real-run 內只有「空」shot.png（0 bytes，touch）→ 閘④ deny（截圖與 no-ui 一致擋純 touch，verify F1）');
+  }
+  {
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_DIRPNG });
+    assert(isDeny(res), '[R5c] create：real-run 內只有「同名子目錄」shot.png（mkdir 非檔案）→ 閘④ deny（isFile 守衛，verify F1）');
+  }
+  {
     const res = runHook({ command: 'gh pr ready', cwd: WT_CWD_NORUN });
     assert(isDeny(res), '[R6] ready：無 real-run receipt → 閘④ 在 ready 也生效 deny');
     assert(reasonOf(res).includes('real-run'), '[R6-2] reason 含 real-run 語意');
@@ -693,6 +705,17 @@ try {
     const res = runHook({ command: 'gh pr comment --body "x"', cwd: MAIN_ROOT_MASTER, env: CONFLICT_ON('{"mergeable":"CONFLICTING"}') });
     assert(isAllow(res), '[C9] comment：非 loop 分支（HEAD=master）→ 閘⑤ 不生效、放行');
   }
+  {
+    // ready + 衝突端到端（S6–S9 明列 ready 支，補齊）：有 receipt 過閘④、CONFLICTING → 閘⑤ deny。
+    const res = runHook({ command: 'gh pr ready', cwd: WT_CWD_FULL, env: CONFLICT_ON('{"mergeable":"CONFLICTING","mergeStateStatus":"CLEAN"}') });
+    assert(isDeny(res), '[C10] ready：過閘④後、mergeable=CONFLICTING → 閘⑤ deny（ready 支端到端）');
+    assert(reasonOf(res).includes('衝突'), '[C10-2] reason 含「衝突」語意');
+  }
+  {
+    // 顯式跨 repo 目標（--repo o/r）→ 針對別 repo 的 PR → 跳過閘⑤（即使 stub CONFLICTING 也放行，verify F4）。
+    const res = runHook({ command: 'gh pr comment --repo owner/other 42 --body "x"', cwd: WT_CWD_FULL, env: CONFLICT_ON('{"mergeable":"CONFLICTING","mergeStateStatus":"DIRTY"}') });
+    assert(isAllow(res), '[C11] comment --repo owner/other 42（跨 repo）→ 跳過閘⑤、放行（避免對非當前分支/repo 的 PR 誤擋）');
+  }
 
   // ===========================================================================
   // N —— #152 新純函式直測（動態 import，仿 Q5–Q8；紅照實回報）
@@ -733,6 +756,36 @@ try {
       '[N7] readMergeability：stub 注入 raw JSON → 走真 JSON.parse 回物件（解析路徑受測、非注入已解析結果）');
     assert(safe(m?.readMergeability, 'x', { LOOPS_PR_CONFLICT_STUB: 'garbage{' }) === null,
       '[N8] readMergeability：stub 壞 JSON → null（fail-open；與真 gh 路徑共用同一段 parse）');
+    // N9（verify F2）：釘死真 gh 的 argv——欄名／子指令拼錯（stub 短路 spawn、不 pin 就無斷言守住）。
+    assert(JSON.stringify(m?.GH_MERGEABILITY_ARGS) === JSON.stringify(['pr', 'view', '--json', 'mergeable,mergeStateStatus']),
+      '[N9] GH_MERGEABILITY_ARGS 精確 = [pr,view,--json,mergeable,mergeStateStatus]（防欄名/子指令拼錯 stub 測試照樣綠）');
+    // N10（verify F3）：命令段開頭錨定——heredoc/-F 本文行中提到子指令詞不誤判、真指令（含 && 串接、$()）仍判到。
+    assert(safe(m?.classifyPrCommand, 'git commit -F - <<EOF\ndocs: 說明 gh pr comment 流程\nEOF') === null
+      && safe(m?.classifyPrCommand, 'echo 先跑 gh pr create 再說') === null
+      && safe(m?.classifyPrCommand, 'cd repo && gh pr create --draft') === 'create'
+      && safe(m?.classifyPrCommand, '(gh pr ready)') === 'ready'
+      && safe(m?.classifyPrCommand, 'gh pr comment --body x') === 'comment',
+      '[N10] classifyPrCommand 錨定命令段開頭：本文行中的子指令詞不誤判成受管指令、&&/() 串接的真指令仍判到（verify F3）');
+    // N11（verify F4）：跨 repo / 夾在 flag 後的顯式目標——閘⑤ 該跳過。
+    assert(safe(m?.hasExplicitPrTarget, 'gh pr comment --repo owner/other 42 --body x', 'comment') === true
+      && safe(m?.hasExplicitPrTarget, 'gh pr ready -R owner/other', 'ready') === true
+      && safe(m?.hasExplicitPrTarget, 'gh pr comment --repo=owner/other --body x', 'comment') === true,
+      '[N11] hasExplicitPrTarget：-R/--repo/--repo=（跨 repo 目標，即使夾在 flag 後）→ true（verify F4）');
+  }
+  // ===========================================================================
+  // F5（verify）—— 三 flag 各自獨立、互不牽連（釘死實作真實行為，非 goal S13 舊字面）
+  // ===========================================================================
+  {
+    // LOOPS_PR_GATE=0 單獨關①②③，閘④（LOOPS_PR_REALRUN_GATE 仍 defaultOn）對無 receipt 的 create 仍 deny。
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_NORUN, env: { LOOPS_PR_GATE: '0' } });
+    assert(isDeny(res) && reasonOf(res).includes('real-run'),
+      '[F5-1] LOOPS_PR_GATE=0 只關①②③；閘④ 獨立 flag 仍 defaultOn → 無 receipt 的 create 仍在閘④ deny');
+  }
+  {
+    // 反向：LOOPS_PR_REALRUN_GATE=0 單獨關④，①②③（LOOPS_PR_GATE defaultOn）對缺 verify 的 create 仍 deny。
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_NV, env: { LOOPS_PR_REALRUN_GATE: '0' } });
+    assert(isDeny(res) && reasonOf(res).includes('verify'),
+      '[F5-2] LOOPS_PR_REALRUN_GATE=0 只關④；①②③ 仍 defaultOn → 缺 04-verify 的 create 仍在閘① deny（證明兩 flag 互不牽連）');
   }
 } finally {
   rmSync(SANDBOX, { recursive: true, force: true });
@@ -741,5 +794,6 @@ try {
 const total = passed + failed.length;
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
 console.log(`(共 ${total} 條斷言：P1–P8／EXTRA／WIN＝#132 三閘與接線、Q1–Q8＝#132 verify 修正輪邊界、`
-  + `R1–R8＝#152 閘④ real-run receipt、C1–C9＝#152 閘⑤ 合併衝突、N1–N8＝#152 新純函式直測)`);
+  + `R＝#152 閘④ real-run receipt、C＝#152 閘⑤ 合併衝突、N＝#152 新純函式直測、`
+  + `F5＝三 flag 互不牽連；R5b/c·N9–N11·C10/11·F5＝#152 verify 修正輪)`);
 process.exit(failed.length > 0 ? 1 : 0);
