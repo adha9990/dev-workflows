@@ -37,6 +37,8 @@
 - 切換編輯目標時，A 的未保存值會不會短暫顯示到 B。
 - 保存失敗時是否保留使用者輸入，而非清空。
 
+> 本節管的是「編輯**遺失**」（沒 flush、沒存到）。**「flush 打到**錯的** target」**（延後回呼捕捉了會過期的可變 target，切換後 flush 落到切換後那筆）是**正確性軸的 stale-capture lens**（`correctness-review.md §六`，code-quality-reviewer 恆審）——兩軸互補、不重述：這裡確認「有沒有存」，那裡確認「存到對的地方沒」。
+
 ## 六、清單 / 選取 / 極端資料
 
 - **虛擬化清單**：selection / focus / 右鍵目標應綁**資料 identity**，不綁 row index —— 滾動 DOM 復用會讓高亮 / 操作落到錯的項。
@@ -48,3 +50,5 @@
 ## 七、Finding 證據門檻
 
 每筆 finding 要寫出 **什麼操作 → 什麼網路 / 並發條件 → 使用者實際看到什麼錯**。純「可能有競態」講不出觸發情境的，降 Non-blocking note。
+
+> **證據面提醒（jsdom 測不準幾何 / 互動）**：本節這些「虛擬化選取落到錯項 / 捲動 DOM 復用 / focus 幾何 / pointer 命中 / 拖放」的正確性，**jsdom 量不到**（幾何為零、pointer / 動畫 / 焦點時序無法真實重放）——「jsdom 測試綠」對這類**不是可信證據**。要證這類互動正確，須用**專案宣告的 run skill 真機驅動走一遍關鍵流程、產出並檢視真機 artifact**（截圖 / driver log），見 `verify` skill 步驟 2〈誰跑三問分流〉。

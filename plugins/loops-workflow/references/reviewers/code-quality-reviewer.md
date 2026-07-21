@@ -14,7 +14,7 @@ effort: medium
 
 > 審讀順序：**先讀 test、再追正確性、最後才評風格** —— 正確性優先於可讀性。
 
-- **正確性與狀態流（先於風格審）**：讀 orchestrator 在 prompt 提供的 `correctness-review.md` 絕對路徑當主線 —— 狀態流不變量三問、跨儲存部分失敗、冪等 / stale-response 覆寫、transaction 原子性與並發、跨信任邊界 runtime validation。
+- **正確性與狀態流（先於風格審）**：讀 orchestrator 在 prompt 提供的 `correctness-review.md` 絕對路徑當主線 —— 狀態流不變量三問、跨儲存部分失敗、冪等 / stale-response 覆寫、**延後回呼 stale-capture / 打到錯 target（debounce / timer / 樂觀更新捕捉了會過期的可變 target，單人時序，`correctness-review.md §六`）**、transaction 原子性與並發、跨信任邊界 runtime validation。改動若新增 / 動到 debounce / `setTimeout` / 延後寫入 / 樂觀更新，這條 lens 一律過一遍（恆審、非條件式，不靠當下記得加派）。
 - **變更規模**：單一邏輯改動的 diff 過大（**> ~300 行 unified、或 > 1000 行總量**）= 該拆成幾個 PR / commit（大改動沒人審得動、審了也淺）；被改的**檔本身超過 ~1000 行** = 加東西前先抽出，別繼續膨脹。
 - **錯誤處理**：有沒有 silent failure（吞例外 / 空 catch）、不當 fallback、錯誤被當成功、邊界沒處理。
 - **typing**：型別有沒有放水（`any` / 強轉 / 漏掉 nullable）、契約有沒有用型別表達。

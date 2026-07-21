@@ -38,6 +38,13 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **trade-off**：取捨選擇 → 記 decision record，回覆說明選擇。
 - **noise**：純風格 / 無關 → 過濾。
 
+**AC-衝突檢查（用戶回饋驅動的 actionable，實作前必做）**：把「這條回饋要求的改動」對照**原始 issue 的書面 AC**——若它會**反轉 / 抵觸某條已寫定的 AC**（例：回饋要求移掉某 AC 要的欄位、或改成 AC 明文排除的行為），**在實作前停下用 `AskUserQuestion` 讓使用者知情拍板**（選項：「確認 descope 該 AC 第 X 條」/「保留該 AC、改用不衝突的做法」，標推薦 + 一句理由），**不默默照做**。這防的正是 #224 那類漂移：進 PR 後的用戶回饋一輪輪反轉先前決定、和 issue 書面 AC 衝突，iterate 只照當下說的做、沒人回頭比對 AC，規格默默漂移到外部 reviewer 才點名。
+
+- **使用者仍有權 descope**——本閘是「知情 + 留痕」，不是攔阻 / 婉拒。確認 descope 後：**把「descope 哪條 AC + 理由」同步進 issue / PR（reviewer 看得到的權威留痕）**，`loop.md` Journal 也記一筆（內部稽核副本、**不單獨足以**，見 `references/acceptance-review.md §二`），好讓後續 verify acceptance 閘把該條讀成「明確 descoped」而非「缺失」。
+- **只在真撞書面 AC 時觸發**：不反轉任何書面 AC 的回饋，照常當一般 actionable 自動全修，**不冒多餘的 AskUserQuestion**（避免 prompt 疲勞）。
+- **auto 模式也停**：AC 反轉是「規格清楚卻被推翻」的 scope 決策，對應 `references/auto-mode.md` 硬煞車 #6，即使 auto 也 surface、不自動帶過。
+- 這**不改**「所有 actionable 一律自動全修、不問修多少」的紀律——本閘只針對「撞書面 AC 的反轉」這一子集，問的是「**知不知情 descope**」，不是「修不修」。
+
 ### 3. Stop-the-Line 修（針對 actionable）
 
 **所有 actionable 都修，不挑、不問**（P2/P3 一樣修）—— 「交給其他 reviewer 前把問題在內部解到最少」就是把 actionable 全清掉，不是讓使用者挑幾條修。每個要修的問題走 **STOP → PRESERVE → DIAGNOSE → FIX → GUARD → RESUME**：
@@ -56,6 +63,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 **修了任何 actionable（含 step 3 自己 Stop-the-Line 修的）→ 一定再過一輪 `verify`**。「測試綠 / typecheck 0 / lint 0」**不能取代 verify** —— 綠燈只證明沒打破現有測試，證不了「修正 + 其波及面」對其他軸（契約 / 安全 / 既有 consumer 行為）安全。**改到共用元件 / 跨切面時，再 verify 要涵蓋波及面**（誰在用被改的東西），不是只看改的那幾行。
 
 **再驗一律走 `verify` step-1 選軸、不臨場手挑 reviewer**：回環再驗**不是**「orchestrator 憑印象派兩三個 reviewer」，而是**照 verify 步驟 1 依改動領域定軸 + 加派 conditional reviewer**（並發／同步→`multi-user-concurrency`、bug fix→`root-cause`、queue／背景→`processing-reliability`、migration→`migration`…，見 verify §1）。手挑子集的風險是**把改動所在領域最該派的那個 lens 系統性跳過**——例如修同步 / 併發競態卻只派 `code-quality`＋`tests`，那個「唯一工作就是窮舉事件順序 / 亂序 / lost-update」的 `multi-user-concurrency-reviewer` 就每輪缺席，於是 sibling 競態一輪一輪被外部 reviewer 才抓到、而不是內部一次收斂。**改動命中哪個領域，該領域的 conditional lens 就按規則被派，不靠當下記得。** 反向失效模式同樣要防：**手挑了「領域匹配」的 reviewer、反而把 CORE 軸略掉**——例如修一個 UI 顯示 bug 只派 `frontend-ui`（領域對了），卻跳過核心 `code-quality`（簡潔 / code smell / 重用 lens），於是「這段 chained `.replace()` 本可收斂成查表」這類簡化到外部 reviewer 才被指出。走 step-1 選軸 = **核心軸（含 `code-quality`）＋ 領域 conditional lens 一起派**，不是「挑到對的領域 lens 就夠了」的二選一。
+
+**機械化（不留給「記得」）**：這輪的選軸推導**寫成表落進 `stages/04-verify.md`**（`本輪改動領域 / 簽名 → 核心軸下界 → 觸發的 conditional lens`），且**這輪實際派出的 reviewer 集合須等於表推導出的集合**。格式與**單一真相源在 `verify` skill 步驟 5〈re-verify 選軸推導表〉**——本階段照它做、**不另立第二份表**。（延後回呼 / debounce / timer 捕捉會過期的可變 target 的 stale-capture，由恆派的 `code-quality`〔`correctness-review §六`〕承接，不必另派 conditional lens——所以任何碰去抖 / timer 的 fix，時序 lens 天然在再驗的核心軸裡、不會被漏派。）
 
 **完工只在「最近一輪 verify 已無 actionable findings」時才可達** —— 即「跑完 verify → iterate 這輪沒東西要修」。修完直接跳完工 = 抄捷徑。
 
@@ -128,9 +137,10 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - 修正回覆 comment 堆客套 / 沒給驗證證據 / `@` 點名 reviewer（§8 規定不點名）。
 - **修完沒再跑 verify 就完工**（拿「測試綠 / typecheck 0」當 verify 替代品）。
 - 改到共用元件 / 跨切面，只看綠燈、沒對**波及面**派 fresh reviewer 再驗。
-- **delta re-verify 用手挑的 reviewer 子集充當、沒走 `verify` step-1 選軸** —— 改動所在領域該派的 conditional lens（並發→`multi-user-concurrency`、bug fix→`root-cause`…）被系統性跳過，該類問題只能等外部 reviewer 抓。
+- **delta re-verify 用手挑的 reviewer 子集充當、沒走 `verify` step-1 選軸** —— 改動所在領域該派的 conditional lens（並發→`multi-user-concurrency`、bug fix→`root-cause`…）被系統性跳過，該類問題只能等外部 reviewer 抓。**機械化後**：沒把選軸推導寫成表落進 `stages/04-verify.md`、或派出的 reviewer 集合 ≠ 表推導集合（見 `verify` §5 單一真相源）。
 - 把「再 verify」降級成 gate 選項讓使用者點掉。
 - **verify 出 actionable findings（含 P2/P3）還問使用者「修多少 / 要不要修」** —— actionable 一律自動全修，不是使用者決策。
+- **用戶回饋要求的改動反轉 / 抵觸某條書面 issue AC，卻默默實作、沒 surface 讓使用者知情 descope**（規格默默漂移、到外部 reviewer 才點名「偏離規格」）—— 撞書面 AC 的反轉要先 `AskUserQuestion` 知情拍板、確認 descope 後同步 issue/PR 留痕（見〈AC-衝突檢查〉）；但別把它擴大成「每條用戶回饋都問要不要修」（那違反 actionable 全修）。
 - 修正型（`type=fix`）收尾還產一堆草稿（PR body as-built / 另發 issue comment）—— 只該一份修正回覆 comment（§8）。
 - **完整迴圈完工沒產齊三份 deliverable**（`explain.md` + `checklist.md` + `cost.md`）到 `.loops/<slug>/deliverables/`；或**放錯位置**（平放 loop 根、或塞進 PR comment 而非 `deliverables/`）；或**修正型卻產這三份**（修正型只該一份修正回覆 comment）。
 - **把當圈能做完的 actionable 寫成「PR 上的 follow-up 待辦」延後**（＝把該修的 actionable 偷渡成不修）；交出去的 PR 帶一串本可當圈做掉的 follow-up 清單。
@@ -149,7 +159,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] verify 出的 actionable findings（不論 P2/P3）**全部自動修了**，沒問使用者「修多少 / 要不要修」。
 - [ ] 每個 actionable 修的是根因 + 有回歸測試（GUARD）。
 - [ ] 回環**看收斂**（findings 嚴格變少才續繞）；沒收斂 / 碰 3 圈上限已 escalate 當**檢查點**（讓使用者選回頭重想 / 換跨模型 / 授權再繞〔計數重置〕）；`loop.md` 有回環歷史 + 每輪 findings 數。
-- [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工；**且再驗走 `verify` step-1 選軸（依領域自動派 conditional reviewer），不是臨場手挑 reviewer 子集**。
+- [ ] **用戶回饋撞書面 AC 已知情拍板**：用戶回饋驅動的改動若反轉 / 抵觸某條書面 issue AC，實作前已 `AskUserQuestion`（informed descope、選項標推薦）；確認 descope 已同步 **issue/PR 權威留痕**（`loop.md` 僅內部稽核）；不撞任何書面 AC 的回饋照常當 actionable、沒冒多餘問句（見〈AC-衝突檢查〉、`references/auto-mode.md` 硬煞車 #6）。
+- [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工；**且再驗走 `verify` step-1 選軸（依領域自動派 conditional reviewer），不是臨場手挑 reviewer 子集**；**選軸推導寫成表落進 `stages/04-verify.md`、派出集合＝推導集合（單一真相源在 `verify` §5）**。
 - [ ] 完工前最近一輪 verify 無 actionable findings。
 - [ ] 完工前對照 `stages/00-goal.md` 停止條件全達成。
 - [ ] **完工 / 中止已在 `loop.md` Journal append 一行 outcome 度量**（依 `references/journaling.md`〈完工 outcome 度量〉，欄位齊全、token 帶 `est`／級距標粗估）。
