@@ -43,7 +43,7 @@
 
 ## 六、延後回呼的 stale-capture / 打到錯 target（單人時序，恆審）
 
-> 專審**單人、非佇列**的延後執行——in-process 的 debounce / `setTimeout` / `queueMicrotask` / 樂觀更新 / 任何「排程稍後跑」的閉包——**捕捉了一個在它真正觸發前會被外層改掉的可變綁定**（當前選中項 / current-target / 當前 scope / id / `*.current`），於是回呼觸發時打到**已經不是排程當下那個 target**。這條與鄰軸分工明確、彼此不重述：§三「後到舊回應覆蓋」管的是**網路回應亂序**；`processing-reliability` 管 **queue / 背景 job** 的 retry·冪等；`ui-interaction-review §五` 管編輯 **flush 遺失**（沒存到）——本軸專管「延後觸發時捕捉的 context **過期**、寫 / 送 / 套用到**錯的地方**」。
+> 專審**單人、非佇列**的延後執行——in-process 的 debounce / `setTimeout` / `queueMicrotask` / 樂觀更新 / 任何「排程稍後跑」的閉包——**捕捉了一個在它真正觸發前會被外層改掉的可變綁定**（當前選中項 / current-target / 當前 scope / id / `*.current`），於是回呼觸發時打到**已經不是排程當下那個 target**。這條與鄰軸分工明確、彼此不重述：§三「後到舊回應覆蓋」管的是**網路回應亂序**；`ui-interaction-review §四`「取消後殘留」管的是**網路 pending 回應**晚回寫進畫面；`ui-interaction-review §五` 管編輯 **flush 遺失**（沒存到）；`processing-reliability` 管 **queue / 背景 job** 的 retry·冪等——本軸專管「**in-process 延後回呼**觸發時捕捉的 context **過期**、寫 / 送 / 套用到**錯的地方**（target 打錯，不是沒存 / 不是網路亂序）」。
 
 沿每個延後回呼追問：
 

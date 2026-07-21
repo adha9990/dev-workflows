@@ -38,7 +38,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **trade-off**：取捨選擇 → 記 decision record，回覆說明選擇。
 - **noise**：純風格 / 無關 → 過濾。
 
-**AC-衝突檢查（用戶回饋驅動的 actionable，實作前必做）**：把「這條回饋要求的改動」對照**原始 issue 的書面 AC**——若它會**反轉 / 抵觸某條已寫定的 AC**（例：回饋要求移掉某 AC 要的欄位、或改成 AC 明文排除的行為），**在實作前停下用 `AskUserQuestion` 讓使用者知情拍板**（選項：「確認 descope 該 AC 第 X 條」/「保留該 AC、改用不衝突的做法」，標推薦 + 一句理由），**不默默照做**。這防的正是 #224 那類漂移：進 PR 後的用戶回饋一輪輪反轉先前決定、和 issue 書面 AC 衝突，iterate 只照當下說的做、沒人回頭比對 AC，規格默默漂移到外部 reviewer 才點名。
+**AC-衝突檢查（用戶回饋驅動的 actionable，實作前必做）**：把「這條回饋要求的改動」對照**原始 issue 的書面 AC**——若它會**反轉 / 抵觸某條已寫定的 AC**（例：回饋要求移掉某 AC 要的欄位、或改成 AC 明文排除的行為），**在實作前停下用 `AskUserQuestion` 讓使用者知情拍板**（選項：「確認 descope 該 AC 第 X 條」/「保留該 AC、改用不衝突的做法」，標推薦 + 一句理由），**不默默照做**。這防的正是這類規格漂移：進 PR 後的用戶回饋一輪輪反轉先前決定、和 issue 書面 AC 衝突，iterate 只照當下說的做、沒人回頭比對 AC，規格默默漂移到外部 reviewer 才點名「偏離規格」。
 
 - **使用者仍有權 descope**——本閘是「知情 + 留痕」，不是攔阻 / 婉拒。確認 descope 後：**把「descope 哪條 AC + 理由」同步進 issue / PR（reviewer 看得到的權威留痕）**，`loop.md` Journal 也記一筆（內部稽核副本、**不單獨足以**，見 `references/acceptance-review.md §二`），好讓後續 verify acceptance 閘把該條讀成「明確 descoped」而非「缺失」。
 - **只在真撞書面 AC 時觸發**：不反轉任何書面 AC 的回饋，照常當一般 actionable 自動全修，**不冒多餘的 AskUserQuestion**（避免 prompt 疲勞）。
