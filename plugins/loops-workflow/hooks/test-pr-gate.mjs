@@ -13,11 +13,17 @@
 // `await import()`（見下方「動態 import 安全探測」，try/catch 包住）——兩者都確保檔案不存在
 // 時本檔仍完整跑完、印出逐條紅燈，而不是一次性崩潰。
 //
-// 被測物契約摘要（見 issue #132 / .loops/132-pr-gate/stages/02-plan.md）：
+// #152 擴充：新增閘④（真機截圖 receipt，create+ready）＋閘⑤（合併衝突，create+ready+comment）；
+//   新增 `gh pr ready`/`gh pr comment` 偵測；三獨立 flag（LOOPS_PR_GATE=①②③、
+//   LOOPS_PR_REALRUN_GATE=④、LOOPS_PR_CONFLICT_GATE=⑤）。新斷言：R1–R8（閘④）、C1–C9（閘⑤，
+//   stub 注入 gh 會印的 raw JSON、共用同一段 parse；C6 唯一真 gh spawn fail-open）、N1–N8（新純函式
+//   直測）。runHook 預設把 LOOPS_PR_CONFLICT_GATE='0' 維持①②③④案例 hermeticity（不 spawn 真 gh）。
+//
+// 被測物契約摘要（見 issue #132、#152 / .loops/152-pr-gate-realrun-conflict/stages/02-plan.md）：
 //   payload：{session_id?, cwd, tool_input:{command}}（PreToolUse Bash|PowerShell 同形）。
-//   旗標 LOOPS_PR_GATE（defaultOn；僅字面 '0' 關閉）。
+//   旗標 LOOPS_PR_GATE / LOOPS_PR_REALRUN_GATE / LOOPS_PR_CONFLICT_GATE（皆 defaultOn；僅字面 '0' 關）。
 //   判定流程：
-//     1) 非 `gh pr create` 指令 → 放行。
+//     1) 非受管 gh pr 指令（create/ready/comment）→ 放行。
 //     2) loop branch 判定：①cwd 路徑含 .claude/worktrees/<slug> 段 → slug；②否則讀 cwd 上溯的
 //        .git（檔案形 `gitdir: <path>` → 讀該 gitdir/HEAD；目錄形 → 讀 .git/HEAD）取
 //        `ref: refs/heads/<branch>` → branch=slug。判不出（含 detached HEAD 裸 SHA）→ 放行。
@@ -34,7 +40,7 @@
 //   （worktree-guard.mjs）、flagEnabled（hook-flags.mjs）。
 
 import { tmpdir } from 'node:os';
-import { mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync, readFileSync, existsSync, chmodSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -112,12 +118,20 @@ try {
   const NEUTRAL_CWD = join(SANDBOX, 'neutral');
   mkdirSync(NEUTRAL_CWD, { recursive: true });
 
-  // Fixture 1：worktree 形、slug=210-foo、完整（04-verify 有）—— gate②③ 綠案例／各閘隔離用底。
+  // 小工具：給某個 loop 補一張真機截圖 receipt（閘④ 通過）。#152 起「全合規 create → 放行」
+  // 的完整 loop 定義包含真機驗證截圖，既有 fixture 一併補上，讓既有斷言在閘④ 加入後仍成立。
+  const addRealRunShot = (root, slug) => {
+    mkdirSync(join(root, '.loops', slug, 'deliverables', 'real-run'), { recursive: true });
+    writeFileSync(join(root, '.loops', slug, 'deliverables', 'real-run', 'shot.png'), 'PNGDATA');
+  };
+
+  // Fixture 1：worktree 形、slug=210-foo、完整（04-verify + real-run 截圖）—— gate②③⑤ 綠案例／各閘隔離用底。
   const WT_ROOT = join(SANDBOX, 'wt-repo-full');
   const WT_CWD_FULL = join(WT_ROOT, '.claude', 'worktrees', '210-foo');
   mkdirSync(join(WT_ROOT, '.loops', '210-foo', 'stages'), { recursive: true });
   writeFileSync(join(WT_ROOT, '.loops', '210-foo', 'loop.md'), '# Loop: 210-foo\n');
   writeFileSync(join(WT_ROOT, '.loops', '210-foo', 'stages', '04-verify.md'), '# verify\n');
+  addRealRunShot(WT_ROOT, '210-foo');
   mkdirSync(WT_CWD_FULL, { recursive: true });
 
   // Fixture 2：worktree 形、slug=211-noverify、缺 stages/04-verify.md —— gate① 紅案例。
@@ -133,6 +147,7 @@ try {
   mkdirSync(join(WT_ROOT_DESIGN, '.loops', 'design-foo', 'stages'), { recursive: true });
   writeFileSync(join(WT_ROOT_DESIGN, '.loops', 'design-foo', 'loop.md'), '# Loop\n');
   writeFileSync(join(WT_ROOT_DESIGN, '.loops', 'design-foo', 'stages', '04-verify.md'), '# verify\n');
+  addRealRunShot(WT_ROOT_DESIGN, 'design-foo');
   mkdirSync(WT_CWD_DESIGN, { recursive: true });
 
   // Fixture 4：主 checkout 形（.git 目錄形），HEAD → refs/heads/210-foo，完整。
@@ -142,6 +157,7 @@ try {
   mkdirSync(join(MAIN_ROOT, '.loops', '210-foo', 'stages'), { recursive: true });
   writeFileSync(join(MAIN_ROOT, '.loops', '210-foo', 'loop.md'), '# Loop\n');
   writeFileSync(join(MAIN_ROOT, '.loops', '210-foo', 'stages', '04-verify.md'), '# verify\n');
+  addRealRunShot(MAIN_ROOT, '210-foo');
 
   // Fixture 5：主 checkout 形，HEAD → refs/heads/master（無對應 .loops/master/）。
   const MAIN_ROOT_MASTER = join(SANDBOX, 'main-repo-master');
@@ -168,6 +184,7 @@ try {
   mkdirSync(join(FILEFORM_MAIN, '.loops', '210-foo', 'stages'), { recursive: true });
   writeFileSync(join(FILEFORM_MAIN, '.loops', '210-foo', 'loop.md'), '# Loop\n');
   writeFileSync(join(FILEFORM_MAIN, '.loops', '210-foo', 'stages', '04-verify.md'), '# verify\n');
+  addRealRunShot(FILEFORM_MAIN, '210-foo');
   const FILEFORM_WT_CWD = join(FILEFORM_MAIN, 'external-wt');
   mkdirSync(FILEFORM_WT_CWD, { recursive: true });
   writeFileSync(join(FILEFORM_WT_CWD, '.git'), `gitdir: ${FILEFORM_GITDIR}\n`);
@@ -177,6 +194,34 @@ try {
   // 是否會往上找 .git，不能只查 cwd 自身這一層。
   const MAIN_ROOT_SUBDIR_CWD = join(MAIN_ROOT, 'some', 'subdir');
   mkdirSync(MAIN_ROOT_SUBDIR_CWD, { recursive: true });
+
+  // ── #152 閘④ real-run receipt fixtures（非數字前綴 slug → gate③ 停用，create 只需 --draft
+  //     --assignee @me 即過①②③，把閘④ 隔離成決定者）。都備 04-verify.md（過閘①）。──────────────
+  const mkGate4Fixture = (name, slug, setup) => {
+    const root = join(SANDBOX, name);
+    const cwd = join(root, '.claude', 'worktrees', slug);
+    mkdirSync(join(root, '.loops', slug, 'stages'), { recursive: true });
+    writeFileSync(join(root, '.loops', slug, 'loop.md'), '# Loop\n');
+    writeFileSync(join(root, '.loops', slug, 'stages', '04-verify.md'), '# verify\n');
+    mkdirSync(cwd, { recursive: true });
+    if (setup) setup(root, slug);
+    return cwd;
+  };
+  const realRunDir = (root, slug) => join(root, '.loops', slug, 'deliverables', 'real-run');
+  // 無 real-run 目錄 → 閘④ deny（S1）。
+  const WT_CWD_NORUN = mkGate4Fixture('wt-realrun-norun', 'realrun-norun');
+  // real-run 目錄存在但全空 → 閘④ deny（S2）。
+  const WT_CWD_EMPTYRUN = mkGate4Fixture('wt-realrun-empty', 'realrun-empty', (r, s) => mkdirSync(realRunDir(r, s), { recursive: true }));
+  // real-run 內有 .jpeg 截圖 → 閘④ allow（S3 的 jpeg 變體）。
+  const WT_CWD_JPG = mkGate4Fixture('wt-realrun-jpg', 'realrun-jpg', (r, s) => { const d = realRunDir(r, s); mkdirSync(d, { recursive: true }); writeFileSync(join(d, 'photo.JPEG'), 'JPGDATA'); });
+  // real-run 內有非空 no-ui.md → 閘④ allow（S4）。
+  const WT_CWD_NOUI = mkGate4Fixture('wt-realrun-noui', 'realrun-noui', (r, s) => { const d = realRunDir(r, s); mkdirSync(d, { recursive: true }); writeFileSync(join(d, 'no-ui.md'), '純 hook 改動、無可見畫面；已跑 hook 單元測試驗證。'); });
+  // real-run 內只有「空」no-ui.md（0 bytes）→ 閘④ deny（P2-5：純 touch 不算 receipt）。
+  const WT_CWD_EMPTYNOUI = mkGate4Fixture('wt-realrun-emptynoui', 'realrun-emptynoui', (r, s) => { const d = realRunDir(r, s); mkdirSync(d, { recursive: true }); writeFileSync(join(d, 'no-ui.md'), ''); });
+  // real-run 內只有「空」shot.png（0 bytes，等同 touch）→ 閘④ deny（verify F1：截圖與 no-ui 一致擋純 touch）。
+  const WT_CWD_EMPTYPNG = mkGate4Fixture('wt-realrun-emptypng', 'realrun-emptypng', (r, s) => { const d = realRunDir(r, s); mkdirSync(d, { recursive: true }); writeFileSync(join(d, 'shot.png'), ''); });
+  // real-run 內只有「同名子目錄」shot.png（mkdir 而非檔案）→ 閘④ deny（isFile 守衛，verify F1）。
+  const WT_CWD_DIRPNG = mkGate4Fixture('wt-realrun-dirpng', 'realrun-dirpng', (r, s) => { mkdirSync(join(realRunDir(r, s), 'shot.png'), { recursive: true }); });
 
   // Body 內容（多行，含/不含行首 Closes）＋ --body-file 用的 tmp 檔。
   const OK_BODY = '## 成果\n\nCloses #210\n\n修好了 A、B、C 三個問題。';
@@ -194,10 +239,15 @@ try {
   function runHook({ command, cwd, env = {}, rawInput } = {}) {
     const input = rawInput !== undefined ? rawInput : JSON.stringify({ cwd, tool_input: { command } });
     const mergedEnv = { ...process.env, ...env };
-    // 防 ambient shell 環境殘留 LOOPS_PR_GATE 汙染斷言——預設不繼承呼叫本檔那個 shell 的既有值，
-    // 僅呼叫端在 env 明確傳入 LOOPS_PR_GATE 時才保留（P7-1/P7-4 走這條）。P7-5 測「完全未設旗標」
-    // 語意另有專屬手刻 spawnSync（不經過本函式），不受此變動影響。
+    // 防 ambient shell 環境殘留 LOOPS_PR_* 汙染斷言——預設不繼承呼叫本檔那個 shell 的既有值，
+    // 僅呼叫端在 env 明確傳入時才保留（P7-1/P7-4 走這條）。P7-5 測「完全未設旗標」語意另有專屬
+    // 手刻 spawnSync（不經過本函式），不受此變動影響。
     if (!('LOOPS_PR_GATE' in env)) delete mergedEnv.LOOPS_PR_GATE;
+    if (!('LOOPS_PR_REALRUN_GATE' in env)) delete mergedEnv.LOOPS_PR_REALRUN_GATE;
+    // 閘⑤（會 spawn 真 gh）預設關掉，維持閘①②③④ 案例的 hermeticity（不 spawn、不依賴 ambient
+    // gh/auth 狀態）——閘⑤ 專屬案例才顯式 LOOPS_PR_CONFLICT_GATE='1' + 注入 LOOPS_PR_CONFLICT_STUB。
+    if (!('LOOPS_PR_CONFLICT_GATE' in env)) mergedEnv.LOOPS_PR_CONFLICT_GATE = '0';
+    if (!('LOOPS_PR_CONFLICT_STUB' in env)) delete mergedEnv.LOOPS_PR_CONFLICT_STUB;
     return spawnSync(process.execPath, [HOOK_SCRIPT], {
       input,
       cwd: NEUTRAL_CWD,
@@ -340,9 +390,11 @@ try {
   // P7 —— LOOPS_PR_GATE='0' 逃生；fail-open（壞 payload／缺欄位）；flag 語意（僅字面 '0' 關）
   // ===========================================================================
   {
-    const cmd = 'gh pr create --title t --body "x"'; // 違規：缺 draft/assignee/verify
-    const res = runHook({ command: cmd, cwd: WT_CWD_NV, env: { LOOPS_PR_GATE: '0' } });
-    assert(isAllow(res), "[P7-1] LOOPS_PR_GATE='0' → 即使違規也放行");
+    // #152：閘④ 移到獨立 flag LOOPS_PR_REALRUN_GATE 後，要讓「違規 create 也放行」需把兩個檔案閘
+    // flag 都關（LOOPS_PR_GATE 關①②③、LOOPS_PR_REALRUN_GATE 關④）；閘⑤ 由 runHook 預設關。
+    const cmd = 'gh pr create --title t --body "x"'; // 違規：缺 draft/assignee/verify/real-run
+    const res = runHook({ command: cmd, cwd: WT_CWD_NV, env: { LOOPS_PR_GATE: '0', LOOPS_PR_REALRUN_GATE: '0' } });
+    assert(isAllow(res), "[P7-1] LOOPS_PR_GATE='0' + LOOPS_PR_REALRUN_GATE='0' → 即使違規也放行");
   }
   {
     const res = runHook({ rawInput: 'not { json' });
@@ -554,11 +606,235 @@ try {
       '[Q8-4] hasClosesLine 對 CRLF body（\\r\\n 行首）仍正確比對到 "Closes #210"（^ 錨點只認 \\n，'
       + '\\r 留在前一行尾不影響下一行行首判定）');
   }
+  // ===========================================================================
+  // R —— #152 閘④ 真機截圖 receipt（create + ready）
+  // ===========================================================================
+  const DRAFT_FULL = 'gh pr create --draft --assignee @me --title t --body "x"'; // 非數字 slug → 過①②③
+  {
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_NORUN });
+    assert(isDeny(res), '[R1] create：real-run 目錄不存在（無截圖）→ 閘④ deny');
+    assert(reasonOf(res).includes('real-run') && reasonOf(res).includes('截圖'), '[R1-2] reason 含「real-run／截圖」通用指引');
+    assert(!/run-eagle-app-core|client\//.test(reasonOf(res)), '[R1-3] reason 不 hardcode 任何專案路徑／skill 名（通用）');
+    assert(reasonOf(res).includes('LOOPS_PR_REALRUN_GATE'), '[R1-4] reason 附閘④ 專屬逃生口 LOOPS_PR_REALRUN_GATE');
+  }
+  {
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_EMPTYRUN });
+    assert(isDeny(res), '[R2] create：real-run 目錄存在但全空 → 閘④ deny');
+  }
+  {
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_JPG });
+    assert(isAllow(res), '[R3] create：real-run 內有 .JPEG 截圖 → 閘④ allow（副檔名大小寫不敏感、jpeg 變體）');
+  }
+  {
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_NOUI });
+    assert(isAllow(res), '[R4] create：real-run 內有非空 no-ui.md → 閘④ allow（非視覺 loop 宣告出口）');
+  }
+  {
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_EMPTYNOUI });
+    assert(isDeny(res), '[R5] create：real-run 內只有「空」no-ui.md（0 bytes）→ 閘④ deny（純 touch 不算 receipt）');
+  }
+  {
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_EMPTYPNG });
+    assert(isDeny(res), '[R5b] create：real-run 內只有「空」shot.png（0 bytes，touch）→ 閘④ deny（截圖與 no-ui 一致擋純 touch，verify F1）');
+  }
+  {
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_DIRPNG });
+    assert(isDeny(res), '[R5c] create：real-run 內只有「同名子目錄」shot.png（mkdir 非檔案）→ 閘④ deny（isFile 守衛，verify F1）');
+  }
+  {
+    const res = runHook({ command: 'gh pr ready', cwd: WT_CWD_NORUN });
+    assert(isDeny(res), '[R6] ready：無 real-run receipt → 閘④ 在 ready 也生效 deny');
+    assert(reasonOf(res).includes('real-run'), '[R6-2] reason 含 real-run 語意');
+  }
+  {
+    // ready 不套①②③：對「有 receipt、但缺 --draft、且 body 無 Closes」的 loop 分支下 ready → allow。
+    const res = runHook({ command: 'gh pr ready', cwd: WT_CWD_FULL });
+    assert(isAllow(res), '[R7] ready：有 receipt（過閘④）、閘⑤ 預設關 → allow（證明 ready 不套閘①②③——缺 draft/Closes 不擋 ready）');
+  }
+  {
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_NORUN, env: { LOOPS_PR_REALRUN_GATE: '0' } });
+    assert(isAllow(res), '[R8] create：LOOPS_PR_REALRUN_GATE=0 → 閘④ 關、無 receipt 也放行');
+  }
+
+  // ===========================================================================
+  // C —— #152 閘⑤ 合併衝突（create + ready + comment；stub 注入 gh 會印的原始 JSON）
+  // ===========================================================================
+  const CONFLICT_ON = (stub) => ({ LOOPS_PR_CONFLICT_GATE: '1', ...(stub !== undefined ? { LOOPS_PR_CONFLICT_STUB: stub } : {}) });
+  {
+    const res = runHook({ command: 'gh pr comment --body "近況更新"', cwd: WT_CWD_FULL, env: CONFLICT_ON('{"mergeable":"CONFLICTING","mergeStateStatus":"CLEAN"}') });
+    assert(isDeny(res), '[C1] comment：mergeable=CONFLICTING → 閘⑤ deny');
+    assert(reasonOf(res).includes('衝突') && reasonOf(res).includes('LOOPS_PR_CONFLICT_GATE'), '[C1-2] reason 含「衝突」＋閘⑤ 逃生口');
+  }
+  {
+    // create 過①②③④（210-foo full+receipt、OK_BODY 有 Closes #210）後才到⑤；DIRTY → deny。
+    const res = runHook({ command: `gh pr create --draft --assignee @me --title t --body "${OK_BODY}"`, cwd: WT_CWD_FULL, env: CONFLICT_ON('{"mergeable":"MERGEABLE","mergeStateStatus":"DIRTY"}') });
+    assert(isDeny(res), '[C2] create：①②③④皆過、mergeStateStatus=DIRTY → 閘⑤ deny（證明 create 殿後到⑤）');
+    assert(reasonOf(res).includes('衝突'), '[C2-2] reason 含「衝突」語意');
+  }
+  {
+    const res = runHook({ command: 'gh pr comment --body "近況"', cwd: WT_CWD_FULL, env: CONFLICT_ON('{"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN"}') });
+    assert(isAllow(res), '[C3] comment：mergeable=MERGEABLE + CLEAN → 閘⑤ allow');
+  }
+  {
+    const res = runHook({ command: 'gh pr comment --body "近況"', cwd: WT_CWD_FULL, env: CONFLICT_ON('{"mergeable":"UNKNOWN","mergeStateStatus":"UNKNOWN"}') });
+    assert(isAllow(res), '[C4] comment：UNKNOWN → 閘⑤ 放行（fail-open，只擋明確 CONFLICTING/DIRTY）');
+  }
+  {
+    const res = runHook({ command: 'gh pr comment --body "近況"', cwd: WT_CWD_FULL, env: CONFLICT_ON('not json at all') });
+    assert(isAllow(res), '[C5] comment：stub 非 JSON（解析失敗）→ null → 閘⑤ 放行（fail-open；證明 stub 與真 gh 共用同一段 JSON.parse）');
+  }
+  {
+    // 唯一「真 gh spawn」案例：不注入 stub，cwd 是 sandbox 非 git 目錄 → 真 gh throw → null → 放行。
+    // CI 無 gh → ENOENT → 同樣 null → 放行。兩種環境都綠，不依賴 ambient gh/auth 狀態。
+    const res = runHook({ command: 'gh pr comment --body "近況"', cwd: WT_CWD_FULL, env: { LOOPS_PR_CONFLICT_GATE: '1' } });
+    assert(isAllow(res), '[C6] comment：閘⑤ 開、無 stub、cwd 非 git repo → 真 gh 失敗 → fail-open 放行（真 spawn 路徑）');
+  }
+  {
+    // 顯式 PR 號 → 針對的未必是當前分支的 PR → 跳過閘⑤（即使 stub 是 CONFLICTING 也放行）。
+    const res = runHook({ command: 'gh pr comment 999 --body "近況"', cwd: WT_CWD_FULL, env: CONFLICT_ON('{"mergeable":"CONFLICTING","mergeStateStatus":"DIRTY"}') });
+    assert(isAllow(res), '[C7] comment 999（顯式 PR 號）→ 跳過閘⑤、放行（避免對非當前分支 PR 誤擋）');
+  }
+  {
+    // comment 只跑閘⑤：對「無 04-verify、無 real-run」的 loop 分支 comment（clean）→ allow，
+    // 證明 comment 不套閘①（verify）與閘④（receipt）。
+    const res = runHook({ command: 'gh pr comment --body "近況"', cwd: WT_CWD_NV, env: CONFLICT_ON('{"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN"}') });
+    assert(isAllow(res), '[C8] comment：對缺 verify.md/real-run 的 loop 分支（衝突 clean）→ allow（證明 comment 只跑閘⑤、不套①④）');
+  }
+  {
+    // 非 loop 分支：comment 在 HEAD=master（無對應 .loops）→ 即使閘⑤ 開也放行。
+    const res = runHook({ command: 'gh pr comment --body "x"', cwd: MAIN_ROOT_MASTER, env: CONFLICT_ON('{"mergeable":"CONFLICTING"}') });
+    assert(isAllow(res), '[C9] comment：非 loop 分支（HEAD=master）→ 閘⑤ 不生效、放行');
+  }
+  {
+    // ready + 衝突端到端（S6–S9 明列 ready 支，補齊）：有 receipt 過閘④、CONFLICTING → 閘⑤ deny。
+    const res = runHook({ command: 'gh pr ready', cwd: WT_CWD_FULL, env: CONFLICT_ON('{"mergeable":"CONFLICTING","mergeStateStatus":"CLEAN"}') });
+    assert(isDeny(res), '[C10] ready：過閘④後、mergeable=CONFLICTING → 閘⑤ deny（ready 支端到端）');
+    assert(reasonOf(res).includes('衝突'), '[C10-2] reason 含「衝突」語意');
+  }
+  {
+    // 顯式跨 repo 目標（--repo o/r）→ 針對別 repo 的 PR → 跳過閘⑤（即使 stub CONFLICTING 也放行，verify F4）。
+    const res = runHook({ command: 'gh pr comment --repo owner/other 42 --body "x"', cwd: WT_CWD_FULL, env: CONFLICT_ON('{"mergeable":"CONFLICTING","mergeStateStatus":"DIRTY"}') });
+    assert(isAllow(res), '[C11] comment --repo owner/other 42（跨 repo）→ 跳過閘⑤、放行（避免對非當前分支/repo 的 PR 誤擋）');
+  }
+
+  // ===========================================================================
+  // N —— #152 新純函式直測（動態 import，仿 Q5–Q8；紅照實回報）
+  // ===========================================================================
+  {
+    const m = prGateModule;
+    const safe = (fn, ...a) => { try { return fn(...a); } catch { return '__throw__'; } };
+    assert(safe(m?.classifyPrCommand, 'gh pr create --draft') === 'create'
+      && safe(m?.classifyPrCommand, 'gh pr ready 5') === 'ready'
+      && safe(m?.classifyPrCommand, 'gh pr comment --body x') === 'comment'
+      && safe(m?.classifyPrCommand, 'gh pr view 1') === null,
+      '[N1] classifyPrCommand 四路（create/ready/comment/null）');
+    assert(safe(m?.classifyPrCommand, 'gh pr comment --body "提醒：先 gh pr ready 再 gh pr create"') === 'comment',
+      '[N2] classify 用剝殼視圖：body 內文的 gh pr ready/create 不誤判子指令，落到 comment');
+    assert(safe(m?.isScreenshotFile, 'a.png') === true && safe(m?.isScreenshotFile, 'a.JPG') === true
+      && safe(m?.isScreenshotFile, 'a.jpeg') === true && safe(m?.isScreenshotFile, 'a.gif') === false
+      && safe(m?.isScreenshotFile, 'nopng') === false,
+      '[N3] isScreenshotFile：png/jpg/jpeg（大小寫不敏感）真、gif/無副檔名假');
+    assert(safe(m?.isNoUiMarker, 'no-ui.md') === true && safe(m?.isNoUiMarker, 'NO-UI.txt') === true
+      && safe(m?.isNoUiMarker, 'no-ui-reason.md') === true && safe(m?.isNoUiMarker, 'nouix.md') === false
+      && safe(m?.isNoUiMarker, 'ui-notes.md') === false,
+      '[N4] isNoUiMarker：no-ui 起頭（\\b 邊界）真、nouix/其他假');
+    assert(safe(m?.isMergeConflict, { mergeable: 'CONFLICTING', mergeStateStatus: 'CLEAN' }) === true
+      && safe(m?.isMergeConflict, { mergeable: 'MERGEABLE', mergeStateStatus: 'DIRTY' }) === true
+      && safe(m?.isMergeConflict, { mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN' }) === false
+      && safe(m?.isMergeConflict, null) === false
+      && safe(m?.isMergeConflict, { mergeable: null, mergeStateStatus: null }) === false
+      && safe(m?.isMergeConflict, {}) === false,
+      '[N5] isMergeConflict：CONFLICTING/DIRTY 真；clean/null/空欄位/空物件假（fail-open）');
+    assert(safe(m?.hasExplicitPrTarget, 'gh pr comment 123 --body x', 'comment') === true
+      && safe(m?.hasExplicitPrTarget, 'gh pr comment --body x', 'comment') === false
+      && safe(m?.hasExplicitPrTarget, 'gh pr ready 7', 'ready') === true
+      && safe(m?.hasExplicitPrTarget, 'gh pr ready', 'ready') === false
+      && safe(m?.hasExplicitPrTarget, 'gh pr create', 'create') === false
+      && safe(m?.hasExplicitPrTarget, 'gh pr comment --body "see gh pr comment 5"', 'comment') === false,
+      '[N6] hasExplicitPrTarget：顯式 PR 號真、隱式/create/body 內文假');
+    assert(JSON.stringify(safe(m?.readMergeability, 'x', { LOOPS_PR_CONFLICT_STUB: '{"mergeable":"CONFLICTING","mergeStateStatus":"DIRTY"}' })) === '{"mergeable":"CONFLICTING","mergeStateStatus":"DIRTY"}',
+      '[N7] readMergeability：stub 注入 raw JSON → 走真 JSON.parse 回物件（解析路徑受測、非注入已解析結果）');
+    assert(safe(m?.readMergeability, 'x', { LOOPS_PR_CONFLICT_STUB: 'garbage{' }) === null,
+      '[N8] readMergeability：stub 壞 JSON → null（fail-open；與真 gh 路徑共用同一段 parse）');
+    // N9（verify F2）：釘死真 gh 的 argv——欄名／子指令拼錯（stub 短路 spawn、不 pin 就無斷言守住）。
+    assert(JSON.stringify(m?.GH_MERGEABILITY_ARGS) === JSON.stringify(['pr', 'view', '--json', 'mergeable,mergeStateStatus']),
+      '[N9] GH_MERGEABILITY_ARGS 精確 = [pr,view,--json,mergeable,mergeStateStatus]（防欄名/子指令拼錯 stub 測試照樣綠）');
+    // N10（verify F3）：命令段開頭錨定——heredoc/-F 本文行中提到子指令詞不誤判、真指令（含 && 串接、$()）仍判到。
+    assert(safe(m?.classifyPrCommand, 'git commit -F - <<EOF\ndocs: 說明 gh pr comment 流程\nEOF') === null
+      && safe(m?.classifyPrCommand, 'echo 先跑 gh pr create 再說') === null
+      && safe(m?.classifyPrCommand, 'cd repo && gh pr create --draft') === 'create'
+      && safe(m?.classifyPrCommand, '(gh pr ready)') === 'ready'
+      && safe(m?.classifyPrCommand, 'gh pr comment --body x') === 'comment',
+      '[N10] classifyPrCommand 錨定命令段開頭：本文行中的子指令詞不誤判成受管指令、&&/() 串接的真指令仍判到（verify F3）');
+    // N11（verify F4）：跨 repo / 夾在 flag 後的顯式目標——閘⑤ 該跳過。
+    assert(safe(m?.hasExplicitPrTarget, 'gh pr comment --repo owner/other 42 --body x', 'comment') === true
+      && safe(m?.hasExplicitPrTarget, 'gh pr ready -R owner/other', 'ready') === true
+      && safe(m?.hasExplicitPrTarget, 'gh pr comment --repo=owner/other --body x', 'comment') === true,
+      '[N11] hasExplicitPrTarget：-R/--repo/--repo=（跨 repo 目標，即使夾在 flag 後）→ true（verify F4）');
+  }
+  // ===========================================================================
+  // F5（verify）—— 三 flag 各自獨立、互不牽連（釘死實作真實行為，非 goal S13 舊字面）
+  // ===========================================================================
+  {
+    // LOOPS_PR_GATE=0 單獨關①②③，閘④（LOOPS_PR_REALRUN_GATE 仍 defaultOn）對無 receipt 的 create 仍 deny。
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_NORUN, env: { LOOPS_PR_GATE: '0' } });
+    assert(isDeny(res) && reasonOf(res).includes('real-run'),
+      '[F5-1] LOOPS_PR_GATE=0 只關①②③；閘④ 獨立 flag 仍 defaultOn → 無 receipt 的 create 仍在閘④ deny');
+  }
+  {
+    // 反向：LOOPS_PR_REALRUN_GATE=0 單獨關④，①②③（LOOPS_PR_GATE defaultOn）對缺 verify 的 create 仍 deny。
+    const res = runHook({ command: DRAFT_FULL, cwd: WT_CWD_NV, env: { LOOPS_PR_REALRUN_GATE: '0' } });
+    assert(isDeny(res) && reasonOf(res).includes('verify'),
+      '[F5-2] LOOPS_PR_REALRUN_GATE=0 只關④；①②③ 仍 defaultOn → 缺 04-verify 的 create 仍在閘① deny（證明兩 flag 互不牽連）');
+  }
+
+  // ===========================================================================
+  // G —— 閘⑤ 真 spawn 端到端（假 gh binary，非 stub）：釘死 execFileSync 真的接進 main() 的 deny
+  //     路徑、且傳給 gh 的 argv 精確。stub 短路 spawn，C 系列證不到「execFileSync 真跑 + argv 正確 +
+  //     解析真 subprocess 輸出」；本組放一個真的可執行 `gh`（印 canned JSON、把收到的 argv 落檔）到
+  //     PATH 前綴，逼 readMergeability 走 execFileSync 真路徑。POSIX 專屬（Windows 的 shell:false
+  //     execFileSync 只認 gh.exe、假 sh 腳本無法當 gh，故該平台跳過——CI ubuntu 會跑到，是權威訊號）。
+  // ===========================================================================
+  if (process.platform !== 'win32') {
+    const binDir = join(SANDBOX, 'fakebin');
+    mkdirSync(binDir, { recursive: true });
+    const ghPath = join(binDir, 'gh');
+    // 假 gh：把收到的所有 argv（$*）落檔供斷言，再把 env FAKE_GH_JSON 原樣印到 stdout 供 hook 解析。
+    writeFileSync(ghPath, ['#!/bin/sh', 'printf "%s" "$*" >> "$FAKE_GH_ARGS_OUT"', 'printf "%s" "$FAKE_GH_JSON"', ''].join('\n'));
+    chmodSync(ghPath, 0o755);
+    const argsOut = join(SANDBOX, 'fake-gh-argv.txt');
+    const runRealSpawn = (json) => {
+      rmSync(argsOut, { force: true });
+      // 不注入 LOOPS_PR_CONFLICT_STUB → readMergeability 走真 execFileSync 分支（非 stub 短路）。
+      // 本測試「父」行程的 process.env 本就不含它——C 系列的 stub 是塞給「子」行程 env、非父行程，
+      // 故 `...process.env` 自然無 stub、不必再 delete。走的是不是真 spawn 由 G2 的 argv 落檔獨立
+      // 把關：若誤走 stub，假 gh 不會被 spawn、argv 檔為空 → G2 紅，不會假綠。
+      const env = { ...process.env, PATH: `${binDir}:${process.env.PATH}`, LOOPS_PR_CONFLICT_GATE: '1', FAKE_GH_JSON: json, FAKE_GH_ARGS_OUT: argsOut };
+      return spawnSync(process.execPath, [HOOK_SCRIPT], {
+        input: JSON.stringify({ cwd: WT_CWD_FULL, tool_input: { command: 'gh pr comment --body x' } }),
+        cwd: NEUTRAL_CWD, env, encoding: 'utf8',
+      });
+    };
+    {
+      const res = runRealSpawn('{"mergeable":"CONFLICTING","mergeStateStatus":"CLEAN"}');
+      assert(isDeny(res) && reasonOf(res).includes('衝突'),
+        '[G1] 真 execFileSync spawn 假 gh 回 CONFLICTING → 閘⑤ deny（證明 spawn+解析真 subprocess 輸出+判定確實接進 main()，非只走 stub）');
+      const argv = existsSync(argsOut) ? readFileSync(argsOut, 'utf8') : '';
+      assert(argv === 'pr view --json mergeable,mergeStateStatus',
+        `[G2] execFileSync 傳給 gh 的 argv 精確 = "pr view --json mergeable,mergeStateStatus"（實收："${argv}"）——證明 GH_MERGEABILITY_ARGS 真的送到 gh，欄名拼錯此條會紅`);
+    }
+    {
+      const res = runRealSpawn('{"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN"}');
+      assert(isAllow(res), '[G3] 真 spawn 假 gh 回 MERGEABLE+CLEAN → 閘⑤ allow（解析真輸出的非衝突路徑）');
+    }
+  }
 } finally {
   rmSync(SANDBOX, { recursive: true, force: true });
 }
 
 const total = passed + failed.length;
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
-console.log(`(共 ${total} 條斷言：P1–P8／EXTRA／WIN＝三閘與接線契約、Q1–Q8＝verify 修正輪邊界)`);
+console.log(`(共 ${total} 條斷言：P1–P8／EXTRA／WIN＝#132 三閘與接線、Q1–Q8＝#132 verify 修正輪邊界、`
+  + `R＝#152 閘④ real-run receipt、C＝#152 閘⑤ 合併衝突、N＝#152 新純函式直測、`
+  + `F5＝三 flag 互不牽連、G＝閘⑤ 真 gh spawn 端到端（假 gh，POSIX/CI）；R5b/c·N9–N11·C10/11·F5·G＝#152 verify/wiring 修正輪)`);
 process.exit(failed.length > 0 ? 1 : 0);
