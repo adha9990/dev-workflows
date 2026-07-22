@@ -80,7 +80,9 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 ### 6. 完工收尾
 
-**前提：最近一輪 verify 無 actionable findings**（修完有再驗過，不是測試綠就收）。對照 `stages/00-goal.md` 停止條件全部達成 → 收尾前過 `references/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
+**前提：最近一輪 verify 無 actionable findings**（修完有再驗過，不是測試綠就收）。對照 `stages/00-goal.md` 停止條件全部達成 → **先做收尾裁測 pass（見下）** → 過 `references/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
+
+**收尾裁測 pass（交 PR 前唯一的「減」點；純文檔迴圈無測試增量免此步）**：build 與回環期間 TDD 放量是設計如此，收斂只做這一次、且做在「不再有測試進來」的最晚點。派 `test-author` 執行 consolidation（prompt 帶 `references/test-rubric.md` 的**絕對路徑**＋本 PR 對 base 的 diff 範圍；留 / 砍判準與量級門檻**正本在其 §10、此處不重抄**；in-loop bug 迴歸的分流見其 §7）。主線收 `TESTS_PRUNED` 回報後：① 跑 quality-gate 確認**全綠**；② `git diff --numstat <base>..HEAD` 分測試檔 / 功能檔加總，確認增量比例過 §10 量級門檻——超標 → 按判多餘六型回 test-author 再裁（numstat 是量化上限、reviewer 判內容，衝突時 finding 優先）；③ **裁測是一次修，修完必再驗**：觸發 delta re-verify，選軸走 `verify` §5 推導表的**裁測 override**（強制核心軸＋tests、fresh——勿因「只動測試檔」套瑣碎 0 軸）。**完工 gate 讀的是「裁後那輪」re-verify**（它就是新的「最近一輪 verify」）：乾淨才往下走 docs-policy / 交 PR；報 finding（裁過頭）→ 恢復該測試 → 再驗。
 
 **AGENTS.md 同步（條件式，不問）**：docs-policy 檢查若判定**本迴圈確實改變了慣例 / 規則**（AGENTS.md 維護時機命中）→ **主線直接依 `references/docs-policy.md`（時機＋〈怎麼寫〉守門同檔）編輯根 `AGENTS.md` 對應段落**（一次一 scope、documentation-only）；**不命中就不動、不問**——絕大多數功能迴圈不觸發，只有動到規則 / 慣例 / 新子系統的迴圈才會。
 
@@ -162,6 +164,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] **用戶回饋撞書面 AC 已知情拍板**：用戶回饋驅動的改動若反轉 / 抵觸某條書面 issue AC，實作前已 `AskUserQuestion`（informed descope、選項標推薦）；確認 descope 已同步 **issue/PR 權威留痕**（`loop.md` 僅內部稽核）；不撞任何書面 AC 的回饋照常當 actionable、沒冒多餘問句（見〈AC-衝突檢查〉、`references/auto-mode.md` 硬煞車 #6）。
 - [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工；**且再驗走 `verify` step-1 選軸（依領域自動派 conditional reviewer），不是臨場手挑 reviewer 子集**；**選軸推導寫成表落進 `stages/04-verify.md`、派出集合＝推導集合（單一真相源在 `verify` §5）**。
 - [ ] 完工前最近一輪 verify 無 actionable findings。
+- [ ] **完工前已做收尾裁測 pass**（test-author `TESTS_PRUNED` → quality-gate 全綠 → numstat 過 `test-rubric.md` §10 量級門檻 → 裁後 delta re-verify〔`verify` §5 裁測 override 選軸〕乾淨，完工 gate 讀裁後那輪）；純文檔迴圈（無測試增量）免。
 - [ ] 完工前對照 `stages/00-goal.md` 停止條件全達成。
 - [ ] **完工 / 中止已在 `loop.md` Journal append 一行 outcome 度量**（依 `references/journaling.md`〈完工 outcome 度量〉，欄位齊全、token 帶 `est`／級距標粗估）。
 - [ ] 收尾交接物依迴圈類型：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」；完整迴圈產 PR 收尾 comment **＋三份 loop 收尾檔 `deliverables/{explain,checklist,cost}.md`（無編號、一律產）**；對外的 comment 經使用者確認才送、未自動 post、回環途中不產。

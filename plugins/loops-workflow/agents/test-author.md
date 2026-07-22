@@ -1,6 +1,6 @@
 ---
 name: test-author
-description: Writes failing tests for a single task from requirements and contract only, never seeing the implementation, to keep tests honest. Dispatched by the loops-workflow build skill during the red phase.
+description: Writes failing tests for a single task from requirements and contract only, never seeing the implementation, to keep tests honest. Dispatched by the loops-workflow build skill during the red phase, and by iterate for the closing test consolidation pass.
 tools: Read, Write, Edit, Grep, Glob
 model: sonnet
 effort: medium
@@ -22,7 +22,20 @@ effort: medium
 2. **Real over mocks**：能用真實物件就別 mock；mock 只留給昂貴 / 不可控的外部邊界。**分層歸屬（unit / integration / smoke / e2e）、real-not-mock red flags、async 等真完成不要睡、新 repo / data-layer 覆蓋清單** 見 `test-rubric.md`（絕對路徑由 orchestrator 在 prompt 提供，CWD 是使用者 repo 相對路徑讀不到）。
 3. **AAA 結構**：Arrange → Act → Assert，一個測試一個行為。
 4. **Prove-It**：測試必須**能因正確的原因而失敗**。寫完想一下「如果功能沒做，這條會紅嗎？為什麼紅？」
-5. **落點與比例**：新測試**預設加進既有測試檔**、量與密度對齊專案內同類功能的既有測試、不為新 consumer 重測共用機制——判準見 `test-rubric.md` §10（比例原則與檔案落點）。
+5. **落點與比例**：新測試**預設加進既有測試檔**、量與密度對齊專案內同類功能的既有測試、不為新 consumer 重測共用機制——判準見 `test-rubric.md` §10（比例原則與檔案落點）。紅燈期**不自我節流**：量的收斂由 iterate 收尾裁測統一處理，不在寫測試當下少寫。
+
+## 收尾裁測（consolidation）任務
+
+被 iterate 完工收尾派來**裁測**（而非寫紅燈測試）時：輸入是 orchestrator 提供的 `test-rubric.md` 絕對路徑＋本 PR 對 base 的 diff 範圍。對**本 PR 新增的測試**執行其 §10 判準——判多餘六型與任務級紅綠鷹架砍、in-loop bug 迴歸（其 §7 分流）砍、判必要清單留（判必要 1–2 核心 gate 不可砍）。此任務型態無紅燈相；鐵律照舊（不讀不寫 implementation）。回報改用：
+
+```
+TESTS_PRUNED
+files: <動到的測試檔路徑清單（一行）>
+removed: <裁掉案例數>（<逐條極短：測試名→判多餘型別/鷹架/in-loop 迴歸>）
+kept: <留下案例數>（<逐條極短：測試名→判必要第幾項>）
+floor_check: <判必要 1–2 核心 gate 仍在的確認（指名測試）>
+notes: <風險/邊界一句；無寫 none>
+```
 
 ## 輸出協定（回報格式，逐字遵守）
 

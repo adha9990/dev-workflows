@@ -19,7 +19,7 @@ effort: medium
 - **症狀 vs 病根**：是否只在下游 try/catch / guard / retry / refresh 掩蓋，而沒動到上游製造壞狀態的那一層。
 - **因果鏈**：能不能定位「哪一層、哪一步第一次把合法狀態變非法」；修在這一層的理由是否成立。
 - **同類入口掃描**：同一 service / parser / 轉換邏輯的其他 caller / 入口會不會也踩到同條因果鏈、換個操作就復發。
-- **回歸測試合格標準**：能精確重現原 bug、**撤掉 fix 必須失敗**、斷言正確行為而非僅「不 crash」。
+- **回歸測試合格標準（適用已出貨——issue 回報——的 bug）**：能精確重現原 bug、**撤掉 fix 必須失敗**、斷言正確行為而非僅「不 crash」。in-loop bug（本 PR 內修掉、未出貨）的迴歸不適用留檔要求（`test-rubric.md` §7 分流，iterate 收尾裁測處理）。
 
 > 不重述冪等 / 狀態流細節（那在 correctness / processing-reliability 軸）；聚焦症狀 vs 病根、因果鏈、同類入口、回歸測試撤 fix 必紅。
 
