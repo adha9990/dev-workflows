@@ -178,6 +178,13 @@ function assertDenyWithReason(res, label) {
   assert(reasonOf(res).includes(ESCAPE_STR), `${label} reason 含逃生口字面 "${ESCAPE_STR}"`);
 }
 
+// kind→專屬文案映射斷言（verify tests 軸補強）：只驗共用三要素會讓「DENY_DETAILS key 對錯位 /
+// classify 回傳 kind 打錯字致 DENY_DETAILS[kind] undefined 靜默空串」照樣全綠——每 kind 的代表案例
+// 另斷言一個該 kind 專屬子字串，把 kind→文案映射本身釘進迴歸集。
+function assertReasonMentions(res, substr, label) {
+  assert(reasonOf(res).includes(substr), `${label} reason 含 kind 專屬文案 "${substr}"`);
+}
+
 // =============================================================================
 // S1 —— gh pr ready → deny；--undo → 放行；shell-agnostic（tool_name='PowerShell' 同形）
 // =============================================================================
@@ -187,6 +194,7 @@ function assertDenyWithReason(res, label) {
   const p = parseOut(res);
   assert(p?.hookSpecificOutput?.hookEventName === 'PreToolUse', '[S1-1] hookEventName === "PreToolUse"（信封形狀，首例代表全體）');
   assertDenyWithReason(res, '[S1-2] "gh pr ready 123"');
+  assertReasonMentions(res, 'gh pr ready', '[S1-2k]');
 }
 {
   const res = runHook({ command: 'gh pr ready --repo owner/repo 123' });
@@ -215,6 +223,7 @@ function assertDenyWithReason(res, label) {
 {
   const res = runHook({ command: 'gh pr edit 5 --add-reviewer alice' });
   assertDenyWithReason(res, '[S3-1] "gh pr edit 5 --add-reviewer alice"（空白接值）');
+  assertReasonMentions(res, '--add-reviewer', '[S3-1k]');
 }
 {
   const res = runHook({ command: 'gh pr edit 5 --add-reviewer=alice' });
@@ -227,6 +236,7 @@ function assertDenyWithReason(res, label) {
 {
   const res = runHook({ command: 'gh pr create --title x --reviewer alice' });
   assertDenyWithReason(res, '[S3-4] "gh pr create --title x --reviewer alice"（空白接值）');
+  assertReasonMentions(res, '--reviewer', '[S3-4k]');
 }
 {
   const res = runHook({ command: 'gh pr create --title x --reviewer=alice' });
@@ -255,6 +265,7 @@ function assertDenyWithReason(res, label) {
 {
   const res = runHook({ command: 'gh api repos/x/y/pulls/42/requested_reviewers -X POST -f reviewers[]=alice' });
   assertDenyWithReason(res, '[S4-1] 顯式 "-X POST"（附欄位旗標）');
+  assertReasonMentions(res, 'requested_reviewers', '[S4-1k]');
 }
 {
   const res = runHook({ command: 'gh api --method POST repos/x/y/pulls/42/requested_reviewers' });
@@ -312,6 +323,13 @@ function assertDenyWithReason(res, label) {
   const res = runHook({ command: 'gh api repos/x/y/reviews/42/requested_reviewers -X POST' });
   assert(isAllow(res), '[S4-15] 路徑缺 "/pulls/" 段（僅 requested_reviewers）→ 放行（AND 條件不成立）');
 }
+{
+  // 右邊界迴歸釘（鏡射 merge-guard N4「/mergeable 誤中 /merge」教訓）：路徑字面是超集
+  // （requested_reviewersX）就不是本端點——若日後把 API_REVIEWERS_PATH_RE 簡化回裸
+  // includes('/requested_reviewers')，本案例會由綠翻紅。
+  const res = runHook({ command: 'gh api repos/x/y/pulls/42/requested_reviewersX -X POST' });
+  assert(isAllow(res), '[S4-16] 路徑後綴超集 "requested_reviewersX"（右邊界不成立）→ 放行');
+}
 
 // =============================================================================
 // S5 —— gh api graphql ＋ mutation 名（word boundary）
@@ -319,6 +337,7 @@ function assertDenyWithReason(res, label) {
 {
   const res = runHook({ command: "gh api graphql -f query=mutation{markPullRequestReadyForReview(input:{pullRequestId:\"PR_1\"}){clientMutationId}}" });
   assertDenyWithReason(res, '[S5-1] graphql + markPullRequestReadyForReview mutation');
+  assertReasonMentions(res, 'graphql', '[S5-1k]');
 }
 {
   const res = runHook({ command: "gh api -X POST graphql -f query=mutation{requestReviews(input:{pullRequestId:\"PR_1\"}){clientMutationId}}" });
@@ -351,6 +370,7 @@ function assertDenyWithReason(res, label) {
 {
   const res = runHook({ toolName: 'mcp__plugin_github_github__update_pull_request', toolInput: { draft: false } });
   assertDenyWithReason(res, '[S6-1] update_pull_request ＋ draft===false（strict）');
+  assertReasonMentions(res, 'draft', '[S6-1k]');
 }
 {
   const res = runHook({ toolName: 'mcp__plugin_github_github__update_pull_request', toolInput: { draft: true } });
@@ -363,6 +383,7 @@ function assertDenyWithReason(res, label) {
 {
   const res = runHook({ toolName: 'mcp__plugin_github_github__update_pull_request', toolInput: { reviewers: ['alice'] } });
   assertDenyWithReason(res, '[S6-4] update_pull_request ＋ reviewers 非空陣列');
+  assertReasonMentions(res, 'reviewers', '[S6-4k]');
 }
 {
   const res = runHook({ toolName: 'mcp__plugin_github_github__update_pull_request', toolInput: { reviewers: [] } });
@@ -379,10 +400,16 @@ function assertDenyWithReason(res, label) {
 {
   const res = runHook({ toolName: 'mcp__plugin_github_github__request_copilot_review', toolInput: {} });
   assertDenyWithReason(res, '[S6-8] request_copilot_review（空 tool_input）');
+  assertReasonMentions(res, 'request_copilot_review', '[S6-8k]');
 }
 {
   const res = runHook({ toolName: 'mcp__plugin_github_github__request_copilot_review', toolInput: { anything: 'x' } });
   assert(isDeny(res), '[S6-9] request_copilot_review（任意 tool_input）→ 一律 deny');
+}
+{
+  // isMcpTool 的 (^|__)<name>$ 兩種命中方式中「裸名（^ 分支、無前綴）」的形式驗證。
+  const res = runHook({ toolName: 'update_pull_request', toolInput: { draft: false } });
+  assert(isDeny(res), '[S6-10] 裸 tool_name "update_pull_request"（無 mcp__ 前綴、^ 邊界分支）＋ draft:false → deny');
 }
 
 // =============================================================================

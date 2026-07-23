@@ -42,7 +42,8 @@
 //   1) 純函式（無 IO）：classifyShellCommand（五型分類主入口）/ classifyMcpCall / 各型判定函式 /
 //      deny 理由組字函式。
 //   2) IO 薄邊界：main()（讀 stdin、印 deny）——import 時不執行。
-// 依賴：node 內建（url / child_process 不需要，僅 fs）+ 同目錄 hook-flags（flagEnabled）、pr-gate
+// 依賴：node 內建 fs（readFileSync 讀 stdin）＋ url（pathToFileURL 判 invokedDirectly）；不需
+// child_process。+ 同目錄 hook-flags（flagEnabled）、pr-gate
 // （stripQuotedValues / isPrReadyCommand / isPrCreateCommand / prSubcommandAtSegmentStart，#164
 // plan：pr-gate.mjs 僅加一個 export、零行為變更）——子指令詞剝殼判定不重抄 pr-gate.mjs 已寫好、
 // 已測過的邏輯。
@@ -55,6 +56,10 @@
 //   - `gh pr create` 短旗標 `-r` 判定是黏合旗標值形式（`-rvalue`，無 `=` 無空白）目前不涵蓋，僅
 //     涵蓋空白接值與 `-r=value` 兩形。
 //   - curl 等直打 GitHub REST API 的方式不在本 hook 攔截面內（僅管 `gh` CLI 與 GitHub MCP 工具）。
+//   - 指令變形繞道（繼承家族 segment-start 詞法基線，pr-gate／merge-guard 同樣漏）：`gh.exe pr
+//     ready`（Windows 副檔名形）、`/usr/bin/gh`（絕對路徑）、`command gh`／`env X=1 gh`／`xargs gh`
+//     （前綴指令）、alias——正則錨定字面 `gh`＋空白，這些形一律假放行（fail-open 方向）。要收斂
+//     須動 pr-gate 共用函式（家族級決策），不在本票範圍。
 
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';

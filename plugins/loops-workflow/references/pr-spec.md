@@ -87,7 +87,7 @@ Closes #<issue>
 ## 收尾
 
 - **push ≠ merge：push 不需 gate、只有 merge 需**。開 PR / 同步 master / 補 commit 後**自動 `git push` branch**，**不要停下等使用者說「push」**——push 只是把已 commit 的東西送上遠端，唯一的 human gate 是 **merge**。同理，plugin 維護 / 其他 repo 的 commit 也**自動 push**（別擱著「等使用者決定 push」——那不是 gate）。（實測教訓：曾把 plugin commit 擱在本機不 push、使用者得回頭要求。）
-- **開 / 改 PR 時自動與 master 同步**：`git fetch origin master` 後若 branch 落後 / 與 master 衝突 → **自動把 master 合進 branch**（`git merge origin/master`）並解衝突（謹慎解、不盲目取單邊；真的解不清才停下用 `AskUserQuestion` 問），解完 push —— **不留帶衝突 / 落後的 PR**，再請求 review。
+- **開 / 改 PR 時自動與 master 同步**：`git fetch origin master` 後若 branch 落後 / 與 master 衝突 → **自動把 master 合進 branch**（`git merge origin/master`）並解衝突（謹慎解、不盲目取單邊；真的解不清才停下用 `AskUserQuestion` 問），解完 push —— **不留帶衝突 / 落後的 PR**；要不要（重新）request review 由 owner 決定（見〈owner 驗收動作〉，agent 不代按）。
 - 送出前對外內容（PR body / 回覆）先寫 tmp 草稿給使用者校稿（見 `references/comment-policy.md`），確認才 post。
 - **開 / 改 PR 後驗證 `gh pr view <PR#> --json closingIssuesReferences` 已含目標 issue**（body 的 `Closes #<issue>` 生效了），不是空陣列。
 
