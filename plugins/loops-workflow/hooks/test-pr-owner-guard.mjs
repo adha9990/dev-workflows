@@ -406,6 +406,13 @@ function assertReasonMentions(res, substr, label) {
   assertReasonMentions(res, 'request_copilot_review', '[S6-8k]');
 }
 {
+  // S6-9 與 S6-8 是「先驗空、再驗非空皆 deny」的必要一對（非排列組合）：契約明文「一律 deny
+  // （無條件）」，只留空 input 案例時，實作若被改成「只在 tool_input 為空才 deny」照樣全綠
+  // ——非空案例是 unconditional 這個行為邊界的唯一佐證（第 3 輪裁測曾誤判型 4 砍掉、複查仲裁恢復）。
+  const res = runHook({ toolName: 'mcp__plugin_github_github__request_copilot_review', toolInput: { anything: 'x' } });
+  assert(isDeny(res), '[S6-9] request_copilot_review（任意非空 tool_input）→ 一律 deny（unconditional 佐證）');
+}
+{
   // isMcpTool 的 (^|__)<name>$ 兩種命中方式中「裸名（^ 分支、無前綴）」的形式驗證。
   const res = runHook({ toolName: 'update_pull_request', toolInput: { draft: false } });
   assert(isDeny(res), '[S6-10] 裸 tool_name "update_pull_request"（無 mcp__ 前綴、^ 邊界分支）＋ draft:false → deny');
