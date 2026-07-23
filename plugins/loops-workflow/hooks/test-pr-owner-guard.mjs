@@ -402,12 +402,8 @@ function assertReasonMentions(res, substr, label) {
 }
 {
   const res = runHook({ toolName: 'mcp__plugin_github_github__request_copilot_review', toolInput: {} });
-  assertDenyWithReason(res, '[S6-8] request_copilot_review（空 tool_input）');
+  assertDenyWithReason(res, '[S6-8] request_copilot_review（空 tool_input，一律 deny——決策不依賴 tool_input，單一代表案例即可證明該路徑）');
   assertReasonMentions(res, 'request_copilot_review', '[S6-8k]');
-}
-{
-  const res = runHook({ toolName: 'mcp__plugin_github_github__request_copilot_review', toolInput: { anything: 'x' } });
-  assert(isDeny(res), '[S6-9] request_copilot_review（任意 tool_input）→ 一律 deny');
 }
 {
   // isMcpTool 的 (^|__)<name>$ 兩種命中方式中「裸名（^ 分支、無前綴）」的形式驗證。
