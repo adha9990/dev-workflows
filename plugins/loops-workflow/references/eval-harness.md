@@ -32,7 +32,7 @@
 }
 ```
 
-每個 scenario：`name` / `input`（餵給階段的輸入）/ `expect`（可觀察的預期結果）。至少 **3 個 scenario + 1 個 baseline**（baseline = 對照組，沒有它無法判斷「對的原因」）。
+每個 scenario：`name` / `input`（餵給階段的輸入）/ `expect`（可觀察的預期結果）。至少 **3 個 scenario + 1 個 baseline**（baseline = 對照組，沒有它無法判斷「對的原因」）。committed 範例：`evals/gate-recommendation/scenarios.json`（AskUserQuestion 推薦準則的「治標 vs 治本」勾檢——留債 / 行為回歸選項是否被誤標推薦，判準見 `AGENTS.md` 規則 10）。
 
 ## 跑
 
