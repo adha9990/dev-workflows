@@ -194,7 +194,9 @@ function assertReasonMentions(res, substr, label) {
   const p = parseOut(res);
   assert(p?.hookSpecificOutput?.hookEventName === 'PreToolUse', '[S1-1] hookEventName === "PreToolUse"（信封形狀，首例代表全體）');
   assertDenyWithReason(res, '[S1-2] "gh pr ready 123"');
-  assertReasonMentions(res, 'gh pr ready', '[S1-2k]');
+  // 子字串必須是 DENY_DETAILS['ready'] 專屬（「可送審」只在該 kind 文案出現）——不可選 'gh pr ready'
+  // 這種也出現在共用前綴 OWNER_NOTE 的詞（對所有 kind 恆真、測不到 key 錯位／undefined 空串）。
+  assertReasonMentions(res, '可送審', '[S1-2k]');
 }
 {
   const res = runHook({ command: 'gh pr ready --repo owner/repo 123' });
@@ -370,7 +372,8 @@ function assertReasonMentions(res, substr, label) {
 {
   const res = runHook({ toolName: 'mcp__plugin_github_github__update_pull_request', toolInput: { draft: false } });
   assertDenyWithReason(res, '[S6-1] update_pull_request ＋ draft===false（strict）');
-  assertReasonMentions(res, 'draft', '[S6-1k]');
+  // 'draft: false' 只在 DENY_DETAILS['mcp-draft'] 出現（OWNER_NOTE 只有裸 'draft'，mcp-reviewers 無此串）。
+  assertReasonMentions(res, 'draft: false', '[S6-1k]');
 }
 {
   const res = runHook({ toolName: 'mcp__plugin_github_github__update_pull_request', toolInput: { draft: true } });
