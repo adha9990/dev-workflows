@@ -1,14 +1,14 @@
 ---
 name: iterate
 user-invocable: false
-description: Triages verify findings or PR feedback, decides which stage to loop back to (max 3 rounds), and finishes when the stop condition is met. Use when starting the iterate stage of a loops-workflow run, or when a PR has reviewer feedback to act on.
+description: Triages verify findings or PR feedback, decides which stage to loop back to (round count is a soft cap that triggers a status report — unfixed P0/P1 still block finishing), and finishes when the stop condition is met. Use when starting the iterate stage of a loops-workflow run, or when a PR has reviewer feedback to act on.
 ---
 
 # iterate — 迭代（triage + 回環決策 + 收尾）
 
 ## Overview
 
-`iterate` 把 verify 的缺口 / PR reviewer 的回饋做 triage，決定**回哪個階段重來**（最多 3 圈），或**完工收尾交 PR**。它是閉環的收口 —— 確保「錯的東西被修正、修正有回歸測試守住、**修完再驗一輪**」，而不是無限繞圈。
+`iterate` 把 verify 的缺口 / PR reviewer 的回饋做 triage，決定**回哪個階段重來**（圈數是**軟上限**：到頂只觸發回報，**未修的 P0/P1 仍擋收圈**，見 §5），或**完工收尾交 PR**。它是閉環的收口 —— 確保「錯的東西被修正、修正有回歸測試守住、**修完再驗一輪**」，而不是無限繞圈。
 
 **核心原則：交給其他（人類 / 外部）reviewer 前，先在內部 `verify ⇄ iterate` 迴圈把問題解到最少** —— 降低外部 reviewer 撞到問題的機率。所以**修完一定再跑一輪 verify**，不能用「測試綠」打發。
 
@@ -68,19 +68,34 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 **完工只在「最近一輪 verify 已無 actionable findings」時才可達** —— 即「跑完 verify → iterate 這輪沒東西要修」。修完直接跳完工 = 抄捷徑。
 
-### 5. 回環上限：3 圈 + 收斂感知（escalate 是檢查點，不是放棄）
+### 5. 回環圈數＝軟上限（回報檢查點）；收圈硬條件＝P0/P1 清零
 
-回環**預設上限 3 圈**，但停止條件**看收斂、不只看次數**：
+**「收圈」＝結束回環、進完工收尾 / 交 PR**（本節沿用這個詞）。
 
-- **收斂中才值得再繞**：每輪 verify 的 actionable findings 要**比上輪嚴格變少**、或是**不同的新問題**（代表在推進）。
-- **沒收斂就當下 escalate、不等第 3 圈**：若這輪 findings **沒比上輪少**、或**同一條 finding 又冒出來**（修了又破 / 根因沒搆到）→ 立刻停下 escalate，別把剩下的圈數浪費在原地打轉。
-- **碰到 3 圈上限 = 檢查點、不是硬牆**：停下用 `AskUserQuestion` 問怎麼走 —— **回頭重想**（方向有更深問題：DoD 模糊 / 方法選錯 / 設計缺陷 → 回 goal / explore / plan）/ **換跨模型二審**（opt-in，抓同模型結構盲點，見 `references/cross-model-review.md`）/ **授權再繞**（使用者帶新判斷說繼續 → **計數重置**、再走幾圈）。3 不是放棄點，是「這沒在收斂，你要鑽下去還是換路」的人類檢查點。
+圈數**預設上限 3 圈，但那是軟上限** —— 它的意義是「**到這裡要向使用者回報現況**」，**不是「可以停止修正」**。決定能不能收圈的是 **findings，不是圈數**：
 
-每次回環在 `loop.md` 記一筆（第幾圈、回哪、為什麼、**這輪 findings 數 vs 上輪**）—— 收斂軌跡是判斷「該不該再繞」的依據。
+- **收圈硬條件：最近一輪 verify 沒有未修的 P0/P1**（blocking 線沿用 `references/reviewer-severity.md`：P0/P1 經驗證後一律擋）。**只要還有未修的 P0/P1，就不得以「圈數到了」為由收圈** —— 碰到軟上限就**回報現況 → 繼續修**，直到清零、或使用者**知情豁免**（見下）。**圈數持續累加、不因回報重置**（「計數重置」只用在使用者授權再繞那條分支）。
+  - 這條堵的是實測踩過的路徑：**後面的圈次挖出更多 P1，往往不是因為前面修壞了，而是驗證手段變深了** —— 某一圈第一次真機驅動 / 第一次 scripted 量測，當場抓到「從 build 就壞著、綠燈測試看不到」的功能中斷。此時用固定圈數喊停，等於在**剛看見真問題的那一刻收手**，把已知缺陷帶進 PR。
+  - **這是下界、不是新的完工門檻**：§6 的完工前提「最近一輪 verify 無 actionable findings」照舊（P2/P3 一樣全修，見 §2–3）。本條只取消「圈數用完」這個繞過它的出口。
+- **跨越軟上限要回報，不是靜默續跑**：上限之後的**每一圈**都在 `loop.md` Journal ＋ chat 摘要寫一段現況 —— **第幾圈 / 未清的 P0/P1 逐條 / 每輪 findings 軌跡 / 上一圈為什麼沒收斂或為什麼新增（歸因，見下） / 下一圈打算換什麼手法**。closed 模式在此用 `AskUserQuestion` 停下問（**有未清 P0/P1 時的推薦項＝繼續修**）；auto 模式取推薦續修，但**照樣把同一段現況寫進 Journal ＋ chat**（auto ≠ 靜默）。
+- **使用者喊停的出口（知情豁免）**：使用者可以明確決定「**這些 P0/P1 我知道，先進 PR**」——那是**使用者的 scope 決策，agent 不得代決**（auto 模式也**不得**自動選此項，見 `references/auto-mode.md` 硬煞車 #4；P0 另依 verify §5 一律停下問）。確認豁免後比照〈AC-衝突檢查〉的知情留痕：**豁免哪幾條 + 理由同步進 issue / PR（reviewer 看得到的權威留痕）**，`loop.md` Journal 記一筆內部副本。
+- **P2/P3 不是硬條件**（這就是防無限迴圈的第一道邊界）：actionable 一律全修的紀律不變，但**只有 P0/P1 鎖住收圈**。碰軟上限時若**已無未修 P0/P1、只剩 P2/P3** → 沿用既有停損語意，停下讓使用者選（收圈 / 授權再繞〔計數重置〕 / 把剩下的記成 out-of-scope）。
+- **防無限繞的真防線是收斂感知、不是圈數**：同一條 finding 修了又復現 / 修出新問題 ＝ 原地打轉，**當下 escalate 換手法** —— escalate 是**換手法**，不是「放行帶著 P1 收圈」。
+
+**收斂判準（findings 沒變少時先歸因，再判是不是原地打轉）**：
+
+- **收斂中才值得沿用同一手法**：每輪 verify 的 actionable findings **比上輪嚴格變少**、或是**不同的新問題**（代表在推進）。
+- **findings 沒變少 / 反而變多 → 先歸因兩種成因，別一律當退步**：
+  - **驗證手段變深、挖出既有問題**（這輪第一次真機驅動 / 第一次 scripted 量測 / 某個 lens 第一次看這塊 / 選軸依規則新增了軸）→ 那些缺陷**本來就在**、只是先前看不見。這是**進展**：把歸因記進 Journal，續修、**不當原地打轉、不因此 escalate**。
+    - **歸因要指名、不是免死金牌**：寫明「**哪幾條 finding** 是被 **哪個具體新手段** 第一次看見的」；且**該手段一旦用過，就納入後續每輪再驗的下界**（不得退回淺驗證 —— 否則下一圈的「變少」是假的）。指不出手段 → 當沒收斂處理。
+  - **修壞了 / 根因沒搆到**（同一條 finding 又冒出來、或修正引入新問題）→ 這才是沒收斂：**當下 escalate、不等圈數到頂**，帶著「上一圈的修法為什麼沒搆到根因」停下換手法。
+- **檢查點的選項**（軟上限、或沒收斂時停下問）：**回頭重想**（方向有更深問題：DoD 模糊 / 方法選錯 / 設計缺陷 → 回 goal / explore / plan）/ **換跨模型二審**（opt-in，抓同模型結構盲點，見 `references/cross-model-review.md`）/ **繼續修**（有未清 P0/P1 時的推薦項）/ **授權再繞**（使用者帶新判斷說繼續 → 計數重置）/ **知情豁免收圈**（**只有使用者能選**）。escalate 是「這沒在收斂，你要鑽下去還是換路」的人類檢查點，不是放棄、也不是放行。
+
+每次回環在 `loop.md` 記一筆（第幾圈、回哪、為什麼、**這輪 findings 數 vs 上輪 + 沒變少時的歸因**）—— 收斂軌跡是判斷「該換手法還是照原路修」的依據。
 
 ### 6. 完工收尾
 
-**前提：最近一輪 verify 無 actionable findings**（修完有再驗過，不是測試綠就收）。對照 `stages/00-goal.md` 停止條件全部達成 → **先做收尾裁測 pass（見下）** → 過 `references/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
+**前提：最近一輪 verify 無 actionable findings**（修完有再驗過，不是測試綠就收；**其中未修的 P0/P1 是硬條件——圈數到頂不是收圈理由，見 §5**）。對照 `stages/00-goal.md` 停止條件全部達成 → **先做收尾裁測 pass（見下）** → 過 `references/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
 
 **收尾裁測 pass（交 PR 前唯一的「減」點；純文檔迴圈無測試增量免此步）**：build 與回環期間 TDD 放量是設計如此，收斂只做這一次、且做在「不再有測試進來」的最晚點。派 `test-author` 執行 consolidation（prompt 帶 `references/test-rubric.md` 的**絕對路徑**＋本 PR 對 base 的 diff 範圍；留 / 砍判準與量級門檻**正本在其 §10、此處不重抄**；in-loop bug 迴歸的分流見其 §7）。主線收 `TESTS_PRUNED` 回報後：① 跑 quality-gate 確認**全綠**；② `git diff --numstat <base>..HEAD` 分測試檔 / 功能檔加總，確認增量比例過 §10 量級門檻——超標 → 按判多餘六型回 test-author 再裁（numstat 是量化上限、reviewer 判內容，衝突時 finding 優先）；③ **裁測是一次修，修完必再驗**：觸發 delta re-verify，選軸走 `verify` §5 推導表的**裁測 override**（強制核心軸＋tests、fresh——勿因「只動測試檔」套瑣碎 0 軸）。**完工 gate 讀的是「裁後那輪」re-verify**（它就是新的「最近一輪 verify」）：乾淨才往下走 docs-policy / 交 PR；報 finding（裁過頭）→ 恢復該測試 → 再驗。
 
@@ -115,7 +130,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 **loop 暫存一律不入庫**：worktree、草稿、截圖、`.loops/`、`data/`、`dev.json` 等都不該被 commit / push。repo `.gitignore` 要涵蓋 `.loops/`、`.claude/worktrees/`、`data/`、`dev.json`、截圖（缺就補）；`git ls-files` 掃一遍確認沒有暫存被追蹤。
 
-**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：用 `AskUserQuestion` 確認**交 PR**（outward action 要你點頭）—— 核可後**一律 `gh pr create --draft --assignee @me`**（開 draft + 指派作者自己，見 `references/pr-spec.md`〈開法〉；使用者要正式請 merge 時才 `gh pr ready <PR#>` 轉 Ready）/ 或還要再打磨。另外只有 **回環沒收斂 / 碰 3 圈上限 escalate（檢查點，見 §5）、真正的 trade-off（修法與 `stages/00-goal.md` 衝突）、分類模糊** 才停下問。
+**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：用 `AskUserQuestion` 確認**交 PR**（outward action 要你點頭）—— 核可後**一律 `gh pr create --draft --assignee @me`**（開 draft + 指派作者自己，見 `references/pr-spec.md`〈開法〉；使用者要正式請 merge 時才 `gh pr ready <PR#>` 轉 Ready）/ 或還要再打磨。另外只有 **回環沒收斂 / 碰圈數軟上限的回報檢查點（見 §5 —— 有未清 P0/P1 時推薦項＝繼續修，「知情豁免收圈」只有使用者能選）、真正的 trade-off（修法與 `stages/00-goal.md` 衝突）、分類模糊** 才停下問。
 
 ## Common Rationalizations
 
@@ -123,8 +138,11 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 |------|------|
 | 「症狀壓掉就好，根因之後再說」 | 症狀修會復發。debugging 的鐵律是修根因，且每修加回歸測試。 |
 | 「reviewer 講的我覺得不對，直接忽略」 | 不對的也要分類成 contract misread 並陳述理由婉拒，不是默默忽略。 |
-| 「再繞一圈應該就好了」 | 看**收斂**不看感覺：findings 沒比上輪少 / 同條 finding 復現 = 原地打轉，當下就 escalate，不是再賭一圈。 |
-| 「還沒到 3 圈，繼續繞」（但 findings 沒變少） | 上限是看收斂、不是用滿次數。沒收斂就 escalate 當檢查點、不必等第 3 圈；碰 3 圈也是停下問你（回頭重想 / 換跨模型 / 授權再繞重置計數），不是放棄。 |
+| 「再繞一圈應該就好了」 | 看**收斂**不看感覺：同條 finding 復現 / 修出新問題 = 原地打轉，當下就 escalate 換手法，不是再賭一圈。（findings 沒變少要先歸因，見 §5。） |
+| 「還沒到上限，繼續繞」（但同條 finding 一直復現） | 該不該再繞看收斂、不是看次數用完沒。沒收斂就當下 escalate 換手法，不必等到上限。 |
+| **「圈數到上限了，剩下的 P1 就寫成 PR follow-up 先進 PR」** | 圈數是**軟上限**：到頂只觸發回報，**不是收圈理由**。還有未修 P0/P1 就繼續修 —— 要帶著已知 P1 進 PR，只有**使用者知情豁免**這一條路（agent 不得代決、auto 不得自動選），且要同步 issue/PR 留痕。 |
+| 「這輪 findings 比上輪多，肯定是修壞了，escalate」 | 先**歸因**：這輪是不是第一次真機驅動 / 第一次 scripted 量測 / 新派了某個 lens？那些缺陷本來就在、只是先前看不見 —— 那是進展，續修。只有同條復現 / 修出新問題才是沒收斂。 |
+| 「findings 變多我就說『這輪驗得比較深』」 | 歸因**要指名**哪幾條是被哪個具體新手段第一次看見的，且該手段要納入後續每輪再驗的下界。指不出來 = 沒收斂，照 escalate 處理。 |
 | 「修完不用加測試，這次很簡單」 | 沒有回歸測試守住，同一個 bug 會再回來。GUARD 不可省。 |
 | 「測試全綠 + typecheck 0，等於 verify 過了」 | 綠燈只證明沒打破現有測試，證不了修正對其他軸 / 既有 consumer 安全。verify 是 fresh reviewer 各審一軸，綠燈取代不了。 |
 | 「改一行而已，不用再 verify」 | 改到共用元件一行的 blast radius 可能比大改還大。波及面要 fresh-verify。 |
@@ -134,7 +152,11 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 - 修症狀沒修根因。
 - 修了 bug 沒加回歸測試。
-- 回環**沒在收斂**（findings 沒變少 / 同條復現）卻硬繞、沒 escalate；或繞滿 3 圈沒當檢查點停下問使用者。
+- 回環**沒在收斂**（同條 finding 復現 / 修出新問題）卻硬繞、沒 escalate 換手法。
+- **碰圈數軟上限就收圈、帶著未修的 P0/P1 進 PR**（把圈數當收圈理由）—— 圈數到頂只觸發回報，硬條件是 P0/P1 清零；要帶著已知 P0/P1 進 PR 只能走**使用者知情豁免**（agent 代決 / auto 自動帶過都是違規），且要同步 issue/PR 留痕。
+- **跨越軟上限後靜默續跑**：Journal / chat 沒有那一圈的現況回報（未清 P0/P1 逐條 + findings 軌跡 + 歸因 + 下一圈換什麼手法）。
+- **findings 沒變少就一律當原地打轉 escalate、沒先歸因** —— 漏掉「這輪第一次真機驅動 / 第一次 scripted 量測才看見既有缺陷」這種**進展**，在最該繼續的一刻喊停。
+- **拿「這輪驗得比較深」當免死金牌**：指不出哪幾條是被哪個具體新手段第一次看見的、或用過的手段下一圈又退回淺驗證（讓「變少」變成假象）。
 - `loop.md` 沒記回環歷史。
 - 修正回覆 comment 堆客套 / 沒給驗證證據 / `@` 點名 reviewer（§8 規定不點名）。
 - **修完沒再跑 verify 就完工**（拿「測試綠 / typecheck 0」當 verify 替代品）。
@@ -160,7 +182,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 交 PR 一律 **draft + `--assignee @me`**（`gh pr create --draft --assignee @me`；使用者要 merge 才 `gh pr ready` 轉 Ready，見 `references/pr-spec.md`〈開法〉）。
 - [ ] verify 出的 actionable findings（不論 P2/P3）**全部自動修了**，沒問使用者「修多少 / 要不要修」。
 - [ ] 每個 actionable 修的是根因 + 有回歸測試（GUARD）。
-- [ ] 回環**看收斂**（findings 嚴格變少才續繞）；沒收斂 / 碰 3 圈上限已 escalate 當**檢查點**（讓使用者選回頭重想 / 換跨模型 / 授權再繞〔計數重置〕）；`loop.md` 有回環歷史 + 每輪 findings 數。
+- [ ] 回環**看收斂不看次數**：findings 沒變少時**先歸因**（驗證手段變深挖出既有問題 → 記歸因續修；同條復現 / 修出新問題 → 當下 escalate 換手法）；`loop.md` 有回環歷史 + 每輪 findings 數 + 沒變少那輪的歸因。
+- [ ] **圈數只當軟上限（回報檢查點）、沒被當成收圈理由**：跨越上限的每一圈都有現況回報（未清 P0/P1 逐條 + findings 軌跡 + 歸因 + 下一圈手法）進 Journal ＋ chat；**未修的 P0/P1 存在時沒有收圈**——除非**使用者知情豁免**（agent 未代決、auto 未自動選），且豁免哪幾條 + 理由已同步 issue / PR 權威留痕。碰上限時只剩 P2/P3 才走既有停損檢查點。
 - [ ] **用戶回饋撞書面 AC 已知情拍板**：用戶回饋驅動的改動若反轉 / 抵觸某條書面 issue AC，實作前已 `AskUserQuestion`（informed descope、選項標推薦）；確認 descope 已同步 **issue/PR 權威留痕**（`loop.md` 僅內部稽核）；不撞任何書面 AC 的回饋照常當 actionable、沒冒多餘問句（見〈AC-衝突檢查〉、`references/auto-mode.md` 硬煞車 #6）。
 - [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工；**且再驗走 `verify` step-1 選軸（依領域自動派 conditional reviewer），不是臨場手挑 reviewer 子集**；**選軸推導寫成表落進 `stages/04-verify.md`、派出集合＝推導集合（單一真相源在 `verify` §5）**。
 - [ ] 完工前最近一輪 verify 無 actionable findings。

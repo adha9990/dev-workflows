@@ -50,7 +50,7 @@
         │
 dispatch → goal → explore → plan → build → verify → iterate
                                                         │
-                  回 goal / explore / plan / build ◀────┤（≤ 3 圈，修完一定再 verify）
+                  回 goal / explore / plan / build ◀────┤（圈數軟上限，修完一定再 verify）
                                                         └──▶ 完工（交 PR / 收尾）
 ```
 
@@ -69,7 +69,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 | **plan** | ✋ 拍板方案 | 決策留痕 + 畫機制圖（拍板時渲染給你看）+ 新套件 ≥3 候選評估 + 拆成能各自驗證的任務 |
 | **build** | 危險 / 卡關才停 | 逐任務**紅綠分離**：test-author 只看需求寫測試（看不到實作）、impl-author 只負責轉綠（不准改測試）→ 重構 → 分段 commit |
 | **verify** | 出 P0 才停 | 同一回合派**多個獨立 reviewer** 各審一面（正確性 / 契約 / 安全 / 效能 / 測試…）+ 跑真 app + 二輪驗證 findings → 判 Ready / 退回 |
-| **iterate** | ✋ 完工 / 回環 | 把 verify 或 PR 回饋分類 → **真問題一律自動全修**（修根因 + 加回歸測試）→ 修完再驗一輪 → 乾淨才收尾開 PR。回環最多 3 圈 |
+| **iterate** | ✋ 完工 / 回環 | 把 verify 或 PR 回饋分類 → **真問題一律自動全修**（修根因 + 加回歸測試）→ 修完再驗一輪 → 乾淨才收尾開 PR。回環圈數（預設 3）是**軟上限**：到頂只會回報現況給你，**還有沒修完的嚴重問題（P0/P1）就繼續修**，不會因為「圈數用完」就帶著問題進 PR；要帶著已知問題進 PR 得由你明講 |
 
 ## 兩個引擎
 
