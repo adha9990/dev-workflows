@@ -73,20 +73,23 @@ T1（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marke
 
 **結論**：停用／移除的確切指令是「先 `codex plugin remove loops-workflow@dev-workflows`，再 `codex plugin marketplace remove dev-workflows`」，兩步皆無需認證、皆可重跑驗證乾淨移除。這組指令可直接供 `docs/CODEX-QUICKSTART.md` 的「常見問題、停用／移除方式」一節引用。
 
-## Test 5 — 輔證據：官方 scaffold `validate_plugin.py`（離線，發現落差）
+## Test 5 — 輔證據：官方 scaffold `validate_plugin.py`（離線，PASS）
 
 - 來源：`openai/codex` repo `codex-rs/skills/src/assets/samples/plugin-creator/scripts/validate_plugin.py`（commit `7c71783135b020e8f4db3fa26dc4319901c260b5`，2026-07-24 抓取；唯讀 `gh api` fetch 到暫存目錄，未動本 repo 其他內容）。
 - 執行：`python "<temp>/validate_plugin.py" plugins/loops-workflow`（`python` 3.13.12，非 `python3`——本機只有 `python` 別名可用）。
-- 結果：
+- **第一次跑**（manifest 當時缺 `interface.defaultPrompt`）：
   ```
   Plugin validation failed:
   - plugin.json field `interface.defaultPrompt` or `interface.default_prompt` is required
   ```
-  exit 1（**失敗**，不是 PASS）。
+  exit 1。
+- manifest owner 補上 `interface.defaultPrompt`（3 條範例提示，皆指向 dispatch）後，**本篇獨立重跑同一支腳本、同一個 commit SHA** 確認：
+  ```
+  Plugin validation passed: <plugins/loops-workflow 絕對路徑>
+  ```
+  exit 0（**PASS**）。
 
-**一致性 caveat（本輪重要發現）**：這支離線 scaffold validator 判定 `plugins/loops-workflow/.codex-plugin/plugin.json` 缺少 `interface.defaultPrompt`（或 `default_prompt`）欄位，判失敗；但 Test 2／Test 4 已經證實**真的 Codex CLI**（`codex plugin marketplace add`／`plugin list`／`plugin add`）在完全一樣的 manifest 上全部成功，沒有因為缺這個欄位而拒收。這正好印證了本票規劃階段就預期的「`validate_plugin.py` 與實際 runtime 一致性不保證」——這支腳本反映的可能是 scaffold 建議的較完整寫法，不是 runtime 解析器實際強制的必要欄位集合。
-
-本篇不因此判定 manifest 有 bug（真 CLI 的解析結果才是 AC1「Codex 官方 validator 通過」的主證據，且已通過）；這條落差留給 owner 參考：官方三份真實範例（superpowers／latex／browser）皆有 `interface.defaultPrompt`，若要追求「連 scaffold validator 都過」可以補這個欄位，但這不在本輪 Tier A lint 的必填清單內，是否補由 manifest owner 決定，不在本次 verify 修復範圍內自行加欄位。
+**一致性註記**：`interface.defaultPrompt` 是這支離線 scaffold validator 的必填欄位，但 Test 2／Test 4／Test 6 已經證實**真的 Codex CLI** 在**缺少**這個欄位的舊版 manifest 上一樣能完整跑完整條安裝生命週期，沒有因為缺這個欄位拒收——代表這是 scaffold 建議的較完整寫法，不是 runtime 解析器實際強制的必要欄位集合（呼應規劃階段就預期的「`validate_plugin.py` 與實際 runtime 一致性不保證」）。補上這個欄位讓 manifest 同時對齊官方三份真實範例（superpowers／latex／browser 皆有此欄位）與這支離線 validator，是額外的完整性提升，不代表先前的 manifest 有導致真實安裝失敗的 bug。
 
 ## Test 6 — GitHub owner/repo 簡寫安裝生命週期（真遠端，PASS，補齊 provenance 第一手證據）
 
