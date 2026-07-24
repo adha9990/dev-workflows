@@ -31,8 +31,6 @@ flowchart TD
     H --> I["確認 .loops/<slug>/loop.md、對應 worktree、進度產物是否出現"]
 ```
 
-<!-- 以下每一步的指令語法引自官方規格查證；實際跑一遍的真機結果與版本覆蓋範圍見 docs/CODEX-SMOKE.md，本節內容待該證據回填後再做最終確認。 -->
-
 1. **加入 marketplace**：在終端機執行 `codex plugin marketplace add adha9990/dev-workflows`（跟 Claude Code 的 `/plugin marketplace add` 是同一個 owner/repo 簡寫，但 Codex 這邊是在終端機打的 CLI 指令，不是聊天內的斜線指令——如果你是用 desktop app，同樣的動作可能改成在 UI 裡操作，實際入口以 app 介面為準）。
 2. **安裝 plugin**：`codex plugin add loops-workflow@dev-workflows`。
 3. **確認已註冊**：`codex plugin list --json`，應該能看到 `loops-workflow` 這個 plugin。
@@ -41,6 +39,8 @@ flowchart TD
 6. **叫出 dispatch**：從 skill picker 選，或用 `$` 呼叫——**不要假設這跟 Claude Code 的 `/loops-workflow:dispatch` 打法一樣**，Codex 的呼叫語法未必是斜線指令，實際打法以你當下看到的介面為準。
 7. **第一個安全 smoke task**：丟一句話描述一個**小型、可回復**的需求（例如一個不會動到正式產品程式碼的小改動），讓它跑起一條 loop。
 8. **確認產物**：跑完（或跑到第一個停下點）之後，去看你的專案目錄裡有沒有出現 `.loops/<slug>/loop.md`、對應的 git worktree（如果任務類型需要動 code）、以及進度產物——這三個是判斷「這條 loop 真的有在 Codex 上動起來」的具體依據，詳見下方「怎麼自己驗證」。
+
+**這條路徑目前驗證到哪裡**：步驟 1–3（加入 marketplace、安裝、確認已註冊）已經在乾淨環境實際跑過，不需要登入就能完成。步驟 4 之後（開新 task、信任 hooks、叫出 dispatch、跑 smoke task）需要一個真正登入的 Codex 帳號才能實際跑一遍，目前還沒有在這樣的環境裡從頭到尾跑過，所以這幾步的實際畫面與行為以你當下看到的為準——遇到跟這裡描述的不一樣，先照上一節判斷是裝錯還是尚未驗證，不要當成隨機故障。
 
 ## 怎麼分辨「安裝問題」與「Codex Preview 尚未支援」
 
