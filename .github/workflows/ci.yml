@@ -45,6 +45,12 @@ jobs:
         shell: bash
         run: node plugins/loops-workflow/scripts/skill-lint.mjs
 
+      - name: codex-plugin-lint
+        shell: bash
+        # Tier A 機械 guard（#182）：驗 Codex 薄 adapter 必要欄位／雙 manifest 同步／
+        # marketplace 零複製；--root . 用 repo root（M2）掃描，不是 plugin-local。
+        run: node plugins/loops-workflow/scripts/codex-plugin-lint.mjs --root .
+
       - name: reviewer drift-check
         shell: bash
         # 21 個 reviewer/validator agent 檔由 gen-reviewers.mjs 從單一真相源重生；

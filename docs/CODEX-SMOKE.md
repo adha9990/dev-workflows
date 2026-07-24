@@ -1,6 +1,6 @@
-# Codex Preview — Smoke Test 紀錄（#182）
+# Codex Preview — Smoke Test 紀錄
 
-> 日期：2026-07-24。在隔離 `CODEX_HOME` 下實際執行真的 Codex CLI，對 dev-workflows 本身的 canonical 內容（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marketplace.json`）驗證安裝生命週期與環境隔離完整性。需要已認證 Codex session 才能繼續的步驟，經決策者（使用者）拍板收斂為 `not measured`——不借用真實 auth、不登入隔離環境去補測；本篇同時保留這幾步「日後有認證環境時」的可重跑指令，供之後真的量測時直接照抄，不必重新設計。
+> 日期：2026-07-24。在隔離 `CODEX_HOME` 下實際執行真的 Codex CLI，對 dev-workflows 本身的 canonical 內容（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marketplace.json`）驗證安裝生命週期與環境隔離完整性。需要已認證 Codex session 才能繼續的步驟不在本篇驗證範圍內，一律標 `not measured`——本篇不借用真實 auth、不登入隔離環境去補測這批步驟；同時保留這幾步「日後有認證環境時」的可重跑指令，供之後真的量測時直接照抄，不必重新設計。
 
 ## 環境
 
@@ -8,7 +8,9 @@
 - 版本：`codex-cli 0.146.0-alpha.3.1`（alpha；本篇每筆證據皆對應此版本，日後版本更新須重跑）。
 - 隔離規則：全程 `CODEX_HOME=$(mktemp -d)`，絕不讀寫使用者真實 `~/.codex`（含其中的 auth、session、以及已知壞掉的 `eagle-project` marketplace 登記）。每個 Test 各自用一份全新的隔離 `CODEX_HOME`，不共用。
 - 測試標的：`plugins/loops-workflow/.codex-plugin/plugin.json`（commit `9e937a0`）＋`.agents/plugins/marketplace.json`（commit `a9df45a`），已合併進本 worktree（merge commit `f7a4335`）。**commit SHA provenance 註記**：本篇引用的 SHA 皆為整合前各 subtask worktree 的本地 commit；本 PR 若經 squash/rebase 合併，最終 PR 歷史的 SHA 會不同——這些 SHA 是撰寫證據當下用來標示「測的是哪個版本內容」的參照，不保證合併後仍查得到同一個雜湊值。要核對本篇證據對應的實際內容，請比對 manifest／marketplace.json 檔案本身（name/version 是否等值、skills 路徑是否為 `./skills/` 等），不要只依賴 SHA 字串比對。
-- **安裝路徑 provenance 註記（範疇邊界）**：本篇所有 `codex plugin marketplace add` 呼叫都使用**本機檔案系統絕對路徑**（worktree 的本地路徑），因為這個 PR 尚未推送／合併進真實的 GitHub remote（`adha9990/dev-workflows`）。`docs/CODEX-QUICKSTART.md` 教使用者用的 `codex plugin marketplace add adha9990/dev-workflows`（owner/repo 簡寫，走 GitHub remote 解析，非本機路徑）**不是**本篇任一 Test 實際驗證過的路徑——那條路徑要等這個 PR 真的合併進 master、推上 GitHub 之後才能重跑驗證。讀者不該把「本機路徑安裝驗證過」誤讀成「README／QUICKSTART 教的 owner/repo 安裝方式也驗證過」，這是本篇證據的真實邊界，不是可省略的細節。
+- **安裝路徑 provenance 註記（兩個階段，證據來源不同）**：`docs/CODEX-QUICKSTART.md` 教使用者用的是 GitHub owner/repo 簡寫（`codex plugin marketplace add adha9990/dev-workflows`，走 GitHub remote 解析）；Test 2／Test 4 用的是本機檔案系統絕對路徑（worktree 的本地路徑，因為撰寫證據當下 T1 的兩個新檔尚未推上真實 GitHub remote）；owner/repo 簡寫這條路徑另外由 Test 6 直接對真實 remote 實測過，兩個階段的證據狀態如下：
+  - **pre-merge（已實測，見 Test 6）**：owner/repo 簡寫指令**真的用 Codex CLI 執行成功過**（隔離 CODEX_HOME、免登入，exit 0）——不是「Claude Code 讀文件字面確認寫得通」這種弱證據，是 Codex 實際對 GitHub remote 做了 clone/fetch，靠既有的 Claude 相容解析層讀到 `.claude-plugin/marketplace.json` 完成整條安裝生命週期。細節見 Test 6。
+  - **post-merge（尚未驗證，留給下一輪）**：PR 合併推上 GitHub、remote 上同時存在兩份 marketplace manifest 之後，同一條 owner/repo 簡寫指令預期會依 Test 4a 的結論改採 `.agents/plugins/marketplace.json`（Codex-native）——但這是**推論**，不是本篇任何一個 Test 直接驗證過的結果；合併後應該用同一條指令重跑一次 Test 2／Test 4／Test 6，把「post-merge 改採 Codex-native」這個推論換成真實證據。
 
 ## Test 1 — CODEX_HOME 隔離完整性驗證（PASS）
 
@@ -71,13 +73,45 @@ T1（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marke
 
 **結論**：停用／移除的確切指令是「先 `codex plugin remove loops-workflow@dev-workflows`，再 `codex plugin marketplace remove dev-workflows`」，兩步皆無需認證、皆可重跑驗證乾淨移除。這組指令可直接供 `docs/CODEX-QUICKSTART.md` 的「常見問題、停用／移除方式」一節引用。
 
-## Test 3 — 認證邊界（決策者已拍板收斂為 not measured）
+## Test 5 — 輔證據：官方 scaffold `validate_plugin.py`（離線，PASS）
+
+- 來源：`openai/codex` repo `codex-rs/skills/src/assets/samples/plugin-creator/scripts/validate_plugin.py`（commit `7c71783135b020e8f4db3fa26dc4319901c260b5`，2026-07-24 抓取；唯讀 `gh api` fetch 到暫存目錄，未動本 repo 其他內容）。
+- 執行：`python "<temp>/validate_plugin.py" plugins/loops-workflow`（`python` 3.13.12，非 `python3`——本機只有 `python` 別名可用）。
+- **第一次跑**（manifest 當時缺 `interface.defaultPrompt`）：
+  ```
+  Plugin validation failed:
+  - plugin.json field `interface.defaultPrompt` or `interface.default_prompt` is required
+  ```
+  exit 1。
+- manifest owner 補上 `interface.defaultPrompt`（3 條範例提示，皆指向 dispatch）後，**本篇獨立重跑同一支腳本、同一個 commit SHA** 確認：
+  ```
+  Plugin validation passed: <plugins/loops-workflow 絕對路徑>
+  ```
+  exit 0（**PASS**）。
+
+**一致性註記**：`interface.defaultPrompt` 是這支離線 scaffold validator 的必填欄位，但 Test 2／Test 4／Test 6 已經證實**真的 Codex CLI** 在**缺少**這個欄位的舊版 manifest 上一樣能完整跑完整條安裝生命週期，沒有因為缺這個欄位拒收——代表這是 scaffold 建議的較完整寫法，不是 runtime 解析器實際強制的必要欄位集合（呼應規劃階段就預期的「`validate_plugin.py` 與實際 runtime 一致性不保證」）。補上這個欄位讓 manifest 同時對齊官方三份真實範例（superpowers／latex／browser 皆有此欄位）與這支離線 validator，是額外的完整性提升，不代表先前的 manifest 有導致真實安裝失敗的 bug。
+
+## Test 6 — GitHub owner/repo 簡寫安裝生命週期（真遠端，PASS，補齊 provenance 第一手證據）
+
+先前 Test 2/Test 4 只驗過本機檔案系統絕對路徑；`docs/CODEX-QUICKSTART.md` 教使用者用的是 GitHub owner/repo 簡寫（`codex plugin marketplace add adha9990/dev-workflows`）。本測試在隔離 `CODEX_HOME` 下**親自對真實 GitHub remote** 跑一次這個確切指令，補上這條路徑的第一手落地證據（免登入，走 git clone/fetch，不是 Codex 模型呼叫）。
+
+| 步驟 | 指令 | 結果 |
+|---|---|---|
+| 1. 註冊（git remote 形式） | `codex plugin marketplace add adha9990/dev-workflows --json` | ✅ `{"marketplaceName":"dev-workflows","installedRoot":"...\.tmp\marketplaces\dev-workflows","alreadyAdded":false}`，exit 0，**不需要登入** |
+| 2. 列出可安裝 plugin | `codex plugin list --available --json` | ✅ 一筆：`pluginId=loops-workflow@dev-workflows, version=0.56.4, marketplaceSource={sourceType:"git", source:"https://github.com/adha9990/dev-workflows.git"}` |
+| 3. 安裝 | `codex plugin add loops-workflow@dev-workflows --json` | ✅ `installedPath=...\plugins\cache\dev-workflows\loops-workflow\0.56.4` |
+| 4. 確認 | `codex plugin list --json` | ✅ installed 一筆（installed:true, enabled:true） |
+| 5. **判定關鍵** | `codex plugin list`（非 `--json`，人讀輸出） | 逐字印出：`Marketplace \`dev-workflows\``<br>`...\.tmp\marketplaces\dev-workflows\.claude-plugin\marketplace.json` |
+
+**Provenance 結論（呼應「環境」段的兩條路徑註記，這裡補上實測）**：步驟 5 證實——**在這個 PR 尚未合併推上 GitHub 的當下**，真實 remote `adha9990/dev-workflows` 的預設分支只有 `.claude-plugin/marketplace.json`（這是既有的 Claude 專用檔，本 PR 之前就存在），Codex 靠自己的 Claude 相容解析層讀到了這份檔案並成功完成整個安裝生命週期——這不是本 PR 新增的 `.agents/plugins/marketplace.json` 在起作用，因為那份檔案這個時間點根本還沒推上 GitHub。這條路徑印證了 issue #182 原文提到的「Codex 雖可相容讀取部分 Claude marketplace 資訊」是真的、且此刻正在被使用。**待這個 PR 真的合併推上 GitHub 之後**，remote 上會同時存在兩份 marketplace manifest，依 Test 4a 的結論，屆時 Codex 應該會改採用 `.agents/plugins/marketplace.json`（Codex-native）——但這是推論，PR 合併後應該用同一條指令（`codex plugin marketplace add adha9990/dev-workflows`）重跑一次本測試，把「合併後」的結果也補上真實證據，不能只靠推論收尾。兩個階段使用者打的指令完全相同，差別只在 Codex 內部解析到哪一份檔案。
+
+## Test 3 — 認證邊界（範疇邊界：not measured）
 
 嘗試繼續往下驗證「新 task 是否能發現並呼叫 `dispatch` skill」「hooks 信任流程」「guard 觸發探測」「跑一個不改產品 code 的迷你 smoke 任務並留下 `.loops` 記錄」時，發現這些步驟都需要**啟動一個真的 agent turn**（`codex exec` 或互動式 session），而這一定需要認證。隔離 `CODEX_HOME` 下 `codex doctor` 明確回報 `✗ auth no Codex credentials were found`——這是一個全新、未登入的乾淨身分，符合隔離設計的預期，但也代表它結構性地無法執行任何需要呼叫模型的步驟。
 
-依照硬規則：**不得複製使用者真實 `~/.codex` 的 auth 檔案到隔離環境，也不得嘗試以本機真實登入狀態去跑這些步驟**。安全停下、回報決策者三個選項後，**決策者拍板：選「標 not measured 收票」**——不提供認證、不借 auth、不登入。此裁定同時框定後續同一 program（#169、#181）內 Codex 側 agent-turn 類量測的預設處理方式，不再重複詢問。
+這是本篇刻意畫定的範疇邊界：**不提供認證、不借用使用者真實 `~/.codex` 的 auth 檔案、不登入隔離環境**去補測需要呼叫模型的步驟——這條邊界是穩定狀態，不是尚待補齊的暫時缺口。
 
-下列每項皆為**收斂後的最終狀態**（非暫時性缺口），並附上「日後有認證環境時」的可重跑指令，供直接照抄執行：
+下列每項皆為**這個邊界內的最終狀態**（非暫時性缺口），並附上「日後有認證環境時」的可重跑指令，供直接照抄執行：
 
 ### 3a. Skill discovery / `dispatch`（not measured）
 
@@ -137,21 +171,21 @@ CODEX_HOME=<已認證的隔離 CODEX_HOME> "<codex 執行檔絕對路徑>" exec 
 | 能力 | 狀態 | 依據 |
 |---|---|---|
 | `setup`（`/loops-workflow:setup`，issue #168 規劃中的正式安裝來源管理 skill） | Claude Code／Codex Preview 皆 `not supported`——這個 skill 兩邊都還沒建置，不是任一 harness 的能力落差 | 逐檔搜尋 `plugins/loops-workflow/skills/`，確認不存在此 skill、repo 內無 `loops-workflow:setup` 引用 |
-| skill discovery / `dispatch` | `not measured`（決策者裁定收斂，非暫時性；plugin 安裝完成後 skill 檔案已確認落在 Codex plugin cache 內，但新 task 中是否真的被辨識為可呼叫 skill 仍未量測，見 Test 2 範疇澄清） | Test 2（安裝前置）＋Test 3a（未量測部分） |
-| `AskUserQuestion` 類互動 | `not measured`（決策者裁定收斂，非暫時性） | Test 3 |
-| subagent / model profile | `not measured`（決策者裁定收斂，非暫時性） | Test 3 |
-| hooks 與 hook 信任 | `not measured`（決策者裁定收斂，非暫時性；官方文件載相容別名，但版本修復史與 payload 欄位兩軸未實測） | Test 3b–3h |
-| shell / `apply_patch` guard | `not measured`（決策者裁定收斂，非暫時性；官方文件載相容別名，但版本修復史與 payload 欄位兩軸未實測） | Test 3c–3h |
-| worktree | `not measured`（決策者裁定收斂，非暫時性） | Test 3 |
-| `.loops/` resume / progress | `not measured`（決策者裁定收斂，非暫時性） | Test 3i |
-| transcript / token metrics | `not measured`（決策者裁定收斂，非暫時性） | Test 3 |
+| skill discovery / `dispatch` | `not measured`（範疇邊界，非暫時性缺口；plugin 安裝完成後 skill 檔案已確認落在 Codex plugin cache 內，但新 task 中是否真的被辨識為可呼叫 skill 仍未量測，見 Test 2 範疇澄清） | Test 2（安裝前置）＋Test 3a（未量測部分） |
+| `AskUserQuestion` 類互動 | `not measured`（範疇邊界，非暫時性缺口） | Test 3 |
+| subagent / model profile | `not measured`（範疇邊界，非暫時性缺口） | Test 3 |
+| hooks 與 hook 信任 | `not measured`（範疇邊界，非暫時性缺口；官方文件載相容別名，但版本修復史與 payload 欄位兩軸未實測） | Test 3b–3h |
+| shell / `apply_patch` guard | `not measured`（範疇邊界，非暫時性缺口；官方文件載相容別名，但版本修復史與 payload 欄位兩軸未實測） | Test 3c–3h |
+| worktree | `not measured`（範疇邊界，非暫時性缺口） | Test 3 |
+| `.loops/` resume / progress | `not measured`（範疇邊界，非暫時性缺口） | Test 3i |
+| transcript / token metrics | `not measured`（範疇邊界，非暫時性缺口） | Test 3 |
 
 ## 方法論
 
 - **隔離鐵則**：全程 `CODEX_HOME=$(mktemp -d)`，每個 Test 各自一份全新目錄，絕不讀寫使用者真實 `~/.codex`（含真實 auth/session、以及已知壞掉的 `eagle-project` marketplace 登記——那是使用者資料，只做觀察紀錄，不修改）。
 - **版本釘死**：本篇每一筆證據皆對應 `codex-cli 0.146.0-alpha.3.1`（alpha channel）。alpha 版本變動快，日後若 Codex 版本更新，本篇結論需要重新驗證，不能假設歷史結果仍然成立。
 - **合成內容 vs 真實內容**：Test 2 最初以合成 marketplace（因 T1 尚未合併）驗證機制本身是否可行；T1 合併後已改對 dev-workflows 真實內容重跑一次，取代先前的合成內容證據作為主結論依據。
-- **not measured 的收斂性質**：Test 3 所列 8 個矩陣列的 `not measured` 不是「還沒空測」的暫時狀態，而是決策者在權衡「借用真實 auth／要求使用者親自登入隔離環境／收斂為 not measured」三個選項後的最終決定——收在這張 issue 裡，不留給下一輪重新拍板；已附上可重跑指令，供日後真的有認證環境時直接執行，不必重新設計測試步驟。
+- **not measured 的範疇邊界性質**：Test 3 所列 8 個矩陣列的 `not measured` 不是「還沒空測」的暫時狀態，而是本篇畫定的範疇邊界——需要真的呼叫模型（agent turn）的能力不在本輪驗證範圍內，這條邊界是穩定狀態；已附上可重跑指令，供日後真的有認證環境時直接執行，不必重新設計測試步驟。
 
 ## 已知限制
 

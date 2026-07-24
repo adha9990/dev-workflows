@@ -1,0 +1,18 @@
+{
+  "name": "loops-workflow",
+  "version": "1.0",
+  "description": "Version field is not strict semver (missing patch segment) — used to exercise the semver format check.",
+  "author": {
+    "name": "Test Author"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "loops-workflow",
+    "shortDescription": "Closed-loop dev workflow",
+    "longDescription": "7-stage closed-loop dev workflow.",
+    "developerName": "Test Author",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "websiteURL": "https://example.com/loops-workflow"
+  }
+}

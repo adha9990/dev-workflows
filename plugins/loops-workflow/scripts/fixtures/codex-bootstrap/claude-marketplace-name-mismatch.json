@@ -1,0 +1,17 @@
+{
+  "name": "dev-workflows-claude",
+  "owner": {
+    "name": "Test Owner",
+    "url": "https://github.com/test-owner"
+  },
+  "metadata": {
+    "description": "Claude-side marketplace name drifted from the canonical name — used to exercise the claude-side branch of marketplaceNameCheck."
+  },
+  "plugins": [
+    {
+      "name": "loops-workflow",
+      "source": "./plugins/loops-workflow",
+      "description": "Closed-loop dev workflow."
+    }
+  ]
+}
