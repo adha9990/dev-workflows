@@ -189,20 +189,41 @@ export function buildCorpusReport(results) {
 
 // ── 薄 IO 層（被 import 時不執行）──────────────────────────────────────────────────
 
+// 只吃 `## Journal` 區段再交給 parseStages——沿用 eval-trajectory.mjs 的 readObservedStages 同一策略
+// （避免摘錄檔上半部的方法論說明文字裡示範用的 `[stagename]` 之類佔位方括號被誤抽成階段；
+// 無 `## Journal` 標題則退回全文，與既有引擎行為一致）。
+function stagesFromJournalText(text) {
+  const idx = text.indexOf('## Journal');
+  return parseStages(idx >= 0 ? text.slice(idx) : text);
+}
+
 /**
- * 解出 trajectory-rules 的 observed 階段陣列：優先吃內嵌陣列 → 內嵌文字（parseStages）→
- * 隨附檔（相對 fixture 檔所在目錄解析，讀不到回 null，不丟例外）。fixture 自足、不引 .loops 活路徑。
+ * 解出 trajectory-rules 的 observed 階段陣列：優先吃內嵌陣列 → `observed_journal` 字串（C1：
+ * 「內嵌或隨附」同一欄位兩種寫法——先試著當隨附檔路徑解析，檔案真的存在就讀檔內容再
+ * stagesFromJournalText；不存在才把字串本身當內嵌 Journal 文字直接 stagesFromJournalText）→
+ * 明確 `observed_journal_file` 欄（額外的顯式別名，向後相容）。讀不到回 null，不丟例外。
+ * fixture 自足、不引 .loops 活路徑。
  */
 export function resolveObservedStages(oracleConfig, fixtureDir) {
   const embedded = oracleConfig?.observed_journal;
   if (Array.isArray(embedded)) return embedded;
-  if (typeof embedded === 'string' && embedded.trim()) return parseStages(embedded);
+  if (typeof embedded === 'string' && embedded.trim()) {
+    const asPath = resolve(fixtureDir, embedded);
+    if (existsSync(asPath)) {
+      try {
+        return stagesFromJournalText(readFileSync(asPath, 'utf8'));
+      } catch {
+        return null;
+      }
+    }
+    return stagesFromJournalText(embedded);
+  }
 
   const filePath = oracleConfig?.observed_journal_file;
   if (typeof filePath === 'string' && filePath.trim()) {
     try {
       const abs = resolve(fixtureDir, filePath);
-      return parseStages(readFileSync(abs, 'utf8'));
+      return stagesFromJournalText(readFileSync(abs, 'utf8'));
     } catch {
       return null;
     }
@@ -266,12 +287,14 @@ export function loadCorpusFixtures(dir) {
   });
 }
 
+// --corpus/--task 是 T1 fixture 的 replay_cmd 實際採用的拼法（workflow-engineer 10 個 fixture
+// 一致選用）；--dir/--fixture 是本檔最初設計拼法，兩邊都收，兩套名字互為別名、行為完全相同。
 function parseArgs(argv) {
   const opts = { dir: null, fixture: null, json: false };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
-    if (flag === '--dir') opts.dir = argv[++i] ?? null;
-    else if (flag === '--fixture') opts.fixture = argv[++i] ?? null;
+    if (flag === '--dir' || flag === '--corpus') opts.dir = argv[++i] ?? null;
+    else if (flag === '--fixture' || flag === '--task') opts.fixture = argv[++i] ?? null;
     else if (flag === '--json') opts.json = true;
   }
   return opts;
@@ -289,7 +312,7 @@ function formatTextReport(report) {
 function main(rawArgv) {
   const opts = parseArgs(rawArgv);
   if (!opts.dir) {
-    console.error('usage: node baseline-corpus.mjs --dir <corpus-dir> [--fixture <id>] [--json]');
+    console.error('usage: node baseline-corpus.mjs --dir|--corpus <corpus-dir> [--fixture|--task <id>] [--json]');
     process.exit(1);
   }
 

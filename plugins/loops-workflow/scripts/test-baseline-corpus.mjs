@@ -11,6 +11,8 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 
 import {
   validateFixtureSchema,
@@ -213,6 +215,39 @@ function minimalValidFixture(overrides = {}) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  resolveObservedStages —— 真實 T1 fixture 撞出的兩個迴歸（觀察摘錄檔路徑＋方法論說明文字污染）
+// ════════════════════════════════════════════════════════════════════════════
+
+{
+  const tmpDir = mkdtempSync(join(tmpdir(), 'baseline-corpus-journal-test-'));
+  try {
+    // 迴歸 1：observed_journal 欄位裝的是「隨附檔路徑」（T1 真實 fixture 寫法），
+    // 不是內嵌 Journal 文字本身——必須先試著當路徑讀檔，而非把路徑字串誤當文字去 parseStages。
+    writeFileSync(join(tmpDir, 'observed-journal.md'), '## Journal\n\n- E1 [goal] 摘要\n- E2 [build] 摘要\n', 'utf8');
+    const viaPath = resolveObservedStages({ observed_journal: 'observed-journal.md' }, tmpDir);
+    assert(
+      JSON.stringify(viaPath) === JSON.stringify(['goal', 'build']),
+      'resolveObservedStages：observed_journal 是隨附檔相對路徑時，讀檔內容而非誤當內嵌文字（T1 真實寫法）',
+    );
+
+    // 迴歸 2：摘錄檔上半部的方法論說明文字若含示範用方括號（如反引號包住的 `[stagename]`），
+    // 只掃 `## Journal` 區段才不會把這些示範文字誤抽成階段（沿用 eval-trajectory 既有策略）。
+    writeFileSync(
+      join(tmpDir, 'observed-journal-with-preamble.md'),
+      '# 摘要\n\n> 格式說明：真實寫法是 `- E# [stagename] ...`，範例 `[E1]` 僅供示意。\n\n## Journal\n\n- E1 [goal] 摘要\n',
+      'utf8',
+    );
+    const withPreamble = resolveObservedStages({ observed_journal: 'observed-journal-with-preamble.md' }, tmpDir);
+    assert(
+      JSON.stringify(withPreamble) === JSON.stringify(['goal']),
+      'resolveObservedStages：只掃 ## Journal 區段，不被上半部說明文字的示範方括號污染（真實 T1 fixture 撞出的迴歸）',
+    );
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 //  evaluateFixture —— containment 守門（quality-gate workspace 逃逸拒絕）
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -280,6 +315,14 @@ function minimalValidFixture(overrides = {}) {
     { cwd: ROOT, encoding: 'utf8' },
   );
   assert(single.status === 0, 'CLI：單一 --fixture 全過 → exit 0');
+
+  // --corpus/--task 別名（T1 的 10 個真實 fixture 的 replay_cmd 一致採用這套拼法，非 --dir/--fixture）。
+  const aliasFlags = spawnSync(
+    'node',
+    [join(HERE, 'baseline-corpus.mjs'), '--corpus', SAMPLE_DIR, '--task', 'route-ok-sample', '--json'],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+  assert(aliasFlags.status === 0, 'CLI：--corpus/--task 別名旗標行為與 --dir/--fixture 一致（T1 replay_cmd 實際拼法）');
 
   const noMatch = spawnSync(
     'node',
