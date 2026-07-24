@@ -1,0 +1,257 @@
+[
+  {
+    "capability_id": "codex.manifest",
+    "harness": "codex",
+    "status": "supported",
+    "measurability": "login_free",
+    "gates_metrics": [],
+    "codex_interface": "codex plugin marketplace add / plugin add / plugin list（.codex-plugin/plugin.json + .agents/plugins/marketplace.json）",
+    "evidence": {
+      "source": "docs/CODEX-SMOKE.md Test 2 / 4a / 6 + issue #182 issuecomment-5072363260（post-merge）",
+      "note": "免登入實測全過；兩份 marketplace 並存時 Codex 明確採用 .agents/plugins/marketplace.json（Codex-native），post-merge git-remote 安裝已坐實。這是本清單唯一 supported 列。"
+    },
+    "blocker": "none",
+    "repro": "CODEX_HOME=$(mktemp -d, 轉 Windows 路徑) \"<codex 絕對路徑>\" plugin marketplace add adha9990/dev-workflows && codex plugin add loops-workflow@dev-workflows && codex plugin list",
+    "x183_action": "manifest/marketplace adapter 已可用；capability registry 將 Codex-native 入口列為 supported 基準，無需額外投影"
+  },
+  {
+    "capability_id": "codex.skill.discovery_invocation",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": [],
+    "codex_interface": "skill picker / $ 呼叫；安裝後 skills/ 已確認落在 plugin cache（檔案層級可發現）",
+    "evidence": {
+      "source": "docs/CODEX-SMOKE.md Test 2 範疇澄清 + Test 3a",
+      "note": "安裝後整個 plugin 目錄（含 skills/）進 cache＝檔案層級免登入確認；但『新 task 是否辨識為可呼叫 skill』需 agent turn，未量測；$/picker 精確語法官方未載明。"
+    },
+    "blocker": "authenticated Codex session（agent turn）",
+    "repro": "CODEX_HOME=<已認證隔離 home> \"<codex 絕對路徑>\" exec --json -C <repo> \"列出可用 skill，確認有無可呼叫的 dispatch\"",
+    "x183_action": "驗證 dispatch 於新 task 被辨識為可呼叫 skill；文件化 $/picker 精確語法；skill adapter（#183 §6）"
+  },
+  {
+    "capability_id": "codex.metrics.tokens",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": ["input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens"],
+    "codex_interface": "codex exec --json → token_count 事件 / turn.completed.Usage（cumulative，per-turn 需減前值）",
+    "evidence": {
+      "source": "CLI:codex exec --help@0.146.0-alpha.3.1 + gh:openai/codex#17539, #29272",
+      "note": "cumulative token 帳；per-turn/per-call breakdown granularity 仍在演進（#17539/#29272）；alpha 格式穩定性未定。所有 token 指標皆為 agent-turn 產物。"
+    },
+    "blocker": "authenticated Codex session",
+    "repro": "CODEX_HOME=<已認證> \"<codex 絕對路徑>\" exec --json -C <repo> \"<fixture prompt>\" ；解析 token_count / turn.completed.Usage 事件",
+    "x183_action": "metrics adapter：解析 exec --json token_count → canonical {input,output,cached,reasoning,total}；pin 事件 schema 版本"
+  },
+  {
+    "capability_id": "codex.metrics.tool_agent_calls",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": ["tool_calls", "agent_calls"],
+    "codex_interface": "codex exec --json 事件流（tool-use / subagent 事件計數）",
+    "evidence": {
+      "source": "CLI:codex exec --help@0.146.0-alpha.3.1",
+      "note": "計數需從 --json 事件流抽取；需 agent turn 才會產生事件。"
+    },
+    "blocker": "authenticated Codex session",
+    "repro": "CODEX_HOME=<已認證> \"<codex 絕對路徑>\" exec --json -C <repo> \"<fixture prompt>\" ；計數 tool-use / subagent 事件",
+    "x183_action": "metrics adapter：normalize exec 事件 → canonical tool/agent call 計數"
+  },
+  {
+    "capability_id": "codex.metrics.duration",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": ["duration_ms"],
+    "codex_interface": "codex exec 外層 wall-clock；或 exec --json 事件首尾時間戳差",
+    "evidence": {
+      "source": "CLI:codex exec --help@0.146.0-alpha.3.1",
+      "note": "wall-clock 需實跑一次 exec；口徑須對齊 Claude 側 Stop-to-Stop 下界估計。"
+    },
+    "blocker": "authenticated Codex session",
+    "repro": "time ( CODEX_HOME=<已認證> \"<codex 絕對路徑>\" exec -C <repo> \"<fixture prompt>\" )",
+    "x183_action": "metrics adapter：定義與 Claude Stop-to-Stop 下界一致的 duration 口徑"
+  },
+  {
+    "capability_id": "codex.metrics.repeated_reads",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": ["repeated_reads"],
+    "codex_interface": "codex exec --json file-read 事件去重",
+    "evidence": {
+      "source": "CLI:codex exec --help@0.146.0-alpha.3.1",
+      "note": "需 agent turn 產生讀取事件才能計重複讀取。"
+    },
+    "blocker": "authenticated Codex session",
+    "repro": "CODEX_HOME=<已認證> \"<codex 絕對路徑>\" exec --json -C <repo> \"<fixture prompt>\" ；對 file-read 事件去重計數",
+    "x183_action": "metrics adapter：normalize read 事件 → 重複讀取計數"
+  },
+  {
+    "capability_id": "codex.metrics.verify_findings",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": ["verify_findings"],
+    "codex_interface": ".loops/<slug>/ verify 階段產物（Codex 跑完一條含 verify 的 loop 後）",
+    "evidence": {
+      "source": "docs/CODEX-SMOKE.md Test 3i",
+      "note": "findings 計數是工作產物、harness 無關；但無 Codex 實跑就無 Codex loop 產物；.loops resume/progress 在 Codex 未量測。"
+    },
+    "blocker": "authenticated Codex session（跑到 verify 階段）",
+    "repro": "CODEX_HOME=<已認證> \"<codex 絕對路徑>\" exec -C <repo> \"dispatch 一條任務並跑到 verify\" ；數 .loops/<slug>/ 的 findings",
+    "x183_action": "確保 .loops/ canonical 格式跨平台一致（#183 §6），使 findings 計數可比"
+  },
+  {
+    "capability_id": "codex.metrics.iterate_rounds",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": ["iterate_rounds"],
+    "codex_interface": ".loops/<slug>/ iterate 迴圈記錄",
+    "evidence": {
+      "source": "docs/CODEX-SMOKE.md Test 3i",
+      "note": "同 verify_findings；需 Codex 實跑產生 .loops 記錄。"
+    },
+    "blocker": "authenticated Codex session",
+    "repro": "同 verify_findings，改數 iterate 迴圈記錄",
+    "x183_action": "同 .loops canonical 格式跨平台一致性（#183 §6）"
+  },
+  {
+    "capability_id": "codex.metrics.unresolved_unknowns",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": ["unresolved_unknowns"],
+    "codex_interface": ".loops/ Unknowns Register（#174 產物）",
+    "evidence": {
+      "source": "docs/CODEX-SMOKE.md Test 3i",
+      "note": "工作產物；需 Codex 實跑；Unknowns Register 本身待 #174 建置。"
+    },
+    "blocker": "authenticated Codex session",
+    "repro": "同 verify_findings，改數殘留 unresolved unknowns",
+    "x183_action": "同 .loops canonical 格式跨平台一致性（#183 §6）"
+  },
+  {
+    "capability_id": "codex.interaction.questions",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "no_stable_interface",
+    "gates_metrics": ["questions"],
+    "codex_interface": "request_user_input（Codex 互動機制）；codex exec 非互動下是否 surface 穩定 question 事件未驗證",
+    "evidence": {
+      "source": "docs/CODEX-SMOKE.md matrix（AskUserQuestion 列）+ #183 §3 interaction adapter",
+      "note": "Codex 無 AskUserQuestion 同名工具、走自有互動機制；等價性未驗證；exec 非互動模式可能根本不觸發 question。故無已驗證穩定介面。"
+    },
+    "blocker": "需先驗證 request_user_input 在 exec 是否有穩定事件 + authenticated session",
+    "repro": "CODEX_HOME=<已認證> \"<codex 絕對路徑>\" exec --json -C <repo> \"<會觸發決策點的 prompt>\" ；觀察是否出現 question / user-input 事件",
+    "x183_action": "interaction adapter：map AskUserQuestion → request_user_input（可用時），不可用時單一 blocking question fallback；LOOPS_AUTO=1 仍不略過安全停（#183 §3）"
+  },
+  {
+    "capability_id": "codex.agents.subagent_model",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": ["agent_calls"],
+    "codex_interface": "Codex 子代理 / model profile（.codex/agents/*.toml 或動態 agent prompt）",
+    "evidence": {
+      "source": "docs/CODEX-SMOKE.md matrix（subagent 列）+ #183 §4",
+      "note": "Codex 有自有子代理機制；與 loops-workflow reviewer fan-out 的搭配未驗證；capability tier ↔ OpenAI model 映射未定。"
+    },
+    "blocker": "authenticated Codex session",
+    "repro": "CODEX_HOME=<已認證> \"<codex 絕對路徑>\" exec --json -C <repo> \"<會派子代理的 prompt>\" ；觀察 subagent dispatch 事件",
+    "x183_action": "agent/model adapter：canonical capability tier（fast-readonly/implementation/referee）→ Codex 可用 model 與 reasoning effort（#183 §4）"
+  },
+  {
+    "capability_id": "codex.hooks.trigger_trust",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": [],
+    "codex_interface": "hooks/hooks.json 慣例自動發現 + /hooks review/trust；hook 命令環境變數含 CLAUDE_PLUGIN_ROOT/PLUGIN_ROOT 相容",
+    "evidence": {
+      "source": "docs/CODEX-SMOKE.md Test 3b + learn.chatgpt.com/docs/hooks",
+      "note": "官方文件載信任機制（安裝≠信任，需 /hooks trust）與相容 env；trusted_hash 存於 config.toml [hooks.state]；但實際觸發需 agent turn，未量測。"
+    },
+    "blocker": "authenticated Codex session + /hooks trust",
+    "repro": "CODEX_HOME=<已認證> 首次對已安裝 plugin 跑 session → /hooks review/trust → 查該 CODEX_HOME 的 config.toml [hooks.state] 是否新增本 plugin hooks.json 條目",
+    "x183_action": "hook normalization layer：產 hooks-codex.json 投影（事件/matcher/payload/env），統一交既有 guard/recorder（#183 §5）"
+  },
+  {
+    "capability_id": "codex.guard.shell_apply_patch",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": [],
+    "codex_interface": "PreToolUse/PostToolUse；shell canonical tool_name=\"Bash\"；apply_patch matcher 支援 Edit/Write 別名",
+    "evidence": {
+      "source": "learn.chatgpt.com/docs/hooks + gh:openai/codex#16732 + docs/CODEX-SMOKE.md Test 3c-3h",
+      "note": "官方載相容別名（matcher 很可能命中）；但兩軸未量測：①#16732（PR #18391 修）記載 apply_patch hook 曾整個不觸發、tool_name 曾寫死 Bash，0.146.0-alpha.3.1 是否含修復未知；②guard 讀特定 payload 欄位（worktree-guard.mjs:129 讀 tool_input.command、loops-path-guard.mjs:73 / config-protection.mjs:84 讀 tool_input.file_path，皆 fail-open）是否對得上 Codex apply_patch payload 未知。Read/PowerShell/MultiEdit 無官方別名。"
+    },
+    "blocker": "authenticated Codex session",
+    "repro": "CODEX_HOME=<已認證> \"<codex 絕對路徑>\" exec --json -C <repo> \"跑 echo hello，然後編輯一個測試檔加一行\" ；讀事件的 tool_name 與 payload 欄位；另以 matcher \"Bash|NotARealTool\" 探 pipe alternation",
+    "x183_action": "hook normalization：確保 guard 讀 Codex apply_patch payload 欄位、matcher 對齊 Codex 工具名；補 Read/MultiEdit/PowerShell 對應（#183 §5）"
+  },
+  {
+    "capability_id": "codex.worktree",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": [],
+    "codex_interface": "git worktree 原生（Codex 在 git repo 內執行）；Claude EnterWorktree 無同名工具、走原生 git",
+    "evidence": {
+      "source": "docs/CODEX-SMOKE.md matrix（worktree 列）+ #183 §6",
+      "note": "Codex 用原生 git worktree；loops worktree 不變式（.loops 錨主 repo、worktree 落點守衛）在 Codex 未驗證。"
+    },
+    "blocker": "authenticated Codex session（跑一條會建 worktree 的 build 類任務）",
+    "repro": "CODEX_HOME=<已認證> \"<codex 絕對路徑>\" exec -C <repo> \"dispatch 一條 build 類任務\" ；查是否建 git worktree 且 .loops 正確錨定主 repo",
+    "x183_action": "worktree adapter：EnterWorktree capability → Codex 原生 git worktree；保 canonical worktree invariant（#183 §6）"
+  },
+  {
+    "capability_id": "codex.resume.loops_state",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": [],
+    "codex_interface": "Codex session 級 resume（codex exec resume [id|--last]、codex resume/fork、session_index.jsonl）— 與 loops .loops/<slug>/ state resume 是兩回事",
+    "evidence": {
+      "source": "CLI:codex --help / codex exec resume --help@0.146.0-alpha.3.1 + docs/CODEX-SMOKE.md Test 3i",
+      "note": "Codex 有 session 級 resume/fork（一手 --help 查證）；但 loops 的 .loops/ state resume（讀 loop.md 續正確階段）在 Codex 未量測。兩種 resume 不可混為一談。"
+    },
+    "blocker": "authenticated Codex session",
+    "repro": "CODEX_HOME=<已認證> \"<codex 絕對路徑>\" exec -C <repo> \"對既有 .loops/<slug>/ 下 resume/dispatch\" ；查是否正確從記錄階段續跑",
+    "x183_action": "resume adapter：.loops canonical state 跨平台格式一致；明確區分 Codex session-resume 與 loop-state-resume（#183 §6）"
+  },
+  {
+    "capability_id": "codex.transcript_metrics_stability",
+    "harness": "codex",
+    "status": "degraded",
+    "measurability": "needs_auth",
+    "gates_metrics": ["input_tokens", "output_tokens", "total_tokens"],
+    "codex_interface": "codex exec --json JSONL（token_count / turn.completed.Usage）+ -o/--output-last-message + --output-schema",
+    "evidence": {
+      "source": "CLI:codex exec --help@0.146.0-alpha.3.1 + gh:openai/codex#17539, #29272",
+      "note": "介面存在（故非全然 not_supported），但 alpha 格式穩定性 + 與 Claude transcript token 帳的口徑等價性皆未驗證 → 標 degraded（介面在、穩定/等價未定）。"
+    },
+    "blocker": "authenticated Codex session + pin 版本後驗證格式穩定",
+    "repro": "同 codex.metrics.tokens；另比對兩 harness 同 fixture 的 token 帳口徑是否可對齊",
+    "x183_action": "metrics adapter：pin exec --json 事件 schema 版本；定義與 Claude 可比的 token 口徑；穩定介面前一律標 degraded/not_measured（#183 §6）"
+  },
+  {
+    "capability_id": "codex.replay.deterministic",
+    "harness": "codex",
+    "status": "not_supported",
+    "measurability": "no_stable_interface",
+    "gates_metrics": [],
+    "codex_interface": "無 --replay flag；resume/fork = 續跑（resume 後送新 prompt），非確定性重放；session 持久化 session_index.jsonl；--ephemeral 可不持久化",
+    "evidence": {
+      "source": "CLI:codex --help / codex exec resume --help@0.146.0-alpha.3.1",
+      "note": "一手 --help 查證：無確定性 replay 旗標；resume=continuation 非 re-execution。codex cloud 存在但標 EXPERIMENTAL、非本地 replay 介面。此為驗證後的『功能不存在』，非未量測。"
+    },
+    "blocker": "n/a（功能不存在——缺功能而非缺量測）",
+    "repro": "n/a；Codex 的 before/after eval 採『同 fixture 重跑 codex exec + 依 C1 nondeterminism 宣告允許的非決定性 + 擷取 --json』，非確定性重放",
+    "x183_action": "#183/#181 eval：Codex before/after 用同 fixture 重跑（非確定性）+ --json 擷取；不假設確定性重放；可評估 Promptfoo 官方 Codex provider 作驅動層（R5，交 #176/#177）"
+  }
+]
