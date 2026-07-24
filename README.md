@@ -18,6 +18,10 @@
 
 **怎麼用**：一律 `/loops-workflow:dispatch <想做的事>` —— 既有專案內開發直接分流到對的階段；空資料夾則由 dispatch 偵測到乾淨專案、確認後自動走內建 scaffold 建骨架。
 
+## Codex Preview
+
+除了 Claude Code，這個 marketplace 也可以裝進 **Codex**（目前是 Preview）。完整的安裝步驟、hook 信任、第一個安全 smoke task，以及目前每項能力量到什麼程度，見 [`docs/CODEX-QUICKSTART.md`](docs/CODEX-QUICKSTART.md)。
+
 ---
 
 # loops-workflow（plugin）
