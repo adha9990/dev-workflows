@@ -40,6 +40,8 @@ T1（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marke
 
 **結論**：plugin 發現與安裝機制對本 repo 真實內容確認可行、無需認證。`policy.authentication: "ON_INSTALL"` 目前看來不代表「安裝當下就要求登入」，而更可能代表「該 plugin 的能力在實際被呼叫時才會要求認證」——這點未被本測試直接證實，見 Test 3。
 
+**範疇澄清（修正先前版本的誤植）**：本測試驗證的是「plugin 本身能不能被 Codex 發現並安裝」這件事，屬於 capability matrix 的 **skill discovery / `dispatch`** 列的前置條件證據（安裝完成後 `installedPath` 顯示整個 plugin 目錄——含 `skills/`——確實被複製進 Codex 的 plugin cache，代表 skill 檔案在檔案層級是可被發現的；但「新 task 中是否真的被辨識為可呼叫的 skill」仍是 Test 3a 的未量測範圍，兩者不是同一件事）。**不是** capability matrix 裡的 **`setup`** 列——那一列指的是 `/loops-workflow:setup`（issue #168 規劃中的正式安裝來源管理 skill：問答選擇來源、idempotent 安裝/切換/更新/健康檢查/rollback），這個 skill 在本 repo 的 `plugins/loops-workflow/skills/` 底下**目前還不存在**（現有 11 個 skill 是 build/clarify/define/dispatch/explain/explore/goal/iterate/plan/scaffold-fullstack/verify，沒有 setup；repo 內也搜不到任何 `loops-workflow:setup` 引用）——這是兩邊 harness 都尚未建置的功能，不是任一 harness 的能力落差，矩陣的 `setup` 列因此不該引用本測試的證據。
+
 ## Test 3 — 認證邊界（決策者已拍板收斂為 not measured）
 
 嘗試繼續往下驗證「新 task 是否能發現並呼叫 `dispatch` skill」「hooks 信任流程」「guard 觸發探測」「跑一個不改產品 code 的迷你 smoke 任務並留下 `.loops` 記錄」時，發現這些步驟都需要**啟動一個真的 agent turn**（`codex exec` 或互動式 session），而這一定需要認證。隔離 `CODEX_HOME` 下 `codex doctor` 明確回報 `✗ auth no Codex credentials were found`——這是一個全新、未登入的乾淨身分，符合隔離設計的預期，但也代表它結構性地無法執行任何需要呼叫模型的步驟。
@@ -101,12 +103,12 @@ CODEX_HOME=<已認證的隔離 CODEX_HOME> "<codex 執行檔絕對路徑>" exec 
 # 之後檢查 <repo>/.loops/ 底下是否出現新的 loop 目錄、loop.md 是否正確產生
 ```
 
-## Capability Matrix 狀態（8 列為決策者拍板後的最終狀態；setup 已對真實內容驗證完畢）
+## Capability Matrix 狀態
 
 | 能力 | 狀態 | 依據 |
 |---|---|---|
-| setup（plugin 發現／安裝機制本身） | `degraded`（機制對 dev-workflows 真實內容確認可行、免登入；`authPolicy` 實際觸發時機未證實，故不到 `supported`） | Test 2 |
-| skill discovery / `dispatch` | `not measured`（決策者裁定收斂，非暫時性） | Test 3a |
+| `setup`（`/loops-workflow:setup`，issue #168 規劃中的正式安裝來源管理 skill） | Claude Code／Codex Preview 皆 `not supported`——這個 skill 兩邊都還沒建置，不是任一 harness 的能力落差 | 逐檔搜尋 `plugins/loops-workflow/skills/`，確認不存在此 skill、repo 內無 `loops-workflow:setup` 引用 |
+| skill discovery / `dispatch` | `not measured`（決策者裁定收斂，非暫時性；plugin 安裝完成後 skill 檔案已確認落在 Codex plugin cache 內，但新 task 中是否真的被辨識為可呼叫 skill 仍未量測，見 Test 2 範疇澄清） | Test 2（安裝前置）＋Test 3a（未量測部分） |
 | `AskUserQuestion` 類互動 | `not measured`（決策者裁定收斂，非暫時性） | Test 3 |
 | subagent / model profile | `not measured`（決策者裁定收斂，非暫時性） | Test 3 |
 | hooks 與 hook 信任 | `not measured`（決策者裁定收斂，非暫時性；官方文件載相容別名，但版本修復史與 payload 欄位兩軸未實測） | Test 3b–3h |
