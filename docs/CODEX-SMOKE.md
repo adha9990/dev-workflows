@@ -43,7 +43,7 @@ T1（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marke
 
 **結論**：plugin 發現與安裝機制對本 repo 真實內容確認可行、無需認證。`policy.authentication: "ON_INSTALL"` 目前看來不代表「安裝當下就要求登入」，而更可能代表「該 plugin 的能力在實際被呼叫時才會要求認證」——這點未被本測試直接證實，見 Test 3。
 
-**範疇澄清（修正先前版本的誤植）**：本測試驗證的是「plugin 本身能不能被 Codex 發現並安裝」這件事，屬於 capability matrix 的 **skill discovery / `dispatch`** 列的前置條件證據（安裝完成後 `installedPath` 顯示整個 plugin 目錄——含 `skills/`——確實被複製進 Codex 的 plugin cache，代表 skill 檔案在檔案層級是可被發現的；但「新 task 中是否真的被辨識為可呼叫的 skill」仍是 Test 3a 的未量測範圍，兩者不是同一件事）。**不是** capability matrix 裡的 **`setup`** 列——那一列指的是 `/loops-workflow:setup`（issue #168 規劃中的正式安裝來源管理 skill：問答選擇來源、idempotent 安裝/切換/更新/健康檢查/rollback），這個 skill 在本 repo 的 `plugins/loops-workflow/skills/` 底下**目前還不存在**（現有 11 個 skill 是 build/clarify/define/dispatch/explain/explore/goal/iterate/plan/scaffold-fullstack/verify，沒有 setup；repo 內也搜不到任何 `loops-workflow:setup` 引用）——這是兩邊 harness 都尚未建置的功能，不是任一 harness 的能力落差，矩陣的 `setup` 列因此不該引用本測試的證據。
+**範疇澄清**：本測試驗證的是「plugin 本身能不能被 Codex 發現並安裝」這件事，屬於 capability matrix 的 **skill discovery / `dispatch`** 列的前置條件證據（安裝完成後 `installedPath` 顯示整個 plugin 目錄——含 `skills/`——確實被複製進 Codex 的 plugin cache，代表 skill 檔案在檔案層級是可被發現的；但「新 task 中是否真的被辨識為可呼叫的 skill」仍是 Test 3a 的未量測範圍，兩者不是同一件事）。**不是** capability matrix 裡的 **`setup`** 列——那一列指的是規劃中的 `/loops-workflow:setup` 公開入口（尚未於任一平台推出：問答選擇來源、idempotent 安裝/切換/更新/健康檢查/rollback），這個 skill 在本 repo 的 `plugins/loops-workflow/skills/` 底下**目前還不存在**（現有 11 個 skill 是 build/clarify/define/dispatch/explain/explore/goal/iterate/plan/scaffold-fullstack/verify，沒有 setup；repo 內也搜不到任何 `loops-workflow:setup` 引用）——這是兩邊 harness 都尚未建置的功能，不是任一 harness 的能力落差，矩陣的 `setup` 列因此不該引用本測試的證據。
 
 ## Test 4 — 雙 marketplace 並存優先權 + Remove 生命週期（PASS）
 
@@ -103,7 +103,7 @@ T1（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marke
 | 4. 確認 | `codex plugin list --json` | ✅ installed 一筆（installed:true, enabled:true） |
 | 5. **判定關鍵** | `codex plugin list`（非 `--json`，人讀輸出） | 逐字印出：`Marketplace \`dev-workflows\``<br>`...\.tmp\marketplaces\dev-workflows\.claude-plugin\marketplace.json` |
 
-**Provenance 結論（呼應「環境」段的兩條路徑註記，這裡補上實測）**：步驟 5 證實——**在這個 PR 尚未合併推上 GitHub 的當下**，真實 remote `adha9990/dev-workflows` 的預設分支只有 `.claude-plugin/marketplace.json`（這是既有的 Claude 專用檔，本 PR 之前就存在），Codex 靠自己的 Claude 相容解析層讀到了這份檔案並成功完成整個安裝生命週期——這不是本 PR 新增的 `.agents/plugins/marketplace.json` 在起作用，因為那份檔案這個時間點根本還沒推上 GitHub。這條路徑印證了 issue #182 原文提到的「Codex 雖可相容讀取部分 Claude marketplace 資訊」是真的、且此刻正在被使用。**待這個 PR 真的合併推上 GitHub 之後**，remote 上會同時存在兩份 marketplace manifest，依 Test 4a 的結論，屆時 Codex 應該會改採用 `.agents/plugins/marketplace.json`（Codex-native）——但這是推論，PR 合併後應該用同一條指令（`codex plugin marketplace add adha9990/dev-workflows`）重跑一次本測試，把「合併後」的結果也補上真實證據，不能只靠推論收尾。兩個階段使用者打的指令完全相同，差別只在 Codex 內部解析到哪一份檔案。
+**Provenance 結論（呼應「環境」段的兩條路徑註記，這裡補上實測）**：步驟 5 證實——**在這個 PR 尚未合併推上 GitHub 的當下**，真實 remote `adha9990/dev-workflows` 的預設分支只有 `.claude-plugin/marketplace.json`（這是既有的 Claude 專用檔，本 PR 之前就存在），Codex 靠自己的 Claude 相容解析層讀到了這份檔案並成功完成整個安裝生命週期——這不是本 PR 新增的 `.agents/plugins/marketplace.json` 在起作用，因為那份檔案這個時間點根本還沒推上 GitHub。這條路徑印證了 Codex 具備相容讀取 Claude marketplace 資訊的能力、且此刻正在被使用。**待這個 PR 真的合併推上 GitHub 之後**，remote 上會同時存在兩份 marketplace manifest，依 Test 4a 的結論，屆時 Codex 應該會改採用 `.agents/plugins/marketplace.json`（Codex-native）——但這是推論，PR 合併後應該用同一條指令（`codex plugin marketplace add adha9990/dev-workflows`）重跑一次本測試，把「合併後」的結果也補上真實證據，不能只靠推論收尾。兩個階段使用者打的指令完全相同，差別只在 Codex 內部解析到哪一份檔案。
 
 ## Test 3 — 認證邊界（範疇邊界：not measured）
 
@@ -170,7 +170,7 @@ CODEX_HOME=<已認證的隔離 CODEX_HOME> "<codex 執行檔絕對路徑>" exec 
 
 | 能力 | 狀態 | 依據 |
 |---|---|---|
-| `setup`（`/loops-workflow:setup`，issue #168 規劃中的正式安裝來源管理 skill） | Claude Code／Codex Preview 皆 `not supported`——這個 skill 兩邊都還沒建置，不是任一 harness 的能力落差 | 逐檔搜尋 `plugins/loops-workflow/skills/`，確認不存在此 skill、repo 內無 `loops-workflow:setup` 引用 |
+| `setup`（規劃中的 `/loops-workflow:setup` 公開入口，尚未於任一平台推出） | Claude Code／Codex Preview 皆 `not supported`——這個 skill 兩邊都還沒建置，不是任一 harness 的能力落差 | 逐檔搜尋 `plugins/loops-workflow/skills/`，確認不存在此 skill、repo 內無 `loops-workflow:setup` 引用 |
 | skill discovery / `dispatch` | `not measured`（範疇邊界，非暫時性缺口；plugin 安裝完成後 skill 檔案已確認落在 Codex plugin cache 內，但新 task 中是否真的被辨識為可呼叫 skill 仍未量測，見 Test 2 範疇澄清） | Test 2（安裝前置）＋Test 3a（未量測部分） |
 | `AskUserQuestion` 類互動 | `not measured`（範疇邊界，非暫時性缺口） | Test 3 |
 | subagent / model profile | `not measured`（範疇邊界，非暫時性缺口） | Test 3 |
@@ -192,5 +192,5 @@ CODEX_HOME=<已認證的隔離 CODEX_HOME> "<codex 執行檔絕對路徑>" exec 
 - 本篇未驗證任何需要真的 agent turn（呼叫模型）的能力；這是本輪 Codex Preview 的範疇邊界，非缺陷。
 - `codex` 執行檔不在系統 PATH 上，所有指令皆需以絕對路徑呼叫——這點也需要寫進 `docs/CODEX-QUICKSTART.md`，避免新使用者以為 `codex` 是可以直接打的裸指令。
 - `CODEX_HOME` 若字面落在 OS 暫存資料夾下會印出一則無害的 PATH 別名警告（見 Test 1），不影響功能，但使用者可能誤以為是錯誤。
-- **安裝路徑範疇邊界**：本篇所有安裝證據都是本機檔案系統絕對路徑，不是 README／QUICKSTART 教的 GitHub owner/repo 簡寫路徑（`adha9990/dev-workflows`）——後者要等本 PR 真的合併並推上 GitHub 之後才能重跑驗證，目前未被本篇任何 Test 覆蓋。
+- **安裝路徑範疇邊界**：pre-merge 的 GitHub owner/repo 簡寫路徑（`adha9990/dev-workflows`）已由 Test 6 實測（經 Claude 相容解析成功）；**合併後、`.agents/plugins/marketplace.json` 原生入口生效時**的 owner/repo 簡寫行為尚未驗證——這才是真正未覆蓋的部分，合併後應重跑同一條指令補上真實證據。
 - **commit SHA 僅供撰寫當下參照**：本篇引用的 commit SHA 是整合前各 subtask worktree 的本地 commit，PR 若經 squash/rebase 合併，最終歷史的 SHA 會不同；核對證據對應內容請比對檔案本身，不要依賴 SHA 字串比對。
