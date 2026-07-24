@@ -55,7 +55,8 @@
 // （stripCode / extractCommentBody / makeHardenedReadFileSafe）、worktree-guard（findLoopRoot /
 // extractWorktreeSlug）——閘與分支判定不重抄兄弟 hook 已寫好、已測過的邏輯。
 // stripQuotedValues／readGitBranch 對外 export：供 merge-guard.mjs 重用（#133）——同一套「剝殼視圖
-// 判子指令詞」「讀 .git 判分支」邏輯，不重抄。
+// 判子指令詞」「讀 .git 判分支」邏輯，不重抄。isPrReadyCommand／prSubcommandAtSegmentStart 對外
+// export：供 pr-owner-guard.mjs 重用（#164）——同一套「剝殼視圖判 gh pr 子指令位置」邏輯，不重抄。
 
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
@@ -89,7 +90,9 @@ export function stripQuotedValues(cmd) {
  * 注意：只有這裡的偵測用剝殼視圖——後續 hasDraftFlag / hasAssigneeMe / extractCommentBody 等仍
  * 作用於原始字串，不能連真正的旗標與 body 內容都被剝掉。
  */
-function prSubcommandAtSegmentStart(cmd, sub) {
+// export：供 pr-owner-guard.mjs 重用（#164）——同一套「剝殼視圖判子指令詞在命令段開頭」邏輯
+// （用於判 `gh pr edit`/`gh pr create` 子指令位置），不重抄。
+export function prSubcommandAtSegmentStart(cmd, sub) {
   if (typeof cmd !== 'string') return false;
   // 收尾 lookahead 允許空白／字串結尾／shell 分隔符（`)` `;` `&` `|`）——後者涵蓋 `(gh pr ready)`
   // 這類子 shell 包住的情形；仍擋 `ready-xxx`／`create-xxx`（`-` 不在收尾集合）這類未來子指令誤中。
