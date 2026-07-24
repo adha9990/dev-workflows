@@ -1,0 +1,15 @@
+{
+  "loop_slug": "sample-precise",
+  "repo": "fixture-repo",
+  "session_id": "11111111-1111-1111-1111-111111111111",
+  "first_ts": 0,
+  "last_ts": 1000,
+  "duration_ms": 1000,
+  "main": { "input": 1, "output": 1, "cache_creation": 1, "cache_read": 0, "total": 3 },
+  "total_incl_subagents": { "input": 1, "output": 1, "cache_creation": 1, "cache_read": 0, "total": 3 },
+  "cost_usd": { "main": 0.01, "total": 0.01, "estimate": true },
+  "subagent_count": 2,
+  "by_stage": [],
+  "schema_versions_seen": [2],
+  "caveats": ["fixture only"]
+}

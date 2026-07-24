@@ -1,0 +1,32 @@
+[
+  {
+    "loop_slug": "sample-est",
+    "repo": "fixture-repo",
+    "session_id": "22222222-2222-2222-2222-222222222222",
+    "first_ts": null,
+    "last_ts": null,
+    "duration_ms": "not_measured",
+    "main": { "est_range": [100, 200], "source": "outcome-line" },
+    "total_incl_subagents": { "est_range": [100, 200], "source": "outcome-line" },
+    "cost_usd": { "main": "not_measured", "total": "not_measured", "estimate": true },
+    "subagent_count": 5,
+    "by_stage": [],
+    "schema_versions_seen": [],
+    "caveats": ["fixture only"]
+  },
+  {
+    "loop_slug": "sample-not-measured",
+    "repo": "fixture-repo",
+    "session_id": "33333333-3333-3333-3333-333333333333",
+    "first_ts": null,
+    "last_ts": null,
+    "duration_ms": "not_measured",
+    "main": "not_measured",
+    "total_incl_subagents": "not_measured",
+    "cost_usd": { "main": "not_measured", "total": "not_measured", "estimate": true },
+    "subagent_count": "not_measured",
+    "by_stage": [],
+    "schema_versions_seen": [],
+    "caveats": ["fixture only"]
+  }
+]
