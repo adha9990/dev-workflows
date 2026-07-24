@@ -22,5 +22,5 @@
     }
   },
   "nondeterminism": "無——歷史事件已發生，重播的是對已重排檔案的規則比對。安全停『當下該不該停』本身是判斷題（本 fixture 不判定那個決策對不對），只驗證『停了之後有沒有老實走完後續全部關卡』這個結構性事實。",
-  "replay_cmd": "node plugins/loops-workflow/scripts/eval-trajectory.mjs check --observed plugins/loops-workflow/evals/baseline/fixtures/high-risk-182-safe-stop/observed-journal.md --reference <inline reference from this fixture's oracle.config> --json"
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --corpus plugins/loops-workflow/evals/baseline/corpus --task high-risk-182-safe-stop --json"
 }

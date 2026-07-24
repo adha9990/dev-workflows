@@ -22,5 +22,5 @@
     }
   },
   "nondeterminism": "無——歷史事件已發生，重播的是對已重排檔案的規則比對，非重新分類。",
-  "replay_cmd": "node plugins/loops-workflow/scripts/eval-trajectory.mjs check --observed plugins/loops-workflow/evals/baseline/fixtures/docs-rule-134-lessons-baked/observed-journal.md --reference <inline reference from this fixture's oracle.config> --json"
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --corpus plugins/loops-workflow/evals/baseline/corpus --task docs-rule-134-lessons-baked --json"
 }
