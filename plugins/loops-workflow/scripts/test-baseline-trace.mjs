@@ -9,6 +9,9 @@
 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
 
 import {
   parseSessionId,
@@ -25,6 +28,7 @@ import {
 } from './baseline-trace.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // .../scripts
+const ROOT = dirname(HERE); // plugin root
 const FIXTURE_ROOT = join(HERE, 'fixtures', 'baseline', 'fake-loops-root');
 
 let passed = 0;
@@ -243,6 +247,82 @@ function assert(cond, msg) {
     'scanOutcomeLoops：只收有 outcome 行的 3 個 loop，排除 no-outcome-loop',
   );
   assert(traces.every((t) => t.loop_slug !== 'no-outcome-loop'), 'scanOutcomeLoops：no-outcome-loop 確實被排除');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  F6：traceSingleLoop 接受可選 rows（跳過自己讀 costs.jsonl）＋ scanOutcomeLoops 只讀一次
+// ════════════════════════════════════════════════════════════════════════════
+
+{
+  // 顯式給 rows（即使與磁碟上 costs.jsonl 內容不同）時，直接採信給定值、不理會磁碟——
+  // 證明「providedRows !== undefined 就跳過自讀」這條分支真的生效，不是巧合同值。
+  const givenRows = [
+    { ts: 1, session_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', schema: 2, input_tokens: 7, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, cost_usd: 0 },
+  ];
+  const withGivenRows = traceSingleLoop({ loopSlug: 'precise-loop', loopsRoot: FIXTURE_ROOT, rows: givenRows });
+  assert(withGivenRows.main.input === 7, 'traceSingleLoop：顯式給 rows 時直接採信（不重讀磁碟上的 costs.jsonl）');
+  assert(withGivenRows.duration_ms === 'not_measured', 'traceSingleLoop：顯式 rows 只有 1 筆 → duration_ms=not_measured（與磁碟版〔4000〕不同，證明真的用了給定值）');
+
+  const withEmptyRows = traceSingleLoop({ loopSlug: 'precise-loop', loopsRoot: FIXTURE_ROOT, rows: [] });
+  assert(
+    JSON.stringify(withEmptyRows.main) !== JSON.stringify({ input: 400, output: 800, cache_creation: 50, cache_read: 900, total: 2150 }),
+    'traceSingleLoop：顯式給空陣列 rows（非 undefined）→ 視為「查過、零命中」，走降級路徑而非自己讀磁碟',
+  );
+
+  // costs.jsonl 只被讀一次：monkeypatch fs.readFileSync 計數，用 module.syncBuiltinESMExports()
+  // 把 patch 同步進 baseline-trace.mjs 內已綁定的具名 import（Node 官方建議的 builtin mock 手法）。
+  let costsReadCount = 0;
+  const realReadFileSync = fs.readFileSync;
+  fs.readFileSync = function counting(...args) {
+    if (String(args[0]).endsWith('costs.jsonl')) costsReadCount += 1;
+    return realReadFileSync.apply(fs, args);
+  };
+  syncBuiltinESMExports();
+  let scanned;
+  try {
+    scanned = scanOutcomeLoops({ loopsRoot: FIXTURE_ROOT });
+  } finally {
+    fs.readFileSync = realReadFileSync;
+    syncBuiltinESMExports();
+  }
+  assert(scanned.length === 3, 'scanOutcomeLoops：修正後仍正確收到 3 個 outcome loop（行為不變）');
+  assert(costsReadCount === 1, `scanOutcomeLoops：costs.jsonl 只被讀一次（實際 ${costsReadCount} 次）——F6 效能修正`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  F4：CLI e2e（--loop 成功／--scan-outcomes 成功／缺 --loops-root exit 2／loops-root 不存在 exit 3）
+// ════════════════════════════════════════════════════════════════════════════
+
+{
+  const loopOk = spawnSync(
+    'node',
+    [join(HERE, 'baseline-trace.mjs'), '--loop', 'precise-loop', '--loops-root', FIXTURE_ROOT, '--json'],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+  assert(loopOk.status === 0, `CLI：--loop + --loops-root + --json → exit 0（stderr: ${loopOk.stderr}）`);
+  let loopReport = null;
+  try { loopReport = JSON.parse(loopOk.stdout); } catch { /* 下面斷言報壞 */ }
+  assert(loopReport?.loop_slug === 'precise-loop', 'CLI：--loop --json 輸出正確的 loop_slug');
+
+  const scanOk = spawnSync(
+    'node',
+    [join(HERE, 'baseline-trace.mjs'), '--scan-outcomes', '--loops-root', FIXTURE_ROOT, '--json'],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+  assert(scanOk.status === 0, `CLI：--scan-outcomes → exit 0（stderr: ${scanOk.stderr}）`);
+  let scanReport = null;
+  try { scanReport = JSON.parse(scanOk.stdout); } catch { /* 下面斷言報壞 */ }
+  assert(Array.isArray(scanReport) && scanReport.length === 3, 'CLI：--scan-outcomes --json 輸出陣列，3 筆 outcome loop');
+
+  const missingRoot = spawnSync('node', [join(HERE, 'baseline-trace.mjs'), '--loop', 'precise-loop'], { cwd: ROOT, encoding: 'utf8' });
+  assert(missingRoot.status === 2, 'CLI：缺 --loops-root（誤用）→ exit 2');
+
+  const nonExistentRoot = spawnSync(
+    'node',
+    [join(HERE, 'baseline-trace.mjs'), '--loop', 'precise-loop', '--loops-root', join(FIXTURE_ROOT, 'does-not-exist-root'), '--json'],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+  assert(nonExistentRoot.status === 3, 'CLI：--loops-root 指向不存在的路徑 → exit 3');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
