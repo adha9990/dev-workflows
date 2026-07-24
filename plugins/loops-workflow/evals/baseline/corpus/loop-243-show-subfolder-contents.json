@@ -1,0 +1,26 @@
+{
+  "id": "loop-243-show-subfolder-contents",
+  "category": "loop-243",
+  "harness": ["claude-code"],
+  "description": "issue #169 R8/S4 專項殼：eagle-app-core 真實歷史 loop（.loops/243-show-subfolder-contents，60 個 sub-agent、2 圈 iterate 收斂、draft PR #318）的階段序列 trajectory 驗證。這條 fixture 只驗證『走的階段序不序、有沒有跳過該走的關卡』；對應的精確 token/duration/cost trace 是另一份獨立產物（由 quality-integrator-2 的 baseline-trace.mjs 從 eagle-app-core 的 .loops/.metrics/costs.jsonl 抽取，session_id=489b7948-d1e1-4d41-bd21-4686f04c6c46，經本人實測比對命中 76 筆），兩者互補、不是同一件事，避免讀者以為這個 fixture 已經涵蓋成本面。",
+  "provenance": {
+    "source_type": "real-loop",
+    "ref": "eagle-app-core .loops/243-show-subfolder-contents/loop.md（唯讀取材，draft PR #318）",
+    "captured_at": "2026-07-25T00:00:00Z",
+    "method": "唯讀抽取真實 loop.md 的 Journal 內容，重排成 eval-trajectory.mjs 的 parseStages 可辨識格式（格式落差說明同 docs-rule-134-lessons-baked 案例；243 這條 loop 比 dev-workflows 自己的歷史 loop 更舊、格式落差更明顯，因為它完全沒有 Agent Team 分工結構）。未修改 eagle-app-core 任何檔案。已用 readObservedStages/checkTrajectory 實際跑過一次確認可正確解析（observed=[goal,explore,plan,build,verify,verify,iterate,iterate]，ok=true）。"
+  },
+  "oracle": {
+    "type": "trajectory-rules",
+    "config": {
+      "reference": {
+        "required": ["goal", "explore", "plan", "build", "verify", "iterate"],
+        "allowed": ["goal", "explore", "plan", "build", "verify", "iterate"],
+        "order": ["goal", "explore", "plan", "build", "verify", "iterate"],
+        "forbidden": ["scaffold"]
+      },
+      "observed_journal": "../fixtures/loop-243-show-subfolder-contents/observed-journal.md"
+    }
+  },
+  "nondeterminism": "無——歷史事件已發生，重播的是對已重排檔案的規則比對。",
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --corpus plugins/loops-workflow/evals/baseline/corpus --task loop-243-show-subfolder-contents --json"
+}

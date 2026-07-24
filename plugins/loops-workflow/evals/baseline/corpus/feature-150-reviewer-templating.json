@@ -1,0 +1,26 @@
+{
+  "id": "feature-150-reviewer-templating",
+  "category": "feature",
+  "harness": ["claude-code"],
+  "description": "真實歷史 feature 任務（#150，PR #151 squash merged）：把 21 個 reviewer/validator 樣板從各自獨立檔案抽成單一真相源（references/reviewer-shared.md + references/reviewers/*.md）＋generator（scripts/gen-reviewers.mjs），紅燈起手式是 characterization——現行 21 檔本身就是 golden output，generator `--check` 必須逐字重現（byte-identical，EOL 正規化後比對）。canned 結果錄存的是該 PR 合併後的真實綠態，斷言標題逐字取自 scripts/test-gen-reviewers.mjs 的真實 round-trip golden 測試訊息格式。",
+  "provenance": {
+    "source_type": "real-pr",
+    "ref": "dev-workflows PR #151（squash merged 回 master）；loop .loops/150-reviewer-templating/",
+    "captured_at": "2026-07-25T00:00:00Z",
+    "method": "從 .loops/150-reviewer-templating/stages/02-plan.md（§三任務表 T5/T7、B1 EOL 正規化決策）與 scripts/test-gen-reviewers.mjs 現行內容（真實 assert() 訊息字串逐字取用，含 template literal 展開後的實際通過值）重建；canned-vitest.json 把該 repo 實際使用的 assert() 式測試斷言翻譯成 loops-quality-gate.mjs 測試閘唯一支援的 vitest --reporter=json 形狀——翻譯的是格式不是內容。"
+  },
+  "oracle": {
+    "type": "quality-gate",
+    "config": {
+      "workspace": "../fixtures/feature-150-reviewer-templating",
+      "failToPass": [
+        "round-trip：21 檔全部 byte-identical（實際 21）"
+      ],
+      "passToPass": [
+        "round-trip：組出 21 檔（實際 21）"
+      ]
+    }
+  },
+  "nondeterminism": "無——canned 結果固定，重播必得同結果。",
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --corpus plugins/loops-workflow/evals/baseline/corpus --task feature-150-reviewer-templating --json"
+}

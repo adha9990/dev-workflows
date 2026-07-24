@@ -1,0 +1,8 @@
+{
+  "name": "feature-150-reviewer-templating",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node ../_shared/emit-vitest.mjs"
+  }
+}

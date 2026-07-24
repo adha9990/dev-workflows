@@ -1,0 +1,21 @@
+{
+  "id": "feedback-iterate-347",
+  "category": "feedback-iterate",
+  "harness": ["claude-code"],
+  "description": "真實歷史 PR reviewer 回饋事件（eagle-app-core PR #347）：輸入是一個真實既有 PR＋一則真實 reviewer review comment，dispatch 實際分類為 fix（reviewer 回饋修正）、起點階段 iterate。跟 route-pr-review-verify.json 對照：同樣是 PR 相關輸入，但這條輸入的意圖是『這個 PR 已經收到 reviewer 回饋、要處理』而不是『請你審查這個 PR』，dispatch 決策樹的『PR 號／「reviewer／修正回饋」（意圖明確）→ 從 iterate 開始』規則對這個真實案例確實正確分流——這是現況『能做對』的一面，不是全部都紅。",
+  "provenance": {
+    "source_type": "real-loop",
+    "ref": "eagle-app-core .loops/347-preferences-dialog-rebuild/loop.md（E1）；真實輸入含 PR #347 與 review comment issuecomment-5046023785",
+    "captured_at": "2026-07-25T00:00:00Z",
+    "method": "唯讀抽取 eagle-app-core（另一個真實專案 repo）的 loop.md header 與 Journal E1 逐字內容；不是本次 live-capture，是既有真實歷史事件的紀錄轉錄，未修改該 repo 任何檔案。"
+  },
+  "oracle": {
+    "type": "route-decision",
+    "config": {
+      "expected_route": "iterate",
+      "recorded_actual": "iterate"
+    }
+  },
+  "nondeterminism": "無——歷史事件已發生且結果已定，重播的是紀錄不是重新分類；若要驗證『分類邏輯現在還會不會做出同樣判斷』需要另外 live-capture（見 recapture_note 精神，本 fixture 屬確定性重播類）。",
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --corpus plugins/loops-workflow/evals/baseline/corpus --task feedback-iterate-347 --json"
+}

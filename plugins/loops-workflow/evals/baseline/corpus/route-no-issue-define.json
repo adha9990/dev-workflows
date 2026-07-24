@@ -1,0 +1,21 @@
+{
+  "id": "route-no-issue-define",
+  "category": "feature",
+  "harness": ["claude-code"],
+  "description": "live-capture：輸入一句已釐清、無既有 issue 的功能請求「幫我加一個功能：把 .loops/.metrics/costs.jsonl 依 loop slug 分開存檔，而不是全部塞進同一個檔案」，對照 dispatch §1 決策樹分類。輸入具體到能動工（雖然「怎麼做」還沒研究），依決策樹「已釐清、要追蹤成 issue → define」規則分類，止於分類決策、不實際呼叫 define、不真的開 issue。",
+  "provenance": {
+    "source_type": "live-capture",
+    "ref": "輸入原文：「幫我加一個功能：把 .loops/.metrics/costs.jsonl 依 loop slug 分開存檔，而不是全部塞進同一個檔案」",
+    "captured_at": "2026-07-25T00:00:00Z",
+    "method": "teammate agent（非 top-level session）逐字讀 plugins/loops-workflow/skills/dispatch/SKILL.md 全文，依 §1.4（先判乾淨度——非乾淨空專案跳過）→ §1（決策樹：意圖已釐清、無 issue、可動工）→ §1.5（已釐清無 issue → define）做分類；止於分類決策，未實際執行 define skill、未呼叫 gh issue create。skill_text_sha=d17032c1e0e9679b39a2fc8f5a77d5fddf9a21d5。"
+  },
+  "oracle": {
+    "type": "route-decision",
+    "config": {
+      "expected_route": "define",
+      "recorded_actual": "define"
+    }
+  },
+  "nondeterminism": "中——「已釐清到能動工」與「還需要 clarify 先釐清」的邊界依賴 agent 對輸入清晰度的主觀判斷，換一個 agent capture 同一句輸入理論上可能落在 clarify 而非 define；此輸入刻意選得具體（明確講了改什麼檔、怎麼分），降低邊界模糊風險。",
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --corpus plugins/loops-workflow/evals/baseline/corpus --task route-no-issue-define --json"
+}
