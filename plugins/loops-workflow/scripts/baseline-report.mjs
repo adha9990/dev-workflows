@@ -8,8 +8,8 @@
 // 分層（仿 scripts/baseline-corpus.mjs）：
 //   1) 純函式（無 IO，測試直接 import）：computeUnexpectedFailRate / collectExpectedFailRefs /
 //      buildRouteSection / buildQualitySection / buildCostSection / buildPlatformDiffFromGaps /
-//      validateGapEntry / validateGapsSchema / buildBaselineReport / buildMarkdownReport /
-//      reportFilenames / formatDateYYYYMMDD。
+//      unmappedPlatformDimensions / validateGapEntry / validateGapsSchema / buildBaselineReport /
+//      buildMarkdownReport / reportFilenames / formatDateYYYYMMDD。
 //   2) 薄 IO：loadTraces / writeReportFiles / CLI main —— 被 import 時不執行（import.meta.url 守門）。
 // 依賴：僅 node 內建 + 本 repo 既有 baseline-corpus.mjs 匯出（loadCorpusFixtures/evaluateFixture/
 //   buildCorpusReport——本檔的合法上游，非 eval-oracle/eval-trajectory 本體）。零外部套件。
@@ -28,7 +28,7 @@ const PLATFORM_DIFF_DIMENSIONS = [
 // evals/baseline/codex/gaps.json 實際 id 為準（platform-engineer 命名，17 列）；某面向若
 // gaps.json 無對應列（如目前無 skill_invocation 以外的 codex.metrics.* 這種另一軸的量測項），
 // 維持 not_measured 骨架，不硬湊。
-const PLATFORM_DIFF_GAP_ID = {
+export const PLATFORM_DIFF_GAP_ID = {
   manifest: 'codex.manifest',
   skill_invocation: 'codex.skill.discovery_invocation',
   questions: 'codex.interaction.questions',
@@ -218,6 +218,20 @@ export function buildPlatformDiffFromGaps(gaps) {
   });
 }
 
+/**
+ * F3：gaps 有給（非空）、但某面向在裡面找不到對應 capability_id 時，回該面向清單——這是「對映表
+ * 可能已跟 gaps.json 的 id 命名脫鉤（例如 platform 那邊改名）」的訊號，不該悄悄留在 not_measured
+ * 骨架裡沒人發現。gaps 缺省/空陣列（本來就沒給 --gaps）→ 回空陣列，不算漂移。
+ */
+export function unmappedPlatformDimensions(gaps) {
+  if (!Array.isArray(gaps) || gaps.length === 0) return [];
+  const ids = new Set(gaps.map((g) => g?.capability_id));
+  return PLATFORM_DIFF_DIMENSIONS.filter((d) => {
+    const gapId = PLATFORM_DIFF_GAP_ID[d];
+    return !gapId || !ids.has(gapId);
+  });
+}
+
 /** yyyy/mm/dd → 8 碼 YYYYMMDD（UTC，避免時區導致跨日不穩定）。 */
 export function formatDateYYYYMMDD(input) {
   const dt = input instanceof Date ? input : new Date(input);
@@ -254,9 +268,13 @@ export function buildBaselineReport({
   traceCmds,
   extraCaveats,
 }) {
+  const usingGapsDerived = !(Array.isArray(platformDiff) && platformDiff.length) && Array.isArray(gaps) && gaps.length > 0;
   const resolvedPlatformDiff = Array.isArray(platformDiff) && platformDiff.length
     ? platformDiff
-    : (Array.isArray(gaps) && gaps.length ? buildPlatformDiffFromGaps(gaps) : defaultPlatformDiff());
+    : (usingGapsDerived ? buildPlatformDiffFromGaps(gaps) : defaultPlatformDiff());
+  // F3：只在「真的用 gaps 推導 R12」時才檢查對映漂移——platformDiff 被顯式覆寫或根本沒給 gaps
+  // 的情境不算漂移訊號。
+  const unmapped = usingGapsDerived ? unmappedPlatformDimensions(gaps) : [];
 
   return {
     meta: {
@@ -285,7 +303,14 @@ export function buildBaselineReport({
       trace_cmds: Array.isArray(traceCmds) ? traceCmds : [],
       recapture_note: RECAPTURE_NOTE,
     },
-    caveats: [SUBAGENT_LENS_CAVEAT, RECAPTURE_CAVEAT_REF, ...(Array.isArray(extraCaveats) ? extraCaveats : [])],
+    caveats: [
+      SUBAGENT_LENS_CAVEAT,
+      RECAPTURE_CAVEAT_REF,
+      ...(unmapped.length
+        ? [`R12 對映缺口：${unmapped.join('、')} 面向在目前 gaps.json 找不到對應 capability_id（可能是 id 改名或本清單尚未涵蓋），已保持 not_measured`]
+        : []),
+      ...(Array.isArray(extraCaveats) ? extraCaveats : []),
+    ],
   };
 }
 

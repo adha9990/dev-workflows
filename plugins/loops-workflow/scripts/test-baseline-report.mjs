@@ -30,6 +30,8 @@ import {
   validateGapEntry,
   validateGapsSchema,
   buildPlatformDiffFromGaps,
+  unmappedPlatformDimensions,
+  PLATFORM_DIFF_GAP_ID,
 } from './baseline-report.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // .../scripts
@@ -37,6 +39,7 @@ const ROOT = dirname(HERE); // plugin root
 const CORPUS_SAMPLE_DIR = join(HERE, 'fixtures', 'baseline', 'corpus-sample');
 const TRACE_SAMPLE_DIR = join(HERE, 'fixtures', 'baseline', 'trace-sample');
 const GAPS_SAMPLE_DIR = join(HERE, 'fixtures', 'baseline', 'gaps-sample');
+const REAL_GAPS_PATH = join(ROOT, 'evals', 'baseline', 'codex', 'gaps.json');
 
 let passed = 0;
 const failed = [];
@@ -203,6 +206,64 @@ function minimalValidGapEntry(overrides = {}) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  F3：unmappedPlatformDimensions（對映漂移偵測）＋ buildBaselineReport 的 caveats 提示
+// ════════════════════════════════════════════════════════════════════════════
+
+{
+  assert(unmappedPlatformDimensions([]).length === 0, 'unmappedPlatformDimensions：gaps 空陣列 → 空清單（不算漂移，本來就沒給 --gaps）');
+  assert(unmappedPlatformDimensions(null).length === 0, 'unmappedPlatformDimensions：gaps 非陣列 → 空清單');
+
+  const fullyMapped = Object.values(PLATFORM_DIFF_GAP_ID).map((id) => minimalValidGapEntry({ capability_id: id }));
+  assert(unmappedPlatformDimensions(fullyMapped).length === 0, 'unmappedPlatformDimensions：8 面向皆有對應 id → 空清單');
+
+  // 只給 1 筆（manifest），其餘 7 個面向在這份 gaps 裡都找不到對應 id → 應列為漂移。
+  const partiallyMapped = [minimalValidGapEntry({ capability_id: PLATFORM_DIFF_GAP_ID.manifest, status: 'supported' })];
+  const unmapped = unmappedPlatformDimensions(partiallyMapped);
+  assert(unmapped.length === 7 && !unmapped.includes('manifest'), 'unmappedPlatformDimensions：只給 manifest → 其餘 7 面向列為未對映，manifest 不在清單內');
+
+  const reportWithGap = buildBaselineReport({ repoSha: 'x', date: '20260101', corpusReport, traces: [], gapsPresent: true, gaps: partiallyMapped });
+  assert(
+    reportWithGap.caveats.some((c) => c.includes('R12 對映缺口') && c.includes('skill_invocation')),
+    'buildBaselineReport：gaps 給了但部分面向對映落空 → caveats 出現「R12 對映缺口」提示（含至少一個面向名）',
+  );
+
+  const reportFullyMapped = buildBaselineReport({ repoSha: 'x', date: '20260101', corpusReport, traces: [], gapsPresent: true, gaps: fullyMapped });
+  assert(
+    !reportFullyMapped.caveats.some((c) => c.includes('R12 對映缺口')),
+    'buildBaselineReport：8 面向全對映到 → caveats 不出現對映缺口提示（沒有漂移不誤報）',
+  );
+
+  const reportNoGaps = buildBaselineReport({ repoSha: 'x', date: '20260101', corpusReport, traces: [], gapsPresent: false, gaps: null });
+  assert(
+    !reportNoGaps.caveats.some((c) => c.includes('R12 對映缺口')),
+    'buildBaselineReport：根本沒給 gaps → 不誤判成對映缺口（本來就是 not_measured 骨架，非漂移）',
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  F3：真實 gaps.json round-trip——PLATFORM_DIFF_GAP_ID 每個 id 都要在真實 gaps.json 裡找得到
+//  （id 若被改名，這條斷言會轉紅，顯式偵測對映表與真實資料脫鉤，不會悄悄退化成全 not_measured）
+// ════════════════════════════════════════════════════════════════════════════
+
+{
+  let realGaps = null;
+  try {
+    realGaps = JSON.parse(readFileSync(REAL_GAPS_PATH, 'utf8'));
+  } catch (err) {
+    console.error(`  ⚠ 略過真實 gaps.json round-trip 檢查 — 讀不到 ${REAL_GAPS_PATH}（${err?.message ?? err}）`);
+  }
+  if (realGaps) {
+    const realIds = new Set(realGaps.map((g) => g?.capability_id));
+    for (const [dimension, gapId] of Object.entries(PLATFORM_DIFF_GAP_ID)) {
+      assert(
+        realIds.has(gapId),
+        `真實 gaps.json round-trip：面向 ${dimension} 對映的 capability_id "${gapId}" 存在於 evals/baseline/codex/gaps.json（id 改名時本斷言應轉紅）`,
+      );
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 //  formatDateYYYYMMDD / reportFilenames
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -338,6 +399,23 @@ function minimalValidGapEntry(overrides = {}) {
     assert(
       !existsSync(join(tmpDir, 'baseline-20260302-gapstest.json')),
       'CLI：gaps 驗證失敗時不落地任何 report 檔（不可假裝驗證通過）',
+    );
+
+    // F5：真語法壞（截斷）的 gaps.json——JSON.parse 本身就丟例外，不是 schema 驗證那條路徑；
+    // 兩種壞法都要被擋，且要能從錯誤訊息分辨是「JSON 語法壞」而非「schema 欄位壞」。
+    const withMalformedGaps = spawnSync(
+      'node',
+      [...baseArgs, '--date', '20260303', '--out-dir', tmpDir, '--gaps', join(GAPS_SAMPLE_DIR, 'malformed-gaps.json')],
+      { cwd: ROOT, encoding: 'utf8' },
+    );
+    assert(withMalformedGaps.status !== 0, 'CLI：語法壞（截斷）的 gaps.json → 非零退出');
+    assert(
+      /不是合法 JSON/.test(withMalformedGaps.stderr),
+      'CLI：語法壞的 gaps.json 走 JSON.parse 診斷分支（訊息含「不是合法 JSON」，非 schema 驗證錯誤訊息）',
+    );
+    assert(
+      !existsSync(join(tmpDir, 'baseline-20260303-gapstest.json')),
+      'CLI：語法壞的 gaps.json 同樣不落地任何 report 檔',
     );
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
