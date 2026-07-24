@@ -57,7 +57,7 @@ flowchart TD
 | 能力 | Claude Code | Codex Preview | 限制備註 |
 |---|---|---|---|
 | skill discovery / `dispatch` | supported | not measured | plugin 安裝完成後，skill 檔案已確認落在 Codex 的 plugin cache 裡；但開一個新 task 之後，`dispatch` 是否真的會被辨識成可呼叫的 skill，這件事還需要登入認證才能實際跑一遍，目前尚未驗證 |
-| `setup` | not supported | not supported | 這裡指的是規劃中的 `/loops-workflow:setup`（讓使用者選正式支援的來源、可 idempotent 安裝/切換/更新/健康檢查/rollback），**目前兩邊 harness 都還沒有建出這個 skill**——這不是 Codex 特有的落差，是這個能力本身還沒做出來 |
+| `setup` | not supported | not supported | 此列指規劃中的 `/loops-workflow:setup` 公開入口（讓使用者選正式支援的來源、可 idempotent 安裝/切換/更新/健康檢查/rollback），**尚未於任一平台推出**——這不是 Codex 特有的落差，是這個能力本身還沒做出來。plugin 的安裝與註冊機制驗證見上一列（skill discovery）與 [`docs/CODEX-SMOKE.md`](CODEX-SMOKE.md) |
 | `AskUserQuestion` 類互動 | supported | not measured | Codex 沒有同名工具，走的是它自己的互動機制，兩者是否等效尚未驗證 |
 | subagent / model profile | supported | not measured | Codex 有自己的子代理機制，跟這套工作流怎麼搭配尚未驗證 |
 | hooks 與 hook 信任 | supported | not measured | Codex 會發現既有的 hooks 設定、也可以分別信任，但這些防線實際上是否真的生效尚未驗證 |
