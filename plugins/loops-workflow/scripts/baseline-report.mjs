@@ -318,11 +318,31 @@ function formatRate(rate) {
   return typeof rate === 'number' ? `${(rate * 100).toFixed(1)}%` : 'not_measured';
 }
 
+/**
+ * F9：白話講清楚 cost.tokens 裡 precise 與 est_range 兩組樣本數不對等——單看 JSON 欄位容易誤讀成
+ * 兩組可以直接比大小。M=0（完全沒 trace 資料）時不生這句話（沒東西可講）。
+ */
+function describeCostPrecision(cost) {
+  const t = cost?.tokens;
+  if (!t || typeof t !== 'object') return null;
+  const precise = t.precise?.traces_count ?? 0;
+  const est = t.est_range?.traces_count ?? 0;
+  const notMeasured = typeof t.traces_not_measured === 'number' ? t.traces_not_measured : 0;
+  const total = precise + est + notMeasured;
+  if (total === 0) return null;
+  const restParts = [];
+  if (est > 0) restParts.push(`${est} 筆 outcome-line 級距估算`);
+  if (notMeasured > 0) restParts.push(`${notMeasured} 筆完全未量到`);
+  const restText = restParts.length ? `其餘${restParts.join('、')}` : '其餘皆亦為精確帳';
+  return `precise 涵蓋 ${precise}/${total} 筆 trace（${restText}），兩組量級與信度不同、不得並列比較。`;
+}
+
 /** C3 → 人類可讀 markdown（雙 harness 分組表 + R12 八面向 + rerun + caveats）。 */
 export function buildMarkdownReport(report) {
   const r = report ?? {};
   const q = r.groups?.['claude-code']?.quality ?? {};
   const c = r.groups?.['claude-code']?.cost ?? {};
+  const costPrecisionNote = describeCostPrecision(c);
   const lines = [
     `# Baseline Report — ${r.meta?.date ?? 'unknown-date'} (${r.meta?.repo_sha ?? 'unknown-sha'})`,
     '',
@@ -332,6 +352,7 @@ export function buildMarkdownReport(report) {
     `- 預期紅（expected_fail）：${q.expected_fail_count ?? 0} 筆 — refs: ${(q.expected_fail_refs ?? []).map((x) => x.id).join(', ') || '(無)'}`,
     `- fixture 總數：${q.total_fixtures ?? 0}`,
     `- cost.tokens：${JSON.stringify(c.tokens ?? 'not_measured')}`,
+    ...(costPrecisionNote ? [`- ${costPrecisionNote}`] : []),
     `- cost.duration_ms：${JSON.stringify(c.duration_ms ?? 'not_measured')}`,
     '',
     '## codex 組',

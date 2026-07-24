@@ -16,7 +16,7 @@
 | judge 對人工金標的 κ 校準＋多 judge 投票 | `eval-poll.mjs` | E5 |
 | live-candidate 真 pass^k（多 run 全過才算穩） | `eval-passk.mjs` | E7 |
 | 沙箱檢查／執行計畫（容器隔離跑 candidate） | `eval-sandbox.mjs` | E7（protocol 見 `evals/live/README-protocol.md`） |
-| 真實任務語料的雙 harness（claude-code／codex）現況 baseline：三軌 corpus runner／trace 抽取／不可變 report | `baseline-corpus.mjs` / `baseline-trace.mjs` / `baseline-report.mjs` | #169（各檔檔頭註解＋`evals/baseline/promptfoo-adapter.md` 映射範例） |
+| 真實任務語料的雙 harness（claude-code／codex）現況 baseline：三軌 corpus runner／trace 抽取／不可變 report | `baseline-corpus.mjs` / `baseline-trace.mjs` / `baseline-report.mjs` | 各檔檔頭註解＋`evals/baseline/promptfoo-adapter.md` 映射範例 |
 
 ## scenario 檔格式（JSON）
 

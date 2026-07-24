@@ -301,6 +301,12 @@ function minimalValidGapEntry(overrides = {}) {
 
   const md = buildMarkdownReport(report);
   assert(typeof md === 'string' && md.includes('claude-code') && md.includes('codex'), 'buildMarkdownReport：雙組皆現身於輸出');
+
+  // F9：cost 區白話講清楚 precise 與 est 樣本數不對等，避免讀者把兩組數字並列比較。
+  // trace-sample 已知組成＝1 precise + 1 est + 1 完全未量到 → precise 1/3。
+  assert(md.includes('precise 涵蓋 1/3 筆 trace'), 'buildMarkdownReport：cost 區含 precise/total 樣本數白話句');
+  assert(md.includes('不得並列比較'), 'buildMarkdownReport：cost 區白話句明講兩組量級與信度不同、不得並列比較');
+  assert(md.includes('1 筆完全未量到'), 'buildMarkdownReport：白話句同時點出完全未量到的筆數（非只講 est）');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
