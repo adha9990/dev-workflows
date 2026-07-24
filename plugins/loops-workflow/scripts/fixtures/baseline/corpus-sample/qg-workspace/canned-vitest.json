@@ -1,0 +1,11 @@
+{
+  "testResults": [
+    {
+      "name": "math.test.ts",
+      "assertionResults": [
+        { "status": "passed", "title": "add returns sum", "ancestorTitles": ["math"], "failureMessages": [] },
+        { "status": "passed", "title": "sub returns diff", "ancestorTitles": ["math"], "failureMessages": [] }
+      ]
+    }
+  ]
+}

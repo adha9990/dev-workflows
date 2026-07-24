@@ -1,0 +1,21 @@
+{
+  "id": "quality-gate-sample",
+  "category": "bug",
+  "harness": ["claude-code"],
+  "provenance": {
+    "source_type": "real-pr",
+    "ref": "T3-smoke-fixture",
+    "captured_at": "2026-07-25",
+    "method": "self-authored sample for T3 runner smoke test（canned vitest reporter，仿 eval-oracle ws-* 慣例）"
+  },
+  "oracle": {
+    "type": "quality-gate",
+    "config": {
+      "workspace": "qg-workspace",
+      "failToPass": ["math > add returns sum"],
+      "passToPass": ["math > sub returns diff"]
+    }
+  },
+  "nondeterminism": "none — canned reporter 確定性重播",
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --dir plugins/loops-workflow/scripts/fixtures/baseline/corpus-sample --fixture quality-gate-sample --json"
+}

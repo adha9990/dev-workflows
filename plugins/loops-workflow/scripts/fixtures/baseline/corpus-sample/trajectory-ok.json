@@ -1,0 +1,20 @@
+{
+  "id": "trajectory-ok-sample",
+  "category": "docs-only",
+  "harness": ["claude-code", "codex"],
+  "provenance": {
+    "source_type": "real-loop",
+    "ref": "T3-smoke-fixture",
+    "captured_at": "2026-07-25",
+    "method": "self-authored sample for T3 runner smoke test（內嵌 Journal 摘錄文字）"
+  },
+  "oracle": {
+    "type": "trajectory-rules",
+    "config": {
+      "reference": { "required": ["goal", "build"], "order": ["goal", "build"], "forbidden": ["verify"] },
+      "observed_journal": "- [goal] 讀 issue 定 DoD\n- [build] TDD 紅綠實作\n"
+    }
+  },
+  "nondeterminism": "none — 規則比對確定性重播",
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --dir plugins/loops-workflow/scripts/fixtures/baseline/corpus-sample --fixture trajectory-ok-sample --json"
+}
