@@ -95,6 +95,60 @@ function loadFixture(name) {
     `codexPluginRequiredFieldsCheck：skills 欄位非 "./skills/" → 命中（實際：${JSON.stringify(findings)}）[2c]`,
   );
 }
+{
+  // 契約 C1：interface 核心欄缺一 → 逐一命中（displayName/shortDescription/longDescription/
+  // developerName/category/capabilities/websiteURL）
+  const manifest = {
+    name: 'x', version: '1.0.0', description: 'd', author: { name: 'a' }, skills: './skills/',
+    interface: {},
+  };
+  const findings = codexPluginRequiredFieldsCheck(manifest, 'f.json');
+  for (const field of ['displayName', 'shortDescription', 'longDescription', 'developerName', 'category', 'capabilities', 'websiteURL']) {
+    assert(
+      findings.some((f) => f.detail.includes(field)),
+      `codexPluginRequiredFieldsCheck：interface.${field} 缺失 → 命中（實際：${JSON.stringify(findings)}）[2d]`,
+    );
+  }
+}
+{
+  // capabilities 必須是非空陣列，不是空陣列或非陣列
+  const manifest = {
+    name: 'x', version: '1.0.0', description: 'd', author: { name: 'a' }, skills: './skills/',
+    interface: {
+      displayName: 'X', shortDescription: 's', longDescription: 'l', developerName: 'd',
+      category: 'Developer Tools', capabilities: [], websiteURL: 'https://example.com',
+    },
+  };
+  const findings = codexPluginRequiredFieldsCheck(manifest, 'f.json');
+  assert(
+    findings.some((f) => f.detail.includes('capabilities')),
+    `codexPluginRequiredFieldsCheck：capabilities 空陣列 → 命中（實際：${JSON.stringify(findings)}）[2e]`,
+  );
+}
+{
+  // websiteURL 必須是 https，http 或其他協定命中
+  const manifest = {
+    name: 'x', version: '1.0.0', description: 'd', author: { name: 'a' }, skills: './skills/',
+    interface: {
+      displayName: 'X', shortDescription: 's', longDescription: 'l', developerName: 'd',
+      category: 'Developer Tools', capabilities: ['Read'], websiteURL: 'http://example.com',
+    },
+  };
+  const findings = codexPluginRequiredFieldsCheck(manifest, 'f.json');
+  assert(
+    findings.some((f) => f.detail.includes('websiteURL')),
+    `codexPluginRequiredFieldsCheck：websiteURL 非 https → 命中（實際：${JSON.stringify(findings)}）[2f]`,
+  );
+}
+{
+  // 合法 fixture（已含完整 interface）仍應 0 finding——確認新檢查沒有把既有合法案例判紅
+  const manifest = loadFixture('codex-plugin-valid.json');
+  const findings = codexPluginRequiredFieldsCheck(manifest, '.codex-plugin/plugin.json');
+  assert(
+    Array.isArray(findings) && findings.length === 0,
+    `codexPluginRequiredFieldsCheck：合法 fixture 含完整 interface → 仍 0 筆 finding（實際：${JSON.stringify(findings)}）[2g]`,
+  );
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 // 3. manifestEqualityCheck（fixture：name/version 等值 / 版本漂移）

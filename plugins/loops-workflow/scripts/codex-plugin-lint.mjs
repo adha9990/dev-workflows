@@ -25,6 +25,11 @@ const CODEX_MARKETPLACE_REL = '.agents/plugins/marketplace.json';
 const CLAUDE_MARKETPLACE_REL = '.claude-plugin/marketplace.json';
 const REQUIRED_CODEX_PLUGIN_FIELDS = ['name', 'version', 'description'];
 const REQUIRED_SKILLS_VALUE = './skills/';
+// 契約 C1「interface 核心欄」：displayName/shortDescription/longDescription/developerName/
+// category 皆為非空字串；capabilities 為非空陣列；websiteURL 另外用專屬規則驗 https（見下）。
+const REQUIRED_INTERFACE_STRING_FIELDS = [
+  'displayName', 'shortDescription', 'longDescription', 'developerName', 'category',
+];
 // 掃複製樹只認這兩個目錄名（本 repo 唯一在意的 canonical 內容樹）；掃描時排除的整棵目錄
 // （不進遞迴）與「路徑含 fixtures 段」的檔案（自己的假 fixture 不該被當成真違規）。
 const TREE_TOPIC_DIR_NAMES = ['skills', 'references'];
@@ -75,6 +80,31 @@ export function codexPluginRequiredFieldsCheck(manifest, file) {
       detail: `"skills" 欄位須明寫 "${REQUIRED_SKILLS_VALUE}"（實際：${JSON.stringify(manifest?.skills)}）`,
     });
   }
+
+  const iface = manifest?.interface;
+  for (const key of REQUIRED_INTERFACE_STRING_FIELDS) {
+    const value = iface?.[key];
+    if (value == null || value === '') {
+      findings.push({ check: 'codex-plugin-required-field', severity: 'P1', file, detail: `缺少必要欄位 "interface.${key}"` });
+    }
+  }
+  if (!Array.isArray(iface?.capabilities) || iface.capabilities.length === 0) {
+    findings.push({
+      check: 'codex-plugin-required-field',
+      severity: 'P1',
+      file,
+      detail: `"interface.capabilities" 須為非空陣列（實際：${JSON.stringify(iface?.capabilities)}）`,
+    });
+  }
+  if (typeof iface?.websiteURL !== 'string' || !iface.websiteURL.startsWith('https://')) {
+    findings.push({
+      check: 'codex-plugin-required-field',
+      severity: 'P1',
+      file,
+      detail: `"interface.websiteURL" 須為 HTTPS 網址（實際：${JSON.stringify(iface?.websiteURL)}）`,
+    });
+  }
+
   return findings;
 }
 
