@@ -1,0 +1,17 @@
+{
+  "id": "route-ok-sample",
+  "category": "resume",
+  "harness": ["claude-code"],
+  "provenance": {
+    "source_type": "live-capture",
+    "ref": "T3-smoke-fixture",
+    "captured_at": "2026-07-25",
+    "method": "self-authored sample for T3 runner smoke test（非真實 T1 語料）"
+  },
+  "oracle": {
+    "type": "route-decision",
+    "config": { "expected_route": "resume", "recorded_actual": "resume" }
+  },
+  "nondeterminism": "none — deterministic string compare",
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --dir plugins/loops-workflow/scripts/fixtures/baseline/corpus-sample --fixture route-ok-sample --json"
+}

@@ -1,0 +1,13 @@
+[
+  {
+    "harness": "codex",
+    "status": "not-a-real-status",
+    "measurability": "needs_auth",
+    "gates_metrics": "not-an-array",
+    "codex_interface": "sample interface（fixture only，刻意缺 capability_id、status 非法、gates_metrics 非陣列）",
+    "evidence": { "source": "fixture" },
+    "blocker": "n/a",
+    "repro": "n/a",
+    "x183_action": "n/a"
+  }
+]
