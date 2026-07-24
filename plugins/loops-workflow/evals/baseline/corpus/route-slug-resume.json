@@ -1,0 +1,21 @@
+{
+  "id": "route-slug-resume",
+  "category": "resume",
+  "harness": ["claude-code"],
+  "description": "live-capture：在拋棄式臨時 git repo 裡真的造一個 `.loops/99-fake-slug/loop.md`，對照 dispatch §0 的 resume 判定公式（算 LOOPS_ROOT → 檢查 `$LOOPS_ROOT/.loops/<輸入>/loop.md` 是否存在）餵入既有 slug 當輸入。真跑出來：`git worktree list --porcelain` 解出 LOOPS_ROOT、檔案存在檢查為真 → 應直接跳過決策樹走 resume 協定。同時做了對照組（餵不存在的 slug），確認不存在時正確落回判類型分支，不會誤判成 resume。",
+  "provenance": {
+    "source_type": "live-capture",
+    "ref": "拋棄式臨時目錄（已於 capture 後刪除，未殘留、未碰任何真 repo 的 .loops）",
+    "captured_at": "2026-07-25T00:00:00Z",
+    "method": "teammate agent 實際執行：`git init` 一個全新臨時目錄＋一個 commit → 手造 `.loops/99-fake-slug/loop.md` → 依 dispatch SKILL.md §0 逐字公式跑 `git worktree list --porcelain | sed -n 's/^worktree //p' | head -1` 取得 LOOPS_ROOT → 檢查該路徑下 loop.md 是否存在。真實指令與真實輸出，非模擬；skill_text_sha=d17032c1e0e9679b39a2fc8f5a77d5fddf9a21d5。"
+  },
+  "oracle": {
+    "type": "route-decision",
+    "config": {
+      "expected_route": "resume",
+      "recorded_actual": "resume"
+    }
+  },
+  "nondeterminism": "低——resume 判定是確定性的檔案存在檢查，同輸入必得同結果；`git worktree list --porcelain` 的輸出格式若未來改版可能影響 LOOPS_ROOT 解析，屬環境假設而非本 fixture 的不確定性。",
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --corpus plugins/loops-workflow/evals/baseline/corpus --task route-slug-resume --json"
+}

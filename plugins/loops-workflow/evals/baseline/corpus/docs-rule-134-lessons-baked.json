@@ -1,0 +1,26 @@
+{
+  "id": "docs-rule-134-lessons-baked",
+  "category": "docs-only",
+  "harness": ["claude-code"],
+  "description": "真實歷史 docs-only 任務（#134，PR #148 merged）：把教訓通用化落文本，15 處編輯、8 檔（AGENTS.md 規則 5、verify/iterate/goal/build 等 skill 文件），零行為變更。用來驗證這類任務有沒有照 loops-workflow 該走的完整階段序列走（goal→plan→build→verify→iterate），沒有跳過 verify 或私自跳過 iterate 就收工。同一個真實素材也是 rule-change-maintainer 類別在 route-rule-change-maintainer.json 裡討論的『規則變更實際上怎麼落地』的正面對照——規則變更確實會被完整執行，只是走的是一般 issue 流程而非獨立 maintainer 路線。",
+  "provenance": {
+    "source_type": "real-loop",
+    "ref": "dev-workflows .loops/134-lessons-baked/loop.md（PR #148 merged=93ae0913）",
+    "captured_at": "2026-07-25T00:00:00Z",
+    "method": "唯讀抽取真實 loop.md 的 Journal 內容，重排成 eval-trajectory.mjs 的 parseStages 可辨識格式（`- E# [stagename] ...`）——真實 loop.md 用 `[E1]`/`[E2]` 數字編號在方括號內、stage 名不在方括號內，parseStages 對此格式不會抽出正確 stage（會把 'e1'/'e2' 當成無意義 stage）。這是本次建置發現的真實格式落差：dev-workflows 目前 Journal 書寫慣例與 eval-trajectory 檢查器預期格式不一致，已回報。每行內容仍對應真實條目，只重排標記位置，不竄改事實。已用 eval-trajectory.mjs 的 readObservedStages/checkTrajectory 實際跑過一次確認可正確解析（observed=[goal,plan,plan,plan,build,verify,iterate,iterate]，ok=true）。"
+  },
+  "oracle": {
+    "type": "trajectory-rules",
+    "config": {
+      "reference": {
+        "required": ["goal", "plan", "build", "verify", "iterate"],
+        "allowed": ["goal", "plan", "build", "verify", "iterate"],
+        "order": ["goal", "plan", "build", "verify", "iterate"],
+        "forbidden": ["scaffold"]
+      },
+      "observed_journal": "../fixtures/docs-rule-134-lessons-baked/observed-journal.md"
+    }
+  },
+  "nondeterminism": "無——歷史事件已發生，重播的是對已重排檔案的規則比對，非重新分類。",
+  "replay_cmd": "node plugins/loops-workflow/scripts/eval-trajectory.mjs check --observed plugins/loops-workflow/evals/baseline/fixtures/docs-rule-134-lessons-baked/observed-journal.md --reference <inline reference from this fixture's oracle.config> --json"
+}

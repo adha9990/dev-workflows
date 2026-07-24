@@ -1,0 +1,23 @@
+{
+  "id": "route-rule-change-maintainer",
+  "category": "rule-change-maintainer",
+  "harness": ["claude-code"],
+  "expected_outcome": "expected-fail",
+  "description": "live-capture：輸入一句規則變更請求「AGENTS.md 規則 9 的 worktree 命名慣例要補一條：型別前綴一律禁止」，對照 dispatch 決策樹分類。dispatch 的決策樹（skills/dispatch/SKILL.md §0/§1）完全沒有『maintainer』這個目的地——它只認得 scaffold/clarify/define/goal/explore/iterate 幾個既有階段。真實存在的 `dev-workflows-maintainer` 是一個獨立的 Agent（透過 Agent tool 以 subagent_type 派發），不是 `dispatch` 決策樹的分支之一。對這句輸入逐字套用決策樹，因為它已釐清且無既有 issue，最終落在『已釐清、要追蹤成 issue → define』——不是任何形式的 maintainer 路線。這證實現況 dispatch 根本沒有『rule-change→maintainer』這條路由分支可言，是比『分類判錯』更底層的缺口。",
+  "provenance": {
+    "source_type": "live-capture",
+    "ref": "輸入原文：「AGENTS.md 規則 9 的 worktree 命名慣例要補一條：型別前綴一律禁止」",
+    "captured_at": "2026-07-25T00:00:00Z",
+    "method": "teammate agent 逐字讀 plugins/loops-workflow/skills/dispatch/SKILL.md 全文分類，並額外核對 skills/ 目錄實際內容（build/clarify/define/dispatch/explain/explore/goal/iterate/plan/scaffold-fullstack/verify，無 maintainer）確認『maintainer』不是 dispatch 能路由到的任何一個現有 skill 目的地。skill_text_sha=d17032c1e0e9679b39a2fc8f5a77d5fddf9a21d5。"
+  },
+  "oracle": {
+    "type": "route-decision",
+    "config": {
+      "expected_route": "maintainer",
+      "recorded_actual": "define"
+    }
+  },
+  "nondeterminism": "低——dispatch 決策樹沒有 maintainer 分支是結構性事實（可直接讀 skills/ 目錄核實），不隨 capture 者改變；`recorded_actual` 落在 define 或 goal 可能因輸入措辭微調而變，但『不是 maintainer』這件事是穩定的。",
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --corpus plugins/loops-workflow/evals/baseline/corpus --task route-rule-change-maintainer --json",
+  "tie_note": "現況：dispatch 的決策樹本身不認得『maintainer』這個目的地，rule-change 類輸入一律落回一般 issue 流程（define/goal）。真正的 maintainer 路徑是獨立的 dev-workflows-maintainer agent 派發機制，不經過 loops-workflow dispatch。要讓這條 fixture 轉綠，需要先決定『rule-change→maintainer』究竟該不該收進 dispatch 決策樹本身（規則治理相關的後續工作，目前 #170–#181 子票清單沒有一張明確認領這個具體決策樹分支）；此 note 記錄現況缺口，不代表已有票認領。"
+}
