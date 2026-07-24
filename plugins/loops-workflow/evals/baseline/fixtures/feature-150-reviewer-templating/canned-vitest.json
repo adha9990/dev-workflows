@@ -1,0 +1,11 @@
+{
+  "testResults": [
+    {
+      "name": "scripts/test-gen-reviewers.mjs",
+      "assertionResults": [
+        { "status": "passed", "title": "round-trip：組出 21 檔（實際 21）", "ancestorTitles": ["gen-reviewers"], "failureMessages": [] },
+        { "status": "passed", "title": "round-trip：21 檔全部 byte-identical（實際 21）", "ancestorTitles": ["gen-reviewers"], "failureMessages": [] }
+      ]
+    }
+  ]
+}

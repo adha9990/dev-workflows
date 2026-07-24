@@ -1,0 +1,23 @@
+{
+  "id": "route-pr-review-verify",
+  "category": "pr-review-verify",
+  "harness": ["claude-code"],
+  "expected_outcome": "expected-fail",
+  "description": "live-capture：輸入「review PR #184」，對照 dispatch skill §0/§1 決策樹做真實分類。現行 dispatch 決策樹（skills/dispatch/SKILL.md:37）只有『PR 號／「reviewer／修正回饋」（意圖明確）→ 從 iterate 開始』一條規則，沒有『請你審查這個 PR』與『這個 PR 已收到 reviewer 回饋』的區分分支——任何 PR# 輸入現況一律分去 iterate，不會分去 verify。這是 baseline 要誠實記下的現況缺口，不是 live-capture 執行者判錯。",
+  "provenance": {
+    "source_type": "live-capture",
+    "ref": "輸入原文：「review PR #184」",
+    "captured_at": "2026-07-24T17:39:03Z",
+    "method": "teammate agent（非 top-level session）逐字讀 plugins/loops-workflow/skills/dispatch/SKILL.md 全文，依其 §0（resume 檢查）→§1（決策樹）步驟對輸入做分類；未建立 loop.md、未實際呼叫 dispatch、未執行任何程式碼——純文本層級的分類重演。skill_text_sha=d17032c1e0e9679b39a2fc8f5a77d5fddf9a21d5（plugins/loops-workflow/skills/dispatch/SKILL.md 於 f328fe14 之後的內容 blob）。"
+  },
+  "oracle": {
+    "type": "route-decision",
+    "config": {
+      "expected_route": "verify",
+      "recorded_actual": "iterate"
+    }
+  },
+  "nondeterminism": "低——分類依據的是 dispatch SKILL.md 逐字決策樹規則，非機率性判斷；SKILL.md 文本改變時 recorded_actual 可能需要重新 capture（見 tie note）。",
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --corpus plugins/loops-workflow/evals/baseline/corpus --task route-pr-review-verify --json",
+  "tie_note": "現況：dispatch 決策樹沒有『PR review 請求』與『PR reviewer 回饋』的區分分支，兩者都落在同一條『PR 號→iterate』規則。要讓這條 fixture 轉綠，需要 dispatch 的決策樹新增能區分兩種意圖的分支（目前 #170–#181 子票清單裡沒有一張明確認領這個具體決策樹修改；最接近的候選是任何觸及 dispatch 路由規則本體的後續工作）。此 note 記錄現況缺口本身，不代表已有票認領修復。"
+}

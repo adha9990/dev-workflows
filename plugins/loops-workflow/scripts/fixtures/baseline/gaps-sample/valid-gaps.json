@@ -1,0 +1,26 @@
+[
+  {
+    "capability_id": "codex.sample.capability",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": ["input_tokens"],
+    "codex_interface": "sample interface（fixture only）",
+    "evidence": { "source": "fixture", "note": "sample" },
+    "blocker": "authenticated session",
+    "repro": "sample repro command",
+    "x183_action": "sample action"
+  },
+  {
+    "capability_id": "codex.manifest",
+    "harness": "codex",
+    "status": "supported",
+    "measurability": "login_free",
+    "gates_metrics": [],
+    "codex_interface": "sample manifest interface（fixture only，用來驗 R12 manifest 面向對映吃到 supported）",
+    "evidence": { "source": "fixture", "note": "sample" },
+    "blocker": "none",
+    "repro": "sample repro command",
+    "x183_action": "sample action"
+  }
+]

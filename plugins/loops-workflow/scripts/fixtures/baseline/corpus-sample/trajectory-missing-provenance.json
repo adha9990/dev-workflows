@@ -1,0 +1,14 @@
+{
+  "id": "trajectory-missing-provenance-sample",
+  "category": "docs-only",
+  "harness": ["claude-code"],
+  "oracle": {
+    "type": "trajectory-rules",
+    "config": {
+      "reference": { "required": ["goal"] },
+      "observed_journal": "- [goal] x\n"
+    }
+  },
+  "nondeterminism": "n/a",
+  "replay_cmd": "n/a — 本 fixture 刻意缺 provenance 欄，測 schema 驗證非零退出"
+}

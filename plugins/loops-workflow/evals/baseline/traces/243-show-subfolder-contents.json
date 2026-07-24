@@ -1,0 +1,142 @@
+{
+  "loop_slug": "243-show-subfolder-contents",
+  "repo": "eagle-app-core",
+  "session_id": "489b7948-d1e1-4d41-bd21-4686f04c6c46",
+  "first_ts": 1784174755656,
+  "last_ts": 1784537956989,
+  "duration_ms": 363201333,
+  "main": {
+    "input": 3560,
+    "output": 3063472,
+    "cache_creation": 23382513,
+    "cache_read": 909083653,
+    "total": 935533198
+  },
+  "total_incl_subagents": {
+    "input": 12432,
+    "output": 4325390,
+    "cache_creation": 45925419,
+    "cache_read": 1187349293,
+    "total": 1237612534
+  },
+  "cost_usd": {
+    "main": 2031.86139825,
+    "total": 2727.60131235,
+    "estimate": true
+  },
+  "subagent_count": 77,
+  "by_stage": [
+    {
+      "stage": "(main)",
+      "turns": 22,
+      "input_tokens": 44,
+      "output_tokens": 28878,
+      "cache_creation_input_tokens": 514529,
+      "cache_read_input_tokens": 1429911,
+      "cost_usd": 13.95879525
+    },
+    {
+      "stage": "goal",
+      "turns": 21,
+      "input_tokens": 42,
+      "output_tokens": 59567,
+      "cache_creation_input_tokens": 125287,
+      "cache_read_input_tokens": 2496714,
+      "cost_usd": 10.56235725
+    },
+    {
+      "stage": "explore",
+      "turns": 24,
+      "input_tokens": 48,
+      "output_tokens": 106840,
+      "cache_creation_input_tokens": 226850,
+      "cache_read_input_tokens": 4191909,
+      "cost_usd": 18.555021
+    },
+    {
+      "stage": "plan",
+      "turns": 78,
+      "input_tokens": 156,
+      "output_tokens": 176620,
+      "cache_creation_input_tokens": 262519,
+      "cache_read_input_tokens": 20350431,
+      "cost_usd": 48.69671775
+    },
+    {
+      "stage": "build",
+      "turns": 571,
+      "input_tokens": 1137,
+      "output_tokens": 754021,
+      "cache_creation_input_tokens": 2012665,
+      "cache_read_input_tokens": 294022552,
+      "cost_usd": 535.33992675,
+      "subagent": {
+        "agents": 54,
+        "input_tokens": 5996,
+        "output_tokens": 893059,
+        "cache_creation_input_tokens": 11895594,
+        "cache_read_input_tokens": 177358507,
+        "cost_usd": 432.07022880000005
+      }
+    },
+    {
+      "stage": "verify",
+      "turns": 47,
+      "input_tokens": 92,
+      "output_tokens": 202505,
+      "cache_creation_input_tokens": 2476063,
+      "cache_read_input_tokens": 32019172,
+      "cost_usd": 109.64419425,
+      "subagent": {
+        "agents": 13,
+        "input_tokens": 1778,
+        "output_tokens": 199766,
+        "cache_creation_input_tokens": 4904097,
+        "cache_read_input_tokens": 61708930,
+        "cost_usd": 84.48865455
+      }
+    },
+    {
+      "stage": "iterate",
+      "turns": 1009,
+      "input_tokens": 2017,
+      "output_tokens": 1713282,
+      "cache_creation_input_tokens": 17710464,
+      "cache_read_input_tokens": 553152293,
+      "cost_usd": 1290.3260445
+    },
+    {
+      "stage": "define",
+      "turns": 12,
+      "input_tokens": 24,
+      "output_tokens": 21759,
+      "cache_creation_input_tokens": 54136,
+      "cache_read_input_tokens": 1420671,
+      "cost_usd": 4.7783415
+    },
+    {
+      "stage": "other-subagent",
+      "turns": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cost_usd": 0,
+      "subagent": {
+        "agents": 10,
+        "input_tokens": 1098,
+        "output_tokens": 169093,
+        "cache_creation_input_tokens": 5743215,
+        "cache_read_input_tokens": 39198203,
+        "cost_usd": 179.18103075
+      }
+    }
+  ],
+  "schema_versions_seen": [
+    3
+  ],
+  "caveats": [
+    "duration 為 Stop-to-Stop 下界估計（首尾 Stop 的 wall-clock 差；漏首個 Stop 前的工作；非精確總耗時）",
+    "本 trace 的 total_incl_subagents 為主、main 為輔——子代理帳可觀察到遠大於主線，只看 main 會嚴重低估"
+  ]
+}

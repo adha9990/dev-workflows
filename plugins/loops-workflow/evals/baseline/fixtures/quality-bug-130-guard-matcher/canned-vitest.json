@@ -1,0 +1,15 @@
+{
+  "testResults": [
+    {
+      "name": "hooks/test-worktree-guard.mjs",
+      "assertionResults": [
+        { "status": "passed", "title": "[C1] hooks.json 的 PreToolUse 找得到 worktree-guard.mjs 所在 entry 的 matcher", "ancestorTitles": ["worktree-guard"], "failureMessages": [] },
+        { "status": "passed", "title": "[C2] matcher 對 \"Bash\" 仍 match（現有行為不退化）", "ancestorTitles": ["worktree-guard"], "failureMessages": [] },
+        { "status": "passed", "title": "[C3] matcher 對 \"PowerShell\" 要 match（#130：現況必紅——matcher 目前僅 \"Bash\"）", "ancestorTitles": ["worktree-guard"], "failureMessages": [] },
+        { "status": "passed", "title": "[C3b] matcher 精確等於 \"Bash|PowerShell\"（防截斷值假綠——unanchored .test() 對 \"Bash|Power\" 也會過）", "ancestorTitles": ["worktree-guard"], "failureMessages": [] },
+        { "status": "passed", "title": "[C4] tool_name=\"PowerShell\" + 主 checkout 對已建 loop 的 checkout -b → deny（現況已綠）", "ancestorTitles": ["worktree-guard"], "failureMessages": [] },
+        { "status": "passed", "title": "[C5] tool_name=\"PowerShell\" + git status（非建立指令）→ 放行（stdout 空，零誤擋）", "ancestorTitles": ["worktree-guard"], "failureMessages": [] }
+      ]
+    }
+  ]
+}

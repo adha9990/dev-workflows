@@ -1,0 +1,352 @@
+[
+  {
+    "loop_slug": "127-claims-drift-fix",
+    "repo": "dev-workflows",
+    "session_id": "e3662cd9-bd46-4969-96be-70c2baef6fdc",
+    "first_ts": null,
+    "last_ts": null,
+    "duration_ms": "not_measured",
+    "main": {
+      "est_range": [
+        200000,
+        400000
+      ],
+      "source": "outcome-line"
+    },
+    "total_incl_subagents": {
+      "est_range": [
+        200000,
+        400000
+      ],
+      "source": "outcome-line"
+    },
+    "cost_usd": {
+      "main": "not_measured",
+      "total": "not_measured",
+      "estimate": true
+    },
+    "subagent_count": 10,
+    "by_stage": [],
+    "schema_versions_seen": [],
+    "caveats": [
+      "duration 為 Stop-to-Stop 下界估計（首尾 Stop 的 wall-clock 差；漏首個 Stop 前的工作；非精確總耗時）",
+      "無 costs.jsonl 精確帳可比對此 session（歸戶缺陷：本 repo 的 loop 成本未落在本 repo 的 .loops/.metrics/costs.jsonl，見 baseline 發現）",
+      "來源：Journal ★[outcome] 行人工估算級距（非精確帳）── 原文：- ★[outcome] 完工（merged）｜ token≈200k-400k(級距)est ｜ sub-agent 10 ｜ 回環 1 圈 ｜ findings 4 validated→0 剩餘 ｜ 交付：PR #137（10 檔、+124 斷言、skill-lint P1 歸零）+ deliverables 三份"
+    ]
+  },
+  {
+    "loop_slug": "128-skill-lint-flag-sync",
+    "repo": "dev-workflows",
+    "session_id": "e3662cd9-bd46-4969-96be-70c2baef6fdc",
+    "first_ts": null,
+    "last_ts": null,
+    "duration_ms": "not_measured",
+    "main": {
+      "est_range": [
+        300000,
+        500000
+      ],
+      "source": "outcome-line"
+    },
+    "total_incl_subagents": {
+      "est_range": [
+        300000,
+        500000
+      ],
+      "source": "outcome-line"
+    },
+    "cost_usd": {
+      "main": "not_measured",
+      "total": "not_measured",
+      "estimate": true
+    },
+    "subagent_count": 11,
+    "by_stage": [],
+    "schema_versions_seen": [],
+    "caveats": [
+      "duration 為 Stop-to-Stop 下界估計（首尾 Stop 的 wall-clock 差；漏首個 Stop 前的工作；非精確總耗時）",
+      "無 costs.jsonl 精確帳可比對此 session（歸戶缺陷：本 repo 的 loop 成本未落在本 repo 的 .loops/.metrics/costs.jsonl，見 baseline 發現）",
+      "來源：Journal ★[outcome] 行人工估算級距（非精確帳）── 原文：- ★[outcome] 完工（PR 待 merge）｜ token≈300k-500k(級距)est ｜ sub-agent 11 ｜ 回環 1 圈 ｜ findings 12 → 0 剩餘（P1×2 validated 全修）｜ 交付：PR #140（3 檔 +1,090 行、163 斷言、flag-sync/hooks-wiring 兩檢查）+ deliverables 三份"
+    ]
+  },
+  {
+    "loop_slug": "129-ci-github-actions",
+    "repo": "dev-workflows",
+    "session_id": "e3662cd9-bd46-4969-96be-70c2baef6fdc",
+    "first_ts": null,
+    "last_ts": null,
+    "duration_ms": "not_measured",
+    "main": {
+      "est_range": [
+        150000,
+        300000
+      ],
+      "source": "outcome-line"
+    },
+    "total_incl_subagents": {
+      "est_range": [
+        150000,
+        300000
+      ],
+      "source": "outcome-line"
+    },
+    "cost_usd": {
+      "main": "not_measured",
+      "total": "not_measured",
+      "estimate": true
+    },
+    "subagent_count": 7,
+    "by_stage": [],
+    "schema_versions_seen": [],
+    "caveats": [
+      "duration 為 Stop-to-Stop 下界估計（首尾 Stop 的 wall-clock 差；漏首個 Stop 前的工作；非精確總耗時）",
+      "無 costs.jsonl 精確帳可比對此 session（歸戶缺陷：本 repo 的 loop 成本未落在本 repo 的 .loops/.metrics/costs.jsonl，見 baseline 發現）",
+      "來源：Journal ★[outcome] 行人工估算級距（非精確帳）── 原文：- ★[outcome] 完工（merged）｜ token≈150k-300k(級距)est ｜ sub-agent 7 ｜ 回環 1 圈 ｜ findings 5 → 0 剩餘 ｜ 交付：PR #141（ci.yml＋README＋G1 夾帶修）＋Actions 實跑 6 輪證據鏈＋CI 首日實抓 Linux E2BIG 真 bug"
+    ]
+  },
+  {
+    "loop_slug": "130-guard-matcher-powershell",
+    "repo": "dev-workflows",
+    "session_id": "e3662cd9-bd46-4969-96be-70c2baef6fdc",
+    "first_ts": null,
+    "last_ts": null,
+    "duration_ms": "not_measured",
+    "main": {
+      "est_range": [
+        200000,
+        350000
+      ],
+      "source": "outcome-line"
+    },
+    "total_incl_subagents": {
+      "est_range": [
+        200000,
+        350000
+      ],
+      "source": "outcome-line"
+    },
+    "cost_usd": {
+      "main": "not_measured",
+      "total": "not_measured",
+      "estimate": true
+    },
+    "subagent_count": 9,
+    "by_stage": [],
+    "schema_versions_seen": [],
+    "caveats": [
+      "duration 為 Stop-to-Stop 下界估計（首尾 Stop 的 wall-clock 差；漏首個 Stop 前的工作；非精確總耗時）",
+      "無 costs.jsonl 精確帳可比對此 session（歸戶缺陷：本 repo 的 loop 成本未落在本 repo 的 .loops/.metrics/costs.jsonl，見 baseline 發現）",
+      "來源：Journal ★[outcome] 行人工估算級距（非精確帳）── 原文：- ★[outcome] 完工（merged）｜ token≈200k-350k(級距)est ｜ sub-agent 9 ｜ 回環 1 圈 ｜ findings 7 → 0 剩餘 ｜ 交付：PR #142（9 檔、43+32 斷言、journaling 慣例句）——批次 1 地基四張全數閉環"
+    ]
+  },
+  {
+    "loop_slug": "131-comment-guard-v2",
+    "repo": "dev-workflows",
+    "session_id": "e3662cd9-bd46-4969-96be-70c2baef6fdc",
+    "first_ts": null,
+    "last_ts": null,
+    "duration_ms": "not_measured",
+    "main": {
+      "est_range": [
+        600000,
+        900000
+      ],
+      "source": "outcome-line"
+    },
+    "total_incl_subagents": {
+      "est_range": [
+        600000,
+        900000
+      ],
+      "source": "outcome-line"
+    },
+    "cost_usd": {
+      "main": "not_measured",
+      "total": "not_measured",
+      "estimate": true
+    },
+    "subagent_count": 15,
+    "by_stage": [],
+    "schema_versions_seen": [],
+    "caveats": [
+      "duration 為 Stop-to-Stop 下界估計（首尾 Stop 的 wall-clock 差；漏首個 Stop 前的工作；非精確總耗時）",
+      "無 costs.jsonl 精確帳可比對此 session（歸戶缺陷：本 repo 的 loop 成本未落在本 repo 的 .loops/.metrics/costs.jsonl，見 baseline 發現）",
+      "來源：Journal ★[outcome] 行人工估算級距（非精確帳）── 原文：- ★[outcome] 完工（merged）｜ token≈600k-900k(級距)est ｜ sub-agent 15 ｜ 回環 2 輪 ｜ findings 10+ → 0 剩餘（1 follow-up 留痕）｜ 交付：PR #144（8 檔 +1,502、hook 13 支、read-gate 版型注入=本輪痛點治本主菜）"
+    ]
+  },
+  {
+    "loop_slug": "132-pr-gate",
+    "repo": "dev-workflows",
+    "session_id": "e3662cd9-bd46-4969-96be-70c2baef6fdc",
+    "first_ts": null,
+    "last_ts": null,
+    "duration_ms": "not_measured",
+    "main": {
+      "est_range": [
+        450000,
+        700000
+      ],
+      "source": "outcome-line"
+    },
+    "total_incl_subagents": {
+      "est_range": [
+        450000,
+        700000
+      ],
+      "source": "outcome-line"
+    },
+    "cost_usd": {
+      "main": "not_measured",
+      "total": "not_measured",
+      "estimate": true
+    },
+    "subagent_count": 9,
+    "by_stage": [],
+    "schema_versions_seen": [],
+    "caveats": [
+      "duration 為 Stop-to-Stop 下界估計（首尾 Stop 的 wall-clock 差；漏首個 Stop 前的工作；非精確總耗時）",
+      "無 costs.jsonl 精確帳可比對此 session（歸戶缺陷：本 repo 的 loop 成本未落在本 repo 的 .loops/.metrics/costs.jsonl，見 baseline 發現）",
+      "來源：Journal ★[outcome] 行人工估算級距（非精確帳）── 原文：- ★[outcome] 完工（merged）｜ token≈450k-700k(級距)est ｜ sub-agent 9 ｜ 回環 1 輪 ｜ findings 11 → 0 剩餘 ｜ 交付：PR #146（pr-gate 三閘、hook 14 支）"
+    ]
+  },
+  {
+    "loop_slug": "133-merge-guard",
+    "repo": "dev-workflows",
+    "session_id": "068e95ff-b5ea-4c8a-bbd8-d93d9b8cf9bf",
+    "first_ts": null,
+    "last_ts": null,
+    "duration_ms": "not_measured",
+    "main": {
+      "est_range": [
+        450000,
+        650000
+      ],
+      "source": "outcome-line"
+    },
+    "total_incl_subagents": {
+      "est_range": [
+        450000,
+        650000
+      ],
+      "source": "outcome-line"
+    },
+    "cost_usd": {
+      "main": "not_measured",
+      "total": "not_measured",
+      "estimate": true
+    },
+    "subagent_count": 8,
+    "by_stage": [],
+    "schema_versions_seen": [],
+    "caveats": [
+      "duration 為 Stop-to-Stop 下界估計（首尾 Stop 的 wall-clock 差；漏首個 Stop 前的工作；非精確總耗時）",
+      "無 costs.jsonl 精確帳可比對此 session（歸戶缺陷：本 repo 的 loop 成本未落在本 repo 的 .loops/.metrics/costs.jsonl，見 baseline 發現）",
+      "來源：Journal ★[outcome] 行人工估算級距（非精確帳）── 原文：- ★[outcome] 完工（merged）｜ token≈450k-650k(級距)est ｜ sub-agent 8 ｜ 回環 1 輪 ｜ findings 7+ → 0 剩餘 ｜ 交付：PR #147（四型防線、token 化解析、hook 15 支）"
+    ]
+  },
+  {
+    "loop_slug": "134-lessons-baked",
+    "repo": "dev-workflows",
+    "session_id": "068e95ff-b5ea-4c8a-bbd8-d93d9b8cf9bf",
+    "first_ts": null,
+    "last_ts": null,
+    "duration_ms": "not_measured",
+    "main": {
+      "est_range": [
+        250000,
+        400000
+      ],
+      "source": "outcome-line"
+    },
+    "total_incl_subagents": {
+      "est_range": [
+        250000,
+        400000
+      ],
+      "source": "outcome-line"
+    },
+    "cost_usd": {
+      "main": "not_measured",
+      "total": "not_measured",
+      "estimate": true
+    },
+    "subagent_count": 7,
+    "by_stage": [],
+    "schema_versions_seen": [],
+    "caveats": [
+      "duration 為 Stop-to-Stop 下界估計（首尾 Stop 的 wall-clock 差；漏首個 Stop 前的工作；非精確總耗時）",
+      "無 costs.jsonl 精確帳可比對此 session（歸戶缺陷：本 repo 的 loop 成本未落在本 repo 的 .loops/.metrics/costs.jsonl，見 baseline 發現）",
+      "來源：Journal ★[outcome] 行人工估算級距（非精確帳）── 原文：- ★[outcome] 完工（merged）｜ token≈250k-400k(級距)est ｜ sub-agent 7 ｜ 回環 2 圈（4→1→0） ｜ findings 5 → 0 剩餘 ｜ 交付：PR #148（六則 baked、三元素七處一致化、10 檔）"
+    ]
+  },
+  {
+    "loop_slug": "135-token-diet",
+    "repo": "dev-workflows",
+    "session_id": "068e95ff-b5ea-4c8a-bbd8-d93d9b8cf9bf",
+    "first_ts": null,
+    "last_ts": null,
+    "duration_ms": "not_measured",
+    "main": {
+      "est_range": [
+        180000,
+        280000
+      ],
+      "source": "outcome-line"
+    },
+    "total_incl_subagents": {
+      "est_range": [
+        180000,
+        280000
+      ],
+      "source": "outcome-line"
+    },
+    "cost_usd": {
+      "main": "not_measured",
+      "total": "not_measured",
+      "estimate": true
+    },
+    "subagent_count": 5,
+    "by_stage": [],
+    "schema_versions_seen": [],
+    "caveats": [
+      "duration 為 Stop-to-Stop 下界估計（首尾 Stop 的 wall-clock 差；漏首個 Stop 前的工作；非精確總耗時）",
+      "無 costs.jsonl 精確帳可比對此 session（歸戶缺陷：本 repo 的 loop 成本未落在本 repo 的 .loops/.metrics/costs.jsonl，見 baseline 發現）",
+      "來源：Journal ★[outcome] 行人工估算級距（非精確帳）── 原文：- ★[outcome] 完工（merged）｜ token≈180k-280k(級距)est ｜ sub-agent 5（plan 審 2、T4 分析 1、test-author 1、〔impl 由主線接手〕）｜ 回環 0（單次 gate 當場修 count-drift）｜ findings plan 期 8→0 ｜ 交付：PR #149（14 檔 +146/−38、reviewer 負擔 -66%、session-start 有界、description -93%）"
+    ]
+  },
+  {
+    "loop_slug": "182-codex-bootstrap",
+    "repo": "dev-workflows",
+    "session_id": "2497694a-2cc4-42bb-a7ef-f2ce3bfc16d5",
+    "first_ts": null,
+    "last_ts": null,
+    "duration_ms": "not_measured",
+    "main": {
+      "est_range": [
+        2000000,
+        3000000
+      ],
+      "source": "outcome-line"
+    },
+    "total_incl_subagents": {
+      "est_range": [
+        2000000,
+        3000000
+      ],
+      "source": "outcome-line"
+    },
+    "cost_usd": {
+      "main": "not_measured",
+      "total": "not_measured",
+      "estimate": true
+    },
+    "subagent_count": 17,
+    "by_stage": [],
+    "schema_versions_seen": [],
+    "caveats": [
+      "duration 為 Stop-to-Stop 下界估計（首尾 Stop 的 wall-clock 差；漏首個 Stop 前的工作；非精確總耗時）",
+      "無 costs.jsonl 精確帳可比對此 session（歸戶缺陷：本 repo 的 loop 成本未落在本 repo 的 .loops/.metrics/costs.jsonl，見 baseline 發現）",
+      "來源：Journal ★[outcome] 行人工估算級距（非精確帳）── 原文：- ★[outcome] PR #184 merged（21 檔 +1,612）｜ token≈2M–3M est（subagent 帳面 1.06M＋teammates/主線無精確帳）｜ sub-agent 17 唯讀＋3 常駐 teammates ｜ 回環 2 圈 ｜ findings 9 validated→0（9→3→0）｜ 交付：雙薄 manifest＋codex-plugin-lint(CI 常駐)＋CODEX-SMOKE 真機證據＋CODEX-QUICKSTART＋deliverables/{explain,checklist,cost}.md"
+    ]
+  }
+]

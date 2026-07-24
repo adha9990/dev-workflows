@@ -1,0 +1,18 @@
+{
+  "id": "route-mismatch-sample",
+  "category": "rule-change-maintainer",
+  "harness": ["claude-code"],
+  "provenance": {
+    "source_type": "live-capture",
+    "ref": "T3-smoke-fixture",
+    "captured_at": "2026-07-25",
+    "method": "self-authored sample for T3 runner smoke test（模擬現況路由不符、預期紅）"
+  },
+  "oracle": {
+    "type": "route-decision",
+    "config": { "expected_route": "maintainer", "recorded_actual": "iterate" }
+  },
+  "expected_outcome": "expected-fail",
+  "nondeterminism": "none — deterministic string compare",
+  "replay_cmd": "node plugins/loops-workflow/scripts/baseline-corpus.mjs --dir plugins/loops-workflow/scripts/fixtures/baseline/corpus-sample --fixture route-mismatch-sample --json"
+}
