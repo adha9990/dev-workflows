@@ -31,7 +31,7 @@ flowchart TD
     H --> I["確認 .loops/<slug>/loop.md、對應 worktree、進度產物是否出現"]
 ```
 
-1. **加入 marketplace**：在終端機執行 `codex plugin marketplace add adha9990/dev-workflows`（跟 Claude Code 的 `/plugin marketplace add` 是同一個 owner/repo 簡寫，但 Codex 這邊是在終端機打的 CLI 指令，不是聊天內的斜線指令——如果你是用 desktop app，同樣的動作可能改成在 UI 裡操作，實際入口以 app 介面為準）。
+1. **加入 marketplace**：在終端機執行 `codex plugin marketplace add adha9990/dev-workflows`（跟 Claude Code 的 `/plugin marketplace add` 是同一個 owner/repo 簡寫，但 Codex 這邊是在終端機打的 CLI 指令，不是聊天內的斜線指令——如果你是用 desktop app，同樣的動作可能改成在 UI 裡操作，實際入口以 app 介面為準）。這行指令現在能跑，一部分是靠 Codex 對 Claude 既有格式的相容解析；這個 repo 加上原生的 Codex marketplace 入口之後，Codex 會改用那份原生入口——不管走哪一種，你打的指令都一樣，也都裝得起來。
 2. **安裝 plugin**：`codex plugin add loops-workflow@dev-workflows`。
 3. **確認已註冊**：`codex plugin list --json`，應該能看到 `loops-workflow` 這個 plugin。
 4. **開一個新 task**，讓 Codex 重新掃一次這個 plugin 帶來的 skill 與 hooks。
@@ -66,7 +66,7 @@ flowchart TD
 | `.loops/` resume / progress | supported | not measured | 進度紀錄能不能在 Codex 端正確產生尚未驗證 |
 | transcript / token metrics | supported | not measured | Codex 的逐輪紀錄格式能不能供既有的成本追蹤使用尚未驗證 |
 
-<!-- 資料來源：quality-integrator 的 C3 交接（docs/CODEX-SMOKE.md commit b9e5aa1）。Claude Code 欄全數 supported 是既有產品既定行為，非本輪新驗證項目。 -->
+<!-- 資料來源：docs/CODEX-SMOKE.md。Claude Code 欄全數 supported 是既有產品既定行為，非本輪新驗證項目。 -->
 
 ## 怎麼自己驗證
 
@@ -89,8 +89,7 @@ flowchart TD
 先看上面「怎麼分辨安裝問題與尚未支援」那節，多半是版本差異或某一步跑漏了（尤其是「開一個新 task 讓它重新掃過」這一步）。
 
 **怎麼停用或移除？**
-<!-- 確切的移除/停用指令待 T1 manifest 定案＋T3 真機驗證後回填；先給讀者能自己推導的一般作法。 -->
-一般而言就是反向操作你安裝時用的指令（把「加入」換成對應的移除/停用操作）；如果你是透過 desktop app 的介面安裝的，同樣可以直接在介面裡找到停用或移除這個 plugin 的選項。
+在終端機執行 `codex plugin remove loops-workflow@dev-workflows` 移除 plugin，再執行 `codex plugin marketplace remove dev-workflows` 移除 marketplace 登記（這兩行指令已實測驗證過）。如果你是透過 desktop app 的介面安裝的，同樣可以直接在介面裡找到停用或移除這個 plugin 的選項。
 
 **這裡量到的東西跟我實際用起來不一樣，要去哪裡說？**
 到這個 marketplace repo 的 GitHub Issues 開一張新 issue，附上你實際打的指令、看到的輸出，以及你用的 Codex 版本——這對把「Preview」逐步補完最有幫助。
