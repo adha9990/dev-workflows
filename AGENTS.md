@@ -41,7 +41,7 @@
     - **便宜的先、貴的後且要 gate**：explore 內部夠就不外搜、外搜先便宜 `WebSearch` 再 gate 升級 deep-research；verify 條件式 reviewer 只在觸及領域 / 專案宣告該條件時才加派；Fleet / deep-research / 真機驗證這些貴動作預設不開、要才開。**這條只管「資訊蒐集與驗證動作」的執行順序，不是方案取捨準則**（方案怎麼選見下方「成本意識不外溢到方案 / 架構取捨」）。
     - **model / effort 分層（見 `references/model-effort-policy.md`）**：subagent 依角色靜態選 model+effort（多為 `sonnet`·medium；窄任務 low；referee `opus`·high）——不跟 session 跑 xhigh；高風險時 verify/build 派工才 per-dispatch 拉 `model: opus`（effort 無法 per-dispatch）。
     - **不重複勞動**：reuse 優先（不重造輪子）、living plan（偏離回去改、不留到最後重做）、修完一定再 verify（一次驗到位、不靠人來回）。
-    - **fail-fast 不空轉**：停止條件**看收斂**（findings 沒變少 / 同條 finding 復現就 escalate）、回環 3 圈上限當檢查點、**不過早放棄也不無限繞**。
+    - **fail-fast 不空轉**：停止條件**看收斂**（同條 finding 復現 / 修出新問題就 escalate 換手法；findings 沒變少先歸因「驗證手段變深」還是「修壞了」）、回環圈數是**軟上限＝回報檢查點**（**未修的 P0/P1 不得因圈數收圈**，只剩 P2/P3 才當停損點）、**不過早放棄也不無限繞**。
     - **成本意識不外溢到方案 / 架構取捨**：推薦與拍板以**長期正確性與風險消除**為先，不以實作代價最小為預設傾向；「代價小」只能在**同等正確**的方案之間當 tie-breaker，不能是取捨主軸。「便宜但留債」的選項（退回本該完成的遷移、保留新舊雙路徑、暫留 shim）必須明標它埋的債，**不得預設標推薦（除非使用者已明示接受該債）**。實例：稽核發現半途的遷移（新舊雙路徑並存）——「撤回」與「完成遷移」都能消除雙路徑，錯不在終態、在用「哪邊省工」決定走哪個方向；遷移方向本身正確時，正確解是完成遷移，即使工程量大得多。
     - **砍的是「非必要的貴動作 + 浪費」，不是 mandatory 流程**（carve-out，邊界明寫免被理性化為跳流程）：
         - **不可省的 gate**：`define` 建 issue / issue-first（規則 12）/ human 決策 gate（規則 2）/ `verify` 獨立複查（規則 11）—— **不因成本而省**。
@@ -97,10 +97,10 @@
         │
 dispatch → goal → explore → plan → build → verify → iterate
                                                         │
-                  回 goal / explore / plan / build ◀────┤（看收斂·≤3 圈）
+                  回 goal / explore / plan / build ◀────┤（看收斂·圈數軟上限）
                                                         └──▶ 完工（交 PR / 收尾）
 ```
 
 > 起跑前的前置（dispatch 內、不在迴圈圈內）：**模糊想法 / 含糊一句話** → 先 `clarify` 釐清 + 確認理解 + 判方向（不確定要實作還是研究就在這裡定）；**完全乾淨的空專案** → 先 `scaffold-fullstack` 建骨架（loops-workflow 內建 skill，確認後才跑）；**已釐清的待解決問題** → 先 `define` 建 issue。都收斂到 `goal`（或 explore）進迴圈。dispatch 自己只分流、不做需求訪談。
 
-只在真正要選的決策點停（見 §2 規則 2，routine 轉場不問）。`iterate` 回環**看收斂**（findings 嚴格變少才值得再繞）、預設 3 圈上限、且**修完一定再 verify**（完工只在 verify 乾淨那輪可達）；**沒收斂或碰上限就 escalate 當檢查點**（讓使用者選回頭重想 / 換跨模型 / 授權再繞〔計數重置〕，不是放棄）。每次回環在 `loop.md` 記一筆（含這輪 findings 數）。
+只在真正要選的決策點停（見 §2 規則 2，routine 轉場不問）。`iterate` 回環**看收斂不看次數**（findings 沒變少先歸因：驗證手段變深挖出既有問題＝進展、續修；同條復現 / 修出新問題＝沒收斂、當下 escalate 換手法）、**且修完一定再 verify**（完工只在 verify 乾淨那輪可達）。圈數（預設 3）是**軟上限＝回報檢查點**：到頂只觸發「回報現況並繼續修」，**未修的 P0/P1 不得因圈數收圈**（要帶著已知 P0/P1 進 PR 只能由**使用者知情豁免**＋留痕，agent 不得代決）；已無 P0/P1、只剩 P2/P3 時才當停損檢查點（讓使用者選回頭重想 / 換跨模型 / 授權再繞〔計數重置〕 / 收圈，不是放棄）。每次回環在 `loop.md` 記一筆（含這輪 findings 數與歸因）。

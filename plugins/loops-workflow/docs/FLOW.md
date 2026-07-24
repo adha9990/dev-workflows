@@ -76,7 +76,7 @@ flowchart TD
     class G,E,P,B,V,IT,DEF,CL stage
 ```
 
-**讀法**：實線往下是 routine（不問你、直接走）；`✋` = **會停下用 `AskUserQuestion` 問你**的真決策點。`iterate` 把問題修完會**回環**（看收斂、預設 ≤3 圈）再驗，全乾淨才完工開 PR。explore 有兩種出口：**收斂式**→plan（選一個方法）、**發散式**→define（把設計空間盤成 issue backlog，開完停下等後續逐步解，不強制續跑）。
+**讀法**：實線往下是 routine（不問你、直接走）；`✋` = **會停下用 `AskUserQuestion` 問你**的真決策點。`iterate` 把問題修完會**回環**（看收斂；圈數預設 3 是**軟上限**＝到頂只回報現況，還有未修的 P0/P1 就繼續修）再驗，全乾淨才完工開 PR。explore 有兩種出口：**收斂式**→plan（選一個方法）、**發散式**→define（把設計空間盤成 issue backlog，開完停下等後續逐步解，不強制續跑）。
 
 **dispatch 依意圖清晰度分流**：明確（issue# / PR#）直進 goal / iterate；**模糊想法先進 `clarify`** —— 一次一問把模糊收斂成「經確認的理解 + 方向」，再分流到 define / explore / iterate（dispatch 自己不做訪談確認）。clarify 與 scaffold / define 同為 dispatch 路由的**前置階段**、不在 goal→…→iterate 迴圈圈內。
 
@@ -160,7 +160,7 @@ flowchart TD
 |---|---|
 | **skill** | `plan`（1）｜**agent** **一律派 1 read-only 設計品質審查（plan 前先 verify、不論風險）**；發想多方案 opt-in Fleet |
 | **處理什麼** | 動 code 前把設計拍板留痕、拆成可獨立 verify 的任務 |
-| **機制** | 決策留痕（**ADR 五欄**）→ 套件評估（**≥3 候選**）→ **機制圖**（每機制：白話 + 運作流程圖 + 注入接線圖）→ **契約規格**（跨 API/資料/事件介面才寫，含 Hyrum's Law）→ 品質六維度 + 重用 + 設計模式對症 → **一律派設計品質審查（plan 前先 verify、不論風險，拿掉 trivial 免派）→ 折回後再審一輪（fresh context、不因機械折回跳過、圈數上限 3、比照 build verify，到頂不收斂 escalate）** → **拆可驗證任務**（垂直切片 / risk-first / XS–XL 尺寸）→ 送對齊 comment + 拍板 gate |
+| **機制** | 決策留痕（**ADR 五欄**）→ 套件評估（**≥3 候選**）→ **機制圖**（每機制：白話 + 運作流程圖 + 注入接線圖）→ **契約規格**（跨 API/資料/事件介面才寫，含 Hyrum's Law）→ 品質六維度 + 重用 + 設計模式對症 → **一律派設計品質審查（plan 前先 verify、不論風險，拿掉 trivial 免派）→ 折回後再審一輪（fresh context、不因機械折回跳過、設計層硬上限 3 圈、到頂不收斂 escalate；與 iterate 的軟上限語意不同）** → **拆可驗證任務**（垂直切片 / risk-first / XS–XL 尺寸）→ 送對齊 comment + 拍板 gate |
 | **產出** | `stages/02-plan.md` —— **§0–§9 完整施工圖**（系統全貌 + 檔案職責表 + 機制圖 + 名詞 + 決策含具名背書 + 三角驗證 + 成果展示） |
 | **策略** | **最高標準不以 MVP** · **living plan**（偏離回來改）· 拍板前**渲染機制圖 + 攤「我的假設」清單**給你看，不准盲拍 · **拍板前一律先過設計審查**（plan 前先 verify、不論風險高低、無 trivial 免派） |
 | **gate** | ✋ 拍板方案 |
@@ -227,10 +227,10 @@ flowchart TD
 |---|---|
 | **skill** | `iterate`（1）｜**agent** 0（修正回 build 用其 subagent）；卡關時 **opt-in cross-model**（換別的模型當對手 reviewer） |
 | **處理什麼** | 把 verify 缺口 / PR reviewer 回饋分類、修根因、決定回環或完工 |
-| **機制** | 收集回饋（`type=fix` 走 `pr-feedback-sources.md`：inline comment 要 `gh api`）→ **RECONCILE 四分類** → **Stop-the-Line 修**（DIAGNOSE 先定位失敗層 + `git bisect` → 修根因 → 每修加回歸測試）→ **修完一定再 verify** → 完工 or 回環（看收斂·≤3 圈·不收斂即 escalate） |
+| **機制** | 收集回饋（`type=fix` 走 `pr-feedback-sources.md`：inline comment 要 `gh api`）→ **RECONCILE 四分類** → **Stop-the-Line 修**（DIAGNOSE 先定位失敗層 + `git bisect` → 修根因 → 每修加回歸測試）→ **修完一定再 verify** → 完工 or 回環（看收斂·圈數軟上限·同條復現即 escalate 換手法） |
 | **完工交接物（依類型）** | **修正型**＝一份修正回覆 comment（`comment-policy` §8 版型：工程角度根因/怎麼修/怎麼驗＋客戶角度修正前→後；**不@reviewer**）；**完整迴圈**＝PR 收尾 comment ＋**三份 loop 收尾檔 `deliverables/{explain,checklist,cost}.md`（一律產、無編號）**。follow-up 留當前 issue 不另開。PR body 放 `Closes #issue`、指派 `@me`、與 master 衝突自動合併 |
 | **收尾清理（兩時機）** | ① **loop 結束時**清掉臨時 scratch：刪草稿/截圖/gif/scratch（**有開著的 PR 時 worktree 不清**——保留給人工驗收；只有沒交 PR 的純中止才在此連 worktree 一起 `git worktree remove`/`prune`）· ② **PR merge / close 後**（solo 自己合併→自己清，**使用者核可後才 merge**）刪分支 + 清 worktree（`gh pr merge <PR#> --squash --delete-branch` ＋ `git worktree remove`/`prune`，**一律 squash 單一 commit**、策略見 `pr-spec`〈merge 策略 / worktree 清理時機〉，只留 `main`+進行中）· loop 暫存一律不入庫（`.loops`/`.claude/worktrees`/`data`/`dev.json`/截圖 未追蹤 / `.gitignore` 涵蓋，`git ls-files` 掃一遍確認） |
-| **策略** | **交 reviewer 前把問題解到最少**（actionable 一律自動全修、不問「修多少」）· severity 只決定停不停、不決定修不修 · **回環看收斂**（findings 沒變少 / 同條復現就 escalate，不等第 3 圈）· **3 圈上限 = 檢查點非硬牆**（停下問你：回頭重想 / 換跨模型 / 授權再繞重置計數） |
+| **策略** | **交 reviewer 前把問題解到最少**（actionable 一律自動全修、不問「修多少」）· severity 只決定停不停、不決定修不修 · **回環看收斂**（同條復現 / 修出新問題就 escalate 換手法；findings 沒變少先歸因「驗證手段變深」還是「修壞了」）· **圈數＝軟上限（回報檢查點）非停損閥**：到頂回報現況後繼續修，**未修的 P0/P1 不得因圈數收圈**（帶著已知 P0/P1 進 PR 只能由你知情豁免 + 留痕）；只剩 P2/P3 才當停損點停下問你（回頭重想 / 換跨模型 / 授權再繞重置計數 / 收圈） |
 | **gate** | ✋ 完工 or 回哪階段（修完再 verify 不是選項，一律再驗） |
 
 ---
