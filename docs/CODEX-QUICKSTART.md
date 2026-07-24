@@ -31,7 +31,7 @@ flowchart TD
     H --> I["確認 .loops/<slug>/loop.md、對應 worktree、進度產物是否出現"]
 ```
 
-1. **加入 marketplace**：在終端機執行 `codex plugin marketplace add adha9990/dev-workflows`（跟 Claude Code 的 `/plugin marketplace add` 是同一個 owner/repo 簡寫，但 Codex 這邊是在終端機打的 CLI 指令，不是聊天內的斜線指令——如果你是用 desktop app，同樣的動作可能改成在 UI 裡操作，實際入口以 app 介面為準）。這行指令現在能跑，一部分是靠 Codex 對 Claude 既有格式的相容解析；這個 repo 加上原生的 Codex marketplace 入口之後，Codex 會改用那份原生入口——不管走哪一種，你打的指令都一樣，也都裝得起來。
+1. **加入 marketplace**：在終端機執行 `codex plugin marketplace add adha9990/dev-workflows`（跟 Claude Code 的 `/plugin marketplace add` 是同一個 owner/repo 簡寫，但 Codex 這邊是在終端機打的 CLI 指令，不是聊天內的斜線指令——如果你是用 desktop app，同樣的動作可能改成在 UI 裡操作，實際入口以 app 介面為準）。這行指令已經在隔離環境實測通過，走的是 Codex 對 Claude 既有格式的相容解析（見 [`docs/CODEX-SMOKE.md`](CODEX-SMOKE.md) 的 Test 6）；這個 repo 加上原生的 Codex marketplace 入口之後，Codex 預期會改用原生解析路徑——那條路徑目前還沒有另外驗證過。兩種情況下你打的指令都一樣，行為細節則可能因為走的路徑不同而有落差。
 2. **安裝 plugin**：`codex plugin add loops-workflow@dev-workflows`。
 3. **確認已註冊**：`codex plugin list --json`，應該能看到 `loops-workflow` 這個 plugin。
 4. **開一個新 task**，讓 Codex 重新掃一次這個 plugin 帶來的 skill 與 hooks。
