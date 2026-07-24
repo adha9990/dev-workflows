@@ -8,10 +8,9 @@
 - 版本：`codex-cli 0.146.0-alpha.3.1`（alpha；本篇每筆證據皆對應此版本，日後版本更新須重跑）。
 - 隔離規則：全程 `CODEX_HOME=$(mktemp -d)`，絕不讀寫使用者真實 `~/.codex`（含其中的 auth、session、以及已知壞掉的 `eagle-project` marketplace 登記）。每個 Test 各自用一份全新的隔離 `CODEX_HOME`，不共用。
 - 測試標的：`plugins/loops-workflow/.codex-plugin/plugin.json`（commit `9e937a0`）＋`.agents/plugins/marketplace.json`（commit `a9df45a`），已合併進本 worktree（merge commit `f7a4335`）。**commit SHA provenance 註記**：本篇引用的 SHA 皆為整合前各 subtask worktree 的本地 commit；本 PR 若經 squash/rebase 合併，最終 PR 歷史的 SHA 會不同——這些 SHA 是撰寫證據當下用來標示「測的是哪個版本內容」的參照，不保證合併後仍查得到同一個雜湊值。要核對本篇證據對應的實際內容，請比對 manifest／marketplace.json 檔案本身（name/version 是否等值、skills 路徑是否為 `./skills/` 等），不要只依賴 SHA 字串比對。
-- **安裝路徑 provenance 註記（兩條路徑，證據來源不同）**：`docs/CODEX-QUICKSTART.md` 教使用者用的是 GitHub owner/repo 簡寫（`codex plugin marketplace add adha9990/dev-workflows`，走 GitHub remote 解析）；但本篇 Test 2／Test 4 的所有指令都是用**本機檔案系統絕對路徑**（worktree 的本地路徑），因為撰寫證據當下這個 PR 尚未推送／合併進真實的 GitHub remote，owner/repo 簡寫指令根本抓不到內容——這兩條路徑走的是不同程式碼路徑，不能互相替代舉證：
-  - **pre-merge（本篇證據）**：owner/repo 簡寫在合併前無法驗證，dogfood 交叉檢查時是靠 Claude Code（讀文件字面、非真的跑 Codex CLI 對 remote）確認文件指令「寫得通」，不是 Codex 真的執行過 remote 安裝。
-  - **post-merge（尚未驗證，留給下一輪）**：PR 合併推上 GitHub 之後，owner/repo 簡寫才能真的被 Codex CLI 解析；屆時的行為預期依 Test 4a 的結論（兩份 marketplace 並存時 Codex 採用 `.agents/plugins/marketplace.json`）走，但這是**推論**，不是本篇任何一個 Test 直接驗證過的結果——合併後應該用 owner/repo 簡寫重跑一次 Test 2／Test 4，把這條路徑也補上真實證據，不能只靠推論收尾。
-  讀者不該把「本機路徑安裝驗證過」或「Claude Code 讀過文件字面」誤讀成「Codex CLI 真的對 GitHub remote 跑過安裝」，這兩者是不同層級的證據，本篇只做到本機路徑這一層。
+- **安裝路徑 provenance 註記（兩個階段，證據來源不同）**：`docs/CODEX-QUICKSTART.md` 教使用者用的是 GitHub owner/repo 簡寫（`codex plugin marketplace add adha9990/dev-workflows`，走 GitHub remote 解析）；Test 2／Test 4 用的是本機檔案系統絕對路徑（worktree 的本地路徑，因為撰寫證據當下 T1 的兩個新檔尚未推上真實 GitHub remote）；owner/repo 簡寫這條路徑另外由 Test 6 直接對真實 remote 實測過，兩個階段的證據狀態如下：
+  - **pre-merge（已實測，見 Test 6）**：owner/repo 簡寫指令**真的用 Codex CLI 執行成功過**（隔離 CODEX_HOME、免登入，exit 0）——不是「Claude Code 讀文件字面確認寫得通」這種弱證據，是 Codex 實際對 GitHub remote 做了 clone/fetch，靠既有的 Claude 相容解析層讀到 `.claude-plugin/marketplace.json` 完成整條安裝生命週期。細節見 Test 6。
+  - **post-merge（尚未驗證，留給下一輪）**：PR 合併推上 GitHub、remote 上同時存在兩份 marketplace manifest 之後，同一條 owner/repo 簡寫指令預期會依 Test 4a 的結論改採 `.agents/plugins/marketplace.json`（Codex-native）——但這是**推論**，不是本篇任何一個 Test 直接驗證過的結果；合併後應該用同一條指令重跑一次 Test 2／Test 4／Test 6，把「post-merge 改採 Codex-native」這個推論換成真實證據。
 
 ## Test 1 — CODEX_HOME 隔離完整性驗證（PASS）
 
