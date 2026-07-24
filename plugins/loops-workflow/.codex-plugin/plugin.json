@@ -24,6 +24,11 @@
       "Read",
       "Write"
     ],
+    "defaultPrompt": [
+      "用 dispatch 把一個 issue 或需求分流到正確階段並建立 loop。",
+      "用 dispatch 從一句話的想法起手，跑 goal→build→verify 閉環。",
+      "用 dispatch 判斷這個工作該從哪個階段開始。"
+    ],
     "websiteURL": "https://github.com/adha9990/dev-workflows"
   }
 }
