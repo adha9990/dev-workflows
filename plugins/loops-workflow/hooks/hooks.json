@@ -98,6 +98,19 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/merge-guard.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pr-owner-guard.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": ".*(update_pull_request|request_copilot_review).*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pr-owner-guard.mjs\""
           }
         ]
       }

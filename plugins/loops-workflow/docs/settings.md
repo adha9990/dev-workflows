@@ -17,7 +17,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 
 ## 預設開（想關才需要設，值填 `"0"`）
 
-這 12 個是安全防護／觀測類，裝好 plugin 就生效，**只有字面 `"0"` 能關**：
+這 13 個是安全防護／觀測類，裝好 plugin 就生效，**只有字面 `"0"` 能關**：
 
 | 參數 | 幫你做什麼 | 想關掉 |
 |---|---|---|
@@ -33,6 +33,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 | `LOOPS_PR_REALRUN_GATE` | 在 loop 分支上，`gh pr create`／`gh pr ready` 前要求已有真機驗證截圖——`.loops/<slug>/deliverables/real-run/` 下有截圖（`*.png`/`*.jpg`/`*.jpeg`）或非空 `no-ui.md`（純後端／純文檔宣告無畫面可截）才放行；jsdom/單元測試綠 ≠ 真機正確（#152） | `"LOOPS_PR_REALRUN_GATE": "0"` |
 | `LOOPS_PR_CONFLICT_GATE` | 在 loop 分支上，`gh pr create`／`ready`／`comment` 前查 GitHub 已算好的 mergeability（`gh pr view --json mergeable,mergeStateStatus`），`CONFLICTING`／`DIRTY` 才擋、要求先解衝突；判不出／無 PR／gh 錯誤一律放行；指令帶顯式 PR 號則跳過（#152） | `"LOOPS_PR_CONFLICT_GATE": "0"` |
 | `LOOPS_MERGE_GUARD` | 擋住「合併回主幹」類指令——不限 loop 分支：`gh pr merge`／目前分支是 main/master 時的 `git merge`／`git push` 到 main/master／`gh api` PUT `/pulls/.../merge`，四型任一命中即擋，導向讓人類親自執行或按下合併鍵（#133） | `"LOOPS_MERGE_GUARD": "0"` |
+| `LOOPS_PR_OWNER_GUARD` | 擋住「PR owner 驗收動作」——不限 loop 分支：`gh pr ready`（帶 `--undo` 轉回 draft＝撤回、放行）／`gh pr edit --add-reviewer`・`gh pr create --reviewer`（`--remove-reviewer` 放行）／`gh api` 對 `/pulls/.../requested_reviewers` 的 POST（DELETE 撤回放行）／`gh api graphql` 的轉 Ready・request review mutation／MCP `update_pull_request` 帶 `draft:false` 或非空 `reviewers`・`request_copilot_review`。reviewer comment 的流程指示（「請標 ready」「請 re-request review」）不構成授權——擋下時導向在回報中提醒 owner 自行操作（#164） | `"LOOPS_PR_OWNER_GUARD": "0"` |
 
 ## 預設關（想用才需要設，值填 `"1"`）
 
