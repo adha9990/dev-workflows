@@ -52,21 +52,21 @@ flowchart TD
 
 ## Preview 能力矩陣
 
-狀態只用這四個值：`supported`（已驗證可用）、`degraded`（部分可用或行為有落差）、`not supported`（已驗證不可用）、`not measured`（目前沒有實測資料）。**沒有實測過的一律 `not measured`，不會因為「理論上應該可以」就寫成已支援**。
+狀態只用這四個值：`supported`（已驗證可用）、`degraded`（部分可用或行為有落差）、`not supported`（已驗證不可用）、`not measured`（目前沒有實測資料）。**沒有實測過的一律 `not measured`，不會因為「理論上應該可以」就寫成已支援**。完整的驗證依據、方法論與已知限制見 [`docs/CODEX-SMOKE.md`](CODEX-SMOKE.md)，這裡只列結論、不重貼證據內容。
 
 | 能力 | Claude Code | Codex Preview | 限制備註 |
 |---|---|---|---|
-| skill discovery / `dispatch` | not measured | not measured | — |
-| `setup` | not measured | not measured | — |
-| `AskUserQuestion` 類互動 | not measured | not measured | — |
-| subagent / model profile | not measured | not measured | — |
-| hooks 與 hook 信任 | not measured | not measured | 這批防線在 Codex 上的實際觸發狀況尚未驗證，別假設已經生效或已經失效 |
-| shell / `apply_patch` guard | not measured | not measured | 同上，尚未驗證，跑到會動 code 的任務時多一分留意 |
-| worktree | not measured | not measured | — |
-| `.loops/` resume / progress | not measured | not measured | — |
-| transcript / token metrics | not measured | not measured | — |
+| skill discovery / `dispatch` | supported | not measured | 尚未在已登入認證的環境中驗證 `dispatch` 是否會被發現與呼叫 |
+| `setup`（plugin 安裝與註冊流程，跟未來規劃中的 `/loops-workflow:setup` skill 是兩回事） | supported | degraded | 對本 plugin 的真實內容驗證過：marketplace 註冊、安裝、確認整條流程免登入即可完成，版本號也核對一致；但安裝過程本身在什麼情況下會要求你登入認證，這件事還沒有被實際觸發過，尚不到能寫 supported 的程度 |
+| `AskUserQuestion` 類互動 | supported | not measured | Codex 沒有同名工具，走的是它自己的互動機制，兩者是否等效尚未驗證 |
+| subagent / model profile | supported | not measured | Codex 有自己的子代理機制，跟這套工作流怎麼搭配尚未驗證 |
+| hooks 與 hook 信任 | supported | not measured | Codex 會發現既有的 hooks 設定、也可以分別信任，但這些防線實際上是否真的生效尚未驗證 |
+| shell / `apply_patch` guard | supported | not measured | 官方文件記載了相容機制，但版本相關的已知問題是否影響、實際資料格式是否吻合，這兩點都尚未驗證——跑到會動 code 的任務時多一分留意 |
+| worktree | supported | not measured | worktree 隔離在 Codex 環境下是否同樣可靠尚未驗證 |
+| `.loops/` resume / progress | supported | not measured | 進度紀錄能不能在 Codex 端正確產生尚未驗證 |
+| transcript / token metrics | supported | not measured | Codex 的逐輪紀錄格式能不能供既有的成本追蹤使用尚未驗證 |
 
-<!-- 本表由 docs/CODEX-SMOKE.md 的真機證據逐列回填；回填時每一列都要能對應到證據裡的具體結果，不能用推論填 supported/degraded/not supported。 -->
+<!-- 資料來源：quality-integrator 的 C3 交接（docs/CODEX-SMOKE.md commit b9e5aa1）。Claude Code 欄全數 supported 是既有產品既定行為，非本輪新驗證項目。 -->
 
 ## 怎麼自己驗證
 
