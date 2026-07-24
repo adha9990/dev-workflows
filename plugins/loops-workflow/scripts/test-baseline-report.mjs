@@ -27,12 +27,15 @@ import {
   buildMarkdownReport,
   loadTraces,
   writeReportFiles,
+  validateGapEntry,
+  validateGapsSchema,
 } from './baseline-report.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // .../scripts
 const ROOT = dirname(HERE); // plugin root
 const CORPUS_SAMPLE_DIR = join(HERE, 'fixtures', 'baseline', 'corpus-sample');
 const TRACE_SAMPLE_DIR = join(HERE, 'fixtures', 'baseline', 'trace-sample');
+const GAPS_SAMPLE_DIR = join(HERE, 'fixtures', 'baseline', 'gaps-sample');
 
 let passed = 0;
 const failed = [];
@@ -125,6 +128,47 @@ const corpusReport = buildCorpusReport(corpusResults);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  validateGapEntry / validateGapsSchema —— C4（T4 gaps.json 消費端）
+// ════════════════════════════════════════════════════════════════════════════
+
+function minimalValidGapEntry(overrides = {}) {
+  return {
+    capability_id: 'codex.x',
+    harness: 'codex',
+    status: 'not_measured',
+    measurability: 'needs_auth',
+    gates_metrics: [],
+    codex_interface: 'x',
+    evidence: { source: 'x', note: 'x' },
+    blocker: 'x',
+    repro: 'x',
+    x183_action: 'x',
+    ...overrides,
+  };
+}
+
+{
+  assert(validateGapEntry(minimalValidGapEntry()).valid === true, 'validateGapEntry：合法條目 → valid');
+  assert(validateGapEntry(minimalValidGapEntry({ capability_id: '' })).valid === false, 'validateGapEntry：缺 capability_id → invalid');
+  assert(validateGapEntry(minimalValidGapEntry({ status: 'bogus' })).valid === false, 'validateGapEntry：status 不在枚舉 → invalid');
+  assert(validateGapEntry(minimalValidGapEntry({ measurability: 'bogus' })).valid === false, 'validateGapEntry：measurability 不在枚舉 → invalid');
+  assert(validateGapEntry(minimalValidGapEntry({ gates_metrics: 'not-array' })).valid === false, 'validateGapEntry：gates_metrics 非陣列 → invalid');
+  assert(validateGapEntry(minimalValidGapEntry({ evidence: {} })).valid === false, 'validateGapEntry：evidence.source 缺少 → invalid');
+  for (const status of ['supported', 'degraded', 'not_supported', 'not_measured']) {
+    assert(validateGapEntry(minimalValidGapEntry({ status })).valid === true, `validateGapEntry：status=${status} 合法`);
+  }
+
+  const validAll = validateGapsSchema([minimalValidGapEntry(), minimalValidGapEntry({ capability_id: 'codex.y' })]);
+  assert(validAll.valid === true && validAll.count === 2, 'validateGapsSchema：全合法陣列 → valid，count 正確');
+
+  const withOneBad = validateGapsSchema([minimalValidGapEntry(), minimalValidGapEntry({ status: 'bogus' })]);
+  assert(withOneBad.valid === false && withOneBad.errors.length === 1 && withOneBad.errors[0].index === 1, 'validateGapsSchema：定位到壞的那一筆的 index');
+
+  assert(validateGapsSchema({}).valid === false, 'validateGapsSchema：根層非陣列 → invalid');
+  assert(validateGapsSchema([]).valid === true, 'validateGapsSchema：空陣列 → valid（沒有東西可驗，不算錯）');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 //  formatDateYYYYMMDD / reportFilenames
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -213,6 +257,49 @@ const corpusReport = buildCorpusReport(corpusResults);
 
     const usage = spawnSync('node', [join(HERE, 'baseline-report.mjs')], { cwd: ROOT, encoding: 'utf8' });
     assert(usage.status === 2, 'CLI：缺必要旗標（誤用）→ exit 2');
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  CLI e2e —— --gaps 真驗證（C4），非只檢查檔案存在
+// ════════════════════════════════════════════════════════════════════════════
+
+{
+  const tmpDir = mkdtempSync(join(tmpdir(), 'baseline-report-gaps-test-'));
+  try {
+    const baseArgs = [
+      join(HERE, 'baseline-report.mjs'),
+      '--corpus', CORPUS_SAMPLE_DIR,
+      '--traces-dir', TRACE_SAMPLE_DIR,
+      '--repo-sha', 'gapstest01',
+      '--json',
+    ];
+
+    const withValidGaps = spawnSync(
+      'node',
+      [...baseArgs, '--date', '20260301', '--out-dir', tmpDir, '--gaps', join(GAPS_SAMPLE_DIR, 'valid-gaps.json')],
+      { cwd: ROOT, encoding: 'utf8' },
+    );
+    assert(withValidGaps.status === 0, `CLI：合法 gaps.json → exit 0（stderr: ${withValidGaps.stderr}）`);
+    let reportWithGaps = null;
+    try { reportWithGaps = JSON.parse(withValidGaps.stdout).report; } catch { /* 下面斷言報壞 */ }
+    assert(
+      reportWithGaps?.groups?.codex?.gaps_ref === 'evals/baseline/codex/gaps.json',
+      'CLI：合法 gaps.json 通過驗證 → report 的 codex.gaps_ref 才會填上',
+    );
+
+    const withInvalidGaps = spawnSync(
+      'node',
+      [...baseArgs, '--date', '20260302', '--out-dir', tmpDir, '--gaps', join(GAPS_SAMPLE_DIR, 'invalid-gaps.json')],
+      { cwd: ROOT, encoding: 'utf8' },
+    );
+    assert(withInvalidGaps.status !== 0, 'CLI：不合法 gaps.json（缺 capability_id/status 非法/gates_metrics 非陣列）→ 非零退出，不放行');
+    assert(
+      !existsSync(join(tmpDir, 'baseline-20260302-gapstest.json')),
+      'CLI：gaps 驗證失敗時不落地任何 report 檔（不可假裝驗證通過）',
+    );
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }

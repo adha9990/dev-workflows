@@ -144,6 +144,42 @@ export function buildCostSection(traces) {
   return { tokens, duration_ms: durationMs, tool_or_agent_calls: toolOrAgentCalls, ...unmeasured };
 }
 
+// C4（platform-engineer 起草版定案，見 plan §1④）：gaps.json 逐欄枚舉。
+export const GAPS_STATUS_ENUM = ['supported', 'degraded', 'not_supported', 'not_measured'];
+export const GAPS_MEASURABILITY_ENUM = ['login_free', 'needs_auth', 'no_stable_interface'];
+
+/** C4：驗一筆 gaps.json 條目是否合乎 schema。回 {valid, errors[]}。 */
+export function validateGapEntry(entry) {
+  const e = entry ?? {};
+  const errors = [];
+  if (typeof e.capability_id !== 'string' || !e.capability_id.trim()) errors.push('capability_id: 缺少或非字串');
+  if (typeof e.harness !== 'string' || !e.harness.trim()) errors.push('harness: 缺少或非字串');
+  if (!GAPS_STATUS_ENUM.includes(e.status)) errors.push(`status: 缺少或不在合法枚舉內（${GAPS_STATUS_ENUM.join('/')}）`);
+  if (!GAPS_MEASURABILITY_ENUM.includes(e.measurability)) {
+    errors.push(`measurability: 缺少或不在合法枚舉內（${GAPS_MEASURABILITY_ENUM.join('/')}）`);
+  }
+  if (!Array.isArray(e.gates_metrics)) errors.push('gates_metrics: 缺少或非陣列');
+  if (typeof e.codex_interface !== 'string' || !e.codex_interface.trim()) errors.push('codex_interface: 缺少或非字串');
+  if (!e.evidence || typeof e.evidence !== 'object' || typeof e.evidence.source !== 'string' || !e.evidence.source.trim()) {
+    errors.push('evidence.source: 缺少或非字串');
+  }
+  if (typeof e.blocker !== 'string') errors.push('blocker: 缺少或非字串');
+  if (typeof e.repro !== 'string' || !e.repro.trim()) errors.push('repro: 缺少或非字串');
+  if (typeof e.x183_action !== 'string' || !e.x183_action.trim()) errors.push('x183_action: 缺少或非字串');
+  return { valid: errors.length === 0, errors };
+}
+
+/** C4：驗整份 gaps.json（根層須為陣列＋每筆逐欄）。回 {valid, count, errors:[{index,capability_id,errors[]}]}。 */
+export function validateGapsSchema(gaps) {
+  if (!Array.isArray(gaps)) return { valid: false, count: 0, errors: [{ index: -1, capability_id: null, errors: ['gaps.json 根層須為陣列'] }] };
+  const errors = [];
+  gaps.forEach((entry, index) => {
+    const r = validateGapEntry(entry);
+    if (!r.valid) errors.push({ index, capability_id: entry?.capability_id ?? null, errors: r.errors });
+  });
+  return { valid: errors.length === 0, count: gaps.length, errors };
+}
+
 function defaultPlatformDiff() {
   return PLATFORM_DIFF_DIMENSIONS.map((dimension) => ({ dimension, status: 'not_measured', evidence: null }));
 }
@@ -334,8 +370,31 @@ function main(argv) {
   const results = entries.map((e) => evaluateFixture(e.fixture, corpusDir));
   const corpusReport = buildCorpusReport(results);
   const traces = loadTraces(tracesDir);
-  const gapsPresent = Boolean(opts.gaps && existsSync(resolve(opts.gaps)));
   const date = opts.date ?? formatDateYYYYMMDD(new Date());
+
+  // C4：--gaps 給了就真的驗（非只檢查存在）——驗不過直接擋，不讓 report 假裝 gaps_ref 可信。
+  let gapsPresent = false;
+  if (opts.gaps) {
+    const gapsPath = resolve(opts.gaps);
+    if (!existsSync(gapsPath)) {
+      console.error(`baseline-report: --gaps 指定的檔案不存在 — ${gapsPath}`);
+      return 3;
+    }
+    let gapsData;
+    try {
+      gapsData = JSON.parse(readFileSync(gapsPath, 'utf8'));
+    } catch (err) {
+      console.error(`baseline-report: --gaps 檔案不是合法 JSON — ${err?.message ?? err}`);
+      return 3;
+    }
+    const validation = validateGapsSchema(gapsData);
+    if (!validation.valid) {
+      console.error(`baseline-report: gaps.json 未通過 C4 schema 驗證（${validation.errors.length}/${validation.count} 筆有問題）`);
+      for (const e of validation.errors) console.error(`  - [${e.index}] ${e.capability_id ?? '(no id)'}: ${e.errors.join('; ')}`);
+      return 1;
+    }
+    gapsPresent = true;
+  }
 
   const report = buildBaselineReport({
     repoSha: opts.repoSha,
@@ -343,7 +402,7 @@ function main(argv) {
     corpusReport,
     traces,
     gapsPresent,
-    corpusCmd: `node plugins/loops-workflow/scripts/baseline-corpus.mjs --dir ${opts.corpus} --json`,
+    corpusCmd: `node plugins/loops-workflow/scripts/baseline-corpus.mjs --corpus ${opts.corpus} --json`,
     traceCmds: [`node plugins/loops-workflow/scripts/baseline-trace.mjs --scan-outcomes --loops-root <repo> --json`],
   });
 

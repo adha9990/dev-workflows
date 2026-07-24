@@ -1,0 +1,14 @@
+[
+  {
+    "capability_id": "codex.sample.capability",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": ["input_tokens"],
+    "codex_interface": "sample interface（fixture only）",
+    "evidence": { "source": "fixture", "note": "sample" },
+    "blocker": "authenticated session",
+    "repro": "sample repro command",
+    "x183_action": "sample action"
+  }
+]
