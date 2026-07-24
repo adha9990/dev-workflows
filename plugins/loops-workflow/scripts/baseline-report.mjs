@@ -7,8 +7,9 @@
 //
 // 分層（仿 scripts/baseline-corpus.mjs）：
 //   1) 純函式（無 IO，測試直接 import）：computeUnexpectedFailRate / collectExpectedFailRefs /
-//      buildRouteSection / buildQualitySection / buildCostSection / buildBaselineReport /
-//      buildMarkdownReport / reportFilenames / formatDateYYYYMMDD。
+//      buildRouteSection / buildQualitySection / buildCostSection / buildPlatformDiffFromGaps /
+//      validateGapEntry / validateGapsSchema / buildBaselineReport / buildMarkdownReport /
+//      reportFilenames / formatDateYYYYMMDD。
 //   2) 薄 IO：loadTraces / writeReportFiles / CLI main —— 被 import 時不執行（import.meta.url 守門）。
 // 依賴：僅 node 內建 + 本 repo 既有 baseline-corpus.mjs 匯出（loadCorpusFixtures/evaluateFixture/
 //   buildCorpusReport——本檔的合法上游，非 eval-oracle/eval-trajectory 本體）。零外部套件。
@@ -19,16 +20,31 @@ import { pathToFileURL } from 'node:url';
 
 import { loadCorpusFixtures, evaluateFixture, buildCorpusReport } from './baseline-corpus.mjs';
 
-// R12：平台差異表固定 8 面向（T4 platform-engineer 填內容；本檔只保證骨架永遠齊）。
+// R12：平台差異表固定 8 面向。
 const PLATFORM_DIFF_DIMENSIONS = [
   'manifest', 'skill_invocation', 'questions', 'agents', 'hooks', 'worktree', 'resume', 'transcript_metrics',
 ];
+// R12 八面向 ↔ C4 gaps.json capability_id 對映（明確常數表，非啟發式猜測）。以
+// evals/baseline/codex/gaps.json 實際 id 為準（platform-engineer 命名，17 列）；某面向若
+// gaps.json 無對應列（如目前無 skill_invocation 以外的 codex.metrics.* 這種另一軸的量測項），
+// 維持 not_measured 骨架，不硬湊。
+const PLATFORM_DIFF_GAP_ID = {
+  manifest: 'codex.manifest',
+  skill_invocation: 'codex.skill.discovery_invocation',
+  questions: 'codex.interaction.questions',
+  agents: 'codex.agents.subagent_model',
+  hooks: 'codex.hooks.trigger_trust',
+  worktree: 'codex.worktree',
+  resume: 'codex.resume.loops_state',
+  transcript_metrics: 'codex.transcript_metrics_stability',
+};
 // R4 目前無資料來源的維度（誠實記缺口，不假裝量到）。
 const UNMEASURED_COST_DIMENSIONS = ['questions', 'verify_findings', 'iterate_rounds', 'repeated_reads', 'unresolved_unknowns'];
 
 const RECAPTURE_NOTE =
   'route-decision/live-capture 類的 recorded_actual 是 capture 當下凍結的錄音；oracle 重跑是恆等式、不會變—— ' +
   '要偵測 dispatch 行為漂移必須重新 live-capture（非決定性重播），不是單純重跑 baseline-corpus。';
+const RECAPTURE_CAVEAT_REF = '見 rerun.recapture_note：route-decision/live-capture 類重跑是恆等式，非重新 capture。';
 const SUBAGENT_LENS_CAVEAT = 'total_incl_subagents 為主、main 為輔——子代理帳可觀察到遠大於主線，只看 main 會嚴重低估';
 
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
@@ -184,6 +200,24 @@ function defaultPlatformDiff() {
   return PLATFORM_DIFF_DIMENSIONS.map((dimension) => ({ dimension, status: 'not_measured', evidence: null }));
 }
 
+/**
+ * R12：8 面向對映 gaps.json 逐列 status（走 PLATFORM_DIFF_GAP_ID 顯式常數表，非猜測）。
+ * 面向在 gaps 裡找不到對應 capability_id → 該面向維持 not_measured 骨架（不硬湊、不假裝量到）。
+ */
+export function buildPlatformDiffFromGaps(gaps) {
+  const byId = new Map((Array.isArray(gaps) ? gaps : []).map((g) => [g?.capability_id, g]));
+  return PLATFORM_DIFF_DIMENSIONS.map((dimension) => {
+    const gapId = PLATFORM_DIFF_GAP_ID[dimension];
+    const entry = gapId ? byId.get(gapId) : undefined;
+    if (!entry) return { dimension, status: 'not_measured', evidence: null };
+    return {
+      dimension,
+      status: entry.status,
+      evidence: entry.evidence?.source ? { source: entry.evidence.source, capability_id: entry.capability_id } : null,
+    };
+  });
+}
+
 /** yyyy/mm/dd → 8 碼 YYYYMMDD（UTC，避免時區導致跨日不穩定）。 */
 export function formatDateYYYYMMDD(input) {
   const dt = input instanceof Date ? input : new Date(input);
@@ -203,7 +237,8 @@ export function reportFilenames(date, repoSha) {
 /**
  * 組完整 C3 report。corpusReport＝baseline-corpus.mjs 的 buildCorpusReport 輸出；
  * traces＝已攤平的 C2 trace 物件陣列；gapsPresent＝C4 gaps.json 是否可用（只決定 gaps_ref，
- * codex 組指標仍固定 not_measured——不得靠推論 Claude 結果去猜 Codex）。
+ * codex 組指標仍固定 not_measured——不得靠推論 Claude 結果去猜 Codex）；gaps＝已驗證的 C4 陣列本體
+ * （給了才能對映 R12 八面向；platformDiff 顯式傳入時優先於 gaps 推導，兩者皆缺 → 全 not_measured 骨架）。
  */
 export function buildBaselineReport({
   repoSha,
@@ -213,11 +248,16 @@ export function buildBaselineReport({
   corpusReport,
   traces,
   gapsPresent,
+  gaps,
   platformDiff,
   corpusCmd,
   traceCmds,
   extraCaveats,
 }) {
+  const resolvedPlatformDiff = Array.isArray(platformDiff) && platformDiff.length
+    ? platformDiff
+    : (Array.isArray(gaps) && gaps.length ? buildPlatformDiffFromGaps(gaps) : defaultPlatformDiff());
+
   return {
     meta: {
       repo_sha: repoSha ?? null,
@@ -239,13 +279,13 @@ export function buildBaselineReport({
         gaps_ref: gapsPresent ? 'evals/baseline/codex/gaps.json' : null,
       },
     },
-    platform_diff: Array.isArray(platformDiff) && platformDiff.length ? platformDiff : defaultPlatformDiff(),
+    platform_diff: resolvedPlatformDiff,
     rerun: {
       corpus_cmd: corpusCmd ?? null,
       trace_cmds: Array.isArray(traceCmds) ? traceCmds : [],
       recapture_note: RECAPTURE_NOTE,
     },
-    caveats: [SUBAGENT_LENS_CAVEAT, RECAPTURE_NOTE, ...(Array.isArray(extraCaveats) ? extraCaveats : [])],
+    caveats: [SUBAGENT_LENS_CAVEAT, RECAPTURE_CAVEAT_REF, ...(Array.isArray(extraCaveats) ? extraCaveats : [])],
   };
 }
 
@@ -373,14 +413,15 @@ function main(argv) {
   const date = opts.date ?? formatDateYYYYMMDD(new Date());
 
   // C4：--gaps 給了就真的驗（非只檢查存在）——驗不過直接擋，不讓 report 假裝 gaps_ref 可信。
+  // 驗證通過的 gapsData 本體會餵給 buildBaselineReport 做 R12 八面向對映（見 buildPlatformDiffFromGaps）。
   let gapsPresent = false;
+  let gapsData = null;
   if (opts.gaps) {
     const gapsPath = resolve(opts.gaps);
     if (!existsSync(gapsPath)) {
       console.error(`baseline-report: --gaps 指定的檔案不存在 — ${gapsPath}`);
       return 3;
     }
-    let gapsData;
     try {
       gapsData = JSON.parse(readFileSync(gapsPath, 'utf8'));
     } catch (err) {
@@ -402,6 +443,7 @@ function main(argv) {
     corpusReport,
     traces,
     gapsPresent,
+    gaps: gapsData,
     corpusCmd: `node plugins/loops-workflow/scripts/baseline-corpus.mjs --corpus ${opts.corpus} --json`,
     traceCmds: [`node plugins/loops-workflow/scripts/baseline-trace.mjs --scan-outcomes --loops-root <repo> --json`],
   });

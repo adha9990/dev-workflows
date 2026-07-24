@@ -29,6 +29,7 @@ import {
   writeReportFiles,
   validateGapEntry,
   validateGapsSchema,
+  buildPlatformDiffFromGaps,
 } from './baseline-report.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // .../scripts
@@ -169,6 +170,39 @@ function minimalValidGapEntry(overrides = {}) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  buildPlatformDiffFromGaps —— R12 八面向對映 gaps.json（T5 抽查抓到的缺口）
+// ════════════════════════════════════════════════════════════════════════════
+
+{
+  const noGaps = buildPlatformDiffFromGaps([]);
+  assert(noGaps.length === 8 && noGaps.every((d) => d.status === 'not_measured'), 'buildPlatformDiffFromGaps：空 gaps → 8 面向全 not_measured 骨架');
+
+  const gaps = [
+    minimalValidGapEntry({ capability_id: 'codex.manifest', status: 'supported', evidence: { source: 'smoke test', note: 'x' } }),
+    minimalValidGapEntry({ capability_id: 'codex.transcript_metrics_stability', status: 'degraded' }),
+    minimalValidGapEntry({ capability_id: 'codex.replay.deterministic', status: 'not_supported' }), // 不在 8 面向對映表內，不應污染任何維度
+  ];
+  const mapped = buildPlatformDiffFromGaps(gaps);
+  const byDim = Object.fromEntries(mapped.map((d) => [d.dimension, d]));
+  assert(byDim.manifest.status === 'supported', 'buildPlatformDiffFromGaps：manifest 面向吃到 gaps.json 的 supported（T5 回報的缺口）');
+  assert(byDim.manifest.evidence?.source === 'smoke test', 'buildPlatformDiffFromGaps：manifest 面向帶上 evidence.source');
+  assert(byDim.transcript_metrics.status === 'degraded', 'buildPlatformDiffFromGaps：transcript_metrics 面向吃到 degraded');
+  assert(byDim.skill_invocation.status === 'not_measured', 'buildPlatformDiffFromGaps：無對應 capability_id 的面向維持 not_measured（不硬湊）');
+  assert(mapped.length === 8, 'buildPlatformDiffFromGaps：codex.replay.deterministic 不在 8 面向對映表內，不多長出第 9 筆');
+
+  // buildBaselineReport 接線：給 gaps（未顯式給 platformDiff）→ 自動走 buildPlatformDiffFromGaps。
+  const reportWithGaps = buildBaselineReport({ repoSha: 'x', date: '20260101', corpusReport, traces: [], gapsPresent: true, gaps });
+  const reportManifest = reportWithGaps.platform_diff.find((d) => d.dimension === 'manifest');
+  assert(reportManifest.status === 'supported', 'buildBaselineReport：gaps 參數接線正確，platform_diff 反映真實 status（不再固定 not_measured）');
+
+  // caveats 不得與 rerun.recapture_note 逐字重複（T5 順手抓到的問題）。
+  assert(
+    !reportWithGaps.caveats.includes(reportWithGaps.rerun.recapture_note),
+    'buildBaselineReport：caveats 不逐字重複 rerun.recapture_note（改成短引用）',
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 //  formatDateYYYYMMDD / reportFilenames
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -288,6 +322,11 @@ function minimalValidGapEntry(overrides = {}) {
     assert(
       reportWithGaps?.groups?.codex?.gaps_ref === 'evals/baseline/codex/gaps.json',
       'CLI：合法 gaps.json 通過驗證 → report 的 codex.gaps_ref 才會填上',
+    );
+    const manifestDim = reportWithGaps?.platform_diff?.find((d) => d.dimension === 'manifest');
+    assert(
+      manifestDim?.status === 'supported',
+      'CLI：真跑 --gaps 後 R12 的 manifest 面向吃到 gaps-sample 裡的 supported（非固定 not_measured 骨架）',
     );
 
     const withInvalidGaps = spawnSync(
