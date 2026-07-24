@@ -261,8 +261,15 @@ function minimalValidFixture(overrides = {}) {
   const escaped = resolveContainedPath('../../../../etc', root, root);
   assert(escaped.ok === false && escaped.resolved === null && typeof escaped.reason === 'string', 'resolveContainedPath：逃逸 root → ok=false，reason 說明');
 
-  const abs = resolveContainedPath('C:/Windows', root, root);
-  assert(abs.ok === false, 'resolveContainedPath：絕對路徑一律拒絕');
+  // POSIX 根路徑形式（非 Windows 磁碟機代號）——win32 與 posix 的 isAbsolute 皆判 true，可攜。
+  // 'C:/Windows' 在 posix 上 isAbsolute()===false（會被當相對路徑），CI ubuntu 因此假紅過一次。
+  const abs = resolveContainedPath('/abs-escape', root, root);
+  assert(abs.ok === false, 'resolveContainedPath：絕對路徑一律拒絕（POSIX 根路徑形式，兩平台皆可攜）');
+
+  if (process.platform === 'win32') {
+    const winAbs = resolveContainedPath('C:\\Windows', root, root);
+    assert(winAbs.ok === false, 'resolveContainedPath：Windows 磁碟機代號路徑一律拒絕（win32 專屬斷言）');
+  }
 
   const nonString = resolveContainedPath(undefined, root, root);
   assert(nonString.ok === false, 'resolveContainedPath：非字串 requested → ok=false（不丟例外）');
@@ -280,10 +287,18 @@ function minimalValidFixture(overrides = {}) {
   assert(escaped.errored === true && escaped.pass === false, 'evaluateFixture：workspace 路徑逃逸 plugin 根 → errored（不 spawn）');
 
   const absWs = evaluateFixture(
-    minimalValidFixture({ oracle: { type: 'quality-gate', config: { workspace: 'C:/Windows', failToPass: ['a'] } } }),
+    minimalValidFixture({ oracle: { type: 'quality-gate', config: { workspace: '/abs-escape', failToPass: ['a'] } } }),
     SAMPLE_DIR,
   );
-  assert(absWs.errored === true, 'evaluateFixture：絕對路徑 workspace → errored（不 spawn）');
+  assert(absWs.errored === true, 'evaluateFixture：絕對路徑 workspace → errored（不 spawn，POSIX 根路徑形式、兩平台皆可攜）');
+
+  if (process.platform === 'win32') {
+    const winAbsWs = evaluateFixture(
+      minimalValidFixture({ oracle: { type: 'quality-gate', config: { workspace: 'C:\\Windows', failToPass: ['a'] } } }),
+      SAMPLE_DIR,
+    );
+    assert(winAbsWs.errored === true, 'evaluateFixture：Windows 磁碟機代號 workspace → errored（win32 專屬斷言）');
+  }
 
   const invalidSchema = evaluateFixture({ id: 'broken' }, SAMPLE_DIR);
   assert(invalidSchema.errored === true && invalidSchema.pass === false, 'evaluateFixture：schema 不合法 fixture → errored/非通過');
