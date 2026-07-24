@@ -1,0 +1,10 @@
+[
+  "plugins/loops-workflow/skills/dispatch/SKILL.md",
+  "plugins/loops-workflow/skills/build/SKILL.md",
+  "plugins/loops-workflow/references/journaling.md",
+  "plugins/loops-workflow/references/docs-policy.md",
+  "plugins/loops-workflow/.codex-plugin/plugin.json",
+  "plugins/loops-workflow/.claude-plugin/plugin.json",
+  ".agents/plugins/marketplace.json",
+  ".claude-plugin/marketplace.json"
+]

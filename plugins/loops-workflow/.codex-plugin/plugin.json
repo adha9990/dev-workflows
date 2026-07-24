@@ -1,0 +1,34 @@
+{
+  "name": "loops-workflow",
+  "version": "0.56.4",
+  "description": "7 階段閉環開發工作流：dispatch 決策樹分流（視情況先走 clarify/define/scaffold 前置）→ goal/explore/plan/build/verify/iterate，階段間 human gate，.loops/ markdown 記憶體，build 紅綠分離，verify 多 reviewer fan-out + validator 二輪。",
+  "author": {
+    "name": "陳駿騰",
+    "url": "https://github.com/adha9990"
+  },
+  "keywords": [
+    "workflow",
+    "loop",
+    "agentic",
+    "closed-loop"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "loops-workflow",
+    "shortDescription": "7 階段閉環開發工作流，階段間 human gate、build 紅綠分離、verify 多 reviewer",
+    "longDescription": "7 階段閉環開發工作流（dispatch→goal→explore→plan→build→verify→iterate），階段間 human gate，build 紅綠分離，verify 多 reviewer fan-out；dispatch 偵測乾淨空專案可先用內建 scaffold-fullstack 建骨架。",
+    "developerName": "陳駿騰",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "用 dispatch 把一個 issue 或需求分流到正確階段並建立 loop。",
+      "用 dispatch 從一句話的想法起手，跑 goal→build→verify 閉環。",
+      "用 dispatch 判斷這個工作該從哪個階段開始。"
+    ],
+    "websiteURL": "https://github.com/adha9990/dev-workflows"
+  }
+}

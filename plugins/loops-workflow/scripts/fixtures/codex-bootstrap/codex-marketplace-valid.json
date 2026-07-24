@@ -1,0 +1,20 @@
+{
+  "name": "dev-workflows",
+  "interface": {
+    "displayName": "dev-workflows"
+  },
+  "plugins": [
+    {
+      "name": "loops-workflow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/loops-workflow"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
