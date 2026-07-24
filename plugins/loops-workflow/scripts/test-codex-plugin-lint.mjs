@@ -149,6 +149,48 @@ function loadFixture(name) {
     `codexPluginRequiredFieldsCheck：合法 fixture 含完整 interface → 仍 0 筆 finding（實際：${JSON.stringify(findings)}）[2g]`,
   );
 }
+{
+  // 契約 C1：version 須為嚴格 semver（fixture：缺 patch 段 "1.0"）→ 命中
+  const manifest = loadFixture('codex-plugin-invalid-semver.json');
+  const findings = codexPluginRequiredFieldsCheck(manifest, '.codex-plugin/plugin.json');
+  assert(
+    findings.some((f) => f.detail.toLowerCase().includes('semver')),
+    `codexPluginRequiredFieldsCheck：version 非嚴格 semver（"1.0"）→ 命中（實際：${JSON.stringify(findings)}）[2h]`,
+  );
+}
+{
+  // semver 反例矩陣：常見非法寫法都要命中，合法寫法都不該命中
+  const invalidVersions = ['1.0', '1', 'v1.0.0', '1.0.0.0', '1.0.0-', 'latest', ''];
+  for (const version of invalidVersions) {
+    const manifest = {
+      name: 'x', version, description: 'd', author: { name: 'a' }, skills: './skills/',
+      interface: {
+        displayName: 'X', shortDescription: 's', longDescription: 'l', developerName: 'd',
+        category: 'Developer Tools', capabilities: ['Read'], websiteURL: 'https://example.com',
+      },
+    };
+    const findings = codexPluginRequiredFieldsCheck(manifest, 'f.json');
+    assert(
+      findings.some((f) => f.detail.toLowerCase().includes('semver') || f.detail.includes('version')),
+      `codexPluginRequiredFieldsCheck：version="${version}" 非法 → 命中（實際：${JSON.stringify(findings)}）[2h-invalid]`,
+    );
+  }
+  const validVersions = ['1.0.0', '0.56.4', '10.20.30', '1.0.0-alpha.1', '1.0.0+build.5', '1.0.0-alpha.1+build.5'];
+  for (const version of validVersions) {
+    const manifest = {
+      name: 'x', version, description: 'd', author: { name: 'a' }, skills: './skills/',
+      interface: {
+        displayName: 'X', shortDescription: 's', longDescription: 'l', developerName: 'd',
+        category: 'Developer Tools', capabilities: ['Read'], websiteURL: 'https://example.com',
+      },
+    };
+    const findings = codexPluginRequiredFieldsCheck(manifest, 'f.json');
+    assert(
+      !findings.some((f) => f.detail.toLowerCase().includes('semver')),
+      `codexPluginRequiredFieldsCheck：version="${version}" 合法 semver → 不誤報（實際：${JSON.stringify(findings)}）[2h-valid]`,
+    );
+  }
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 // 3. manifestEqualityCheck（fixture：name/version 等值 / 版本漂移）
@@ -197,24 +239,54 @@ function loadFixture(name) {
     `marketplaceNameCheck：name mismatch fixture → 命中 codex marketplace name 落差（實際：${JSON.stringify(findings)}）[4b]`,
   );
 }
+{
+  // F9②：claude 側 name 不等值也要命中（先前只測過 codex 側，claude 側是對稱但未覆蓋的分支）
+  const codexMarketplace = loadFixture('codex-marketplace-valid.json');
+  const claudeMarketplace = loadFixture('claude-marketplace-name-mismatch.json');
+  const findings = marketplaceNameCheck({ codexMarketplace, claudeMarketplace, expectedName: 'dev-workflows' });
+  assert(
+    findings.some((f) => f.file === '.claude-plugin/marketplace.json'),
+    `marketplaceNameCheck：claude 側 name mismatch fixture → 命中 claude marketplace name 落差（實際：${JSON.stringify(findings)}）[4c]`,
+  );
+  assert(
+    !findings.some((f) => f.file === '.agents/plugins/marketplace.json'),
+    `marketplaceNameCheck：claude 側 mismatch 時 codex 側（本身等值）不誤報（實際：${JSON.stringify(findings)}）[4c]`,
+  );
+}
 
 // ══════════════════════════════════════════════════════════════════════════
-// 5. sourcePathCheck（fixture：合法 / bad path）
+// 5. sourcePathCheck（fixture：合法 / bad path / F6：containment escape）
+// port 形狀改為 checkPathFn(path) => { exists, contained }——existsFn 單一布林無法區分
+// 「不存在」與「存在但逃出 root」兩種不同 finding，F6 補 containment 後拆開。
 // ══════════════════════════════════════════════════════════════════════════
 {
   const codexMarketplace = loadFixture('codex-marketplace-valid.json');
-  const findings = sourcePathCheck(codexMarketplace, () => true);
+  const findings = sourcePathCheck(codexMarketplace, () => ({ exists: true, contained: true }));
   assert(
     Array.isArray(findings) && findings.length === 0,
-    `sourcePathCheck：existsFn 全通過 → 0 筆 finding（實際：${JSON.stringify(findings)}）[5a]`,
+    `sourcePathCheck：exists+contained 全通過 → 0 筆 finding（實際：${JSON.stringify(findings)}）[5a]`,
   );
 }
 {
   const codexMarketplace = loadFixture('codex-marketplace-bad-path.json');
-  const findings = sourcePathCheck(codexMarketplace, () => false);
+  const findings = sourcePathCheck(codexMarketplace, () => ({ exists: false, contained: false }));
   assert(
     findings.some((f) => f.check === 'marketplace-source-path'),
-    `sourcePathCheck：existsFn 回 false → 命中 source-path finding（實際：${JSON.stringify(findings)}）[5b]`,
+    `sourcePathCheck：exists=false → 命中 source-path finding（實際：${JSON.stringify(findings)}）[5b]`,
+  );
+}
+{
+  // F6：路徑存在但逃出 repo root（路徑穿越，例如 source.path 寫 "../../etc"）→ 獨立 finding，
+  // 不能跟「不存在」共用同一句 detail（讀者需要知道是穿越問題，不是打錯路徑）
+  const codexMarketplace = loadFixture('codex-marketplace-valid.json');
+  const findings = sourcePathCheck(codexMarketplace, () => ({ exists: true, contained: false }));
+  assert(
+    findings.some((f) => f.check === 'marketplace-source-path-escape'),
+    `sourcePathCheck：exists=true 但 contained=false（路徑穿越）→ 命中 escape finding（實際：${JSON.stringify(findings)}）[5c]`,
+  );
+  assert(
+    !findings.some((f) => f.check === 'marketplace-source-path'),
+    `sourcePathCheck：穿越情境不該同時誤報一般 source-path finding（實際：${JSON.stringify(findings)}）[5c]`,
   );
 }
 
@@ -259,6 +331,23 @@ function loadFixture(name) {
   assert(
     Array.isArray(findings) && findings.length === 0,
     `duplicateTreeCheck：skill-local references 巢狀目錄不誤判為複製樹（實際：${JSON.stringify(findings)}）[6d]`,
+  );
+}
+{
+  // F5：已知限制釘住測試——本函式現行假設 repo 只有單一 plugin，不按 plugin 祖先路徑分組。
+  // 若 repo 變成多 plugin（假設情境：plugin-a 與 plugin-b 各自合法擁有一份 skills/），
+  // 目前設計會把兩個不同 plugin 的 canonical skills/ 誤判成「同一個複製樹」——這是已知限制，
+  // 不是本次要修的 bug（多 plugin 場景需要以 plugin 祖先路徑分組重新設計，見函式註解）。
+  // 這條測試明確釘住「目前就是會誤報」的行為，日後改分組設計時，這條測試要跟著改期望值，
+  // 不能悄悄消失或被忽略。
+  const fileList = [
+    'plugins/plugin-a/skills/hello/SKILL.md',
+    'plugins/plugin-b/skills/world/SKILL.md',
+  ];
+  const findings = duplicateTreeCheck(fileList);
+  assert(
+    findings.some((f) => f.check === 'duplicate-tree' && f.detail.includes('skills')),
+    `duplicateTreeCheck：【已知限制，非本次修復範圍】多 plugin 各自合法的 skills/ 目前仍會被誤判為複製樹（實際：${JSON.stringify(findings)}）[6e]`,
   );
 }
 
@@ -407,6 +496,142 @@ function runCli(root, args = ['--json']) {
   try {
     const { res, json } = runCli(dir, ['--json']);
     assert(res.status === 0, `IO-5：fixtures 底下的假 skills/ 路徑不誤判 duplicate-tree → exit code===0（實際：${JSON.stringify(json)}）[IO-5]`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// IO-6（F9①）：.codex-plugin/plugin.json 檔案存在但是壞 JSON（不是「檔案不存在」那條路徑）
+// → 紅，且要走 parsePluginManifest 的 error 分支，不是 manifestFindingsFor 的「找不到檔案」分支
+{
+  const files = baselineFiles();
+  files['plugins/loops-workflow/.codex-plugin/plugin.json'] = '{this is not valid json';
+  const dir = mkdtempSync(join(tmpdir(), 'cpl-'));
+  writeFiles(dir, files);
+  try {
+    const { res, json } = runCli(dir, ['--json']);
+    assert(res.status === 1, 'IO-6：檔案存在但壞 JSON → exit code===1 [IO-6]');
+    const finding = (json && json.findings || []).find((f) => f.check === 'codex-plugin-manifest');
+    assert(
+      finding && finding.detail.includes('JSON 解析失敗'),
+      `IO-6：--json findings 含 codex-plugin-manifest、detail 是「JSON 解析失敗」而非「找不到」（實際：${JSON.stringify(json)}）[IO-6]`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// IO-7（F6）：source.path 路徑穿越、逃出 repo root，且該路徑在磁碟上**真的存在**（父目錄，
+// 即系統暫存資料夾本身一定存在）→ 紅，命中 marketplace-source-path-escape，不是一般的
+// marketplace-source-path（那條是「不存在」，這條是「存在但逃出 root」，兩者要分清楚）。
+{
+  const files = baselineFiles();
+  files['.agents/plugins/marketplace.json'] = jsonFile({
+    name: 'dev-workflows',
+    interface: { displayName: 'dev-workflows' },
+    plugins: [
+      {
+        name: 'loops-workflow',
+        source: { source: 'local', path: '..' }, // repo root 的父目錄，真實存在但逃出 root
+        policy: { installation: 'AVAILABLE', authentication: 'ON_INSTALL' },
+        category: 'Developer Tools',
+      },
+    ],
+  });
+  const dir = mkdtempSync(join(tmpdir(), 'cpl-'));
+  writeFiles(dir, files);
+  try {
+    const { res, json } = runCli(dir, ['--json']);
+    assert(res.status === 1, 'IO-7：source.path 路徑穿越 → exit code===1 [IO-7]');
+    assert(
+      json && json.findings.some((f) => f.check === 'marketplace-source-path-escape'),
+      `IO-7：--json findings 含 marketplace-source-path-escape（實際：${JSON.stringify(json)}）[IO-7]`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// IO-8（F1）：version 非嚴格 semver（真實 manifest，非 unit fixture）→ 紅
+{
+  const files = baselineFiles();
+  files['plugins/loops-workflow/.codex-plugin/plugin.json'] = jsonFile({
+    name: 'loops-workflow', version: '1.0', description: 'd', author: { name: 'a' }, skills: './skills/',
+    interface: {
+      displayName: 'X', shortDescription: 's', longDescription: 'l', developerName: 'd',
+      category: 'Developer Tools', capabilities: ['Read'], websiteURL: 'https://example.com',
+    },
+  });
+  files['plugins/loops-workflow/.claude-plugin/plugin.json'] = jsonFile({
+    name: 'loops-workflow', version: '1.0', description: 'd',
+  });
+  const dir = mkdtempSync(join(tmpdir(), 'cpl-'));
+  writeFiles(dir, files);
+  try {
+    const { res, json } = runCli(dir, ['--json']);
+    assert(res.status === 1, 'IO-8：version 非嚴格 semver → exit code===1 [IO-8]');
+    assert(
+      json && json.findings.some((f) => f.detail.toLowerCase().includes('semver')),
+      `IO-8：--json findings 含 semver 相關 finding（實際：${JSON.stringify(json)}）[IO-8]`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// IO-9（F2①）：.codex-plugin/plugin.json **檔案存在**但缺必要欄位（用既有 missing-field
+// fixture 取代合法 fixture）→ 紅，命中 codex-plugin-required-field。跟 IO-2（檔案整個不存在）
+// 是不同分支，IO-2 走「找不到檔案」，這條走「檔案在、內容不合格」。
+{
+  const files = baselineFiles();
+  files['plugins/loops-workflow/.codex-plugin/plugin.json'] = jsonFile(loadFixture('codex-plugin-missing-field.json'));
+  const dir = mkdtempSync(join(tmpdir(), 'cpl-'));
+  writeFiles(dir, files);
+  try {
+    const { res, json } = runCli(dir, ['--json']);
+    assert(res.status === 1, 'IO-9：檔案存在但缺必要欄位 → exit code===1 [IO-9]');
+    assert(
+      json && json.findings.some((f) => f.check === 'codex-plugin-required-field'),
+      `IO-9：--json findings 含 codex-plugin-required-field（實際：${JSON.stringify(json)}）[IO-9]`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// IO-10（F2②）：marketplace name 不等值（用既有 codex-marketplace-name-mismatch fixture）
+// → 紅，命中 marketplace-name。
+{
+  const files = baselineFiles();
+  files['.agents/plugins/marketplace.json'] = jsonFile(loadFixture('codex-marketplace-name-mismatch.json'));
+  const dir = mkdtempSync(join(tmpdir(), 'cpl-'));
+  writeFiles(dir, files);
+  try {
+    const { res, json } = runCli(dir, ['--json']);
+    assert(res.status === 1, 'IO-10：marketplace name 不等值 → exit code===1 [IO-10]');
+    assert(
+      json && json.findings.some((f) => f.check === 'marketplace-name'),
+      `IO-10：--json findings 含 marketplace-name（實際：${JSON.stringify(json)}）[IO-10]`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// IO-11（F2③）：source.path 壞掉（用既有 codex-marketplace-bad-path fixture，路徑不存在但
+// 不是穿越）→ 紅，命中 marketplace-source-path（跟 IO-7 的 escape 變體區分開）。
+{
+  const files = baselineFiles();
+  files['.agents/plugins/marketplace.json'] = jsonFile(loadFixture('codex-marketplace-bad-path.json'));
+  const dir = mkdtempSync(join(tmpdir(), 'cpl-'));
+  writeFiles(dir, files);
+  try {
+    const { res, json } = runCli(dir, ['--json']);
+    assert(res.status === 1, 'IO-11：source.path 壞掉 → exit code===1 [IO-11]');
+    assert(
+      json && json.findings.some((f) => f.check === 'marketplace-source-path'),
+      `IO-11：--json findings 含 marketplace-source-path（實際：${JSON.stringify(json)}）[IO-11]`,
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

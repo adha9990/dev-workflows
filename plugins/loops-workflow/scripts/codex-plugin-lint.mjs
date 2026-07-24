@@ -15,8 +15,10 @@
 // plugin manifest 掛在 plugins/loops-workflow/ 底下，兩者必須同一次掃描才能對帳（#182 plan M2）。
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join, dirname, relative } from 'node:path';
+import { join, dirname, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { isWithinRoot } from './path-containment.mjs';
 
 const CANONICAL_MARKETPLACE_NAME = 'dev-workflows';
 const CODEX_MANIFEST_REL = 'plugins/loops-workflow/.codex-plugin/plugin.json';
@@ -30,6 +32,10 @@ const REQUIRED_SKILLS_VALUE = './skills/';
 const REQUIRED_INTERFACE_STRING_FIELDS = [
   'displayName', 'shortDescription', 'longDescription', 'developerName', 'category',
 ];
+// 契約 C1「version（嚴格 semver）」：MAJOR.MINOR.PATCH，可選 -prerelease／+build metadata
+// （semver.org 官方 regex 的精簡版）。拒收缺段（"1.0"）、前綴 v（"v1.0.0"）、多餘段
+// （"1.0.0.0"）、空 prerelease（"1.0.0-"）等常見誤寫。
+const STRICT_SEMVER_RE = /^\d+\.\d+\.\d+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/;
 // 掃複製樹只認這兩個目錄名（本 repo 唯一在意的 canonical 內容樹）；掃描時排除的整棵目錄
 // （不進遞迴）與「路徑含 fixtures 段」的檔案（自己的假 fixture 不該被當成真違規）。
 const TREE_TOPIC_DIR_NAMES = ['skills', 'references'];
@@ -68,6 +74,15 @@ export function codexPluginRequiredFieldsCheck(manifest, file) {
     if (value == null || value === '') {
       findings.push({ check: 'codex-plugin-required-field', severity: 'P1', file, detail: `缺少必要欄位 "${key}"` });
     }
+  }
+  // version 存在時另外驗嚴格 semver 格式（缺欄位已由上面那圈擋，這裡只管「有值但格式錯」）。
+  if (typeof manifest?.version === 'string' && manifest.version !== '' && !STRICT_SEMVER_RE.test(manifest.version)) {
+    findings.push({
+      check: 'codex-plugin-required-field',
+      severity: 'P1',
+      file,
+      detail: `"version" 須為嚴格 semver（MAJOR.MINOR.PATCH，可選 -prerelease/+build）（實際：${JSON.stringify(manifest.version)}）`,
+    });
   }
   if (!manifest?.author?.name) {
     findings.push({ check: 'codex-plugin-required-field', severity: 'P1', file, detail: '缺少必要欄位 "author.name"' });
@@ -162,20 +177,39 @@ export function marketplaceNameCheck({ codexMarketplace, claudeMarketplace, expe
 
 /**
  * marketplace 每個 plugin 條目的 source.path 是否解析得到 canonical 樹（契約 C2：零複製不變式的
- * 前提是 marketplace 真的指向既有目錄，不是隨口寫一個不存在的路徑）。existsFn 以 port 注入
- * （純函式可測；IO 層呼叫端負責把相對路徑解析到 root 下再判斷是否存在）。
+ * 前提是 marketplace 真的指向既有目錄，不是隨口寫一個不存在的路徑），並額外檢查該路徑解析後有沒有
+ * 逃出 repo root（路徑穿越，例如 `../../etc`）——F6：兩種問題分開報，讀者需要知道是「打錯路徑」
+ * 還是「路徑穿越」，不能共用同一句 detail。checkPathFn 以 port 注入（純函式可測；IO 層呼叫端負責
+ * 把相對路徑 resolve 到 root 下，同時判斷是否存在與是否落在 root 內），回傳 `{ exists, contained }`。
  */
-export function sourcePathCheck(codexMarketplace, existsFn) {
+export function sourcePathCheck(codexMarketplace, checkPathFn) {
   const findings = [];
   const plugins = Array.isArray(codexMarketplace?.plugins) ? codexMarketplace.plugins : [];
   for (const entry of plugins) {
     const path = entry?.source?.path;
-    if (typeof path !== 'string' || !existsFn(path)) {
+    if (typeof path !== 'string') {
+      findings.push({
+        check: 'marketplace-source-path',
+        severity: 'P1',
+        file: CODEX_MARKETPLACE_REL,
+        detail: `plugin "${entry?.name}" 缺少 source.path`,
+      });
+      continue;
+    }
+    const { exists, contained } = checkPathFn(path);
+    if (!exists) {
       findings.push({
         check: 'marketplace-source-path',
         severity: 'P1',
         file: CODEX_MARKETPLACE_REL,
         detail: `plugin "${entry?.name}" 的 source.path "${path}" 無法解析至 canonical 樹`,
+      });
+    } else if (!contained) {
+      findings.push({
+        check: 'marketplace-source-path-escape',
+        severity: 'P1',
+        file: CODEX_MARKETPLACE_REL,
+        detail: `plugin "${entry?.name}" 的 source.path "${path}" 解析後逃出 repo root（路徑穿越）`,
       });
     }
   }
@@ -196,6 +230,13 @@ function isNestedUnderSkillDir(parentPath) {
  * 目錄，代表有人複製了第二份（例如誤把 Codex 專用的一份 skills 塞進 `.codex-plugin/skills/`）——
  * 單一 canonical 樹是 #168 硬條件，這裡機械擋。filePaths 為 repo-relative posix 路徑陣列（IO 層已
  * 套用排除規則）。
+ *
+ * 已知限制（現行假設，非本次修復範圍）：本函式假設 repo 只有單一 plugin，只按「topic 目錄名」
+ * （skills / references）分組計數，不按 plugin 祖先路徑分組。若 repo 日後變成多 plugin，兩個不同
+ * plugin 各自合法擁有一份 `skills/`（例如 `plugins/plugin-a/skills/`、`plugins/plugin-b/skills/`）
+ * 目前會被誤判成同一個「複製樹」違規——這是已知限制，不是本次要修的 bug；多 plugin 場景需要重新
+ * 設計成「先按 `plugins/<name>/` 分組，組內才比對複製」，屆時要同步更新鎖住現行行為的測試
+ * （test-codex-plugin-lint.mjs 的 [6e]）。
  */
 export function duplicateTreeCheck(filePaths) {
   const list = Array.isArray(filePaths) ? filePaths : [];
@@ -344,7 +385,11 @@ export function buildReport(root) {
   }
 
   if (codexMkt.manifest) {
-    findings.push(...sourcePathCheck(codexMkt.manifest, (relPath) => existsSync(join(root, relPath))));
+    const resolvedRoot = resolve(root);
+    findings.push(...sourcePathCheck(codexMkt.manifest, (relPath) => {
+      const resolvedPath = resolve(root, relPath);
+      return { exists: existsSync(resolvedPath), contained: isWithinRoot(resolvedPath, resolvedRoot) };
+    }));
   }
 
   findings.push(...duplicateTreeCheck(fileList));
