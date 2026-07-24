@@ -7,7 +7,8 @@
 - Codex 執行檔絕對路徑：`C:\Users\Eagle\AppData\Local\OpenAI\Codex\bin\69066b736e1e17a4\codex.exe`（**不在 PATH**，需以絕對路徑呼叫）。
 - 版本：`codex-cli 0.146.0-alpha.3.1`（alpha；本篇每筆證據皆對應此版本，日後版本更新須重跑）。
 - 隔離規則：全程 `CODEX_HOME=$(mktemp -d)`，絕不讀寫使用者真實 `~/.codex`（含其中的 auth、session、以及已知壞掉的 `eagle-project` marketplace 登記）。每個 Test 各自用一份全新的隔離 `CODEX_HOME`，不共用。
-- 測試標的：`plugins/loops-workflow/.codex-plugin/plugin.json`（commit `9e937a0`）＋`.agents/plugins/marketplace.json`（commit `a9df45a`），已合併進本 worktree（merge commit `f7a4335`）。
+- 測試標的：`plugins/loops-workflow/.codex-plugin/plugin.json`（commit `9e937a0`）＋`.agents/plugins/marketplace.json`（commit `a9df45a`），已合併進本 worktree（merge commit `f7a4335`）。**commit SHA provenance 註記**：本篇引用的 SHA 皆為整合前各 subtask worktree 的本地 commit；本 PR 若經 squash/rebase 合併，最終 PR 歷史的 SHA 會不同——這些 SHA 是撰寫證據當下用來標示「測的是哪個版本內容」的參照，不保證合併後仍查得到同一個雜湊值。要核對本篇證據對應的實際內容，請比對 manifest／marketplace.json 檔案本身（name/version 是否等值、skills 路徑是否為 `./skills/` 等），不要只依賴 SHA 字串比對。
+- **安裝路徑 provenance 註記（範疇邊界）**：本篇所有 `codex plugin marketplace add` 呼叫都使用**本機檔案系統絕對路徑**（worktree 的本地路徑），因為這個 PR 尚未推送／合併進真實的 GitHub remote（`adha9990/dev-workflows`）。`docs/CODEX-QUICKSTART.md` 教使用者用的 `codex plugin marketplace add adha9990/dev-workflows`（owner/repo 簡寫，走 GitHub remote 解析，非本機路徑）**不是**本篇任一 Test 實際驗證過的路徑——那條路徑要等這個 PR 真的合併進 master、推上 GitHub 之後才能重跑驗證。讀者不該把「本機路徑安裝驗證過」誤讀成「README／QUICKSTART 教的 owner/repo 安裝方式也驗證過」，這是本篇證據的真實邊界，不是可省略的細節。
 
 ## Test 1 — CODEX_HOME 隔離完整性驗證（PASS）
 
@@ -41,6 +42,34 @@ T1（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marke
 **結論**：plugin 發現與安裝機制對本 repo 真實內容確認可行、無需認證。`policy.authentication: "ON_INSTALL"` 目前看來不代表「安裝當下就要求登入」，而更可能代表「該 plugin 的能力在實際被呼叫時才會要求認證」——這點未被本測試直接證實，見 Test 3。
 
 **範疇澄清（修正先前版本的誤植）**：本測試驗證的是「plugin 本身能不能被 Codex 發現並安裝」這件事，屬於 capability matrix 的 **skill discovery / `dispatch`** 列的前置條件證據（安裝完成後 `installedPath` 顯示整個 plugin 目錄——含 `skills/`——確實被複製進 Codex 的 plugin cache，代表 skill 檔案在檔案層級是可被發現的；但「新 task 中是否真的被辨識為可呼叫的 skill」仍是 Test 3a 的未量測範圍，兩者不是同一件事）。**不是** capability matrix 裡的 **`setup`** 列——那一列指的是 `/loops-workflow:setup`（issue #168 規劃中的正式安裝來源管理 skill：問答選擇來源、idempotent 安裝/切換/更新/健康檢查/rollback），這個 skill 在本 repo 的 `plugins/loops-workflow/skills/` 底下**目前還不存在**（現有 11 個 skill 是 build/clarify/define/dispatch/explain/explore/goal/iterate/plan/scaffold-fullstack/verify，沒有 setup；repo 內也搜不到任何 `loops-workflow:setup` 引用）——這是兩邊 harness 都尚未建置的功能，不是任一 harness 的能力落差，矩陣的 `setup` 列因此不該引用本測試的證據。
+
+## Test 4 — 雙 marketplace 並存優先權 + Remove 生命週期（PASS）
+
+補測，隔離 `CODEX_HOME`（非 OS 暫存目錄、非使用者 `~/.codex`，測完整個刪除），標的是 integration worktree（`.claude/worktrees/182-codex-bootstrap`，HEAD `fdb8463`），該 worktree 此時**同時含** `.claude-plugin/marketplace.json` 與 `.agents/plugins/marketplace.json` 兩份 marketplace manifest（單一 canonical 內容樹＋雙薄 entry-point 的設計本來就是這樣，不算複製違規——複製違規指的是 `skills/`／`references/` 這類內容樹被複製第二份，不是入口 manifest 本身）。
+
+### 4a. 兩份 marketplace 並存時，Codex 讀哪一份
+
+| 步驟 | 指令 | 結果 |
+|---|---|---|
+| 1. 註冊 | `codex plugin marketplace add "<integration worktree 路徑>"` | ✅ `Added marketplace \`dev-workflows\` from ...182-codex-bootstrap.`，exit 0 |
+| 2. 列出 marketplace | `codex plugin marketplace list --json` | ✅ `{"marketplaces":[{"name":"dev-workflows","root":"...182-codex-bootstrap"}]}` |
+| 3. 列出可安裝 plugin | `codex plugin list --available --json` | ✅ 一筆：`pluginId=loops-workflow@dev-workflows, version=0.56.4, source={local,...\plugins\loops-workflow}, marketplaceSource={local,...182-codex-bootstrap}, installPolicy=AVAILABLE, authPolicy=ON_INSTALL` |
+| 4. 安裝 | `codex plugin add loops-workflow@dev-workflows` | ✅ `Added plugin \`loops-workflow\`...`，installedPath `...\plugins\cache\dev-workflows\loops-workflow\0.56.4` |
+| 5. 確認 | `codex plugin list --json` | ✅ installed 一筆（installed:true, enabled:true） |
+| 6. **判定關鍵** | `codex plugin list`（**非** `--json`，人讀輸出） | 逐字印出：<br>`Marketplace \`dev-workflows\``<br>`C:\...\182-codex-bootstrap\.agents\plugins\marketplace.json`<br>`PLUGIN ... STATUS ... VERSION ... PATH`<br>`loops-workflow@dev-workflows  installed, enabled  0.56.4  ...\plugins\loops-workflow` |
+
+**結論**：兩份 marketplace manifest 同時存在時，**Codex 明確採用 `.agents/plugins/marketplace.json`（Codex-native 格式），不是 `.claude-plugin/marketplace.json`**——這是好消息，代表不需要擔心兩份入口互相打架或行為不確定；Codex 會忽略 Claude 專用格式、只認自己的格式。**方法論註記**：`--json` 系列輸出（`marketplace list`／`plugin list`）不會回吐 manifest 路徑或 `category`／`interface.*` 等 Codex-only 欄位，這個判定只能從**非 `--json` 的人讀輸出**裡讀到，日後重跑或設計自動化檢查時要注意這點，不能只看 `--json`。另外，安裝後 plugin cache 目錄（`...\0.56.4\`）底下同時含 `.claude-plugin` 與 `.codex-plugin`——因為 Codex 是把整個 plugin 目錄複製進 cache，不是只取 Codex 需要的子集，這點不是複製違規（cache 是 Codex 自己的安裝副本，不是 repo 裡的第二份內容樹）。
+
+### 4b. Remove 生命週期（PASS）
+
+| 步驟 | 指令 | 結果 |
+|---|---|---|
+| 1. 移除 plugin | `codex plugin remove loops-workflow@dev-workflows` | ✅ `Removed plugin \`loops-workflow\` from marketplace \`dev-workflows\`.`，exit 0 |
+| 2. 確認已移除 | `codex plugin list --json` | ✅ `{"installed":[],"available":[]}` |
+| 3. 移除 marketplace | `codex plugin marketplace remove dev-workflows` | ✅ `Removed marketplace \`dev-workflows\`.`，exit 0 |
+| 4. 確認已移除 | `codex plugin marketplace list --json` | ✅ `{"marketplaces":[]}` |
+
+**結論**：停用／移除的確切指令是「先 `codex plugin remove loops-workflow@dev-workflows`，再 `codex plugin marketplace remove dev-workflows`」，兩步皆無需認證、皆可重跑驗證乾淨移除。這組指令可直接供 `docs/CODEX-QUICKSTART.md` 的「常見問題、停用／移除方式」一節引用。
 
 ## Test 3 — 認證邊界（決策者已拍板收斂為 not measured）
 
@@ -129,3 +158,5 @@ CODEX_HOME=<已認證的隔離 CODEX_HOME> "<codex 執行檔絕對路徑>" exec 
 - 本篇未驗證任何需要真的 agent turn（呼叫模型）的能力；這是本輪 Codex Preview 的範疇邊界，非缺陷。
 - `codex` 執行檔不在系統 PATH 上，所有指令皆需以絕對路徑呼叫——這點也需要寫進 `docs/CODEX-QUICKSTART.md`，避免新使用者以為 `codex` 是可以直接打的裸指令。
 - `CODEX_HOME` 若字面落在 OS 暫存資料夾下會印出一則無害的 PATH 別名警告（見 Test 1），不影響功能，但使用者可能誤以為是錯誤。
+- **安裝路徑範疇邊界**：本篇所有安裝證據都是本機檔案系統絕對路徑，不是 README／QUICKSTART 教的 GitHub owner/repo 簡寫路徑（`adha9990/dev-workflows`）——後者要等本 PR 真的合併並推上 GitHub 之後才能重跑驗證，目前未被本篇任何 Test 覆蓋。
+- **commit SHA 僅供撰寫當下參照**：本篇引用的 commit SHA 是整合前各 subtask worktree 的本地 commit，PR 若經 squash/rebase 合併，最終歷史的 SHA 會不同；核對證據對應內容請比對檔案本身，不要依賴 SHA 字串比對。
