@@ -250,7 +250,9 @@ function minimalValidGapEntry(overrides = {}) {
   try {
     realGaps = JSON.parse(readFileSync(REAL_GAPS_PATH, 'utf8'));
   } catch (err) {
-    console.error(`  ⚠ 略過真實 gaps.json round-trip 檢查 — 讀不到 ${REAL_GAPS_PATH}（${err?.message ?? err}）`);
+    // 讀不到／解不出真實 gaps.json 本身就是要抓的一種漂移（檔案消失、被移走、格式壞掉）——
+    // 記一筆失敗讓整體 exit 非零，不能只印警告就悄悄跳過（那等於這個守衛形同虛設）。
+    assert(false, `真實 gaps.json round-trip：讀取/解析 ${REAL_GAPS_PATH} 失敗（${err?.message ?? err}）—— 這本身就是要偵測的漂移，不可靜默略過`);
   }
   if (realGaps) {
     const realIds = new Set(realGaps.map((g) => g?.capability_id));
