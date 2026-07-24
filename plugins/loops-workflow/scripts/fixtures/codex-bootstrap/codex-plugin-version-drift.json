@@ -1,0 +1,9 @@
+{
+  "name": "loops-workflow",
+  "version": "2.0.0",
+  "description": "Same name as claude-plugin-reference.json but a different version — used to exercise the name/version equality check.",
+  "author": {
+    "name": "Test Author"
+  },
+  "skills": "./skills/"
+}

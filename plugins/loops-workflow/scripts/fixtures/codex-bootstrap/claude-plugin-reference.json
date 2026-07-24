@@ -1,0 +1,9 @@
+{
+  "name": "loops-workflow",
+  "version": "1.0.0",
+  "description": "Reference .claude-plugin/plugin.json shape used as the name/version equality baseline in tests.",
+  "author": {
+    "name": "Test Author"
+  },
+  "keywords": ["workflow", "loop"]
+}

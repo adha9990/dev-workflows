@@ -1,0 +1,5 @@
+{
+  "name": "loops-workflow",
+  "description": "Missing required version and author fields — used to exercise the required-fields check.",
+  "skills": "./skills/"
+}
