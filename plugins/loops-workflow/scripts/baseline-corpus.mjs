@@ -16,16 +16,17 @@
 //      CLI main —— 被 import 時不執行（import.meta.url 守門）。
 // 依賴：僅 node 內建 + 既有兩支引擎的具名匯出（scoreTask/spawnGate/checkTrajectory；另借
 //   parseStages 把 observed_journal 的 Journal 摘錄文字轉成階段陣列——checkTrajectory 本身只吃
-//   陣列，parseStages 是 eval-trajectory 既有匯出，避免在本檔重造同一段正規表達式）。
+//   陣列，parseStages 是 eval-trajectory 既有匯出，避免在本檔重造同一段正規表達式）+
+//   path-containment.mjs 的 resolveContainedPath（workspace containment 守門共用原語）。
 //   不改 eval-oracle.mjs / eval-trajectory.mjs 本體、不裝任何外部套件。
 
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
-import { join, resolve, dirname, isAbsolute } from 'node:path';
+import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { scoreTask, spawnGate } from './eval-oracle.mjs';
 import { checkTrajectory, parseStages } from './eval-trajectory.mjs';
-import { isWithinRoot } from './path-containment.mjs';
+import { resolveContainedPath } from './path-containment.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // .../scripts
 const PROJECT_ROOT = dirname(HERE); // plugin root：quality-gate workspace 的信任邊界
@@ -231,16 +232,15 @@ export function resolveObservedStages(oracleConfig, fixtureDir) {
   return null;
 }
 
-/** 解析並守門 quality-gate workspace：相對 fixtureDir 解析後須落在 PROJECT_ROOT 內，否則拒絕（不 spawn）。 */
+/**
+ * 解析並守門 quality-gate workspace：相對 fixtureDir 解析後須落在 PROJECT_ROOT 內，否則拒絕（不 spawn）。
+ * 「isAbsolute 拒絕→resolve→isWithinRoot→組 reason」四步邏輯已抽成 path-containment.mjs 的
+ * resolveContainedPath 共用（與 eval-oracle.mjs 的 resolveWorkspace 同構，避免兩份各自演化）。
+ */
 function resolveWorkspace(requested, fixtureDir) {
-  if (typeof requested !== 'string' || isAbsolute(requested)) {
-    return { ok: false, reason: `workspace "${requested}" 是絕對路徑（拒絕；須落在 plugin 根內）— 未執行` };
-  }
-  const workspace = resolve(fixtureDir, requested);
-  if (!isWithinRoot(workspace, PROJECT_ROOT)) {
-    return { ok: false, reason: `workspace "${requested}" 解析後落在 plugin 根外（路徑逃逸拒絕）— 未執行` };
-  }
-  return { ok: true, workspace };
+  const r = resolveContainedPath(requested, fixtureDir, PROJECT_ROOT);
+  if (!r.ok) return { ok: false, reason: `workspace ${r.reason}— 未執行` };
+  return { ok: true, workspace: r.resolved };
 }
 
 /** 評一個 fixture：先驗 schema，型別合法才依型別做必要 IO 並交給 scoreOracle 判定。 */
