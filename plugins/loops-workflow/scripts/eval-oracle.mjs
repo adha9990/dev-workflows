@@ -264,6 +264,8 @@ function taskMeta(task) {
 /**
  * 解析並守門 workspace：相對 tasks-dir 解析後須落在 PROJECT_ROOT 內，否則拒絕（不 spawn）。
  * 絕對路徑型 workspace 一律拒絕（避免 task 檔指定任意磁碟位置）。
+ * 同邏輯 helper 已抽至 path-containment.mjs 的 resolveContainedPath（#169 baseline-corpus 首用）；
+ * 本函式暫不改行為/不改呼叫端，#171 重整時一併收斂成呼叫共用版。
  */
 function resolveWorkspace(requested, tasksDir) {
   if (isAbsolute(requested)) {

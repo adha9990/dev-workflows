@@ -1,0 +1,8 @@
+[
+  {
+    "capability_id": "codex.truncated",
+    "harness": "codex",
+    "status": "not_measured",
+    "measurability": "needs_auth",
+    "gates_metrics": [],
+    "codex_interface": "fixture only — 本檔案刻意在此截斷，測 JSON.parse 失敗路徑"

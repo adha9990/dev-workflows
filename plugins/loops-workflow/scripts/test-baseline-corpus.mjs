@@ -26,6 +26,7 @@ import {
   evaluateFixture,
   loadCorpusFixtures,
 } from './baseline-corpus.mjs';
+import { resolveContainedPath } from './path-containment.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // .../scripts
 const ROOT = dirname(HERE); // plugin root
@@ -245,6 +246,26 @@ function minimalValidFixture(overrides = {}) {
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  resolveContainedPath（path-containment.mjs 共用原語，F2：baseline-corpus 的 resolveWorkspace
+//  改用它，取代與 eval-oracle.mjs resolveWorkspace 同構的重複邏輯）
+// ════════════════════════════════════════════════════════════════════════════
+
+{
+  const root = SAMPLE_DIR; // 借用既有 fixture 目錄當 root，純路徑運算不觸碰內容
+  const ok = resolveContainedPath('qg-workspace', root, root);
+  assert(ok.ok === true && ok.resolved && ok.reason === null, 'resolveContainedPath：合法相對路徑 → ok，resolved 為絕對路徑');
+
+  const escaped = resolveContainedPath('../../../../etc', root, root);
+  assert(escaped.ok === false && escaped.resolved === null && typeof escaped.reason === 'string', 'resolveContainedPath：逃逸 root → ok=false，reason 說明');
+
+  const abs = resolveContainedPath('C:/Windows', root, root);
+  assert(abs.ok === false, 'resolveContainedPath：絕對路徑一律拒絕');
+
+  const nonString = resolveContainedPath(undefined, root, root);
+  assert(nonString.ok === false, 'resolveContainedPath：非字串 requested → ok=false（不丟例外）');
 }
 
 // ════════════════════════════════════════════════════════════════════════════

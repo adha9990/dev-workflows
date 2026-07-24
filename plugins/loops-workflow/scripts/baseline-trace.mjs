@@ -229,7 +229,13 @@ function readTextOrNull(path) {
 }
 
 /** 讀 <loopsRoot>/.loops/<loopSlug>/loop.md → session 解析 → 命中 costs.jsonl 走精確路徑，否則降級。 */
-export function traceSingleLoop({ loopSlug, loopsRoot }) {
+/**
+ * rows 為選用（F6：scanOutcomeLoops 場景一次讀完 costs.jsonl、依 session 分組後把該 loop 的切片
+ * 傳進來，避免逐 loop 各自重讀重解析整份 costs.jsonl）。undefined＝呼叫端沒給 → 退回原行為，
+ * 自己讀檔（單次 --loop CLI 呼叫場景，只有一個 loop 用不到分攤成本）；空陣列 [] 是合法輸入
+ * （已查過、該 session 在 costs.jsonl 裡確實零筆命中），與「沒給」語意不同，用 `!== undefined` 判斷。
+ */
+export function traceSingleLoop({ loopSlug, loopsRoot, rows: providedRows }) {
   const repo = resolveRepoName(loopsRoot);
   const loopMd = readTextOrNull(join(loopsRoot, '.loops', loopSlug, 'loop.md'));
   if (loopMd === null) {
@@ -240,17 +246,34 @@ export function traceSingleLoop({ loopSlug, loopsRoot }) {
   const outcomeLine = extractOutcomeLine(loopMd);
 
   if (sessionId) {
-    const costsContent = readTextOrNull(join(loopsRoot, '.loops', '.metrics', 'costs.jsonl'));
-    const rows = filterSessionRows(parseCostsLines(costsContent), sessionId);
+    const rows = providedRows !== undefined
+      ? providedRows
+      : filterSessionRows(parseCostsLines(readTextOrNull(join(loopsRoot, '.loops', '.metrics', 'costs.jsonl'))), sessionId);
     if (rows.length > 0) return buildPreciseTrace({ loopSlug, repo, sessionId, rows });
   }
 
   return buildDegradedTrace({ loopSlug, repo, sessionId, outcomeLine });
 }
 
+/** 把 parseCostsLines 的扁平列依 session_id 分組＋各組按 ts 升冪排序（與 filterSessionRows 同排序口徑）。 */
+function groupRowsBySession(rows) {
+  const bySession = new Map();
+  for (const r of Array.isArray(rows) ? rows : []) {
+    if (!r || typeof r.session_id !== 'string') continue;
+    if (!bySession.has(r.session_id)) bySession.set(r.session_id, []);
+    bySession.get(r.session_id).push(r);
+  }
+  for (const arr of bySession.values()) arr.sort((a, b) => safeTs(a?.ts) - safeTs(b?.ts));
+  return bySession;
+}
+
 /**
  * 掃 <loopsRoot>/.loops/* 底下所有子目錄，只收有 ★[outcome] 行的 loop（＝已完工、值得記一筆
  * baseline 現況的歷史 loop；進行中的 loop 連 est 都做不出，掃了也沒意義）。
+ */
+/**
+ * F6：costs.jsonl 只讀一次（外層讀檔+parseCostsLines+依 session 分組），逐 loop 只查表、
+ * 不重讀重解析——loop 數多時原本 O(N loop × 整份 costs.jsonl) 改成 O(1 讀檔 + N 查表)。
  */
 export function scanOutcomeLoops({ loopsRoot }) {
   const loopsDir = join(loopsRoot, '.loops');
@@ -268,11 +291,17 @@ export function scanOutcomeLoops({ loopsRoot }) {
     .map((d) => d.name)
     .sort();
 
+  const rowsBySession = groupRowsBySession(
+    parseCostsLines(readTextOrNull(join(loopsRoot, '.loops', '.metrics', 'costs.jsonl'))),
+  );
+
   const out = [];
   for (const slug of slugs) {
     const loopMd = readTextOrNull(join(loopsRoot, '.loops', slug, 'loop.md'));
     if (loopMd === null || !extractOutcomeLine(loopMd)) continue;
-    out.push(traceSingleLoop({ loopSlug: slug, loopsRoot }));
+    const sessionId = parseSessionId(loopMd);
+    const rows = sessionId ? (rowsBySession.get(sessionId) ?? []) : [];
+    out.push(traceSingleLoop({ loopSlug: slug, loopsRoot, rows }));
   }
   return out;
 }

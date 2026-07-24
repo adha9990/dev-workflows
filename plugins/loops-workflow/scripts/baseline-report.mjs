@@ -8,8 +8,8 @@
 // 分層（仿 scripts/baseline-corpus.mjs）：
 //   1) 純函式（無 IO，測試直接 import）：computeUnexpectedFailRate / collectExpectedFailRefs /
 //      buildRouteSection / buildQualitySection / buildCostSection / buildPlatformDiffFromGaps /
-//      validateGapEntry / validateGapsSchema / buildBaselineReport / buildMarkdownReport /
-//      reportFilenames / formatDateYYYYMMDD。
+//      unmappedPlatformDimensions / validateGapEntry / validateGapsSchema / buildBaselineReport /
+//      buildMarkdownReport / reportFilenames / formatDateYYYYMMDD。
 //   2) 薄 IO：loadTraces / writeReportFiles / CLI main —— 被 import 時不執行（import.meta.url 守門）。
 // 依賴：僅 node 內建 + 本 repo 既有 baseline-corpus.mjs 匯出（loadCorpusFixtures/evaluateFixture/
 //   buildCorpusReport——本檔的合法上游，非 eval-oracle/eval-trajectory 本體）。零外部套件。
@@ -28,7 +28,7 @@ const PLATFORM_DIFF_DIMENSIONS = [
 // evals/baseline/codex/gaps.json 實際 id 為準（platform-engineer 命名，17 列）；某面向若
 // gaps.json 無對應列（如目前無 skill_invocation 以外的 codex.metrics.* 這種另一軸的量測項），
 // 維持 not_measured 骨架，不硬湊。
-const PLATFORM_DIFF_GAP_ID = {
+export const PLATFORM_DIFF_GAP_ID = {
   manifest: 'codex.manifest',
   skill_invocation: 'codex.skill.discovery_invocation',
   questions: 'codex.interaction.questions',
@@ -218,6 +218,20 @@ export function buildPlatformDiffFromGaps(gaps) {
   });
 }
 
+/**
+ * F3：gaps 有給（非空）、但某面向在裡面找不到對應 capability_id 時，回該面向清單——這是「對映表
+ * 可能已跟 gaps.json 的 id 命名脫鉤（例如 platform 那邊改名）」的訊號，不該悄悄留在 not_measured
+ * 骨架裡沒人發現。gaps 缺省/空陣列（本來就沒給 --gaps）→ 回空陣列，不算漂移。
+ */
+export function unmappedPlatformDimensions(gaps) {
+  if (!Array.isArray(gaps) || gaps.length === 0) return [];
+  const ids = new Set(gaps.map((g) => g?.capability_id));
+  return PLATFORM_DIFF_DIMENSIONS.filter((d) => {
+    const gapId = PLATFORM_DIFF_GAP_ID[d];
+    return !gapId || !ids.has(gapId);
+  });
+}
+
 /** yyyy/mm/dd → 8 碼 YYYYMMDD（UTC，避免時區導致跨日不穩定）。 */
 export function formatDateYYYYMMDD(input) {
   const dt = input instanceof Date ? input : new Date(input);
@@ -254,9 +268,13 @@ export function buildBaselineReport({
   traceCmds,
   extraCaveats,
 }) {
+  const usingGapsDerived = !(Array.isArray(platformDiff) && platformDiff.length) && Array.isArray(gaps) && gaps.length > 0;
   const resolvedPlatformDiff = Array.isArray(platformDiff) && platformDiff.length
     ? platformDiff
-    : (Array.isArray(gaps) && gaps.length ? buildPlatformDiffFromGaps(gaps) : defaultPlatformDiff());
+    : (usingGapsDerived ? buildPlatformDiffFromGaps(gaps) : defaultPlatformDiff());
+  // F3：只在「真的用 gaps 推導 R12」時才檢查對映漂移——platformDiff 被顯式覆寫或根本沒給 gaps
+  // 的情境不算漂移訊號。
+  const unmapped = usingGapsDerived ? unmappedPlatformDimensions(gaps) : [];
 
   return {
     meta: {
@@ -285,7 +303,14 @@ export function buildBaselineReport({
       trace_cmds: Array.isArray(traceCmds) ? traceCmds : [],
       recapture_note: RECAPTURE_NOTE,
     },
-    caveats: [SUBAGENT_LENS_CAVEAT, RECAPTURE_CAVEAT_REF, ...(Array.isArray(extraCaveats) ? extraCaveats : [])],
+    caveats: [
+      SUBAGENT_LENS_CAVEAT,
+      RECAPTURE_CAVEAT_REF,
+      ...(unmapped.length
+        ? [`R12 對映缺口：${unmapped.join('、')} 面向在目前 gaps.json 找不到對應 capability_id（可能是 id 改名或本清單尚未涵蓋），已保持 not_measured`]
+        : []),
+      ...(Array.isArray(extraCaveats) ? extraCaveats : []),
+    ],
   };
 }
 
@@ -293,11 +318,31 @@ function formatRate(rate) {
   return typeof rate === 'number' ? `${(rate * 100).toFixed(1)}%` : 'not_measured';
 }
 
+/**
+ * F9：白話講清楚 cost.tokens 裡 precise 與 est_range 兩組樣本數不對等——單看 JSON 欄位容易誤讀成
+ * 兩組可以直接比大小。M=0（完全沒 trace 資料）時不生這句話（沒東西可講）。
+ */
+function describeCostPrecision(cost) {
+  const t = cost?.tokens;
+  if (!t || typeof t !== 'object') return null;
+  const precise = t.precise?.traces_count ?? 0;
+  const est = t.est_range?.traces_count ?? 0;
+  const notMeasured = typeof t.traces_not_measured === 'number' ? t.traces_not_measured : 0;
+  const total = precise + est + notMeasured;
+  if (total === 0) return null;
+  const restParts = [];
+  if (est > 0) restParts.push(`${est} 筆 outcome-line 級距估算`);
+  if (notMeasured > 0) restParts.push(`${notMeasured} 筆完全未量到`);
+  const restText = restParts.length ? `其餘${restParts.join('、')}` : '其餘皆亦為精確帳';
+  return `precise 涵蓋 ${precise}/${total} 筆 trace（${restText}），兩組量級與信度不同、不得並列比較。`;
+}
+
 /** C3 → 人類可讀 markdown（雙 harness 分組表 + R12 八面向 + rerun + caveats）。 */
 export function buildMarkdownReport(report) {
   const r = report ?? {};
   const q = r.groups?.['claude-code']?.quality ?? {};
   const c = r.groups?.['claude-code']?.cost ?? {};
+  const costPrecisionNote = describeCostPrecision(c);
   const lines = [
     `# Baseline Report — ${r.meta?.date ?? 'unknown-date'} (${r.meta?.repo_sha ?? 'unknown-sha'})`,
     '',
@@ -307,6 +352,7 @@ export function buildMarkdownReport(report) {
     `- 預期紅（expected_fail）：${q.expected_fail_count ?? 0} 筆 — refs: ${(q.expected_fail_refs ?? []).map((x) => x.id).join(', ') || '(無)'}`,
     `- fixture 總數：${q.total_fixtures ?? 0}`,
     `- cost.tokens：${JSON.stringify(c.tokens ?? 'not_measured')}`,
+    ...(costPrecisionNote ? [`- ${costPrecisionNote}`] : []),
     `- cost.duration_ms：${JSON.stringify(c.duration_ms ?? 'not_measured')}`,
     '',
     '## codex 組',
