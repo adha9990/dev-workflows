@@ -1,0 +1,65 @@
+{
+  "schema_version": "1",
+  "notes": "#176：`/setup` wizard 的 catalog。刻意與 integration-registry 分開——registry 描述「有哪些能力、生命週期怎麼跑」，本檔描述「wizard 要問什麼、推薦哪個、什麼情況下才准出現在選單」。每個 entry 的 integration 必須是 integration-registry 裡存在的 id（由 setup-plan.validateCatalog 機械檢查）。\n\ncategory：required（不問，一律裝）／token-optimizer（互斥，使用者擇一或停用）／recommended（預設勾選、可取消）／optional（預設不勾）。\n\nqualification：非 null 代表這個來源**尚未通過資格審查、不得出現在 wizard**——欄位本身就是「還缺什麼」的清單，通過後改成 null 才會被 wizardOptions 收進選單。不合格就是不出現——不提供任何「自己冒險」的降級旗標。\n\nauto_update_ttl_hours：SessionStart 依 TTL 決定要不要對這個來源查 latest；null＝不自動更新。",
+  "entries": [
+    {
+      "id": "code-graph",
+      "integration": "code-graph-index",
+      "category": "required",
+      "recommended": true,
+      "summary": "跨檔案的符號與依賴查詢，讓 reviewer 與 explore 不必整包重讀",
+      "qualification": null,
+      "auto_update_ttl_hours": 168
+    },
+    {
+      "id": "prompt-eval",
+      "integration": "prompt-eval-runner",
+      "category": "required",
+      "recommended": true,
+      "summary": "跑語意級規則的評測；評不到時標 degraded、不得寫成 passed",
+      "qualification": null,
+      "auto_update_ttl_hours": 168
+    },
+    {
+      "id": "token-optimizer-primary",
+      "integration": "token-optimizer-primary",
+      "category": "token-optimizer",
+      "recommended": true,
+      "summary": "壓縮送進模型的內容量（互斥組的推薦選項）",
+      "qualification": null,
+      "auto_update_ttl_hours": 72
+    },
+    {
+      "id": "token-optimizer-alternate",
+      "integration": "token-optimizer-alternate",
+      "category": "token-optimizer",
+      "recommended": false,
+      "summary": "同組的另一個實作；資格審查未過前不出現在 wizard",
+      "qualification": [
+        "Windows 平台實測",
+        "本 harness 上的 hook 掛載順序驗證",
+        "rollback 路徑實測",
+        "真實 benchmark 對照（非宣稱值）"
+      ],
+      "auto_update_ttl_hours": 72
+    },
+    {
+      "id": "skill-optimizer",
+      "integration": "skill-optimizer",
+      "category": "recommended",
+      "recommended": true,
+      "summary": "依實測結果改寫 skill 正文；不得碰規則本身與評分基準",
+      "qualification": null,
+      "auto_update_ttl_hours": 168
+    },
+    {
+      "id": "symbol-aware-editor",
+      "integration": "symbol-aware-editor",
+      "category": "optional",
+      "recommended": false,
+      "summary": "以符號為單位的編輯與重構；不接管記憶體與檢索",
+      "qualification": null,
+      "auto_update_ttl_hours": null
+    }
+  ]
+}

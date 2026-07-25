@@ -15,9 +15,16 @@
         "uninstall": "git worktree remove",
         "rollback": null
       },
-      "triggers": ["迴圈要動 code、需要與主 checkout 隔離的工作區"],
-      "outputs": ["工作區絕對路徑", "工作區對應分支名"],
-      "docs": ["AGENTS.md"]
+      "triggers": [
+        "迴圈要動 code、需要與主 checkout 隔離的工作區"
+      ],
+      "outputs": [
+        "工作區絕對路徑",
+        "工作區對應分支名"
+      ],
+      "docs": [
+        "AGENTS.md"
+      ]
     },
     {
       "id": "workspace-clone",
@@ -32,9 +39,15 @@
         "uninstall": null,
         "rollback": null
       },
-      "triggers": ["工作區隔離能力不可用時的替代路徑"],
-      "outputs": ["複製目錄絕對路徑"],
-      "docs": ["AGENTS.md"]
+      "triggers": [
+        "工作區隔離能力不可用時的替代路徑"
+      ],
+      "outputs": [
+        "複製目錄絕對路徑"
+      ],
+      "docs": [
+        "AGENTS.md"
+      ]
     },
     {
       "id": "forge-cli",
@@ -49,9 +62,17 @@
         "uninstall": null,
         "rollback": null
       },
-      "triggers": ["建立或更新 PR", "抓取 review 意見"],
-      "outputs": ["PR 編號與 URL", "review 意見清單"],
-      "docs": ["plugins/loops-workflow/references/shared/delivery/pr-spec.md"]
+      "triggers": [
+        "建立或更新 PR",
+        "抓取 review 意見"
+      ],
+      "outputs": [
+        "PR 編號與 URL",
+        "review 意見清單"
+      ],
+      "docs": [
+        "plugins/loops-workflow/references/shared/delivery/pr-spec.md"
+      ]
     },
     {
       "id": "forge-web-api",
@@ -66,9 +87,15 @@
         "uninstall": null,
         "rollback": null
       },
-      "triggers": ["指令列路徑不可用時的替代路徑"],
-      "outputs": ["PR 編號與 URL"],
-      "docs": ["plugins/loops-workflow/references/shared/delivery/pr-feedback-sources.md"]
+      "triggers": [
+        "指令列路徑不可用時的替代路徑"
+      ],
+      "outputs": [
+        "PR 編號與 URL"
+      ],
+      "docs": [
+        "plugins/loops-workflow/references/shared/delivery/pr-feedback-sources.md"
+      ]
     },
     {
       "id": "code-graph-index",
@@ -83,9 +110,17 @@
         "uninstall": null,
         "rollback": null
       },
-      "triggers": ["探索既有實作的呼叫鏈與架構", "驗證階段需要追依賴方向"],
-      "outputs": ["符號定義與引用位置", "依賴方向摘要"],
-      "docs": ["plugins/loops-workflow/references/shared/runtime/code-retrieval.md"]
+      "triggers": [
+        "探索既有實作的呼叫鏈與架構",
+        "驗證階段需要追依賴方向"
+      ],
+      "outputs": [
+        "符號定義與引用位置",
+        "依賴方向摘要"
+      ],
+      "docs": [
+        "plugins/loops-workflow/references/shared/runtime/code-retrieval.md"
+      ]
     },
     {
       "id": "text-search-fallback",
@@ -100,9 +135,16 @@
         "uninstall": null,
         "rollback": null
       },
-      "triggers": ["符號圖索引不可用", "只需定位少數符號、不需追呼叫鏈"],
-      "outputs": ["命中檔案與行號"],
-      "docs": ["plugins/loops-workflow/references/shared/runtime/code-retrieval.md"]
+      "triggers": [
+        "符號圖索引不可用",
+        "只需定位少數符號、不需追呼叫鏈"
+      ],
+      "outputs": [
+        "命中檔案與行號"
+      ],
+      "docs": [
+        "plugins/loops-workflow/references/shared/runtime/code-retrieval.md"
+      ]
     },
     {
       "id": "container-sandbox",
@@ -117,9 +159,17 @@
         "uninstall": null,
         "rollback": null
       },
-      "triggers": ["要真跑候選解答並量測", "評測需要與主機檔案系統隔離"],
-      "outputs": ["候選執行結果", "隔離政策驗證結論"],
-      "docs": ["plugins/loops-workflow/references/shared/runtime/eval-live-candidate.md"]
+      "triggers": [
+        "要真跑候選解答並量測",
+        "評測需要與主機檔案系統隔離"
+      ],
+      "outputs": [
+        "候選執行結果",
+        "隔離政策驗證結論"
+      ],
+      "docs": [
+        "plugins/loops-workflow/references/shared/runtime/eval-live-candidate.md"
+      ]
     },
     {
       "id": "prompt-eval-runner",
@@ -134,9 +184,111 @@
         "uninstall": null,
         "rollback": null
       },
-      "triggers": ["把 baseline 語料接到外部評測平台重跑"],
-      "outputs": ["逐 task 的判定結果", "彙總通過率"],
-      "docs": ["plugins/loops-workflow/evals/baseline/promptfoo-adapter.md"]
+      "triggers": [
+        "把 baseline 語料接到外部評測平台重跑"
+      ],
+      "outputs": [
+        "逐 task 的判定結果",
+        "彙總通過率"
+      ],
+      "docs": [
+        "plugins/loops-workflow/evals/baseline/promptfoo-adapter.md"
+      ]
+    },
+    {
+      "id": "token-optimizer-primary",
+      "capability": "壓縮送進模型的內容量，降低每一步的 token 佔用",
+      "support_status": "not_measured",
+      "exclusive_group": "token-optimization",
+      "lifecycle": {
+        "detect": "查詢已安裝來源清單",
+        "install_latest": "安裝最新穩定版",
+        "update_latest": "更新到最新穩定版",
+        "health": "跑該來源的健康檢查",
+        "uninstall": "移除該來源",
+        "rollback": "退回上一個可用版本"
+      },
+      "triggers": [
+        "一條 loop 的 context 量明顯超出預算"
+      ],
+      "outputs": [
+        "壓縮後的內容",
+        "壓縮前後的實測量"
+      ],
+      "docs": [
+        "plugins/loops-workflow/skills/setup/SKILL.md"
+      ]
+    },
+    {
+      "id": "token-optimizer-alternate",
+      "capability": "同一能力的另一個實作；與 primary 互斥",
+      "support_status": "not_measured",
+      "exclusive_group": "token-optimization",
+      "lifecycle": {
+        "detect": "查詢已安裝來源清單",
+        "install_latest": "安裝最新穩定版",
+        "update_latest": "更新到最新穩定版",
+        "health": "跑該來源的健康檢查",
+        "uninstall": "移除該來源",
+        "rollback": "退回上一個可用版本"
+      },
+      "triggers": [
+        "使用者明確選擇這個實作"
+      ],
+      "outputs": [
+        "壓縮後的內容",
+        "壓縮前後的實測量"
+      ],
+      "docs": [
+        "plugins/loops-workflow/skills/setup/SKILL.md"
+      ]
+    },
+    {
+      "id": "skill-optimizer",
+      "capability": "依實測結果改寫 skill 正文，提升遵循率",
+      "support_status": "not_measured",
+      "exclusive_group": "prompt-optimization",
+      "lifecycle": {
+        "detect": "查詢已安裝來源清單",
+        "install_latest": "安裝最新穩定版",
+        "update_latest": "更新到最新穩定版",
+        "health": "跑該來源的健康檢查",
+        "uninstall": "移除該來源",
+        "rollback": "退回上一個可用版本"
+      },
+      "triggers": [
+        "某條規則的遵循率實測偏低"
+      ],
+      "outputs": [
+        "改寫後的 skill 草稿",
+        "前後對照的實測結果"
+      ],
+      "docs": [
+        "plugins/loops-workflow/skills/setup/SKILL.md"
+      ]
+    },
+    {
+      "id": "symbol-aware-editor",
+      "capability": "以符號為單位的編輯與重構，不接管記憶體與檢索",
+      "support_status": "not_measured",
+      "exclusive_group": "symbol-editing",
+      "lifecycle": {
+        "detect": "查詢已安裝來源清單",
+        "install_latest": "安裝最新穩定版",
+        "update_latest": "更新到最新穩定版",
+        "health": "跑該來源的健康檢查",
+        "uninstall": "移除該來源",
+        "rollback": "退回上一個可用版本"
+      },
+      "triggers": [
+        "要對一個符號做跨檔重新命名或搬移"
+      ],
+      "outputs": [
+        "以符號為單位的編輯結果"
+      ],
+      "docs": [
+        "plugins/loops-workflow/skills/setup/SKILL.md"
+      ]
     }
   ]
 }

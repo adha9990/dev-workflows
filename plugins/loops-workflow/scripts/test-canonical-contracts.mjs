@@ -89,9 +89,14 @@ function skillNameConsistencyCheck(entries) {
  * 數必須恰好 1 個——多於 1 個代表有 skill 忘了標 `user-invocable: false`、少於 1 個代表唯一入口
  * 本身被誤標，兩者都是「入口清單漂移」的訊號。
  */
+// #176：公開入口從一個變成兩個——`dispatch`（開始／接續一條 loop）與 `setup`（安裝與對帳外部來源）。
+// 這張白名單是「哪些 skill 准對外曝光」的正式清單：多一個少一個都紅，改它是刻意的一次提交。
+const PUBLIC_ENTRYPOINTS = Object.freeze(['dispatch', 'setup']);
+
 function singleEntrypointCheck(entries) {
-  const entrypoints = entries.filter((e) => e.userInvocable !== false).map((e) => e.dirName);
-  return { ok: entrypoints.length === 1, entrypoints };
+  const entrypoints = entries.filter((e) => e.userInvocable !== false).map((e) => e.dirName).sort();
+  const expected = [...PUBLIC_ENTRYPOINTS].sort();
+  return { ok: entrypoints.length === expected.length && entrypoints.every((e, i) => e === expected[i]), entrypoints };
 }
 
 {
@@ -103,8 +108,9 @@ function singleEntrypointCheck(entries) {
     `[A1] 每個 skill 目錄名與 SKILL.md frontmatter name 一致（${entries.length} 個 skill 全過；違規：${JSON.stringify(nameFindings)}）`);
 
   const { ok, entrypoints } = singleEntrypointCheck(entries);
-  assert(ok && entrypoints.length === 1, `[A2] 恰好 1 個 skill 未標 user-invocable:false（實際：${JSON.stringify(entrypoints)}）`);
-  assert(entrypoints[0] === 'dispatch', `[A3] 唯一對外入口是 "dispatch"（實際：${entrypoints[0]}）`);
+  assert(ok, `[A2] 未標 user-invocable:false 的 skill 恰為公開入口白名單（期望 ${JSON.stringify([...PUBLIC_ENTRYPOINTS].sort())}；實際：${JSON.stringify(entrypoints)}）`);
+  assert(entrypoints.join(',') === [...PUBLIC_ENTRYPOINTS].sort().join(','), `[A3] 對外入口就這兩個（實際：${JSON.stringify(entrypoints)}）`);
+  assert(!singleEntrypointCheck([...entries, { dirName: '亂加的', userInvocable: true }]).ok, '[A3-neg] 多冒出一個公開 skill → 紅（殺掉「凡是白名單超集都放行」的實作）');
 }
 
 // A4：負向案例（不落地成檔案——這兩條規則本身是純函式，用虛構資料直接驗證判定邏輯，不需要
@@ -265,7 +271,7 @@ function lineCountCheck(text, limit = MAX_LINES) {
 // 三邊各是獨立來源，任兩邊對上、第三邊沒對上都要紅，且必須指名是哪個元件、差在哪一邊。
 // ============================================================================
 
-const ENTRY_COMPONENT_ID = 'dispatch-skill';
+const ENTRY_COMPONENT_IDS = Object.freeze(['dispatch-skill', 'setup-skill']);
 // Claude 平台的 manifest 不寫 skills 欄位（以 plugin 根底下的 skills/ 目錄慣例自動探）；Codex 平台
 // 必須明寫（見 codex-plugin-lint.mjs 的 REQUIRED_SKILLS_VALUE）。兩者指的必須是同一個入口根——不同
 // 就代表兩平台曝光的入口集合不同，是「同一份 skill 樹、兩種可見性」的漂移。
@@ -342,9 +348,10 @@ function visibilityReconciliationCheck({ components, frontmatterById, manifestRo
     }
   }
 
-  const entries = components.filter((c) => c.user_invocable === true).map((c) => c.id);
-  if (entries.length !== 1) {
-    findings.push({ check: 'single-entry-component', component: null, detail: `user_invocable=true 的元件應恰好 1 個（實際：${JSON.stringify(entries)}）` });
+  const entries = components.filter((c) => c.user_invocable === true).map((c) => c.id).sort();
+  const expectedEntries = [...ENTRY_COMPONENT_IDS].sort();
+  if (entries.length !== expectedEntries.length || entries.some((e, i) => e !== expectedEntries[i])) {
+    findings.push({ check: 'single-entry-component', component: null, detail: `user_invocable=true 的元件應恰為 ${JSON.stringify(expectedEntries)}（實際：${JSON.stringify(entries)}）` });
   }
   return findings;
 }
@@ -376,9 +383,9 @@ function readComponentFrontmatter(components, root) {
   assert(findings.length === 0,
     `[C1] registry user_invocable ⇄ 元件 frontmatter ⇄ 兩平台 manifest 三方一致（${components.length} 個元件全過；違規：${JSON.stringify(findings)}）`);
 
-  const entries = components.filter((c) => c.user_invocable === true).map((c) => c.id);
-  assert(entries.length === 1 && entries[0] === ENTRY_COMPONENT_ID,
-    `[C2] registry 內唯一入口元件是 "${ENTRY_COMPONENT_ID}"（實際：${JSON.stringify(entries)}）`);
+  const entries = components.filter((c) => c.user_invocable === true).map((c) => c.id).sort();
+  assert(entries.join(',') === [...ENTRY_COMPONENT_IDS].sort().join(','),
+    `[C2] registry 內的入口元件恰為 ${JSON.stringify([...ENTRY_COMPONENT_IDS].sort())}（實際：${JSON.stringify(entries)}）`);
 
   // C3 負向 fixture：把某支非入口 skill 的 registry 值改成 true（只改記憶體副本，不動版控內 registry）
   // → 必須紅，且指名該元件。
@@ -388,7 +395,7 @@ function readComponentFrontmatter(components, root) {
   assert(tamperedFindings.some((f) => f.component === tamperedId && f.check === 'registry-vs-frontmatter'),
     `[C3-1] 負向：非入口 skill「${tamperedId}」registry 值被改成 true → 指名該元件報 registry-vs-frontmatter（實際：${JSON.stringify(tamperedFindings)}）`);
   assert(tamperedFindings.some((f) => f.check === 'single-entry-component'),
-    '[C3-2] 負向：入口數變成 2 → 同時報 single-entry-component');
+    '[C3-2] 負向：入口集合多出一個 → 同時報 single-entry-component');
 
   // C4 負向：agent 被標成 user_invocable=true（非入口類）／兩平台 manifest 入口根不一致。
   const agentSample = components.find((c) => c.kind === 'agent');
