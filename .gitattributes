@@ -1,6 +1,10 @@
 # reviewer/validator agent 檔與其真相源由 gen-reviewers.mjs 生成、輸出純 LF；
 # 釘 eol=lf 讓 Windows/CI checkout 一致，避免 CRLF/LF 差異讓 --check 在不同平台一綠一紅。
-plugins/loops-workflow/agents/*.md text eol=lf
-plugins/loops-workflow/references/reviewer-shared.md text eol=lf
-plugins/loops-workflow/references/reviewers/*.md text eol=lf
+# agents/ 已依角色分巢狀子目錄、reviewer base 模板已併入 references/personas/（與手寫 persona
+# 散文同層），故 agent 側用 ** 遞迴、模板側用檔名形狀（<*>-reviewer.md／finding-validator.md）
+# 框出與搬檔前完全相同的那批生成檔。
+plugins/loops-workflow/agents/**/*.md text eol=lf
+plugins/loops-workflow/references/personas/reviewer-shared.md text eol=lf
+plugins/loops-workflow/references/personas/*-reviewer.md text eol=lf
+plugins/loops-workflow/references/personas/finding-validator.md text eol=lf
 plugins/loops-workflow/scripts/gen-reviewers.mjs text eol=lf

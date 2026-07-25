@@ -291,7 +291,7 @@
         ],
         "evals": [],
         "docs": [
-          "plugins/loops-workflow/references/journaling.md"
+          "plugins/loops-workflow/references/shared/runtime/journaling.md"
         ],
         "integrations": []
       }
@@ -323,7 +323,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": []
@@ -355,7 +355,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": []
@@ -390,7 +390,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": []
@@ -422,7 +422,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": []
@@ -453,7 +453,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": []
@@ -486,7 +486,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": [
@@ -520,7 +520,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": [
@@ -555,10 +555,10 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md",
-          "plugins/loops-workflow/references/comment-policy.md",
-          "plugins/loops-workflow/references/outbound-templates.md"
+          "plugins/loops-workflow/references/shared/delivery/comment-policy.md",
+          "plugins/loops-workflow/references/shared/delivery/outbound-templates.md"
         ],
         "integrations": [
           "forge-cli"
@@ -594,9 +594,9 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md",
-          "plugins/loops-workflow/references/pr-spec.md"
+          "plugins/loops-workflow/references/shared/delivery/pr-spec.md"
         ],
         "integrations": [
           "forge-cli"
@@ -629,7 +629,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": [
@@ -663,7 +663,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": [
@@ -699,7 +699,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": []
@@ -732,9 +732,9 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md",
-          "plugins/loops-workflow/references/eval-harness.md"
+          "plugins/loops-workflow/references/shared/runtime/eval-harness.md"
         ],
         "integrations": []
       }
@@ -765,7 +765,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": []
@@ -795,7 +795,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/journaling.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": []
@@ -822,7 +822,7 @@
         ],
         "evals": [],
         "docs": [
-          "plugins/loops-workflow/references/journaling.md"
+          "plugins/loops-workflow/references/shared/runtime/journaling.md"
         ],
         "integrations": []
       }
@@ -868,7 +868,7 @@
         "evals": [],
         "docs": [
           "plugins/loops-workflow/docs/dual-harness.md",
-          "plugins/loops-workflow/references/journaling.md"
+          "plugins/loops-workflow/references/shared/runtime/journaling.md"
         ],
         "integrations": []
       }
@@ -893,7 +893,7 @@
         "hooks": [],
         "evals": [],
         "docs": [
-          "plugins/loops-workflow/references/quality-gate-schema.md"
+          "plugins/loops-workflow/references/stages/quality-gate-schema.md"
         ],
         "integrations": []
       }
@@ -919,7 +919,7 @@
         "hooks": [],
         "evals": [],
         "docs": [
-          "plugins/loops-workflow/references/journaling.md"
+          "plugins/loops-workflow/references/shared/runtime/journaling.md"
         ],
         "integrations": []
       }
@@ -966,7 +966,7 @@
         "hooks": [],
         "evals": [],
         "docs": [
-          "plugins/loops-workflow/references/machine-plan-schema.md"
+          "plugins/loops-workflow/references/stages/machine-plan-schema.md"
         ],
         "integrations": []
       }
@@ -1229,7 +1229,7 @@
         "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/references/interaction-adapter.md"
+          "plugins/loops-workflow/references/shared/delivery/interaction-adapter.md"
         ],
         "integrations": []
       }
@@ -1307,7 +1307,7 @@
         "hooks": [],
         "evals": [],
         "docs": [
-          "plugins/loops-workflow/references/interaction-adapter.md"
+          "plugins/loops-workflow/references/shared/delivery/interaction-adapter.md"
         ],
         "integrations": []
       }
@@ -1403,7 +1403,7 @@
         "hooks": [],
         "evals": [],
         "docs": [
-          "plugins/loops-workflow/references/reviewer-shared.md"
+          "plugins/loops-workflow/references/personas/reviewer-shared.md"
         ],
         "integrations": []
       }
@@ -1488,7 +1488,7 @@
           "plugins/loops-workflow/evals/gold/explanation-quality.json"
         ],
         "docs": [
-          "plugins/loops-workflow/references/eval-harness.md"
+          "plugins/loops-workflow/references/shared/runtime/eval-harness.md"
         ],
         "integrations": [
           "container-sandbox"
@@ -1553,7 +1553,7 @@
           "plugins/loops-workflow/evals/build/b1-add.json"
         ],
         "docs": [
-          "plugins/loops-workflow/references/eval-harness.md"
+          "plugins/loops-workflow/references/shared/runtime/eval-harness.md"
         ],
         "integrations": []
       }
@@ -2384,7 +2384,7 @@
       "id": "accessibility-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/accessibility-reviewer.md"
+        "plugins/loops-workflow/agents/verify/conditional/accessibility-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2414,7 +2414,7 @@
       "id": "architecture-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/architecture-reviewer.md"
+        "plugins/loops-workflow/agents/verify/core/architecture-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2448,7 +2448,7 @@
       "id": "architecture-reviewer-deep-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/architecture-reviewer-deep.md"
+        "plugins/loops-workflow/agents/verify/core/architecture-reviewer-deep.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2482,7 +2482,7 @@
       "id": "ci-cd-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/ci-cd-reviewer.md"
+        "plugins/loops-workflow/agents/verify/conditional/ci-cd-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2512,7 +2512,7 @@
       "id": "code-quality-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/code-quality-reviewer.md"
+        "plugins/loops-workflow/agents/verify/core/code-quality-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2548,7 +2548,7 @@
       "id": "code-quality-reviewer-deep-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/code-quality-reviewer-deep.md"
+        "plugins/loops-workflow/agents/verify/core/code-quality-reviewer-deep.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2584,7 +2584,7 @@
       "id": "docs-devex-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/docs-devex-reviewer.md"
+        "plugins/loops-workflow/agents/verify/conditional/docs-devex-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2616,7 +2616,7 @@
       "id": "eval-judge-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/eval-judge.md"
+        "plugins/loops-workflow/agents/eval/eval-judge.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2643,7 +2643,7 @@
       "id": "finding-validator-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/finding-validator.md"
+        "plugins/loops-workflow/agents/verify/validation/finding-validator.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2673,7 +2673,7 @@
       "id": "finding-validator-deep-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/finding-validator-deep.md"
+        "plugins/loops-workflow/agents/verify/validation/finding-validator-deep.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2703,7 +2703,7 @@
       "id": "frontend-ui-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/frontend-ui-reviewer.md"
+        "plugins/loops-workflow/agents/verify/conditional/frontend-ui-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2734,7 +2734,7 @@
       "id": "impl-author-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/impl-author.md"
+        "plugins/loops-workflow/agents/build/impl-author.md"
       ],
       "stage_role": "build",
       "visibility": "public",
@@ -2768,7 +2768,7 @@
       "id": "migration-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/migration-reviewer.md"
+        "plugins/loops-workflow/agents/verify/conditional/migration-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2798,7 +2798,7 @@
       "id": "multi-user-concurrency-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/multi-user-concurrency-reviewer.md"
+        "plugins/loops-workflow/agents/verify/conditional/multi-user-concurrency-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2831,7 +2831,7 @@
       "id": "observability-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/observability-reviewer.md"
+        "plugins/loops-workflow/agents/verify/conditional/observability-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2861,7 +2861,7 @@
       "id": "performance-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/performance-reviewer.md"
+        "plugins/loops-workflow/agents/verify/core/performance-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2892,7 +2892,7 @@
       "id": "processing-reliability-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/processing-reliability-reviewer.md"
+        "plugins/loops-workflow/agents/verify/conditional/processing-reliability-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2922,7 +2922,7 @@
       "id": "product-contract-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/product-contract-reviewer.md"
+        "plugins/loops-workflow/agents/verify/core/product-contract-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2955,7 +2955,7 @@
       "id": "referee-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/referee.md"
+        "plugins/loops-workflow/agents/verify/validation/referee.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -2981,7 +2981,7 @@
       "id": "root-cause-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/root-cause-reviewer.md"
+        "plugins/loops-workflow/agents/verify/conditional/root-cause-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -3013,7 +3013,7 @@
       "id": "security-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/security-reviewer.md"
+        "plugins/loops-workflow/agents/verify/core/security-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -3044,7 +3044,7 @@
       "id": "security-reviewer-deep-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/security-reviewer-deep.md"
+        "plugins/loops-workflow/agents/verify/core/security-reviewer-deep.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -3075,7 +3075,7 @@
       "id": "test-author-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/test-author.md"
+        "plugins/loops-workflow/agents/build/test-author.md"
       ],
       "stage_role": "build",
       "visibility": "public",
@@ -3105,7 +3105,7 @@
       "id": "tests-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/tests-reviewer.md"
+        "plugins/loops-workflow/agents/verify/core/tests-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -3136,7 +3136,7 @@
       "id": "web-performance-reviewer-agent",
       "kind": "agent",
       "paths": [
-        "plugins/loops-workflow/agents/web-performance-reviewer.md"
+        "plugins/loops-workflow/agents/verify/conditional/web-performance-reviewer.md"
       ],
       "stage_role": "verify",
       "visibility": "public",
@@ -3166,7 +3166,7 @@
       "id": "ref-acceptance-review",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/acceptance-review.md"
+        "plugins/loops-workflow/references/personas/acceptance-review.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3194,7 +3194,7 @@
       "id": "ref-adr-template",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/adr-template.md"
+        "plugins/loops-workflow/references/shared/docs/adr-template.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3220,7 +3220,7 @@
       "id": "ref-architecture-review",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/architecture-review.md"
+        "plugins/loops-workflow/references/personas/architecture-review.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3248,7 +3248,7 @@
       "id": "ref-auto-mode",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/auto-mode.md"
+        "plugins/loops-workflow/references/shared/runtime/auto-mode.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3276,7 +3276,7 @@
       "id": "ref-automations",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/automations.md"
+        "plugins/loops-workflow/references/shared/runtime/automations.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3301,7 +3301,7 @@
       "id": "ref-bdd-scenarios",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/bdd-scenarios.md"
+        "plugins/loops-workflow/references/stages/bdd-scenarios.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3332,7 +3332,7 @@
       "id": "ref-change-summaries",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/change-summaries.md"
+        "plugins/loops-workflow/references/stages/change-summaries.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3358,7 +3358,7 @@
       "id": "ref-clean-architecture",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/clean-architecture.md"
+        "plugins/loops-workflow/references/shared/quality/clean-architecture.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3389,7 +3389,7 @@
       "id": "ref-clean-code",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/clean-code.md"
+        "plugins/loops-workflow/references/shared/quality/clean-code.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3419,7 +3419,7 @@
       "id": "ref-code-retrieval",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/code-retrieval.md"
+        "plugins/loops-workflow/references/shared/runtime/code-retrieval.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3467,7 +3467,7 @@
       "id": "ref-code-simplification",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/code-simplification.md"
+        "plugins/loops-workflow/references/shared/quality/code-simplification.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3496,7 +3496,7 @@
       "id": "ref-comment-policy",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/comment-policy.md"
+        "plugins/loops-workflow/references/shared/delivery/comment-policy.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3526,7 +3526,7 @@
       "id": "ref-commit-spec",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/commit-spec.md"
+        "plugins/loops-workflow/references/shared/delivery/commit-spec.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3552,7 +3552,7 @@
       "id": "ref-context-diet",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/context-diet.md"
+        "plugins/loops-workflow/references/shared/runtime/context-diet.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3584,7 +3584,7 @@
       "id": "ref-contract-spec",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/contract-spec.md"
+        "plugins/loops-workflow/references/shared/quality/contract-spec.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3611,7 +3611,7 @@
       "id": "ref-correctness-review",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/correctness-review.md"
+        "plugins/loops-workflow/references/personas/correctness-review.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3639,7 +3639,7 @@
       "id": "ref-cross-model-review",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/cross-model-review.md"
+        "plugins/loops-workflow/references/stages/cross-model-review.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3665,7 +3665,7 @@
       "id": "ref-design-patterns",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/design-patterns.md"
+        "plugins/loops-workflow/references/shared/quality/design-patterns.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3694,7 +3694,7 @@
       "id": "ref-design-plan-schema",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/design-plan-schema.md"
+        "plugins/loops-workflow/references/stages/design-plan-schema.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3720,7 +3720,7 @@
       "id": "ref-docs-devex-review",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/docs-devex-review.md"
+        "plugins/loops-workflow/references/personas/docs-devex-review.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3747,7 +3747,7 @@
       "id": "ref-docs-policy",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/docs-policy.md"
+        "plugins/loops-workflow/references/shared/docs/docs-policy.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3775,7 +3775,7 @@
       "id": "ref-edd-comment-template",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/edd-comment-template.md"
+        "plugins/loops-workflow/references/shared/delivery/edd-comment-template.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3800,7 +3800,7 @@
       "id": "ref-eval-harness",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/eval-harness.md"
+        "plugins/loops-workflow/references/shared/runtime/eval-harness.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3825,7 +3825,7 @@
       "id": "ref-eval-judge-panel",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/eval-judge-panel.md"
+        "plugins/loops-workflow/references/shared/runtime/eval-judge-panel.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3850,7 +3850,7 @@
       "id": "ref-eval-judge-rubric",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/eval-judge-rubric.md"
+        "plugins/loops-workflow/references/personas/eval-judge-rubric.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3876,7 +3876,7 @@
       "id": "ref-eval-live-candidate",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/eval-live-candidate.md"
+        "plugins/loops-workflow/references/shared/runtime/eval-live-candidate.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3901,7 +3901,7 @@
       "id": "ref-finding-author-decision-rule",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/finding-author-decision-rule.md"
+        "plugins/loops-workflow/references/personas/finding-author-decision-rule.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3928,7 +3928,7 @@
       "id": "ref-finding-validation",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/finding-validation.md"
+        "plugins/loops-workflow/references/personas/finding-validation.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3956,7 +3956,7 @@
       "id": "ref-fleet",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/fleet.md"
+        "plugins/loops-workflow/references/shared/runtime/fleet.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -3983,7 +3983,7 @@
       "id": "ref-goal-restate-schema",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/goal-restate-schema.md"
+        "plugins/loops-workflow/references/stages/goal-restate-schema.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4010,7 +4010,7 @@
       "id": "ref-interaction-adapter",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/interaction-adapter.md"
+        "plugins/loops-workflow/references/shared/delivery/interaction-adapter.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4043,7 +4043,7 @@
       "id": "ref-journaling",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/journaling.md"
+        "plugins/loops-workflow/references/shared/runtime/journaling.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4071,7 +4071,7 @@
       "id": "ref-machine-plan-schema",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/machine-plan-schema.md"
+        "plugins/loops-workflow/references/stages/machine-plan-schema.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4098,7 +4098,7 @@
       "id": "ref-minimalism-ladder",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/minimalism-ladder.md"
+        "plugins/loops-workflow/references/shared/quality/minimalism-ladder.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4128,7 +4128,7 @@
       "id": "ref-model-effort-policy",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/model-effort-policy.md"
+        "plugins/loops-workflow/references/shared/runtime/model-effort-policy.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4155,7 +4155,7 @@
       "id": "ref-multi-user-review",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/multi-user-review.md"
+        "plugins/loops-workflow/references/personas/multi-user-review.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4182,7 +4182,7 @@
       "id": "ref-onboarding",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/onboarding.md"
+        "plugins/loops-workflow/references/shared/docs/onboarding.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4208,7 +4208,7 @@
       "id": "ref-operation-first-move",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/operation-first-move.md"
+        "plugins/loops-workflow/references/stages/operation-first-move.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4237,7 +4237,7 @@
       "id": "ref-optional-reviewers",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/optional-reviewers.md"
+        "plugins/loops-workflow/references/stages/optional-reviewers.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4264,7 +4264,7 @@
       "id": "ref-outbound-templates",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/outbound-templates.md"
+        "plugins/loops-workflow/references/shared/delivery/outbound-templates.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4289,7 +4289,7 @@
       "id": "ref-performance-review",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/performance-review.md"
+        "plugins/loops-workflow/references/personas/performance-review.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4316,7 +4316,7 @@
       "id": "ref-pr-feedback-sources",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/pr-feedback-sources.md"
+        "plugins/loops-workflow/references/shared/delivery/pr-feedback-sources.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4342,7 +4342,7 @@
       "id": "ref-pr-spec",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/pr-spec.md"
+        "plugins/loops-workflow/references/shared/delivery/pr-spec.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4369,7 +4369,7 @@
       "id": "ref-preflight",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/preflight.md"
+        "plugins/loops-workflow/references/stages/preflight.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4395,7 +4395,7 @@
       "id": "ref-project-conventions",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/project-conventions.md"
+        "plugins/loops-workflow/references/shared/docs/project-conventions.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4423,7 +4423,7 @@
       "id": "ref-quality-gate-schema",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/quality-gate-schema.md"
+        "plugins/loops-workflow/references/stages/quality-gate-schema.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4449,7 +4449,7 @@
       "id": "ref-refactoring",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/refactoring.md"
+        "plugins/loops-workflow/references/shared/quality/refactoring.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4479,7 +4479,7 @@
       "id": "ref-reuse-check",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reuse-check.md"
+        "plugins/loops-workflow/references/shared/quality/reuse-check.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4511,7 +4511,7 @@
       "id": "ref-review-dispositions",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/review-dispositions.md"
+        "plugins/loops-workflow/references/personas/review-dispositions.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4537,7 +4537,7 @@
       "id": "ref-reviewer-severity",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewer-severity.md"
+        "plugins/loops-workflow/references/personas/reviewer-severity.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4583,7 +4583,7 @@
       "id": "ref-reviewer-shared",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewer-shared.md"
+        "plugins/loops-workflow/references/personas/reviewer-shared.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4609,7 +4609,7 @@
       "id": "ref-root-cause-review",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/root-cause-review.md"
+        "plugins/loops-workflow/references/personas/root-cause-review.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4636,7 +4636,7 @@
       "id": "ref-security-checklist",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/security-checklist.md"
+        "plugins/loops-workflow/references/shared/quality/security-checklist.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4666,7 +4666,7 @@
       "id": "ref-task-template",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/task-template.md"
+        "plugins/loops-workflow/references/stages/task-template.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4693,7 +4693,7 @@
       "id": "ref-test-rubric",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/test-rubric.md"
+        "plugins/loops-workflow/references/shared/quality/test-rubric.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4725,7 +4725,7 @@
       "id": "ref-ui-interaction-review",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/ui-interaction-review.md"
+        "plugins/loops-workflow/references/personas/ui-interaction-review.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4752,7 +4752,7 @@
       "id": "ref-verify-triage",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/verify-triage.md"
+        "plugins/loops-workflow/references/stages/verify-triage.md"
       ],
       "stage_role": null,
       "visibility": "public",
@@ -4778,7 +4778,7 @@
       "id": "ref-persona-accessibility-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/accessibility-reviewer.md"
+        "plugins/loops-workflow/references/personas/accessibility-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -4802,7 +4802,7 @@
       "id": "ref-persona-architecture-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/architecture-reviewer.md"
+        "plugins/loops-workflow/references/personas/architecture-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -4827,7 +4827,7 @@
       "id": "ref-persona-ci-cd-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/ci-cd-reviewer.md"
+        "plugins/loops-workflow/references/personas/ci-cd-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -4851,7 +4851,7 @@
       "id": "ref-persona-code-quality-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/code-quality-reviewer.md"
+        "plugins/loops-workflow/references/personas/code-quality-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -4876,7 +4876,7 @@
       "id": "ref-persona-docs-devex-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/docs-devex-reviewer.md"
+        "plugins/loops-workflow/references/personas/docs-devex-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -4900,7 +4900,7 @@
       "id": "ref-persona-finding-validator",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/finding-validator.md"
+        "plugins/loops-workflow/references/personas/finding-validator.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -4925,7 +4925,7 @@
       "id": "ref-persona-frontend-ui-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/frontend-ui-reviewer.md"
+        "plugins/loops-workflow/references/personas/frontend-ui-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -4949,7 +4949,7 @@
       "id": "ref-persona-migration-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/migration-reviewer.md"
+        "plugins/loops-workflow/references/personas/migration-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -4973,7 +4973,7 @@
       "id": "ref-persona-multi-user-concurrency-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/multi-user-concurrency-reviewer.md"
+        "plugins/loops-workflow/references/personas/multi-user-concurrency-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -4997,7 +4997,7 @@
       "id": "ref-persona-observability-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/observability-reviewer.md"
+        "plugins/loops-workflow/references/personas/observability-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -5021,7 +5021,7 @@
       "id": "ref-persona-performance-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/performance-reviewer.md"
+        "plugins/loops-workflow/references/personas/performance-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -5045,7 +5045,7 @@
       "id": "ref-persona-processing-reliability-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/processing-reliability-reviewer.md"
+        "plugins/loops-workflow/references/personas/processing-reliability-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -5069,7 +5069,7 @@
       "id": "ref-persona-product-contract-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/product-contract-reviewer.md"
+        "plugins/loops-workflow/references/personas/product-contract-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -5093,7 +5093,7 @@
       "id": "ref-persona-root-cause-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/root-cause-reviewer.md"
+        "plugins/loops-workflow/references/personas/root-cause-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -5117,7 +5117,7 @@
       "id": "ref-persona-security-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/security-reviewer.md"
+        "plugins/loops-workflow/references/personas/security-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -5142,7 +5142,7 @@
       "id": "ref-persona-tests-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/tests-reviewer.md"
+        "plugins/loops-workflow/references/personas/tests-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",
@@ -5166,7 +5166,7 @@
       "id": "ref-persona-web-performance-reviewer",
       "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/references/reviewers/web-performance-reviewer.md"
+        "plugins/loops-workflow/references/personas/web-performance-reviewer.md"
       ],
       "stage_role": null,
       "visibility": "internal",

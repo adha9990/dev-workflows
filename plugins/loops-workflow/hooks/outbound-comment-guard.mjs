@@ -245,9 +245,11 @@ export function findFormatViolations(body) {
 }
 
 const HOOKS_DIR = dirname(fileURLToPath(import.meta.url));
-const REFERENCES_DIR = join(HOOKS_DIR, '..', 'references');
-const COMMENT_POLICY_PATH = join(REFERENCES_DIR, 'comment-policy.md');
-const OUTBOUND_TEMPLATES_PATH = join(REFERENCES_DIR, 'outbound-templates.md');
+// deny 訊息會把這兩條絕對路徑印給 agent 去讀，路徑不存在＝執行期死結，故隨 reference 樹的
+// 巢狀分類同步（兩份對外訊息規範都歸 shared/delivery/）。
+const DELIVERY_REFERENCES_DIR = join(HOOKS_DIR, '..', 'references', 'shared', 'delivery');
+const COMMENT_POLICY_PATH = join(DELIVERY_REFERENCES_DIR, 'comment-policy.md');
+const OUTBOUND_TEMPLATES_PATH = join(DELIVERY_REFERENCES_DIR, 'outbound-templates.md');
 
 /**
  * read-gate deny 時的理由文字：依 kind 指向對應規範檔的絕對路徑（import.meta.url 推導）+ 對應

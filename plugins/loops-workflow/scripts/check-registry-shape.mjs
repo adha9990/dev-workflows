@@ -243,22 +243,34 @@ export function formatSummary(result) {
 
 // ── IO 邊界：讀 registry / agents 目錄 + CLI main ───────────────────────────────
 
-function readAgentNames(agentsDirAbs) {
+/**
+ * agents 樹底下**任意深度**的 .md → agent 名（檔名去 .md，不含目錄段；registry 的鍵本身是扁平的）。
+ * 遞迴：agents/ 已依角色分巢狀子目錄，非遞迴會讓子目錄裡的 agent 整批從鍵集合對帳中消失，
+ * 而且是「registry 有、現況空」的靜默塌陷（比照 compat-lint C4 的 listFilesRecursive）。
+ * 回 { name: 絕對路徑 }，讓後續讀 frontmatter 不必再推路徑形狀。
+ */
+function readAgentFiles(agentsDirAbs) {
+  const out = {};
   let entries;
   try {
-    entries = readdirSync(agentsDirAbs);
+    entries = readdirSync(agentsDirAbs, { withFileTypes: true });
   } catch {
-    return [];
+    return out;
   }
-  return entries.filter((f) => f.endsWith('.md')).map((f) => basename(f, '.md'));
+  for (const entry of entries) {
+    const abs = join(agentsDirAbs, entry.name);
+    if (entry.isDirectory()) Object.assign(out, readAgentFiles(abs));
+    else if (entry.name.endsWith('.md')) out[basename(entry.name, '.md')] = abs;
+  }
+  return out;
 }
 
-function readAgentEffort(agentsDirAbs, names) {
+function readAgentEffort(agentFiles, names) {
   const map = {};
   for (const name of names) {
     let content;
     try {
-      content = readFileSync(join(agentsDirAbs, `${name}.md`), 'utf8');
+      content = readFileSync(agentFiles[name], 'utf8');
     } catch {
       map[name] = null;
       continue;
@@ -289,8 +301,9 @@ export function buildReport(opts) {
     return { ok: false, findings: [{ check: 'registry-parse', severity: 'P1', detail: parsed.error }] };
   }
 
-  const agentNames = readAgentNames(agentsDirAbs);
-  const effortByAgent = readAgentEffort(agentsDirAbs, agentNames);
+  const agentFiles = readAgentFiles(agentsDirAbs);
+  const agentNames = Object.keys(agentFiles);
+  const effortByAgent = readAgentEffort(agentFiles, agentNames);
   const pathExists = (rel) => existsSync(join(opts.root, ...String(rel).split('/')));
 
   return checkRegistry(parsed.registry, { agentNames, effortByAgent, pathExists });

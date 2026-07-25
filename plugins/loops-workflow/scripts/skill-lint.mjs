@@ -278,14 +278,19 @@ function pluginRootOf(file, pluginRoots) {
 
 // references/ 樹底下**任意深度**的 .md 都算 plugin reference（不限直屬層）——reference 已巢狀
 // 分類，只認直屬層會讓子目錄裡的 reference 完全脫離 orphan-ref 視野。
-// 例外：GENERATED_REFERENCE_SUBDIRS 底下的檔是 generator 從真相源整批產出、由 generator 掃目錄
-// 消費（不靠散文逐字提檔名），對它們問「有沒有 referrer 提到檔名」問錯了問題——這批本來就不在
-// orphan-ref 視野內（compat-lint 的 EXCLUDED_PATH_PREFIXES、lint-mutation 的探針落點也都同樣
-// 排除它），這裡只是把既有共識寫明，不是放寬。broken-ref 不受影響：指向它們的引用仍會被解析。
-const GENERATED_REFERENCE_SUBDIRS = new Set(['reviewers']);
+// 例外：reviewer base 模板是 generator 從真相源整批產出、由 generator 掃目錄消費（不靠散文逐字
+// 提檔名），對它們問「有沒有 referrer 提到檔名」問錯了問題——這批本來就不在 orphan-ref 視野內
+// （compat-lint 的 isGeneratedPersonaTemplate、lint-mutation 的探針落點也都同樣排除它），這裡只是
+// 把既有共識寫明，不是放寬。broken-ref 不受影響：指向它們的引用仍會被解析。
+// 模板已與手寫 persona 散文同層（references/personas/），故改以檔名形狀框定：模板檔名恰好等於
+// 它生成的 agent 名（<*>-reviewer.md／finding-validator.md），手寫散文一律不是這個形狀。
+const GENERATED_REFERENCE_DIR_SEGMENT = 'personas';
+const GENERATED_REFERENCE_FILE_RE = /^([\w-]+-reviewer|finding-validator)\.md$/;
 
 function isGeneratedReferenceFile(file) {
-  return file.split('/').some((segment) => GENERATED_REFERENCE_SUBDIRS.has(segment));
+  const segments = file.split('/');
+  if (segments[segments.length - 2] !== GENERATED_REFERENCE_DIR_SEGMENT) return false;
+  return GENERATED_REFERENCE_FILE_RE.test(segments[segments.length - 1]);
 }
 
 function isPluginReferenceFile(file, pluginRoots) {
@@ -429,6 +434,10 @@ export function deadCommandCheck(map) {
 }
 
 // ── #128：flag 分類三方同步（hook-flags.mjs⇄settings.md⇄journaling.md）＋ hooks.json 掛載對帳 ──
+
+// journaling.md 在 plugin 內的相對落點（reference 樹已依主題巢狀分類）。同時是讀取鍵與 finding
+// 的 file 欄位——finding 指的路徑要真的能打開，讀者才找得到要修哪一檔。
+const JOURNALING_REL = 'references/shared/runtime/journaling.md';
 
 // 「N 個 flag」不錨定收尾括號——真實 hook-flags.mjs 的引號是「「11 個 flag 各自屬於 defaultOn
 // 還是 optIn」與「怎麼判斷開關」...」，收尾 」 在 optIn 之後，不是緊跟在 flag 後面；只認「數字＋
@@ -639,14 +648,14 @@ export function flagSyncCheck({ hookFlagsContent, settingsContent, journalingCon
       findings.push({
         check: 'flag-sync',
         severity: 'P1',
-        file: 'references/journaling.md',
+        file: JOURNALING_REL,
         detail: `${flag.name} 未出現在 flag 決策表`,
       });
     } else if (journalingCls !== expectedCls) {
       findings.push({
         check: 'flag-sync',
         severity: 'P1',
-        file: 'references/journaling.md',
+        file: JOURNALING_REL,
         detail: `${flag.name} 決策表分類（${journalingCls}）與 hook-flags.mjs（${expectedCls}）不一致`,
       });
     }
@@ -659,7 +668,7 @@ export function flagSyncCheck({ hookFlagsContent, settingsContent, journalingCon
     if (knownNames.has(name) || FLAG_NAME_ALLOWLIST.has(name)) continue;
     const sources = [];
     if (settingsNames.has(name)) sources.push('docs/settings.md');
-    if (journalingNames.has(name)) sources.push('references/journaling.md');
+    if (journalingNames.has(name)) sources.push(JOURNALING_REL);
     findings.push({
       check: 'flag-sync',
       severity: 'P2',
@@ -972,7 +981,7 @@ function buildFlagAndWiringResults(fullMap, root) {
     const flagFindings = flagSyncCheck({
       hookFlagsContent: fullMap[hookFlagsKey],
       settingsContent: fullMap[`${pluginRel}/docs/settings.md`],
-      journalingContent: fullMap[`${pluginRel}/references/journaling.md`],
+      journalingContent: fullMap[`${pluginRel}/${JOURNALING_REL}`],
     });
     for (const f of flagFindings) (f.severity === 'P1' ? findings : notes).push(f);
 

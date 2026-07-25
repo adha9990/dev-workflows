@@ -76,8 +76,8 @@ import { parseRegistryJson } from './check-registry-shape.mjs';
 
 const SCOPE_IDS = ['skills', 'references', 'plugin-docs', 'repo-root', 'root-docs'];
 
-// scope → 掃描基準目錄（五個 scope 一律遞迴）。references 曾刻意設非遞迴以避開生成物
-// references/reviewers/**，但那批已由 EXCLUDED_PATH_PREFIXES 精確排除；改遞迴後 reference 樹
+// scope → 掃描基準目錄（五個 scope 一律遞迴）。references 曾刻意設非遞迴以避開生成物 reviewer
+// base 模板，但那批已由 isGeneratedPersonaTemplate 精確排除；改遞迴後 reference 樹
 // 巢狀分類的子目錄才進得了 C3/C5 掃描面，否則搬檔即靜默失效（掃描面塌陷但仍回報全綠）。
 const SCOPE_DIR_DEFS = {
   skills: { baseDir: 'plugins/loops-workflow/skills', recursive: true },
@@ -105,15 +105,19 @@ const EFFORT_FRONTMATTER_RE = /^effort:\s*(\S+)\s*$/m;
 const STATUS_CONSERVATISM_RANK = { not_supported: 3, degraded: 2, not_measured: 1, supported: 0 };
 
 // 排除集（寫死，比照 codex-plugin-lint.mjs 的 EXCLUDED_DIR_NAMES）：
-// - 生成真相源（reviewer 人設由 gen-reviewers.mjs 生成，不是手寫 canonical 散文）
-// - agents/**（同樣是生成產物）
+// - agents/**（生成產物）
 // - scaffold-fullstack/assets/**（要 scaffold 出去的專案模板，不是本 plugin 的規則文字）
 const EXCLUDED_PATH_PREFIXES = [
-  'plugins/loops-workflow/references/reviewers/',
   'plugins/loops-workflow/agents/',
   'plugins/loops-workflow/skills/scaffold-fullstack/assets/',
 ];
-const EXCLUDED_EXACT_FILES = new Set(['plugins/loops-workflow/references/reviewer-shared.md']);
+const EXCLUDED_EXACT_FILES = new Set(['plugins/loops-workflow/references/personas/reviewer-shared.md']);
+// 生成真相源（gen-reviewers.mjs 的 base 模板）搬進 references/personas/ 後與手寫 persona 散文
+// 同層，再也沒有可用的目錄前綴可分辨 —— 改以「所在目錄＋檔名形狀」框出同一批檔：模板檔名恰好
+// 等於它生成的 agent 名（<*>-reviewer.md 或 finding-validator.md），手寫 persona 散文一律是
+// <*>-review.md／其他命名，兩者不重疊。排除面與搬檔前的 references/reviewers/** 等價，未放寬。
+const GENERATED_PERSONA_DIR = 'plugins/loops-workflow/references/personas/';
+const GENERATED_PERSONA_FILE_RE = /^([\w-]+-reviewer|finding-validator)\.md$/;
 const EXCLUDED_DIR_NAMES = new Set(['.loops', '.claude', '.git', 'node_modules', '.superpowers', 'fixtures']);
 
 // 三類違規（各自獨立正則，findings 用 check 欄位分類）。
@@ -318,9 +322,16 @@ export function lintFileText(text, file) {
   return { findings, notes };
 }
 
-/** 排除規則：路徑前綴、精確檔名、或任一路徑段命中 EXCLUDED_DIR_NAMES。relPath 為 repo-relative posix。 */
+/** references/personas/ 底下、檔名等於某支生成 agent 名的 base 模板（gen-reviewers.mjs 的真相源）。 */
+export function isGeneratedPersonaTemplate(relPath) {
+  if (!relPath.startsWith(GENERATED_PERSONA_DIR)) return false;
+  return GENERATED_PERSONA_FILE_RE.test(relPath.slice(GENERATED_PERSONA_DIR.length));
+}
+
+/** 排除規則：路徑前綴、精確檔名、生成模板、或任一路徑段命中 EXCLUDED_DIR_NAMES。relPath 為 repo-relative posix。 */
 export function isExcludedPath(relPath) {
   if (EXCLUDED_EXACT_FILES.has(relPath)) return true;
+  if (isGeneratedPersonaTemplate(relPath)) return true;
   if (EXCLUDED_PATH_PREFIXES.some((prefix) => relPath.startsWith(prefix))) return true;
   return relPath.split('/').some((seg) => EXCLUDED_DIR_NAMES.has(seg));
 }

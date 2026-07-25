@@ -25,7 +25,7 @@
         "plugins/loops-workflow/hooks/test-outbound-comment-guard.mjs",
         "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
       ],
-      "docs": ["AGENTS.md", "plugins/loops-workflow/references/comment-policy.md"]
+      "docs": ["AGENTS.md", "plugins/loops-workflow/references/shared/delivery/comment-policy.md"]
     },
     {
       "id": "stage-advance-without-asking",
@@ -44,13 +44,13 @@
       "requires": ["真正要選時開一個決策點", "危險或分類模糊時安全停"],
       "forbids": ["每進一階段就問要不要繼續", "用純文字要使用者打字回覆", "auto-模式吞掉安全停"],
       "conflicts_with": [],
-      "projection": ["AGENTS.md", "plugins/loops-workflow/references/auto-mode.md"],
+      "projection": ["AGENTS.md", "plugins/loops-workflow/references/shared/runtime/auto-mode.md"],
       "projection_marker": "安全停",
       "tests": [
         "plugins/loops-workflow/scripts/test-safe-stop-assertion.mjs",
         "plugins/loops-workflow/hooks/test-loop-driver.mjs"
       ],
-      "docs": ["AGENTS.md", "plugins/loops-workflow/references/interaction-adapter.md"]
+      "docs": ["AGENTS.md", "plugins/loops-workflow/references/shared/delivery/interaction-adapter.md"]
     },
     {
       "id": "loops-stage-memory",
@@ -76,7 +76,7 @@
         "plugins/loops-workflow/scripts/test-progress.mjs",
         "plugins/loops-workflow/hooks/test-path-guard.mjs"
       ],
-      "docs": ["AGENTS.md", "plugins/loops-workflow/references/journaling.md"]
+      "docs": ["AGENTS.md", "plugins/loops-workflow/references/shared/runtime/journaling.md"]
     },
     {
       "id": "surface-ambiguity",
@@ -154,9 +154,9 @@
       ],
       "docs": [
         "AGENTS.md",
-        "plugins/loops-workflow/references/reuse-check.md",
-        "plugins/loops-workflow/references/clean-code.md",
-        "plugins/loops-workflow/references/clean-architecture.md"
+        "plugins/loops-workflow/references/shared/quality/reuse-check.md",
+        "plugins/loops-workflow/references/shared/quality/clean-code.md",
+        "plugins/loops-workflow/references/shared/quality/clean-architecture.md"
       ]
     },
     {
@@ -179,7 +179,7 @@
       "projection": ["AGENTS.md"],
       "projection_marker": "文件紀律",
       "tests": ["plugins/loops-workflow/scripts/test-skill-lint.mjs"],
-      "docs": ["AGENTS.md", "plugins/loops-workflow/references/docs-policy.md"]
+      "docs": ["AGENTS.md", "plugins/loops-workflow/references/shared/docs/docs-policy.md"]
     },
     {
       "id": "outbound-communication",
@@ -206,8 +206,8 @@
       ],
       "docs": [
         "AGENTS.md",
-        "plugins/loops-workflow/references/comment-policy.md",
-        "plugins/loops-workflow/references/outbound-templates.md"
+        "plugins/loops-workflow/references/shared/delivery/comment-policy.md",
+        "plugins/loops-workflow/references/shared/delivery/outbound-templates.md"
       ]
     },
     {
@@ -260,8 +260,8 @@
       ],
       "docs": [
         "AGENTS.md",
-        "plugins/loops-workflow/references/model-effort-policy.md",
-        "plugins/loops-workflow/references/context-diet.md"
+        "plugins/loops-workflow/references/shared/runtime/model-effort-policy.md",
+        "plugins/loops-workflow/references/shared/runtime/context-diet.md"
       ]
     },
     {
@@ -289,8 +289,8 @@
       ],
       "docs": [
         "AGENTS.md",
-        "plugins/loops-workflow/references/security-checklist.md",
-        "plugins/loops-workflow/references/design-patterns.md"
+        "plugins/loops-workflow/references/shared/quality/security-checklist.md",
+        "plugins/loops-workflow/references/shared/quality/design-patterns.md"
       ]
     },
     {
@@ -316,7 +316,7 @@
         "plugins/loops-workflow/hooks/test-pr-gate.mjs",
         "plugins/loops-workflow/hooks/test-pr-owner-guard.mjs"
       ],
-      "docs": ["AGENTS.md", "plugins/loops-workflow/references/pr-spec.md"]
+      "docs": ["AGENTS.md", "plugins/loops-workflow/references/shared/delivery/pr-spec.md"]
     },
     {
       "id": "canonical-platform-neutral",
@@ -343,7 +343,7 @@
       "projection": ["AGENTS.md"],
       "projection_marker": "平台中立",
       "tests": ["plugins/loops-workflow/scripts/test-compat-lint.mjs"],
-      "docs": ["AGENTS.md", "plugins/loops-workflow/references/interaction-adapter.md"]
+      "docs": ["AGENTS.md", "plugins/loops-workflow/references/shared/delivery/interaction-adapter.md"]
     }
   ]
 }

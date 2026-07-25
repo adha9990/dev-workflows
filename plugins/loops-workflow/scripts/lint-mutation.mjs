@@ -45,9 +45,10 @@ const PLUGIN_DOCS_REL = `${PLUGIN_REL}/docs`;
 // 複製 repo 時整段跳過的目錄：版控內部、依賴、工作區狀態——與 lint 掃描面無關，複製它們只是慢。
 const COPY_SKIP_DIR_NAMES = new Set(['.git', 'node_modules', '.claude', '.loops']);
 
-// references/reviewers/ 是 gen-reviewers.mjs 的生成物，compat-lint 明文排除、skill-lint 的
-// plugin-reference 判定也只認 references/ 直屬層——探針不放進去，避免拿「本來就不該掃」當塌陷。
-const GENERATED_REFERENCE_SUBDIR = 'reviewers';
+// reviewer base 模板（references/personas/<agent 名>.md）是 gen-reviewers.mjs 的生成真相源，
+// compat-lint 與 skill-lint 皆明文排除——探針不跟著它們算，避免拿「本來就不該掃」當塌陷。
+// 它們與手寫 persona 散文同層，故 personas/ 這個目錄本身仍要放探針（該目錄有大量非生成散文）。
+const GENERATED_REFERENCE_FILE_RE = /^([\w-]+-reviewer|finding-validator)\.md$/;
 
 const PROBE_TOKEN = '__mutation_probe__';
 const PROBE_ORPHAN_BASENAME = `${PROBE_TOKEN}orphan.md`;
@@ -239,9 +240,8 @@ function listDeepPairs(root) {
 function listReferenceDirs(root) {
   const dirs = new Set();
   for (const file of listMarkdownIn(root, REFERENCES_REL)) {
-    const dir = dirname(file);
-    if (basename(dir) === GENERATED_REFERENCE_SUBDIR) continue;
-    dirs.add(dir);
+    if (GENERATED_REFERENCE_FILE_RE.test(basename(file))) continue;
+    dirs.add(dirname(file));
   }
   if (dirs.size === 0) throw new Error(`前置檢查失敗：${REFERENCES_REL} 底下找不到任何非生成 .md`);
   return [...dirs].sort();
@@ -251,8 +251,8 @@ function listReferenceDirs(root) {
 function primaryReferenceDir(root) {
   const counts = new Map();
   for (const file of listMarkdownIn(root, REFERENCES_REL)) {
+    if (GENERATED_REFERENCE_FILE_RE.test(basename(file))) continue;
     const dir = dirname(file);
-    if (basename(dir) === GENERATED_REFERENCE_SUBDIR) continue;
     counts.set(dir, (counts.get(dir) ?? 0) + 1);
   }
   if (counts.size === 0) throw new Error(`前置檢查失敗：${REFERENCES_REL} 底下找不到任何非生成 .md`);
