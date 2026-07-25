@@ -1,0 +1,46 @@
+[
+  {
+    "id": "normal-rewrites-progress-md",
+    "description": "process.cwd() 下有匹配本 session（CLAUDE_CODE_SESSION_ID）的 active loop → 重生 PROGRESS.md；stdout 恆靜默（--write-only）",
+    "payload": {},
+    "env": {
+      "CLAUDE_CODE_SESSION_ID": "loops-t3-char-progress-active"
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0,
+    "fileCheck": {
+      "path": "$ROLE$PR_ACTIVE_PROGRESS",
+      "normalize": "exact",
+      "expectedContent": "<!-- 由 loops-workflow 自動產生（每回合 Stop hook 重生），請勿手改；已被 .loops 規則 gitignore -->\n# ⟳ pr-active-220\n`feature` · `manual` · 圈 0/3 · 停止條件：全部任務完成\n\n## 階段\n```mermaid\nflowchart LR\n  s0[\"goal\"]:::done --> s1[\"explore\"]:::done --> s2[\"plan\"]:::done --> s3[\"build\"]:::now --> s4[\"verify\"]:::todo --> s5[\"iterate\"]:::todo\n  classDef done fill:#9f9,stroke:#393;\n  classDef now fill:#fd6,stroke:#c90,font-weight:bold;\n  classDef todo fill:#eee,stroke:#999;\n```\n\n- [x] goal\n- [x] explore\n- [x] plan\n- [ ] **build ← 現在**\n- [ ] verify\n- [ ] iterate\n\n## 當前任務\n任務：實作 X\n\n## Journal（最近）\n| # | 事件 |\n|---|---|\n| E1 | 任務：實作 X |\n\n下一步 → verify\n"
+    }
+  },
+  {
+    "id": "session-mismatch-no-active-loop",
+    "description": "CLAUDE_CODE_SESSION_ID 不匹配任何 loop.md 的 session 欄（無 active loop／無 loop 狀態）→ 不寫 pr-other-330 的 PROGRESS.md",
+    "payload": {},
+    "env": {
+      "CLAUDE_CODE_SESSION_ID": "loops-t3-char-progress-nomatch"
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0,
+    "fileCheck": {
+      "path": "$ROLE$PR_OTHER_PROGRESS",
+      "expectMissing": true
+    }
+  },
+  {
+    "id": "malformed-stdin-still-rewrites",
+    "description": "結構殘缺 stdin（hook 完全不讀 stdin，只看 process.cwd()/env）→ 仍正常重生 PROGRESS.md、stdout 仍靜默——證明本 hook 對 payload 內容無感",
+    "rawInput": "not-json-at-all-pr",
+    "env": {
+      "CLAUDE_CODE_SESSION_ID": "loops-t3-char-progress-active"
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0,
+    "fileCheck": {
+      "path": "$ROLE$PR_ACTIVE_PROGRESS",
+      "normalize": "exact",
+      "expectedContent": "<!-- 由 loops-workflow 自動產生（每回合 Stop hook 重生），請勿手改；已被 .loops 規則 gitignore -->\n# ⟳ pr-active-220\n`feature` · `manual` · 圈 0/3 · 停止條件：全部任務完成\n\n## 階段\n```mermaid\nflowchart LR\n  s0[\"goal\"]:::done --> s1[\"explore\"]:::done --> s2[\"plan\"]:::done --> s3[\"build\"]:::now --> s4[\"verify\"]:::todo --> s5[\"iterate\"]:::todo\n  classDef done fill:#9f9,stroke:#393;\n  classDef now fill:#fd6,stroke:#c90,font-weight:bold;\n  classDef todo fill:#eee,stroke:#999;\n```\n\n- [x] goal\n- [x] explore\n- [x] plan\n- [ ] **build ← 現在**\n- [ ] verify\n- [ ] iterate\n\n## 當前任務\n任務：實作 X\n\n## Journal（最近）\n| # | 事件 |\n|---|---|\n| E1 | 任務：實作 X |\n\n下一步 → verify\n"
+    }
+  }
+]

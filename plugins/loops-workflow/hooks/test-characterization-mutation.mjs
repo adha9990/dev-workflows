@@ -1,7 +1,10 @@
 #!/usr/bin/env node
-// test-characterization-mutation.mjs —— S10 mutation 驗證：證明 test-guard-characterization.mjs
-// 那把「逐位元鎖住 stdout」的鎖真的有鑑別力，不是形式上全綠的裝飾（test-rubric §5 Prove-It：
-// 「如果功能根本沒做，這條會紅嗎？」）。
+// test-characterization-mutation.mjs —— S10／T3b mutation 驗證：證明 test-guard-characterization.mjs
+// 與 test-stop-characterization.mjs 兩把「逐位元鎖住 stdout（+選配的檔案內容）」的鎖真的有鑑別力，
+// 不是形式上全綠的裝飾（test-rubric §5 Prove-It：「如果功能根本沒做，這條會紅嗎？」）。
+// T3b（issue #183）把 Stop 家族 5 支（cost-tracker／eval-gate／stop-gate／progress-render／
+// loop-driver）也納入下方 MUTATIONS 表，沿用同一份 runner／同一套 buildSandbox+runFixtureCase
+// 邏輯，不另開一支 mutation 測試檔。
 //
 // 做法（對每一支受測 hook）：讀出原始檔內容 → 在記憶體產生 2 種變異副本 → 把變異副本寫到**同一個
 // hooks/ 目錄**（不是隔離 tmp 目錄——這 9 支互相 import 對方的 export，如 merge-guard.mjs 依賴
@@ -246,6 +249,92 @@ const MUTATIONS = [
           'function main() {',
           "function main() {\n  console.log('MUTATION-INJECTED-DEBUG-OUTPUT');",
           'edit-accumulator stray-stdout-leak',
+        ),
+      },
+    ],
+  },
+  // ── T3b（issue #183）：Stop 家族 5 支，沿用同一套 replaceExactlyOnce + runFixtureCase 鑑別力驗證 ──
+  {
+    file: 'cost-tracker.mjs',
+    mutations: [
+      {
+        id: 'estimate-flag-flip',
+        description: 'buildCostRow() 的 estimate: true → false（寫進 costs.jsonl 的契約欄位，decision-flip 的類比）',
+        apply: (s) => replaceExactlyOnce(s, '    estimate: true,', '    estimate: false,', 'cost-tracker estimate-flag-flip'),
+      },
+      {
+        id: 'sonnet-out-rate-corrupt',
+        description: 'RATE_TABLE.sonnet.out 3.0→15.0 的 15.0 改 150.0（cost_usd 計算被打偏一個數量級）',
+        apply: (s) => replaceExactlyOnce(s, 'out: 15.0,', 'out: 150.0,', 'cost-tracker sonnet-out-rate-corrupt'),
+      },
+    ],
+  },
+  {
+    file: 'eval-gate.mjs',
+    mutations: [
+      {
+        id: 'gate-injection-condition-flip',
+        description: 'buildEvalGateInjection() 的 exitCode !== 1 → !== 2（GATE 訊號永遠不會在真退化時注入）',
+        apply: (s) => replaceExactlyOnce(s, 'if (exitCode !== 1) return null;', 'if (exitCode !== 2) return null;', 'eval-gate gate-injection-condition-flip'),
+      },
+      {
+        id: 'should-run-gate-always-false',
+        description: 'shouldRunEvalGate() 恆回 false（三道前置條件判定被短路，decision-flip 的類比）',
+        apply: (s) => replaceExactlyOnce(s, '  return Boolean(flagOn && hasMetrics && hasEdits);', '  return false;', 'eval-gate should-run-gate-always-false'),
+      },
+    ],
+  },
+  {
+    file: 'stop-gate.mjs',
+    mutations: [
+      {
+        id: 'gate-injection-polarity-flip',
+        description: 'buildGateInjection() 的 ok===true → ok===false（綠燈變靜默失效、紅燈變誤判靜默，decision-flip 的類比）',
+        apply: (s) => replaceExactlyOnce(s, 'if (ok === true) return null;', 'if (ok === false) return null;', 'stop-gate gate-injection-polarity-flip'),
+      },
+      {
+        id: 'discovery-hint-truncate',
+        description: 'DISCOVERY_HINT 開頭字元刪除（reason-truncate 的類比）',
+        apply: (s) => replaceExactlyOnce(
+          s,
+          "  '[loops-workflow] 偵測到 .loops/gate.config.json：可設 LOOPS_STOP_GATE=1，讓每次改檔回合自動跑 ' +",
+          "  'loops-workflow] 偵測到 .loops/gate.config.json：可設 LOOPS_STOP_GATE=1，讓每次改檔回合自動跑 ' +",
+          'stop-gate discovery-hint-truncate',
+        ),
+      },
+    ],
+  },
+  {
+    file: 'progress-render.mjs',
+    mutations: [
+      {
+        id: 'progress-script-path-corrupt',
+        description: 'PROGRESS 腳本路徑指到不存在的檔名——spawnSync 靜默失敗、PROGRESS.md 不再被重生（fileCheck 鑑別力示範：純 stdout 鎖對此無感）',
+        apply: (s) => replaceExactlyOnce(s, "join(HERE, '..', 'scripts', 'progress.mjs')", "join(HERE, '..', 'scripts', 'progress-MUTATED.mjs')", 'progress-render progress-script-path-corrupt'),
+      },
+      {
+        id: 'exit-code-flip',
+        description: 'process.exit(0) → process.exit(1)（exit code 契約）',
+        apply: (s) => replaceExactlyOnce(s, 'process.exit(0);', 'process.exit(1);', 'progress-render exit-code-flip'),
+      },
+    ],
+  },
+  {
+    file: 'loop-driver.mjs',
+    mutations: [
+      {
+        id: 'blocking-gate-states-corrupt',
+        description: 'BLOCKING_GATE_STATES 的 [\'failed\',\'errored\'] 換成永不匹配的值——完工紅燈被誤判成弱帳本降級放行',
+        apply: (s) => replaceExactlyOnce(s, "new Set(['failed', 'errored']);", "new Set(['never-matches']);", 'loop-driver blocking-gate-states-corrupt'),
+      },
+      {
+        id: 'continuation-reason-truncate',
+        description: '續跑 reason 開頭字串首字元刪除（reason-truncate 的類比）',
+        apply: (s) => replaceExactlyOnce(
+          s,
+          "'[loops-workflow] 迴圈續跑：本迴圈仍有未完成任務，請繼續推進，不要停下。',",
+          "'loops-workflow] 迴圈續跑：本迴圈仍有未完成任務，請繼續推進，不要停下。',",
+          'loop-driver continuation-reason-truncate',
         ),
       },
     ],

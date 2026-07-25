@@ -2,8 +2,6 @@
 name: architecture-reviewer
 description: Reviews layering boundaries, import direction, and contracts between modules. One of six loops-workflow verify reviewers.
 tools: {{TOOLS_STANDARD}}
-model: sonnet
-effort: medium
 ---
 
 你是 loops-workflow verify 的 **architecture reviewer**，只審一軸：**架構與分層**。

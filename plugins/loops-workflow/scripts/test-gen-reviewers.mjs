@@ -5,10 +5,10 @@
 // 全綠 → exit 0；任一斷言失敗 → exit 1。
 //
 // 兩層：
-//   1) 純函式單元：parseSharedBlocks / substitute / overrideFrontmatter / buildDeepNote /
-//      assembleDeep / firstDiff。
-//   2) round-trip golden：以真實真相源（reviewer-shared.md + reviewers/*.md）組出 21 檔，
-//      逐檔 EOL 正規化後 == agents/ 現況——與 CI 的 `--check` 同一 oracle，防 assemble 迴歸。
+//   1) 純函式單元：parseSharedBlocks / substitute / overrideFrontmatter / resolveModelEffort /
+//      injectModelEffort / buildDeepNote / assembleDeep / firstDiff。
+//   2) round-trip golden：以真實真相源（reviewer-shared.md + reviewers/*.md + capability-registry.json）
+//      組出 21 檔，逐檔 EOL 正規化後 == agents/ 現況——與 CI 的 `--check` 同一 oracle，防 assemble 迴歸。
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -18,6 +18,8 @@ import {
   parseSharedBlocks,
   substitute,
   overrideFrontmatter,
+  resolveModelEffort,
+  injectModelEffort,
   buildDeepNote,
   assembleDeep,
   assembleAll,
@@ -30,6 +32,7 @@ const PLUGIN_DIR = dirname(SCRIPTS_DIR);
 const AGENTS_DIR = join(PLUGIN_DIR, 'agents');
 const SHARED_FILE = join(PLUGIN_DIR, 'references', 'reviewer-shared.md');
 const TEMPLATES_DIR = join(PLUGIN_DIR, 'references', 'reviewers');
+const REGISTRY_FILE = join(PLUGIN_DIR, 'references', 'capability-registry.json');
 
 let passed = 0;
 const failed = [];
@@ -57,16 +60,40 @@ const lf = s => s.replace(/\r\n/g, '\n');
   assert(substitute('{{UNKNOWN}}', b) === '{{UNKNOWN}}', 'substitute：未知 slot 留原樣');
 }
 
-// overrideFrontmatter
+// overrideFrontmatter：只動 name/description，model/effort 已不在模板裡、也不歸此函式管
 {
-  const tmpl = '---\nname: base\ndescription: 舊述\ntools: {{TOOLS_STANDARD}}\nmodel: sonnet\neffort: medium\n---\n\n身分行\n';
+  const tmpl = '---\nname: base\ndescription: 舊述\ntools: {{TOOLS_STANDARD}}\n---\n\n身分行\n';
   const out = overrideFrontmatter(tmpl, 'base-deep', { description: '新述' });
   assert(/^name: base-deep$/m.test(out), 'overrideFrontmatter：name 換 deep');
   assert(/^description: 新述$/m.test(out), 'overrideFrontmatter：description 換');
-  assert(/^model: opus$/m.test(out), 'overrideFrontmatter：model→opus');
-  assert(/^effort: high$/m.test(out), 'overrideFrontmatter：effort→high');
+  assert(!/^model: /m.test(out) && !/^effort: /m.test(out), 'overrideFrontmatter：不注入 model/effort（該職責歸 injectModelEffort）');
   assert(out.includes('tools: {{TOOLS_STANDARD}}'), 'overrideFrontmatter：tools slot 不動');
   assert(out.includes('身分行'), 'overrideFrontmatter：body 不動');
+}
+
+// resolveModelEffort：由 registry 查 agent 的 model/effort（tier 間接 + effort 直查）
+{
+  const registry = {
+    model_tier: { 'broad-review': { claude: { model: 'sonnet' } }, referee: { claude: { model: 'opus' } } },
+    agent_tiers: { 'x-reviewer': 'broad-review', 'x-reviewer-deep': 'referee' },
+    agent_effort: { 'x-reviewer': 'medium', 'x-reviewer-deep': 'high' },
+  };
+  const base = resolveModelEffort(registry, 'x-reviewer');
+  assert(base.model === 'sonnet' && base.effort === 'medium', 'resolveModelEffort：broad-review tier → sonnet·medium');
+  const deep = resolveModelEffort(registry, 'x-reviewer-deep');
+  assert(deep.model === 'opus' && deep.effort === 'high', 'resolveModelEffort：referee tier → opus·high');
+  let threw = false;
+  try { resolveModelEffort(registry, 'unknown-agent'); } catch { threw = true; }
+  assert(threw, 'resolveModelEffort：registry 缺該 agent 鍵 → 丟錯而非靜默回退');
+}
+
+// injectModelEffort：於 frontmatter 尾端插入 model/effort 兩行，body 與其餘 frontmatter 不動
+{
+  const tmpl = '---\nname: x\ndescription: d\ntools: {{TOOLS_STANDARD}}\n---\n\n身分行\n\n---\n分隔線不是 frontmatter\n';
+  const out = injectModelEffort(tmpl, 'sonnet', 'medium');
+  assert(out.startsWith('---\nname: x\ndescription: d\ntools: {{TOOLS_STANDARD}}\nmodel: sonnet\neffort: medium\n---\n\n身分行'),
+    'injectModelEffort：model/effort 插在 frontmatter 尾、tools 之後');
+  assert(out.includes('\n\n---\n分隔線不是 frontmatter\n'), 'injectModelEffort：body 內後續的 --- 不受影響（只動開頭 frontmatter 區塊）');
 }
 
 // buildDeepNote
@@ -76,14 +103,14 @@ const lf = s => s.replace(/\r\n/g, '\n');
   assert(out === '> `x-reviewer.md`（審查內容）改審查行為（更深）。', 'buildDeepNote：四佔位全代換');
 }
 
-// assembleDeep：deep-note 注入在 frontmatter 之後、身分行之前
+// assembleDeep：deep-note 注入在 frontmatter 之後、身分行之前；model/effort 由呼叫端傳入（registry 查得）
 {
-  const baseTmpl = '---\nname: b\ndescription: d\ntools: {{TOOLS_STANDARD}}\nmodel: sonnet\neffort: medium\n---\n\n你是身分行。\n\n## 審查範圍\n{{CODE_RETRIEVAL}}\n';
+  const baseTmpl = '---\nname: b\ndescription: d\ntools: {{TOOLS_STANDARD}}\n---\n\n你是身分行。\n\n## 審查範圍\n{{CODE_RETRIEVAL}}\n';
   const blocks = { TOOLS_STANDARD: 'TOOLS', CODE_RETRIEVAL: 'CR', DEEP_NOTE: '> deep-note {{DEEP_BASE}}' };
   const cfg = { base: 'b', description: 'dd', noteKind: '審查內容', behavior: '審查行為', depth: '更深' };
-  const out = assembleDeep('b-deep', cfg, baseTmpl, blocks);
+  const out = assembleDeep('b-deep', cfg, baseTmpl, blocks, 'opus', 'high');
   assert(out.includes('---\n\n> deep-note b\n\n你是身分行。'), 'assembleDeep：deep-note 注在 frontmatter 後、身分行前');
-  assert(out.includes('name: b-deep') && out.includes('model: opus'), 'assembleDeep：frontmatter override 生效');
+  assert(out.includes('name: b-deep') && out.includes('model: opus') && out.includes('effort: high'), 'assembleDeep：frontmatter override + model/effort 注入生效');
   assert(out.includes('tools: TOOLS') && out.includes('## 審查範圍\nCR'), 'assembleDeep：body slot 代換');
 }
 
@@ -116,7 +143,8 @@ const lf = s => s.replace(/\r\n/g, '\n');
   for (const f of readdirSync(TEMPLATES_DIR)) {
     if (f.endsWith('.md')) templates[f.slice(0, -3)] = lf(readFileSync(join(TEMPLATES_DIR, f), 'utf8'));
   }
-  const assembled = assembleAll({ blocks, templates });
+  const registry = JSON.parse(readFileSync(REGISTRY_FILE, 'utf8'));
+  const assembled = assembleAll({ blocks, templates, registry });
   const names = Object.keys(assembled);
   assert(names.length === 21, `round-trip：組出 21 檔（實際 ${names.length}）`);
   let ok = 0;

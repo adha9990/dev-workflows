@@ -1,0 +1,65 @@
+[
+  {
+    "id": "gate-regressed",
+    "description": "GATE 訊號：eval-results.jsonl 顯示 passRate 退化 ＋ 有編輯 → 注入退化摘要（TAGS/POLL 顯式關）",
+    "payload": {
+      "cwd": "$ROLE$EG_REGRESSED",
+      "session_id": "loops-t3-char-eg-regressed",
+      "transcript_path": "$ROLE$GENERIC"
+    },
+    "env": {
+      "LOOPS_EVAL_GATE": "1",
+      "LOOPS_EVAL_TAGS_GATE": "0",
+      "LOOPS_EVAL_POLL_GATE": "0"
+    },
+    "stateSetup": {
+      "kind": "edits",
+      "preset": ["src/foo.mjs"]
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"Stop\",\"additionalContext\":\"eval-metrics: regression detected — regression: passRate 0.9 -> 0.5 (Δ -0.4000, tolerance 0)\\n\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "loop-exists-no-eval-data",
+    "description": "有 .loops/ 但三份 eval 檔（metrics/report/judge）皆不存在——loop 剛起步、還沒 eval 資料（無 loop 狀態的 eval 資料）→ 三訊號各自 shouldRun* 皆偽、靜默",
+    "payload": {
+      "cwd": "$ROLE$EG_FRESH",
+      "session_id": "loops-t3-char-eg-fresh",
+      "transcript_path": "$ROLE$GENERIC"
+    },
+    "env": {
+      "LOOPS_EVAL_GATE": "1",
+      "LOOPS_EVAL_TAGS_GATE": "1",
+      "LOOPS_EVAL_POLL_GATE": "1"
+    },
+    "stateSetup": {
+      "kind": "edits",
+      "preset": ["src/bar.mjs"]
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "all-flags-off",
+    "description": "三閘全關（皆顯式 '0'）→ 提前 return，連 cwd 都不碰",
+    "payload": {
+      "cwd": "$ROLE$GENERIC",
+      "session_id": "loops-t3-char-eg-flagsoff",
+      "transcript_path": "$ROLE$GENERIC"
+    },
+    "env": {
+      "LOOPS_EVAL_GATE": "0",
+      "LOOPS_EVAL_TAGS_GATE": "0",
+      "LOOPS_EVAL_POLL_GATE": "0"
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "malformed-json",
+    "description": "stdin 非 JSON → 靜默 no-op",
+    "rawInput": "not-json-eg",
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  }
+]

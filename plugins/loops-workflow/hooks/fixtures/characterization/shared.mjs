@@ -1,29 +1,40 @@
-// shared.mjs —— T3 characterization/mutation 共用基礎設施（非測試檔本身，供
-// test-guard-characterization.mjs 與 test-characterization-mutation.mjs 兩者 import，避免兩份
-// runner 各自維護一套 sandbox／case-runner 邏輯而漂移——那樣 mutation 測的就不是「同一把鎖」）。
+// shared.mjs —— T3/T3b characterization/mutation 共用基礎設施（非測試檔本身，供
+// test-guard-characterization.mjs／test-stop-characterization.mjs 與 test-characterization-mutation.mjs
+// 三者 import，避免各 runner 各自維護一套 sandbox／case-runner 邏輯而漂移——那樣 mutation 測的就不是
+// 「同一把鎖」）。
 //
 // 職責：
-//   1) buildSandbox()：建立 9 支 hook 需要的最小真實 fs fixture（僅在「hook 本身真的會做 fs
+//   1) buildSandbox()：建立各 hook 需要的最小真實 fs fixture（僅在「hook 本身真的會做 fs
 //      existsSync/statSync/readFileSync」時才建真實目錄/檔案；純字串邏輯的 hook 一律共用 GENERIC
 //      這個「刻意不存在」的路徑，不需要真的建立）。
-//   2) resolveTemplate()：把 fixture JSON 裡的 payload 樹狀結構中，字串值裡出現的 `$ROLE$<name>`
-//      token 換成 buildSandbox() 算出的真實絕對路徑（forward-slash、Windows 形）。
-//   3) stateFile 系列：outbound-comment-guard / suggest-compact / edit-accumulator 三支會讀寫
-//      os.tmpdir() 裡 session-scoped state 檔的 hook，測試需要在跑 case 前「探測現有狀態→收斂」
-//      （自我癒合：非存在即視為已收斂，存在則清掉或覆寫成 case 指定內容）。
+//   2) resolveTemplate()：把 fixture JSON 裡的 payload／env 樹狀結構中，字串值裡出現的
+//      `$ROLE$<name>` token 換成 buildSandbox() 算出的真實絕對路徑（forward-slash、Windows 形）。
+//   3) stateFile 系列：outbound-comment-guard / suggest-compact / edit-accumulator / eval-gate /
+//      stop-gate 等會讀寫 os.tmpdir() 裡 session-scoped state 檔的 hook，測試需要在跑 case 前
+//      「探測現有狀態→收斂」（自我癒合：非存在即視為已收斂，存在則清掉或覆寫成 case 指定內容）。
 //   4) runCase()：spawnSync 真跑一支 hook（子行程 IO 黑箱），回傳 { stdout, status }。env 一律先
 //      從所有 LOOPS_* 環境變數「清空」再套用 case.env——防這台機器 ambient shell 帶
 //      LOOPS_MERGE_GUARD=0 / LOOPS_PR_OWNER_GUARD=0 之類的殘留把 guard 整支關掉、測試變成空的
-//      （比照 test-merge-guard.mjs:154-166 的 runHook 寫法，這裡推廣到全部 9 支的全部 LOOPS_* 旗標）。
+//      （比照 test-merge-guard.mjs:154-166 的 runHook 寫法，這裡推廣到全部旗標）。
 //   5) docPathTokens()：outbound-comment-guard.mjs 的 read-gate deny 訊息含「本機這份 checkout 的
 //      絕對路徑」（COMMENT_POLICY_PATH / OUTBOUND_TEMPLATES_PATH，由該 hook 自己的
-//      import.meta.url 推導，換一台機器 checkout 到別的路徑就會不同）——這是本任務唯一「輸出含
+//      import.meta.url 推導，換一台機器 checkout 到別的路徑就會不同）——這是 T3 任務唯一「輸出含
 //      絕對路徑」的欄位。處理方式：不放棄鎖定，改為將該欄位正規化成 token
 //      （`$HOOKS_DIR$/comment-policy.md` 等）存進 fixture JSON，測試執行時用「本次執行當下、以
 //      同一組 join 邏輯算出的實際路徑」回填 token 再比對——鎖住的是「這段路徑指到 references/ 下
 //      正確檔名」這個不變量，而不是鎖死某台機器的字面路徑。
+//   6) seedFiles（T3b 新增）：Stop 家族的 loop-driver.mjs 會原地改寫 `.loops/<slug>/state.json`
+//      （iteration+1）；同一份 fixture case 會被 characterization 測試跑一次、又被 mutation 測試對
+//      每個變異體各跑一次，若不「每次執行前重寫回已知初態」，state.json 的 iteration 會跨執行累積
+//      飄移，讓 stdout 比對變成看執行次數而非看行為——runFixtureCase 執行 hook 前先依
+//      fixtureCase.seedFiles 把指定檔案覆寫回固定內容（自我癒合：不管前次殘留為何，一律收斂）。
+//   7) fileCheck（T3b 新增）：cost-tracker.mjs／progress-render.mjs 兩支的主要作用是寫檔、stdout
+//      恆空——純 stdout 位元鎖對它們沒有鑑別力。runFixtureCase 額外支援 fixtureCase.fileCheck
+//      （{ path, normalize?, expectedContent? } 或 { path, expectMissing:true }），跑完 hook 後讀
+//      該檔案、依 normalize 對應的正規化器處理（見 FILE_NORMALIZERS）後與 expectedContent 比對，
+//      一併併入 runFixtureCase 回傳的 ok。
 
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -134,6 +145,86 @@ export function buildSandbox() {
   );
   const scMissing = fwd(join(root, 'sc-transcript-missing.jsonl')); // 刻意不寫檔——fail-open 案例用
 
+  // ── cost-tracker：「有 .loops/」與「無 .loops/」兩種 cwd + 一份已知 usage 的 transcript ─────
+  const ctWithLoops = fwd(join(root, 'ct-with-loops'));
+  mkdirSync(join(ctWithLoops, '.loops'), { recursive: true });
+  const ctNoLoops = fwd(join(root, 'ct-no-loops'));
+  mkdirSync(ctNoLoops, { recursive: true });
+  const ctTranscript = fwd(join(root, 'ct-transcript.jsonl'));
+  writeFileSync(
+    ctTranscript,
+    '{"type":"assistant","message":{"model":"claude-sonnet-4-5-20250929","usage":{"input_tokens":2000,"output_tokens":800,"cache_creation_input_tokens":200,"cache_read_input_tokens":100}}}\n',
+  );
+  const ctTranscriptMissing = fwd(join(root, 'ct-transcript-missing.jsonl')); // 刻意不寫檔——read 失敗案例用
+
+  // ── eval-gate：真觸發 GATE 訊號的 regression 歷史 + 「有 .loops/ 但無任何 eval 檔」兩種 cwd ────
+  const egRegressed = fwd(join(root, 'eg-regressed'));
+  mkdirSync(join(egRegressed, '.loops', '.metrics'), { recursive: true });
+  writeFileSync(
+    join(egRegressed, '.loops', '.metrics', 'eval-results.jsonl'),
+    '{"corpus":"c1","passRate":0.9}\n{"corpus":"c1","passRate":0.5}\n',
+  );
+  const egFresh = fwd(join(root, 'eg-fresh'));
+  mkdirSync(join(egFresh, '.loops'), { recursive: true }); // 有 .loops，但無任何 eval metrics/report/judge 檔
+
+  // ── stop-gate：gate.config.json 的 type 指令指向真實的 pass/fail 腳本（絕對路徑、sandbox 下無空白
+  //    字元，故不需 shell 引號防禦；仍加引號僅為防禦性寫法，不依賴這個假設）───────────────────────
+  const sgFailScript = fwd(join(root, 'sg-fail-type.mjs'));
+  writeFileSync(sgFailScript, "console.log('fixture.ts(3,5): error TS2322: Type mismatch (fixture)');\nprocess.exit(1);\n");
+  const sgPassScript = fwd(join(root, 'sg-pass-type.mjs'));
+  writeFileSync(sgPassScript, 'process.exit(0);\n');
+  const sgHintRoot = fwd(join(root, 'sg-hint-root'));
+  mkdirSync(join(sgHintRoot, '.loops'), { recursive: true });
+  writeFileSync(join(sgHintRoot, '.loops', 'gate.config.json'), '{}\n');
+  const sgGateRedRoot = fwd(join(root, 'sg-gate-red-root'));
+  mkdirSync(join(sgGateRedRoot, '.loops'), { recursive: true });
+  writeFileSync(join(sgGateRedRoot, '.loops', 'gate.config.json'), JSON.stringify({ type: `node "${sgFailScript}"` }));
+  const sgGateGreenRoot = fwd(join(root, 'sg-gate-green-root'));
+  mkdirSync(join(sgGateGreenRoot, '.loops'), { recursive: true });
+  writeFileSync(join(sgGateGreenRoot, '.loops', 'gate.config.json'), JSON.stringify({ type: `node "${sgPassScript}"` }));
+  const sgNoConfigRoot = fwd(join(root, 'sg-no-config-root')); // 無 .loops、無 gate.config.json
+
+  // ── loop-driver：fake gate script 透過 env LOOPS_LOOP_DRIVER_GATE_SCRIPT 覆寫（spawnSync 陣列參數、
+  //    無 shell，無引號風險）；各案例各自 slug 目錄，state.json 內容由 fixture 的 seedFiles 每次執行前
+  //    重寫（見檔頭 6），避免 characterization／mutation 兩份 runner 重跑同一 case 造成 iteration 飄移 ──
+  const ldGateDegraded = fwd(join(root, 'ld-gate-degraded.mjs'));
+  writeFileSync(ldGateDegraded, "console.log(JSON.stringify({gates:{test:'not-run',lint:'passed',type:'passed'},failures:[]}));\nprocess.exit(0);\n");
+  const ldGateBlocked = fwd(join(root, 'ld-gate-blocked.mjs'));
+  writeFileSync(ldGateBlocked, "console.log(JSON.stringify({gates:{test:'failed',lint:'passed',type:'passed'},failures:[{file:'src/x.ts',line:10,message:'boom',code:'E1'}]}));\nprocess.exit(1);\n");
+  const ldRoot = fwd(join(root, 'ld-root')); // 主 repo 根（loop-driver 用 resolveLoopsRoot(cwd) 解析）
+  for (const slug of ['ld-block', 'ld-degraded', 'ld-ledger-block', 'ld-reentry']) {
+    mkdirSync(join(ldRoot, '.loops', slug), { recursive: true }); // state.json 由各 case 的 seedFiles 寫入
+  }
+  const ldNoState = fwd(join(root, 'ld-no-state')); // 主 repo 根，完全無 .loops/
+  mkdirSync(ldNoState, { recursive: true });
+
+  // ── progress-render：唯一用 process.cwd()（非 payload.cwd）定位 .loops 的家族成員——sandbox root
+  //    的 OS cwd 就是 spawnSync 的 cwd（見 runCase），故這裡直接把 .loops 掛在 root 頂層，而非某個
+  //    role 子目錄。pr-other-330 的 session 刻意不被任何 case 選中，PROGRESS.md 恆不存在，可當穩定
+  //    的「從未寫入」基準，不受 case 執行順序影響 ─────────────────────────────────────────────
+  mkdirSync(join(root, '.loops', 'pr-active-220'), { recursive: true });
+  writeFileSync(join(root, '.loops', 'pr-active-220', 'loop.md'), [
+    '# loop pr-active-220',
+    '',
+    '- session：loops-t3-char-progress-active',
+    '- 類型：feature',
+    '- 推進模式：manual',
+    '- 停止條件：全部任務完成',
+    '- 當前階段：build',
+    '',
+    '## Journal',
+    '- [E1] 任務：實作 X',
+    '',
+  ].join('\n'));
+  mkdirSync(join(root, '.loops', 'pr-other-330'), { recursive: true });
+  writeFileSync(join(root, '.loops', 'pr-other-330', 'loop.md'), [
+    '# loop pr-other-330',
+    '',
+    '- session：loops-t3-char-progress-other-session',
+    '- 當前階段：goal',
+    '',
+  ].join('\n'));
+
   const roles = {
     GENERIC: GENERIC_CWD,
     MG_MASTER: mgMaster,
@@ -149,6 +240,23 @@ export function buildSandbox() {
     SC_TRANSCRIPT_HIGH: scHigh,
     SC_TRANSCRIPT_LOW: scLow,
     SC_TRANSCRIPT_MISSING: scMissing,
+    // ── T3b：Stop 家族 5 支 ──────────────────────────────────────────────────────
+    CT_WITH_LOOPS: ctWithLoops,
+    CT_NO_LOOPS: ctNoLoops,
+    CT_TRANSCRIPT: ctTranscript,
+    CT_TRANSCRIPT_MISSING: ctTranscriptMissing,
+    EG_REGRESSED: egRegressed,
+    EG_FRESH: egFresh,
+    SG_HINT_ROOT: sgHintRoot,
+    SG_GATE_RED_ROOT: sgGateRedRoot,
+    SG_GATE_GREEN_ROOT: sgGateGreenRoot,
+    SG_NO_CONFIG_ROOT: sgNoConfigRoot,
+    LD_ROOT: ldRoot,
+    LD_NO_STATE: ldNoState,
+    LD_GATE_DEGRADED: ldGateDegraded,
+    LD_GATE_BLOCKED: ldGateBlocked,
+    PR_ACTIVE_PROGRESS: fwd(join(root, '.loops', 'pr-active-220', 'PROGRESS.md')),
+    PR_OTHER_PROGRESS: fwd(join(root, '.loops', 'pr-other-330', 'PROGRESS.md')),
   };
 
   return { root, roles };
@@ -172,6 +280,13 @@ export function compactStateFilePath(sessionId) {
 export function editsStateFilePath(sessionId) {
   return join(tmpdir(), `loops-edits-${safeSessionId(sessionId)}.json`);
 }
+// stop-gate.mjs 的「發現性提示」per-session 節流 state 檔（loops-stop-gate-hint-<session>.json，見
+// hooks/stop-gate.mjs 的 discoveryHintStateFile）。同一個 session_id 若曾在本機任何一次執行（含
+// 產生 fixture 用的一次性腳本、或本測試檔前次執行殘留）被印過提示，之後同 session 就不會再印
+// ——測試若不每次收斂清掉，會變成「跑第一次綠、跑第二次紅」的不可重現案例，故也需要 stateSetup。
+export function stopGateHintStateFilePath(sessionId) {
+  return join(tmpdir(), `loops-stop-gate-hint-${safeSessionId(sessionId)}.json`);
+}
 
 /** 自我癒合：清掉（不管原本存在與否）。 */
 export function clearStateFile(path) {
@@ -193,6 +308,22 @@ export function presetStateFile(path, content) {
 export function applyStateSetup(stateSetup, resolvedPayload) {
   if (!stateSetup) return;
   const sessionId = resolvedPayload.session_id;
+  if (stateSetup.kind === 'edits') {
+    // eval-gate／stop-gate 共用的 edit-accumulator state 檔（loops-edits-<session>.json）；
+    // preset 是「已累積的編輯路徑陣列」（hasEdits 判定的來源），非 reads/compact 的計數/等級語意。
+    const p = editsStateFilePath(sessionId);
+    if (stateSetup.preset == null) clearStateFile(p);
+    else presetStateFile(p, { ts: 1, paths: stateSetup.preset });
+    return;
+  }
+  if (stateSetup.kind === 'stopGateHint') {
+    // stop-gate.mjs 的發現性提示節流 state；preset:null → 清掉（收斂成「本 session 尚未提示過」，
+    // 讓 discovery-hint case 不受本機前次執行殘留影響，可重複執行皆綠）。
+    const p = stopGateHintStateFilePath(sessionId);
+    if (stateSetup.preset == null) clearStateFile(p);
+    else presetStateFile(p, { hinted: true });
+    return;
+  }
   const pathFor = stateSetup.kind === 'reads' ? readsStateFilePath : compactStateFilePath;
   const p = pathFor(sessionId);
   if (stateSetup.preset == null) {
@@ -201,6 +332,23 @@ export function applyStateSetup(stateSetup, resolvedPayload) {
     presetStateFile(p, { ts: 1, reads: stateSetup.preset });
   } else {
     presetStateFile(p, { ts: 1, lastNotifiedLevel: stateSetup.preset });
+  }
+}
+
+/**
+ * T3b 新增：把 fixtureCase.seedFiles（[{ path, content }]，path 可含 $ROLE$ token）在每次執行 hook
+ * 「前」覆寫回固定內容——自我癒合寫法（先 mkdir 收斂父目錄、再整檔覆寫，不管前次殘留為何）。
+ * 主要供 loop-driver.mjs 的 state.json 用：該 hook 會原地改寫 state.json（iteration+1），若不每次
+ * 收斂回已知初態，characterization 與 mutation 兩份 runner 對同一 case 的重複呼叫會讓 iteration
+ * 累積飄移，比對就會失去意義。content 為字串則原樣寫入，物件則 JSON.stringify（2 空白縮排，可讀）。
+ */
+export function applySeedFiles(seedFiles, roles) {
+  if (!Array.isArray(seedFiles)) return;
+  for (const sf of seedFiles) {
+    const path = resolveTemplate(sf.path, roles);
+    mkdirSync(dirname(path), { recursive: true });
+    const content = typeof sf.content === 'string' ? sf.content : JSON.stringify(sf.content, null, 2);
+    writeFileSync(path, content, 'utf8');
   }
 }
 
@@ -264,22 +412,86 @@ export function runCase(hookAbsPath, { payload, rawInput, env = {}, sandboxRoot 
   };
 }
 
+/** 讀檔；不存在／讀不到一律回 null（fileCheck 用，區分「檔案不存在」與「內容不吻合」）。 */
+export function readFileMaybe(path) {
+  try {
+    return readFileSync(path, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+// T3b：cost-tracker.mjs／progress-render.mjs 主要作用是寫檔、stdout 恆空，純 stdout 位元鎖對它們
+// 沒有鑑別力，故 fileCheck 額外鎖寫出的檔案內容。正規化器把「非本次行為決定」的不穩定欄位換成固定
+// token，鎖住的是「這次執行真的把正確內容寫進去」這個不變量，而非某次執行湊巧的時間戳。
+const FILE_NORMALIZERS = {
+  // costs.jsonl 是 append-only：同一個 sandbox 在同一個 test process 內可能被同一個 case 重複執行
+  // 多次（characterization 跑一次 + mutation 對每個變異體各跑一次），故只取「最後一行」（本次執行
+  // 剛寫入的那行）比對，不受先前執行的行數累積影響。ts 欄位來自 Date.now()，非本次行為的一部分，
+  // 正規化成固定 token。
+  costRow: (text) => {
+    const lines = String(text ?? '').split('\n').filter((l) => l.trim());
+    if (lines.length === 0) return '(empty)';
+    const row = JSON.parse(lines[lines.length - 1]);
+    row.ts = '$TS$';
+    return JSON.stringify(row);
+  },
+  // progress-render 每次都用 writeFileSync 整檔覆寫（非 append），內容純由 loop.md 靜態欄位推導、
+  // 不含任何時間戳，天生跨次重跑穩定——原樣比對即可，不需正規化。
+  exact: (text) => text,
+};
+
+function checkFileExpectation(fixtureCase, roles) {
+  if (!fixtureCase.fileCheck) return { checked: false, ok: true };
+  const path = resolveTemplate(fixtureCase.fileCheck.path, roles);
+  const raw = readFileMaybe(path);
+  if (fixtureCase.fileCheck.expectMissing) {
+    return { checked: true, ok: raw === null, actual: raw === null ? '(missing)' : '(exists)', expected: '(missing)' };
+  }
+  if (raw === null) {
+    return { checked: true, ok: false, actual: '(missing)', expected: fixtureCase.fileCheck.expectedContent ?? null };
+  }
+  const normalize = FILE_NORMALIZERS[fixtureCase.fileCheck.normalize || 'exact'];
+  if (!normalize) throw new Error(`checkFileExpectation: 未知 normalize "${fixtureCase.fileCheck.normalize}"`);
+  const normalized = normalize(raw);
+  const expected = fixtureCase.fileCheck.expectedContent ?? null;
+  return { checked: true, ok: normalized === expected, actual: normalized, expected };
+}
+
 /**
  * 單一真相源：把一個 fixture case 針對某個 hook 絕對路徑（可以是原始 hook，也可以是 mutation 測試
  * 寫出的變異副本）真跑一次，回傳「是否吻合 fixture 鎖住的現況」。characterization 與 mutation 兩份
  * runner 都呼叫這裡，確保兩邊比對的是同一把鎖、不是各自重寫一份而可能漂移
  * （mutation 測的就會失去「證明 characterization 那把鎖有鑑別力」的意義）。
+ * 執行順序：resolve payload → stateSetup（讀 payload.session_id）→ seedFiles（與 payload 無關，
+ * 每次執行前收斂持久檔案到已知初態）→ resolve env（T3b：env 值也支援 $ROLE$ token，供
+ * LOOPS_LOOP_DRIVER_GATE_SCRIPT 之類需要指向 sandbox 路徑的旗標用）→ 真跑 → 比對 stdout/exit +
+ * 選配的 fileCheck。
  */
 export function runFixtureCase(hookAbsPath, fixtureCase, roles, sandboxRoot) {
   const payload = fixtureCase.payload ? resolveTemplate(fixtureCase.payload, roles) : undefined;
   if (fixtureCase.stateSetup) applyStateSetup(fixtureCase.stateSetup, payload);
+  if (fixtureCase.seedFiles) applySeedFiles(fixtureCase.seedFiles, roles);
+  const env = fixtureCase.env ? resolveTemplate(fixtureCase.env, roles) : {};
   const r = runCase(hookAbsPath, {
     payload,
     rawInput: fixtureCase.rawInput,
-    env: fixtureCase.env || {},
+    env,
     sandboxRoot,
   });
   const expectedStdout = fillDocPathTokens(fixtureCase.expectedStdout);
-  const ok = r.error == null && r.status === fixtureCase.expectedExitCode && r.stdout === expectedStdout;
-  return { ok, actualStdout: r.stdout, actualExitCode: r.status, expectedStdout, error: r.error };
+  const stdoutOk = r.error == null && r.status === fixtureCase.expectedExitCode && r.stdout === expectedStdout;
+  const fileResult = checkFileExpectation(fixtureCase, roles);
+  const ok = stdoutOk && fileResult.ok;
+  return {
+    ok,
+    actualStdout: r.stdout,
+    actualExitCode: r.status,
+    expectedStdout,
+    error: r.error,
+    fileChecked: fileResult.checked,
+    fileOk: fileResult.ok,
+    fileActual: fileResult.actual,
+    fileExpected: fileResult.expected,
+  };
 }

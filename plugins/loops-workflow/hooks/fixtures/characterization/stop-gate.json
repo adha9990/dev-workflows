@@ -1,0 +1,86 @@
+[
+  {
+    "id": "discovery-hint",
+    "description": "flag 關（optIn 未開）＋ cwd 是 gate 工作區（有 gate.config.json）＋ 本 session 未提示過 → 印一行純文字發現性提示",
+    "payload": {
+      "cwd": "$ROLE$SG_HINT_ROOT",
+      "session_id": "loops-t3-char-sg-hint"
+    },
+    "env": {},
+    "stateSetup": {
+      "kind": "stopGateHint",
+      "preset": null
+    },
+    "expectedStdout": "[loops-workflow] 偵測到 .loops/gate.config.json：可設 LOOPS_STOP_GATE=1，讓每次改檔回合自動跑 type/lint 閘並在紅燈時提示修正。⚠️ 此 flag 會自動執行 repo 控制的 lint/type 命令，僅在你信任的 repo 開啟。\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "gate-red",
+    "description": "flag on ＋ gate.config.json 存在 ＋ 有編輯，type 閘紅（quality-gate 真跑）→ 注入失敗摘要",
+    "payload": {
+      "cwd": "$ROLE$SG_GATE_RED_ROOT",
+      "session_id": "loops-t3-char-sg-red"
+    },
+    "env": {
+      "LOOPS_STOP_GATE": "1"
+    },
+    "stateSetup": {
+      "kind": "edits",
+      "preset": ["src/red.mjs"]
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"Stop\",\"additionalContext\":\"✗ quality-gate: test not-run, lint not-run, type failed\\n  1 errors, 0 warnings\\n  fixture.ts:3 [TS2322] Type mismatch (fixture)\\n\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "gate-green",
+    "description": "flag on ＋ gate.config.json 存在 ＋ 有編輯，type 閘綠（quality-gate 真跑）→ 靜默、清 accumulator",
+    "payload": {
+      "cwd": "$ROLE$SG_GATE_GREEN_ROOT",
+      "session_id": "loops-t3-char-sg-green"
+    },
+    "env": {
+      "LOOPS_STOP_GATE": "1"
+    },
+    "stateSetup": {
+      "kind": "edits",
+      "preset": ["src/green.mjs"]
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "flag-on-no-edits",
+    "description": "flag on ＋ gate.config.json 存在，但這趟無編輯 → shouldRunGate 為偽，不 spawn、靜默",
+    "payload": {
+      "cwd": "$ROLE$SG_GATE_RED_ROOT",
+      "session_id": "loops-t3-char-sg-noedits"
+    },
+    "env": {
+      "LOOPS_STOP_GATE": "1"
+    },
+    "stateSetup": {
+      "kind": "edits",
+      "preset": null
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "no-loop-state",
+    "description": "cwd 無 .loops/gate.config.json（非 gate 工作區）＋ flag 關 → 完全靜默、連發現性提示都不印",
+    "payload": {
+      "cwd": "$ROLE$SG_NO_CONFIG_ROOT",
+      "session_id": "loops-t3-char-sg-nostate"
+    },
+    "env": {},
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "malformed-json",
+    "description": "stdin 非 JSON → 靜默 no-op",
+    "rawInput": "not-json-sg",
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  }
+]

@@ -2,8 +2,6 @@
 name: frontend-ui-reviewer
 description: Conditional verify reviewer for frontend UI — component structure, state management, render performance, style consistency. Dispatched only when the change touches client/UI code.
 tools: {{TOOLS_STANDARD}}
-model: sonnet
-effort: medium
 ---
 
 你是 loops-workflow verify 的**條件式** reviewer：**只在改動觸及前端 / UI** 時才被派。只審一軸：**前端 UI**。

@@ -2,8 +2,6 @@
 name: multi-user-concurrency-reviewer
 description: Conditional verify reviewer for multi-user concurrency — reviews the server/DB layer (lost-update, tenant isolation, oplog ordering, optimistic-lock, idempotency, read-your-writes) AND the client-side optimistic-state layer (optimistic-window ownership, rollback, change attribution, local-vs-server reconciliation). Dispatched ONLY when the project declares multi-user/collaborative AND the change touches shared/persistent state, authorization, or a frontend optimistic-state layer.
 tools: {{TOOLS_STANDARD}}
-model: sonnet
-effort: medium
 ---
 
 你是 loops-workflow verify 的**條件式** multi-user-concurrency reviewer，只審一軸：**多人併發使用下的資料正確性與隔離**。

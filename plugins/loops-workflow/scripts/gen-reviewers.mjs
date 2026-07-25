@@ -6,10 +6,13 @@
 // 真相源：
 //   1) references/reviewer-shared.md —— 共用塊字典（`<!-- BEGIN:key -->`/`<!-- END:key -->` 逐字框定）。
 //   2) references/reviewers/<name>.md —— 17 個 base 模板（frontmatter + 身分行 + 每檔獨有審查軸，
-//      共用塊處填 `{{SLOT}}` token）。
+//      共用塊處填 `{{SLOT}}` token）。**不含 model:/effort:**——這兩行完全由 (3) 注入，模板本身
+//      沒有可漂移的字面留在磁碟上。
+//   3) references/capability-registry.json —— model/effort 真相源：`agent_tiers[name]` 查 tier，
+//      `model_tier[tier].claude.model` 查 model；`agent_effort[name]` 直查 effort。
 //   4 個 deep 檔（architecture/code-quality/security/finding-validator 的 -deep）**不存 base 模板**，
-//   由對應 base 模板 + frontmatter override（name/description/model:opus/effort:high）+ deep-note 注入衍生
-//   —— 導入後 deep 對 base 的漂移結構性歸零。
+//   由對應 base 模板 + frontmatter override（name/description）+ registry 查得的 model/effort（皆為
+//   referee tier → opus·high）+ deep-note 注入衍生 —— 導入後 deep 對 base 的漂移結構性歸零。
 //
 // 用法：
 //   node gen-reviewers.mjs --write   重生 21 檔落 agents/（輸出純 LF、恰一個結尾換行）。
@@ -22,7 +25,7 @@
 //
 // 分層（仿家族 skill-lint.mjs / loops-quality-gate.mjs）：
 //   1) 純函式（無 IO，測試直接 import）：parseSharedBlocks / substitute / overrideFrontmatter /
-//      buildDeepNote / assembleBase / assembleDeep / firstDiff。
+//      resolveModelEffort / injectModelEffort / buildDeepNote / assembleBase / assembleDeep / firstDiff。
 //   2) IO 薄邊界：loadSources / main（讀真相源、--write/--check）——被 import 時不執行。
 // 依賴：僅 node 內建（fs / path / url）。
 
@@ -35,8 +38,11 @@ const PLUGIN_DIR = dirname(SCRIPTS_DIR);
 const AGENTS_DIR = join(PLUGIN_DIR, 'agents');
 const SHARED_FILE = join(PLUGIN_DIR, 'references', 'reviewer-shared.md');
 const TEMPLATES_DIR = join(PLUGIN_DIR, 'references', 'reviewers');
+const REGISTRY_FILE = join(PLUGIN_DIR, 'references', 'capability-registry.json');
 
-// 4 個 deep 檔的衍生設定（值皆無 backtick，可安全內嵌）。
+// 4 個 deep 檔的衍生設定（值皆無 backtick，可安全內嵌）。model/effort 不在此設——
+// 一律由 capability-registry.json 查（見 resolveModelEffort），這裡的 description 字面提到
+// 「opus·high」純屬人讀敘述，不是生成器讀取的資料源。
 export const DEEP = {
   'architecture-reviewer-deep': {
     base: 'architecture-reviewer',
@@ -78,13 +84,39 @@ export function substitute(template, blocks) {
   );
 }
 
-/** 依 DEEP 設定改寫 base 模板的 frontmatter（name/description/model/effort）。 */
+/** 依 DEEP 設定改寫 base 模板的 frontmatter（name/description）。model/effort 不在此改——
+ * 模板已不含這兩行，一律由 injectModelEffort 依 registry 查得的值注入。 */
 export function overrideFrontmatter(template, deepName, cfg) {
   return template
     .replace(/^name: .+$/m, `name: ${deepName}`)
-    .replace(/^description: .+$/m, `description: ${cfg.description}`)
-    .replace(/^model: .+$/m, 'model: opus')
-    .replace(/^effort: .+$/m, 'effort: high');
+    .replace(/^description: .+$/m, `description: ${cfg.description}`);
+}
+
+/**
+ * 由 capability-registry.json 查某 agent 的 model/effort：
+ * `agent_tiers[name]` → tier id → `model_tier[tier].claude.model`；`agent_effort[name]` 直查 effort。
+ * 任一環節缺失即丟錯（不靜默回退），讓漂移在生成當下就爆炸，而不是吐出壞檔。
+ */
+export function resolveModelEffort(registry, name) {
+  const tier = registry?.agent_tiers?.[name];
+  if (!tier) throw new Error(`resolveModelEffort：registry.agent_tiers 缺 "${name}"`);
+  const model = registry?.model_tier?.[tier]?.claude?.model;
+  if (!model) throw new Error(`resolveModelEffort：registry.model_tier["${tier}"].claude.model 缺失（agent "${name}"）`);
+  const effort = registry?.agent_effort?.[name];
+  if (!effort) throw new Error(`resolveModelEffort：registry.agent_effort 缺 "${name}"`);
+  return { model, effort };
+}
+
+/**
+ * 於 frontmatter（開頭 `---\n...\n---\n` 區塊）尾端注入 `model:`/`effort:` 兩行。
+ * 模板本身不帶這兩行（見檔頭真相源說明）——值一律來自 registry，此函式是唯一寫入點。
+ */
+export function injectModelEffort(template, model, effort) {
+  const m = template.match(/^---\n([\s\S]*?)\n---\n/);
+  if (!m) throw new Error('injectModelEffort：找不到 frontmatter 區塊（缺開頭 ---\\n...\\n---\\n）');
+  const front = m[1];
+  const rebuilt = `---\n${front}\nmodel: ${model}\neffort: ${effort}\n---\n`;
+  return template.slice(0, m.index) + rebuilt + template.slice(m.index + m[0].length);
 }
 
 /** 由 DEEP_NOTE 模板 + cfg 組出該 deep 的 blockquote 提示行。 */
@@ -96,19 +128,21 @@ export function buildDeepNote(deepNoteTemplate, cfg) {
     .replace('{{DEEP_DEPTH}}', cfg.depth);
 }
 
-/** 組出一個 base 檔內容：模板 slot 代換。 */
-export function assembleBase(template, blocks) {
-  return substitute(template, blocks);
+/** 組出一個 base 檔內容：注入 registry 查得的 model/effort → 模板 slot 代換。 */
+export function assembleBase(template, blocks, model, effort) {
+  return substitute(injectModelEffort(template, model, effort), blocks);
 }
 
 /**
- * 組出一個 deep 檔內容：取 base 模板 → override frontmatter → 於 frontmatter 後注入 deep-note →
- * slot 代換。deep-note 插在「frontmatter 結束 `---\n\n`」之後、身分行之前。
+ * 組出一個 deep 檔內容：取 base 模板 → override frontmatter（name/description）→ 注入 registry
+ * 查得的 model/effort → 於 frontmatter 後注入 deep-note → slot 代換。
+ * deep-note 插在「frontmatter 結束 `---\n\n`」之後、身分行之前。
  */
-export function assembleDeep(deepName, cfg, baseTemplate, blocks) {
+export function assembleDeep(deepName, cfg, baseTemplate, blocks, model, effort) {
   const note = buildDeepNote(blocks.DEEP_NOTE, cfg);
   const overridden = overrideFrontmatter(baseTemplate, deepName, cfg);
-  const injected = overridden.replace(/^(---\n[\s\S]*?\n---\n\n)/, `$1${note}\n\n`);
+  const withModelEffort = injectModelEffort(overridden, model, effort);
+  const injected = withModelEffort.replace(/^(---\n[\s\S]*?\n---\n\n)/, `$1${note}\n\n`);
   return substitute(injected, blocks);
 }
 
@@ -142,15 +176,20 @@ function loadSources() {
   for (const f of readdirSync(TEMPLATES_DIR)) {
     if (f.endsWith('.md')) templates[f.slice(0, -3)] = readFileSync(join(TEMPLATES_DIR, f), 'utf8').replace(/\r\n/g, '\n');
   }
-  return { blocks, templates };
+  const registry = JSON.parse(readFileSync(REGISTRY_FILE, 'utf8'));
+  return { blocks, templates, registry };
 }
 
-/** 組出全部 21 檔內容 → { name: content(LF, 一個結尾換行) }。 */
-export function assembleAll({ blocks, templates }) {
+/** 組出全部 21 檔內容 → { name: content(LF, 一個結尾換行) }。model/effort 皆查 registry。 */
+export function assembleAll({ blocks, templates, registry }) {
   const out = {};
-  for (const [name, tmpl] of Object.entries(templates)) out[name] = assembleBase(tmpl, blocks);
+  for (const [name, tmpl] of Object.entries(templates)) {
+    const { model, effort } = resolveModelEffort(registry, name);
+    out[name] = assembleBase(tmpl, blocks, model, effort);
+  }
   for (const [deepName, cfg] of Object.entries(DEEP)) {
-    out[deepName] = assembleDeep(deepName, cfg, templates[cfg.base], blocks);
+    const { model, effort } = resolveModelEffort(registry, deepName);
+    out[deepName] = assembleDeep(deepName, cfg, templates[cfg.base], blocks, model, effort);
   }
   return out;
 }
