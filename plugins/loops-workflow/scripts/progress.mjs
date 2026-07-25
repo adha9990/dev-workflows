@@ -4,7 +4,6 @@
 // CLI：node progress.mjs [slug] [--write-only]。無 loop → no-op；任何錯誤吞掉 exit 0、永不擋路。
 // 純函式（extractProgress/renderChat/renderMarkdown）可直接 import 測；main() 為 IO 薄邊界 + import.meta.url 守衛。
 
-import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -13,6 +12,10 @@ import {
   pickLoopField, journalEntries, currentStage, isDone,
   collectLoopEntries, pickActiveLoop,
 } from './loops-scan.mjs';
+// tmp+rename 原子覆寫（#183 T14）：progress-render.mjs（Stop hook）恆跑本腳本重生 PROGRESS.md，與
+// 家族其餘覆寫型寫檔（loop-driver / edit-accumulator / stop-gate）共用同一份 atomic-write，不再各自
+// 散抄一份 tmp+rename。
+import { writeFileAtomic } from '../hooks/atomic-write.mjs';
 
 const STATE_SYMBOL = { done: '✓', now: '●', pending: '○' };
 const RECENT_JOURNAL_N = 5;
@@ -161,7 +164,7 @@ function main() {
   // 只把 PROGRESS.md 寫進主 repo 的 .loops/（entry.main）；worktree 來源的 loop 不寫進 worktree
   // —— 避免被 git clean / worktree remove 連坐刪掉（見 AGENTS 規則 9）。chat 仍可顯示。
   if (entry.main) {
-    try { writeFileSync(join(entry.dir, 'PROGRESS.md'), renderMarkdown(p), 'utf8'); } catch { /* 寫檔失敗不擋路 */ }
+    try { writeFileAtomic(join(entry.dir, 'PROGRESS.md'), renderMarkdown(p), 'utf8'); } catch { /* 寫檔失敗不擋路 */ }
   }
   if (!writeOnly) process.stdout.write(renderChat(p) + '\n');
 }

@@ -10,11 +10,20 @@
 // 分層（仿 hooks/suggest-compact.mjs / scripts/loops-quality-gate.mjs）：
 //   1) 純函式（無 IO，測試直接 import）：isProtectedConfig / shouldBlock。
 //   2) IO 薄邊界：main()（讀 stdin、查 existsSync、印 deny JSON）——被 import 時不執行（import.meta.url 守門）。
-// 依賴：僅 node 內建（fs / path / url / process），零外部套件。
+// 依賴：僅 node 內建（fs / path / url / process）＋ hook-input-normalize.mjs（正規化 Claude／Codex
+// 兩種 harness 的 payload 形狀，逐檔抽出 filePaths；不再只看 tool_input.file_path 單一字串——見
+// issue #183 T8：apply_patch 形狀的多檔 diff 夾在 tool_input.command 裡，改前只抽單一欄位、遇這種
+// payload 會全面 fail-open（一個檔都不抽），不是只漏第一檔）。
+//
+// normalize() 回傳的 degraded 語意（同 hook-input-normalize.mjs 檔頭拍板）：只表示「這裡判不出
+// 來」，不是「所以要擋下」——本檔遇 degraded 只印人可讀的繁中說明到 stderr 供事後排查，**不**改變
+// 檔頭這條 fail-open 契約，也不影響 stdout（deny JSON 或空）。
 
 import { existsSync, readFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, isAbsolute, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+
+import { normalize } from './hook-input-normalize.mjs';
 
 // ── 對外契約：受保護的 linter / formatter 設定檔 basename（值即契約，逐欄釘死）─────────
 // 只收 lint/format 類設定；tsconfig.json / package.json 等「非 lint/format」刻意不納入（見測試 NOT_PROTECTED）。
@@ -49,6 +58,17 @@ export function shouldBlock(filePath, existsFn) {
 }
 
 /**
+ * 把 normalize() 抽出的 filePath 解成可拿去 existsFn 查的路徑：已是絕對路徑則原樣使用（Claude
+ * 形狀的 tool_input.file_path 向來給絕對路徑，行為不變）；相對路徑（apply_patch patch 內的
+ * `*** Add/Update/Delete File: <relative path>`，相對於呼叫端 cwd）則對 cwd 解析成絕對路徑，
+ * 否則 existsSync 會用「真實行程 cwd」而非 payload 邏輯 cwd 去查、查錯地方。
+ */
+export function resolveAgainstCwd(filePath, cwd) {
+  if (typeof filePath !== 'string' || isAbsolute(filePath) || typeof cwd !== 'string') return filePath;
+  return resolve(cwd, filePath);
+}
+
+/**
  * loops-scoped defaultOn 判定（#87）：顯式 '0' 關；顯式 '1' 全域生效（不查 .loops/）；
  * 未設（含怪值）僅在 loops 工作區（hasLoopsDir）才生效——避免打擾非 loops 專案。
  */
@@ -65,7 +85,18 @@ function readStdin() {
 }
 
 /**
+ * degraded 只可見、不改擋不擋（issue #183 拍板）：normalize() 判不出 harness / root 時，把原因
+ * 印到 stderr 供事後排查——stdout（deny JSON 或空）與 fail-open 契約完全不受影響。
+ */
+function logDegraded(degraded) {
+  if (!degraded) return;
+  console.error(`[config-protection] 輸入正規化降級（僅供排查，不影響本次放行/擋下判定）：${degraded.reason}`);
+}
+
+/**
  * PreToolUse(Edit|Write) hook 入口：受保護設定檔且已存在 → 回 deny 阻擋；其餘一律放行（無輸出）。
+ * 改用 normalize() 逐檔抽出 filePaths（涵蓋 Claude 單檔形狀與 Codex apply_patch 多檔形狀），逐一
+ * 比對——受保護檔不必是清單第一個也會擋到。
  * 安全 / 永不擋路：env 預設關、payload 壞掉放行、只讀 basename + existsSync（不執行任何外部字串）、
  * 任何例外（fail-open）放行 exit 0。
  */
@@ -81,9 +112,13 @@ function main() {
   const hasLoopsDir = typeof cwd === 'string' && existsSync(join(cwd, '.loops'));
   if (!isProtectionEnabled(process.env.LOOPS_CONFIG_PROTECTION, hasLoopsDir)) return; // 未啟用 → 放行
 
-  const filePath = payload?.tool_input?.file_path;
-  if (typeof filePath !== 'string') return; // 無檔路徑 → 無從判定，放行
-  if (!shouldBlock(filePath, existsSync)) return; // 非受保護 / 新建 → 放行
+  const { filePaths, degraded } = normalize(payload, process.env);
+  logDegraded(degraded);
+
+  const blockedPath = filePaths
+    .map((p) => resolveAgainstCwd(p, cwd))
+    .find((p) => shouldBlock(p, existsSync));
+  if (!blockedPath) return; // 無檔路徑 / 非受保護 / 新建 → 放行
 
   console.log(
     JSON.stringify({

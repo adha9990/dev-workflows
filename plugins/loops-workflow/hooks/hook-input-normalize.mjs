@@ -13,25 +13,36 @@
 //
 // tokenizeShellLike 收斂（reuse-check）：merge-guard.mjs／pr-owner-guard.mjs／pr-gate.mjs（內嵌同條
 // regex）各自維護同一份「尊重引號切 token、回傳 quoted 旗標」邏輯，這裡收成單一定義並 export。
-// 本任務範圍只建立並 export——三支既有 guard 改接線是後續任務，不在這裡動。
+// 三支既有 guard 已於 T5 改成 import 本檔的定義、刪掉各自的私有複本（單一入口，不留 re-export）。
 
 // ── tokenizeShellLike（收斂自 merge-guard.mjs / pr-owner-guard.mjs / pr-gate.mjs 的重複實作）───────
 
+// 一個 token ＝ 連續一串「引號段（'…'／"…"）或非空白非引號字元」——**引號段與相鄰字元黏合時算同一顆**
+// （`--body="a && b"` 是一顆 token，不是 `--body="a` ／ `b"` 兩顆）。這條黏合規則是引號感知切段的地基：
+// 引號**內**的 `&&`／`;`／`|` 不會外洩成獨立 token，splitIntoSegments 才不會把引號內文誤切成一個新
+// 命令段（例：`gh issue comment --body="先 foo && git merge x 再說"` 曾被誤切出以 git 開頭的段、
+// 誤判成真的 git merge 呼叫）。
+const SHELL_TOKEN_RE = /(?:'[^']*'|"[^"]*"|[^\s'"]+)+/g;
+
+// 整顆 token 恰好是「單一個完整引號段」時才算 quoted token（黏合形如 `--body="a"` 不算——它有引號外的
+// 字面部分，呼叫端該當成一般 flag/字面 token 看待）。
+const WHOLLY_QUOTED_TOKEN_RE = /^(?:'[^']*'|"[^"]*")$/;
+
+// 去引號：把 token 內的每個引號段換成其內容（黏合形只脫掉引號、保留外圍字面）。
+const QUOTED_SPAN_RE = /'([^']*)'|"([^"]*)"/g;
+
 /**
- * 把指令字串尊重引號切成 token（單/雙引號包住的整段回傳去引號後的值＋是否為引號 token）。只做
- * 字面「切詞＋去引號」，不解讀完整 shell 語意（無變數展開／管線語意）。`quoted` 旗標是判定用的地基
+ * 把指令字串尊重引號切成 token（引號包住的整段回傳去引號後的值＋是否為引號 token）。只做字面
+ * 「切詞＋去引號」，不解讀完整 shell 語意（無變數展開／管線語意）。`quoted` 旗標是判定用的地基
  * ——呼叫端據此判斷一個以 `-` 開頭的 token 是不是真的 flag（引號包住的值即使字面像 flag 也不算，
  * 因為引號代表呼叫端明確把它標記成一個值，例如 `git push origin "-x"` 的 `"-x"` 是分支名不是旗標）。
  */
 export function tokenizeShellLike(cmd) {
-  const tokens = [];
-  const re = /'([^']*)'|"([^"]*)"|(\S+)/g;
-  let m;
-  while ((m = re.exec(cmd)) !== null) {
-    const quoted = m[1] !== undefined || m[2] !== undefined;
-    tokens.push({ value: m[1] ?? m[2] ?? m[3], quoted });
-  }
-  return tokens;
+  if (typeof cmd !== 'string') return [];
+  return [...cmd.matchAll(SHELL_TOKEN_RE)].map(([raw]) => ({
+    value: raw.replace(QUOTED_SPAN_RE, (_m, single, double) => single ?? double),
+    quoted: WHOLLY_QUOTED_TOKEN_RE.test(raw),
+  }));
 }
 
 // ── harness 判定 ──────────────────────────────────────────────────────────────────
@@ -71,7 +82,11 @@ function extractApplyPatchFilePaths(command) {
 // shell 命令段分隔符（未被引號包住時才算）：`&&`／`||`／`;`／`|`。
 const SEGMENT_SEPARATORS = new Set(['&&', '||', ';', '|']);
 
-/** 把已切好的 token 序列，依未引號的命令段分隔符切成多段（每段對應一次獨立的指令呼叫）。 */
+/**
+ * 把已切好的 token 序列，依未引號的命令段分隔符切成多段（每段對應一次獨立的指令呼叫）。切段一律
+ * **在 token 序列上**做、不在原始字串上 split：分隔符若落在引號內（`--body="a && b"`）根本不會
+ * 成為獨立 token（見 SHELL_TOKEN_RE 的黏合規則），因而不會把引號內文誤切成一個新命令段。
+ */
 function splitIntoSegments(tokens) {
   const segments = [];
   let current = [];
@@ -119,8 +134,11 @@ function parseGitSegment(segment) {
  * 把整條指令字串切成命令片段（依 `&&`／`||`／`;`／`|`），只在片段第一個 token 是（未引號的）`git`
  * 時才解析該片段的子指令與 `-C`——非 git 指令（例如 `foo -C /elsewhere`）不會被誤判成 git 呼叫，
  * 這正是 `-C` 綁定約束（見檔頭說明）的地基。
+ *
+ * 對外 export（#183 T5）：merge-guard.mjs 判「這條指令裡有沒有 `git merge`／`git push` 呼叫」時要
+ * 能穿過 `git -C <dir> merge` 這種夾在中間的全域選項，直接重用本函式，不自己再抄一份 `-C` 解析。
  */
-function extractGitSubcommands(command) {
+export function gitSubcommands(command) {
   const segments = splitIntoSegments(tokenizeShellLike(command));
   const result = [];
   for (const segment of segments) {
@@ -135,10 +153,17 @@ function extractGitSubcommands(command) {
 /**
  * effectiveGitDir：指令裡最後一次「帶 `-C` 的 git 呼叫」的目的地；若沒有任何 git 呼叫帶 `-C`，退回
  * cwd（fail-safe：判不出來就用呼叫當下所在目錄，不得誤取無關指令的 `-C`）。
+ *
+ * 對外 export（#183 T5）：merge-guard.mjs 判「`git merge` 實際作用在哪個 repo 的哪個分支」時要用
+ * 這個目的地而非 payload.cwd，重用本函式，不自己再抄一份（自抄的全域刮取會把 `foo -C /elsewhere
+ * && git merge x` 的無關 `-C` 誤取成 git 目的地、讓主幹上的 merge 被誤放行）。
+ *
+ * @param {Array<{subcommand:string, dashC:?string}>} subcommands gitSubcommands() 的結果。
+ * @param {?string} cwd 呼叫當下所在目錄（無任何 `-C` 時的退回值）。
  */
-function computeEffectiveGitDir(gitSubcommands, cwd) {
-  for (let i = gitSubcommands.length - 1; i >= 0; i -= 1) {
-    if (gitSubcommands[i].dashC != null) return gitSubcommands[i].dashC;
+export function effectiveGitDir(subcommands, cwd) {
+  for (let i = subcommands.length - 1; i >= 0; i -= 1) {
+    if (subcommands[i].dashC != null) return subcommands[i].dashC;
   }
   return cwd;
 }
@@ -203,8 +228,8 @@ export function normalize(payload, env) {
 
   const filePaths = isPatch ? extractApplyPatchFilePaths(command) : (filePath != null ? [filePath] : []);
   const tokens = command != null && !isPatch ? tokenizeShellLike(command) : [];
-  const gitSubcommands = command != null && !isPatch ? extractGitSubcommands(command) : [];
-  const effectiveGitDir = computeEffectiveGitDir(gitSubcommands, cwd);
+  const subcommands = command != null && !isPatch ? gitSubcommands(command) : [];
+  const gitDir = effectiveGitDir(subcommands, cwd);
 
   const { pluginRoot, dataRoot, rootSource } = resolveRoots(env);
 
@@ -215,8 +240,8 @@ export function normalize(payload, env) {
     command,
     tokens,
     filePaths,
-    gitSubcommands,
-    effectiveGitDir,
+    gitSubcommands: subcommands,
+    effectiveGitDir: gitDir,
     pluginRoot,
     dataRoot,
     rootSource,

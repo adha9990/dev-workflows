@@ -18,11 +18,22 @@
 // findings 歸零就收工——否則「整段包 marker」就能不真正抽象化、豁免面積會隱形，notes 讓豁免面積
 // 對審查者可見（#183 plan「不得靜默假裝已執行」同源精神）。
 //
-// 本次只實作 C3；C2（能力對照表對帳）、C4（persona 能力等級對帳）留給後續任務接續同一支腳本。
+// T18 補上 C2（capability-registry ↔ evals/baseline/codex/gaps.json 對帳）；C4（persona 能力等級
+// 對帳）留給後續任務接續同一支腳本。
+// C2 驗的三條不變式：
+//   I7　gaps.json 每筆 capability_id 二擇一——要嘛被某 facet 的 gaps_refs 引用、要嘛在 registry
+//       的 deferred[]，不可兩者皆無（孤兒）、不可兩者皆有（歸屬不明）；gaps_refs 引用 gaps.json
+//       沒有的 id 是懸空引用。
+//   I10　facet 的 codex status／measurability 須與其 gaps_refs 對應筆一致；多筆 ref 狀態互異時
+//       取最保守者（保守序 not_supported > degraded > not_measured > supported）；偏離須有
+//       override_rationale。gaps_refs 為空的 facet 須有 rationale_if_no_gaps_ref。
+// I5（descriptor fallback 完整性）／I6（not_measured 須有 repro）已由 check-registry-shape.mjs
+// 的 checkDescriptorFallback／checkDescriptorRepro 驗過，C2 這裡不重複實作，避免同一件事兩個入口。
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { parseRegistryJson } from './check-registry-shape.mjs';
 
 // ── 常數 ─────────────────────────────────────────────────────────────────
 
@@ -37,6 +48,13 @@ const SCOPE_DIR_DEFS = {
 };
 // root-docs 不是目錄掃描，是明確兩個檔案（repo 根 AGENTS.md、README.md）。
 const ROOT_DOCS_FILES = ['AGENTS.md', 'README.md'];
+
+// C2 對帳的兩份資料源（repo-relative posix，與 check-registry-shape.mjs 的 REGISTRY_REL 同源）。
+const CAPABILITY_REGISTRY_REL = 'plugins/loops-workflow/references/capability-registry.json';
+const GAPS_JSON_REL = 'plugins/loops-workflow/evals/baseline/codex/gaps.json';
+
+// I10 保守序：數字越大越保守，取 gaps_refs 對應筆狀態互異時的最保守者。
+const STATUS_CONSERVATISM_RANK = { not_supported: 3, degraded: 2, not_measured: 1, supported: 0 };
 
 // 排除集（寫死，比照 codex-plugin-lint.mjs 的 EXCLUDED_DIR_NAMES）：
 // - 生成真相源（reviewer 人設由 gen-reviewers.mjs 生成，不是手寫 canonical 散文）
@@ -273,7 +291,7 @@ export function formatSummary(result) {
 
   const lines = [];
   if (findings.length === 0) {
-    lines.push(`✓ compat-lint（C3）：${filesScanned} 檔全綠，無 finding。`);
+    lines.push(`✓ compat-lint（C2+C3）：${filesScanned} 檔全綠，無 finding。`);
   } else {
     lines.push(...findings.map((f) => `✗ [${f.check}] ${f.severity} ${f.file} — ${f.detail}`));
   }
@@ -281,6 +299,160 @@ export function formatSummary(result) {
     lines.push(`（另有 ${notes.length} 筆豁免命中記錄於 notes，見 --json）`);
   }
   return lines.join('\n');
+}
+
+// ── C2：capability-registry ↔ gaps.json 對帳（純函式，無 IO，測試直接 import）──────────
+
+/**
+ * I7：gaps.json 每筆 capability_id 與 registry 的二擇一歸屬——
+ * ①懸空：facet.gaps_refs 引用了 gaps.json 沒有的 id。
+ * ②孤兒：gaps.json 的 id 既未被任何 facet.gaps_refs 引用、也不在 registry.deferred[]。
+ * ③歸屬不明：gaps.json 的 id 同時被某 facet 引用、又出現在 registry.deferred[]。
+ */
+export function checkGapsFacetReconciliation(registry, gapsArray) {
+  const gaps = Array.isArray(gapsArray) ? gapsArray : [];
+  const gapsIds = new Set(gaps.map((g) => g?.capability_id));
+  const deferredIds = new Set(
+    (Array.isArray(registry?.deferred) ? registry.deferred : []).map((d) => d?.capability_id),
+  );
+  const facets = registry?.facets ?? {};
+
+  const findings = [];
+  // owners：capability_id → 引用它的 facet id 清單（只收「gaps.json 真的有這筆」的引用，
+  // 懸空的另外在下面就地回報，不進這個 map，避免孤兒/歸屬不明誤判懸空 id）。
+  const owners = new Map();
+  for (const [facetId, facet] of Object.entries(facets)) {
+    for (const capId of Array.isArray(facet?.gaps_refs) ? facet.gaps_refs : []) {
+      if (!gapsIds.has(capId)) {
+        findings.push({
+          check: 'C2',
+          severity: 'P1',
+          file: GAPS_JSON_REL,
+          detail: `facet "${facetId}" 的 gaps_refs 引用了 gaps.json 沒有的 capability_id "${capId}"（懸空引用，I7）`,
+        });
+        continue;
+      }
+      if (!owners.has(capId)) owners.set(capId, []);
+      owners.get(capId).push(facetId);
+    }
+  }
+
+  for (const gap of gaps) {
+    const capId = gap?.capability_id;
+    const owningFacets = owners.get(capId) ?? [];
+    const inDeferred = deferredIds.has(capId);
+    if (owningFacets.length === 0 && !inDeferred) {
+      findings.push({
+        check: 'C2',
+        severity: 'P1',
+        file: GAPS_JSON_REL,
+        detail: `capability_id "${capId}" 既未被任何 facet 的 gaps_refs 引用、也不在 registry 的 deferred[] 清單裡（孤兒，I7）`,
+      });
+    } else if (owningFacets.length > 0 && inDeferred) {
+      findings.push({
+        check: 'C2',
+        severity: 'P1',
+        file: GAPS_JSON_REL,
+        detail: `capability_id "${capId}" 同時被 facet [${owningFacets.join(', ')}] 的 gaps_refs 引用、又出現在 registry 的 deferred[] 清單裡（歸屬不明，I7）`,
+      });
+    }
+  }
+
+  return findings;
+}
+
+/**
+ * I10：facet 的 codex status／measurability 須與其 gaps_refs 對應筆一致。
+ * status：多筆 ref 狀態互異時取最保守者（保守序見 STATUS_CONSERVATISM_RANK）；偏離須有
+ * override_rationale 才放行。measurability：僅在引用集合的 measurability 彼此一致、有唯一
+ * 期望值時才對帳（互異時無明訂規則，不強行判定，避免 false positive）。
+ * 懸空 ref（gaps.json 沒有的 id）已由 I7 回報，這裡直接濾掉不重複計入。
+ */
+export function checkFacetStatusConsistency(registry, gapsArray) {
+  const gapsById = new Map(
+    (Array.isArray(gapsArray) ? gapsArray : []).map((g) => [g?.capability_id, g]),
+  );
+  const facets = registry?.facets ?? {};
+  const findings = [];
+
+  for (const [facetId, facet] of Object.entries(facets)) {
+    const refs = Array.isArray(facet?.gaps_refs) ? facet.gaps_refs : [];
+    const gapEntries = refs.map((id) => gapsById.get(id)).filter(Boolean);
+    if (gapEntries.length === 0) continue; // 無 ref 或 ref 全懸空 → 無可對帳對象
+
+    const codexDescriptor = facet?.platforms?.codex ?? {};
+    const hasOverride = Boolean(facet?.override_rationale);
+
+    const expectedStatus = gapEntries.reduce((worst, g) => {
+      const rank = STATUS_CONSERVATISM_RANK[g.status] ?? -1;
+      const worstRank = STATUS_CONSERVATISM_RANK[worst] ?? -1;
+      return rank > worstRank ? g.status : worst;
+    }, gapEntries[0].status);
+    if (codexDescriptor.status !== expectedStatus && !hasOverride) {
+      findings.push({
+        check: 'C2',
+        severity: 'P1',
+        file: CAPABILITY_REGISTRY_REL,
+        detail: `facet "${facetId}" 的 codex status="${codexDescriptor.status}" 與 gaps_refs 保守序推導值 "${expectedStatus}" 不一致，且無 override_rationale 說明偏離原因（I10）`,
+      });
+    }
+
+    const measurabilities = new Set(gapEntries.map((g) => g.measurability));
+    if (measurabilities.size === 1) {
+      const [expectedMeasurability] = measurabilities;
+      if (codexDescriptor.measurability !== expectedMeasurability && !hasOverride) {
+        findings.push({
+          check: 'C2',
+          severity: 'P1',
+          file: CAPABILITY_REGISTRY_REL,
+          detail: `facet "${facetId}" 的 codex measurability="${codexDescriptor.measurability}" 與 gaps_refs 一致值 "${expectedMeasurability}" 不符，且無 override_rationale 說明偏離原因（I10）`,
+        });
+      }
+    }
+  }
+
+  return findings;
+}
+
+/** gaps_refs 為空的 facet（目前是 hook_concurrency）須有 rationale_if_no_gaps_ref，沒有就紅。 */
+export function checkRationaleForEmptyGapsRefs(registry) {
+  const facets = registry?.facets ?? {};
+  const findings = [];
+  for (const [facetId, facet] of Object.entries(facets)) {
+    const refs = Array.isArray(facet?.gaps_refs) ? facet.gaps_refs : [];
+    if (refs.length === 0 && !facet?.rationale_if_no_gaps_ref) {
+      findings.push({
+        check: 'C2',
+        severity: 'P1',
+        file: CAPABILITY_REGISTRY_REL,
+        detail: `facet "${facetId}" 的 gaps_refs 為空，須填 rationale_if_no_gaps_ref 說明理由（實際為空）`,
+      });
+    }
+  }
+  return findings;
+}
+
+/** C2 彙整器：I7 + I10 + rationale_if_no_gaps_ref 三批 findings 合併。 */
+export function checkCapabilityRegistryReconciliation(registry, gapsArray) {
+  return [
+    ...checkGapsFacetReconciliation(registry, gapsArray),
+    ...checkFacetStatusConsistency(registry, gapsArray),
+    ...checkRationaleForEmptyGapsRefs(registry),
+  ];
+}
+
+/** gaps.json 原始字串 → { gapsArray } 或 { error }（陣列形狀；與 parseRegistryJson 的物件形狀互補）。 */
+export function parseGapsArrayJson(content) {
+  let parsed;
+  try {
+    parsed = JSON.parse(String(content ?? ''));
+  } catch (e) {
+    return { error: `gaps.json 解析失敗：${e.message}` };
+  }
+  if (!Array.isArray(parsed)) {
+    return { error: 'gaps.json 內容不是合法的 JSON 陣列' };
+  }
+  return { gapsArray: parsed };
 }
 
 // ── IO 邊界：依 scope 掃檔 + CLI main ────────────────────────────────────────
@@ -321,7 +493,39 @@ export function listScopeFiles(root, scopeId) {
   return listFilesRecursive(root, baseDirAbs, def.recursive).filter((rel) => !isExcludedPath(rel));
 }
 
-/** 掃描 root（依 opts.scope 篩選面），跑 lintFileText，組成完整結果物件（--json 與人讀摘要共用）。 */
+/**
+ * C2 的 IO 邊界：讀 capability-registry.json + gaps.json，跑 checkCapabilityRegistryReconciliation。
+ * 兩份資料源只要有一份不存在（例如測試用的假 repo 只準備了 markdown scope fixture）→ C2 對帳在該
+ * root 上不適用，靜默回傳空 findings，不是「找不到就報錯」——C3 的 scope 掃描本來就與這兩份檔案
+ * 無關，不該因為它們不存在而讓整體 buildReport 失敗。
+ */
+export function buildC2Report(root) {
+  const registryAbs = join(root, ...CAPABILITY_REGISTRY_REL.split('/'));
+  const gapsAbs = join(root, ...GAPS_JSON_REL.split('/'));
+  if (!existsSync(registryAbs) || !existsSync(gapsAbs)) return { findings: [] };
+
+  let registryRaw;
+  let gapsRaw;
+  try {
+    registryRaw = readFileSync(registryAbs, 'utf8');
+    gapsRaw = readFileSync(gapsAbs, 'utf8');
+  } catch (e) {
+    return { findings: [{ check: 'C2', severity: 'P1', file: CAPABILITY_REGISTRY_REL, detail: `讀取失敗：${e.message}` }] };
+  }
+
+  const parsedRegistry = parseRegistryJson(registryRaw);
+  if (parsedRegistry.error) {
+    return { findings: [{ check: 'C2', severity: 'P1', file: CAPABILITY_REGISTRY_REL, detail: parsedRegistry.error }] };
+  }
+  const parsedGaps = parseGapsArrayJson(gapsRaw);
+  if (parsedGaps.error) {
+    return { findings: [{ check: 'C2', severity: 'P1', file: GAPS_JSON_REL, detail: parsedGaps.error }] };
+  }
+
+  return { findings: checkCapabilityRegistryReconciliation(parsedRegistry.registry, parsedGaps.gapsArray) };
+}
+
+/** 掃描 root（依 opts.scope 篩選面），跑 lintFileText（C3）+ buildC2Report（C2），組成完整結果物件。 */
 export function buildReport(root, opts = {}) {
   const scopeArg = Array.isArray(opts.scope) ? opts.scope.join(',') : opts.scope;
   const scopes = normalizeScopes(scopeArg);
@@ -344,6 +548,9 @@ export function buildReport(root, opts = {}) {
     findings.push(...result.findings);
     notes.push(...result.notes);
   }
+
+  // C2 對帳與 scope 篩選無關（不是 markdown 面掃描），一律跑、findings 併入同一份報告。
+  findings.push(...buildC2Report(root).findings);
 
   return {
     ok: findings.length === 0,

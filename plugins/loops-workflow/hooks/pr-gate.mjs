@@ -51,7 +51,8 @@
 //      isNoUiMarker / isMergeConflict / hasExplicitPrTarget / 各閘 deny 理由組字函式。
 //   2) IO 薄邊界：readGitBranch（讀 cwd 的 .git）、realRunReceiptExists（讀 real-run 目錄）、
 //      readMergeability（spawn gh / 讀 stub）、main()（讀 stdin、印 deny）——import 時不執行。
-// 依賴：node 內建（fs / path / url / child_process）+ 同目錄 hook-flags、outbound-comment-guard
+// 依賴：node 內建（fs / path / url / child_process）+ 同目錄 hook-flags、hook-input-normalize
+// （tokenizeShellLike——尊重引號切詞的唯一正本，#183 T5 收斂，原本本檔內嵌同一條 regex）、outbound-comment-guard
 // （stripCode / extractCommentBody / makeHardenedReadFileSafe）、worktree-guard（findLoopRoot /
 // extractWorktreeSlug）——閘與分支判定不重抄兄弟 hook 已寫好、已測過的邏輯。
 // stripQuotedValues／readGitBranch 對外 export：供 merge-guard.mjs 重用（#133）——同一套「剝殼視圖
@@ -64,6 +65,7 @@ import { pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 
 import { flagEnabled } from './hook-flags.mjs';
+import { tokenizeShellLike } from './hook-input-normalize.mjs';
 import { stripCode, extractCommentBody, makeHardenedReadFileSafe } from './outbound-comment-guard.mjs';
 import { findLoopRoot, extractWorktreeSlug } from './worktree-guard.mjs';
 
@@ -195,12 +197,7 @@ export function isMergeConflict(info) {
  */
 export function hasExplicitPrTarget(cmd, kind) {
   if ((kind !== 'ready' && kind !== 'comment') || typeof cmd !== 'string') return false;
-  const tokens = [];
-  const re = /'([^']*)'|"([^"]*)"|(\S+)/g;
-  let m;
-  while ((m = re.exec(cmd)) !== null) {
-    tokens.push({ value: m[1] ?? m[2] ?? m[3], quoted: m[1] !== undefined || m[2] !== undefined });
-  }
+  const tokens = tokenizeShellLike(cmd);
   // ②跨 repo：任一 flag token 是 -R / --repo / --repo=…（引號包住的不算 flag）→ 顯式目標。
   const hasRepoFlag = tokens.some(
     (t) => !t.quoted && (t.value === '-R' || t.value === '--repo' || t.value.startsWith('--repo=')),

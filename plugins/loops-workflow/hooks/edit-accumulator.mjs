@@ -11,7 +11,7 @@
 //   3) IO 薄邊界：main()（讀 stdin、經上述 state IO 落盤）——被 import 時不執行（import.meta.url 守門）。
 // 依賴：僅 node 內建（fs / os / path / url / process），零外部套件。
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -19,6 +19,9 @@ import { pathToFileURL } from 'node:url';
 // 安全檔名規則的單一真相源：沿用 suggest-compact 的 sanitizeSessionId（避免重抄正則而漂移）。
 import { sanitizeSessionId } from './suggest-compact.mjs';
 import { flagEnabled } from './hook-flags.mjs';
+// tmp+rename 原子覆寫（#183 T14）：stop-gate 與 eval-gate 都會在 Stop 時對同一 session 呼叫
+// clearEditsState，兩者併發時若直接整檔覆寫 writeFileSync，reader 有機會讀到半寫檔——改走原子寫入。
+import { writeFileAtomic } from './atomic-write.mjs';
 
 export { sanitizeSessionId };
 
@@ -78,7 +81,7 @@ function readStateRaw(stateFile) {
 // state 檔寫入的唯一落點：序列化 state 物件 → 寫本 session 的 tmp 檔。writeEditsState /
 // clearEditsState 都經這裡，確保「寫 state 檔」只有一處 writeFileSync（單一真相源）。
 function writeStateFile(sessionId, state) {
-  writeFileSync(editsStateFile(sessionId), JSON.stringify(state), 'utf8');
+  writeFileAtomic(editsStateFile(sessionId), JSON.stringify(state), 'utf8'); // tmp+rename → 併發 writer 安全
 }
 
 /**

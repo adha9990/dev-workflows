@@ -28,7 +28,15 @@
 //   1) 純函式（無 IO）：isPrMergeCommand / isGitMergeCommand / isMainBranch / isPushToMainDestination /
 //      isApiPutMergeCommand / classifyMergeCommand（四型分類主入口）/ deny 理由組字函式。
 //   2) IO 薄邊界：main()（讀 stdin、呼叫 pr-gate.mjs 匯出的 readGitBranch、印 deny）——import 時不執行。
-// 依賴：node 內建（fs / url）+ 同目錄 hook-flags（flagEnabled）、pr-gate（stripQuotedValues /
+// 指令詞的 `-C` 弱點（#183 T7，三型一起修）：`\bgit\s+merge\b`／`\bgit\s+push\b`／`\bgh\s+api\b` 這種
+// 鄰接式正則，只要中間夾一個全域選項（`git -C /other merge x`）整條就不中＝根本沒被歸類成該型指令、
+// 直接放行。三型的指令詞判定一律 OR 上 token 化的呼叫解析（git 走 hook-input-normalize 的
+// gitSubcommands，不自寫 -C 解析）；② 的分支改判 effectiveGitDir（`-C` 目的地，沒有才退回 cwd），
+// 故 `git -C <主幹 repo> merge x` 擋、`git -C <非主幹 repo> merge x` 放行、`foo -C /elsewhere &&
+// git merge x` 仍判 cwd 的分支（不誤取無關指令的 -C）。
+//
+// 依賴：node 內建（fs / url）+ 同目錄 hook-flags（flagEnabled）、hook-input-normalize
+// （tokenizeShellLike / gitSubcommands / effectiveGitDir——切詞與 `-C` 解析的唯一正本）、pr-gate（stripQuotedValues /
 // readGitBranch，#133 plan §1：pr-gate.mjs 僅加 export、零行為變更）——子指令詞剝殼判定與分支
 // 判定不重抄 pr-gate.mjs 已寫好、已測過的邏輯。
 
@@ -36,6 +44,7 @@ import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 import { flagEnabled } from './hook-flags.mjs';
+import { tokenizeShellLike, gitSubcommands, effectiveGitDir } from './hook-input-normalize.mjs';
 import { stripQuotedValues, readGitBranch } from './pr-gate.mjs';
 
 // ── 純函式層（無 IO）──────────────────────────────────────────────────────────────
@@ -53,36 +62,37 @@ export function isPrMergeCommand(cmd) {
 }
 
 /**
+ * 指令裡有沒有「子指令＝sub 的 git 呼叫」。重用 hook-input-normalize.mjs 的 gitSubcommands：它逐次
+ * git 呼叫解析、跳過 `-C <dir>`／`-c k=v` 這類**夾在 git 與子指令之間的全域選項**，所以
+ * `git -C /other merge x`（舊版「git 與子指令必須緊鄰」的正則整條不中、等於根本沒被歸類成 git
+ * merge 指令 → 放行）也能被歸類到位。切 token 時尊重引號，故引號內文裡的 `git merge` 字樣不算
+ * 一次 git 呼叫。
+ */
+function hasGitSubcommandCall(cmd, sub) {
+  return gitSubcommands(cmd).some((call) => call.subcommand === sub);
+}
+
+/**
  * 是不是 `git merge`（不判斷 branch——branch 判斷交給 classifyMergeCommand／呼叫端，因為「併到
- * 哪個分支才算高風險」需要外部脈絡）。同樣剝殼視圖判，理由同上。`merge` 收尾用 `(?=\s|$)` 取代
- * `\b`：`\b` 在 `e`→`-` 這種 word/非word 字元轉換處一樣成立，會把 `git merge-base`／
- * `git merge-tree`／`git merge-file` 這些唯讀查詢類 plumbing 子指令（不是真的合併動作）一併
- * 誤中；`(?=\s|$)` 只認「merge 後面接空白或字串結尾」兩者才算，這些 plumbing 指令放行，
- * `git merge x` 這種真的合併指令不受影響。
+ * 哪個分支才算高風險」需要外部脈絡）。**單一入口、兩條互補涵蓋面 OR**（兩者涵蓋的形狀不相交，
+ * 缺任一條都會漏：①抓不到夾全域選項的 `git -C … merge`、②抓不到 git 不在命令段開頭的
+ * `sudo git merge`／`xargs git merge`——兩種形狀各有回歸測試釘住）：
+ *   ①剝殼視圖的字面鄰接式（原有判定，一字不動）——涵蓋 git 不在命令段開頭的呼叫（`sudo git merge`／
+ *     `xargs git merge`），並靠剝殼防「字樣只出現在別的指令的引號值裡」誤判。`merge` 收尾用
+ *     `(?=\s|$)` 取代 `\b`：`\b` 在 `e`→`-` 這種 word/非word 字元轉換處一樣成立，會把
+ *     `git merge-base`／`git merge-tree`／`git merge-file` 這些唯讀查詢類 plumbing 子指令（不是真的
+ *     合併動作）一併誤中。
+ *   ②token 化的 git 呼叫解析——涵蓋 `git -C <dir> merge x` 這種夾全域選項、①的鄰接式抓不到的形狀
+ *     （子指令仍精確比對 'merge'，plumbing 子指令是不同的 subcommand 字串、不會誤中）。
  */
 export function isGitMergeCommand(cmd) {
-  return typeof cmd === 'string' && /\bgit\s+merge(?=\s|$)/.test(stripQuotedValues(cmd));
+  if (typeof cmd !== 'string') return false;
+  return /\bgit\s+merge(?=\s|$)/.test(stripQuotedValues(cmd)) || hasGitSubcommandCall(cmd, 'merge');
 }
 
 /** branch 是不是 main/master（非字串——含 null，判不出分支時的傳入值——一律 false）。 */
 export function isMainBranch(branch) {
   return branch === 'main' || branch === 'master';
-}
-
-/**
- * 把指令字串切成 shell token（尊重單/雙引號包住的整段，回傳去引號後的值＋是否為引號 token）。
- * 只做字面「切詞＋去引號」，不解讀完整 shell 語意（無變數展開／管線），足夠應付本檔要判的
- * `git push` 指令形狀。
- */
-function tokenizeShellLike(cmd) {
-  const tokens = [];
-  const re = /'([^']*)'|"([^"]*)"|(\S+)/g;
-  let m;
-  while ((m = re.exec(cmd)) !== null) {
-    const quoted = m[1] !== undefined || m[2] !== undefined;
-    tokens.push({ value: m[1] ?? m[2] ?? m[3], quoted });
-  }
-  return tokens;
 }
 
 /**
@@ -103,7 +113,8 @@ function isMainRefLike(value) {
 
 /**
  * 是不是「`git push` 到 main/master」。子指令詞判定沿用剝殼視圖確認是 `git push`（避免指令詞
- * 誤判，同①②）；destination 判定改**token 化 positional 解析**（取代舊版「只看字串最後一個
+ * 誤判，同①②），OR 上 token 化的 git 呼叫解析涵蓋 `git -C <dir> push …`（夾全域選項、鄰接式
+ * 抓不到，同 isGitMergeCommand 的②）；destination 判定改**token 化 positional 解析**（取代舊版「只看字串最後一個
  * token」＋「REFSPEC/`--delete` 全字串正則另外掃」的雙軌做法——舊版任一目的地後面夾尾隨 flag
  * （`--force-with-lease`／`-f`／`--set-upstream`）或一次 push 多個 ref（master 不是最後一個）
  * 就會漏判，且全字串正則會被 flag 值裡湊巧出現的「冒號+master」圖樣（如
@@ -118,7 +129,7 @@ function isMainRefLike(value) {
  */
 export function isPushToMainDestination(cmd) {
   if (typeof cmd !== 'string') return false;
-  if (!/\bgit\s+push\b/.test(stripQuotedValues(cmd))) return false;
+  if (!/\bgit\s+push\b/.test(stripQuotedValues(cmd)) && !hasGitSubcommandCall(cmd, 'push')) return false;
 
   const tokens = tokenizeShellLike(cmd);
   const pushIdx = tokens.findIndex((t) => !t.quoted && t.value === 'push');
@@ -136,7 +147,31 @@ export function isPushToMainDestination(cmd) {
 const API_MERGE_PATH_RE = /\/merge(?:["'\s?]|$)/;
 
 /**
- * 是不是「`gh api` 用 PUT 打 `/pulls/.../merge` 路徑」。`gh api`／PUT 判定用剝殼視圖（避免指令詞
+ * 指令裡有沒有「子指令＝sub 的 gh 呼叫」，容忍 gh 與子指令之間夾旗標（`gh -C <dir> api …` 這種
+ * 包裝器／全域選項形——與 `git -C` 同款「鄰接式正則被夾在中間的選項打穿」弱點，一併補上）。掃描時
+ * 跳過旗標 token 與旗標緊接的值 token；值剛好等於目標子指令時**不**吃掉，避免把子指令本身當成前一個
+ * 旗標的值而漏判。切 token 尊重引號，故引號內文裡的 `gh api` 字樣不算一次 gh 呼叫。
+ */
+function hasGhSubcommandCall(cmd, sub) {
+  const tokens = tokenizeShellLike(cmd);
+  for (let i = 0; i < tokens.length; i += 1) {
+    if (tokens[i].quoted || tokens[i].value !== 'gh') continue;
+    let j = i + 1;
+    while (j < tokens.length) {
+      const tok = tokens[j];
+      if (tok.quoted || tok.value === sub) break;
+      const previousIsFlag = j > i + 1 && isFlagToken(tokens[j - 1]);
+      if (!isFlagToken(tok) && !previousIsFlag) break; // 非旗標也非旗標的值 → 這就是子指令位置
+      j += 1;
+    }
+    if (tokens[j] && !tokens[j].quoted && tokens[j].value === sub) return true;
+  }
+  return false;
+}
+
+/**
+ * 是不是「`gh api` 用 PUT 打 `/pulls/.../merge` 路徑」。`gh api` 判定＝剝殼視圖的鄰接式 OR token 化
+ * 的 gh 呼叫解析（後者涵蓋 `gh -C <dir> api …` 這種夾旗標形）、PUT 判定用剝殼視圖（避免指令詞
  * 誤判，同①②③的「是不是這個子指令」判定），路徑判定對原始字串（AND、不要求 `/pulls/` 與 `/merge`
  * 鄰接、容忍路徑被引號包住——剝殼視圖會把引號內路徑一併消掉，造成偽陰性）。GET（無 -X/--method）
  * 或路徑非 `/merge`（含 `/mergeable` 這種右邊界不對的近似路徑）放行。
@@ -144,7 +179,7 @@ const API_MERGE_PATH_RE = /\/merge(?:["'\s?]|$)/;
 export function isApiPutMergeCommand(cmd) {
   if (typeof cmd !== 'string') return false;
   const stripped = stripQuotedValues(cmd);
-  if (!/\bgh\s+api\b/.test(stripped)) return false;
+  if (!/\bgh\s+api\b/.test(stripped) && !hasGhSubcommandCall(cmd, 'api')) return false;
   if (!/(^|\s)(-X\s+PUT|--method[\s=]PUT)(?=\s|$)/.test(stripped)) return false;
   return cmd.includes('/pulls/') && API_MERGE_PATH_RE.test(cmd);
 }
@@ -223,7 +258,11 @@ function main() {
   let branch = null;
   if (isGitMergeCommand(command)) {
     const cwd = typeof payload?.cwd === 'string' ? payload.cwd : process.cwd();
-    branch = readGitBranch(cwd); // 判不出（無 .git／detached HEAD）→ null，②自然放行
+    // 分支要判在「這次 git merge 真正作用的 repo」上：`git -C <dir> merge x` 作用在 <dir>，不是
+    // payload.cwd。effectiveGitDir 只取「帶 -C 的 git 呼叫」的目的地、沒有就退回 cwd——`foo -C
+    // /elsewhere && git merge x` 這種 -C 屬於別的指令的情形不會被誤取（仍判 cwd 的分支）。
+    const gitDir = effectiveGitDir(gitSubcommands(command), cwd);
+    branch = readGitBranch(gitDir); // 判不出（無 .git／detached HEAD）→ null，②自然放行
   }
 
   const kind = classifyMergeCommand(command, branch);

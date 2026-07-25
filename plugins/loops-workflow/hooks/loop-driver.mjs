@@ -39,8 +39,6 @@
 
 import {
   readFileSync,
-  writeFileSync,
-  renameSync,
   unlinkSync,
   readdirSync,
   statSync,
@@ -52,6 +50,8 @@ import { spawnSync } from 'node:child_process';
 import { flagEnabled } from './hook-flags.mjs';
 // 落點錨定（worktree cwd → 主 repo 根）沿用 cost-tracker 的單一真相源，不另抄一份純字串推導。
 import { resolveLoopsRoot } from './cost-tracker.mjs';
+// tmp+rename 原子覆寫的單一真相源（本檔是原寫法出處，抽出後家族其餘覆寫型寫檔重用同一份，見 #183 T14）。
+import { writeFileAtomic } from './atomic-write.mjs';
 
 const GATE_TIMEOUT_MS = 300000; // 完工品質閘上限 5 分鐘，逾時視為 spawn 失敗 → fail-open 放行
 const LEDGER_REASON_CAP_CHARS = 10000; // 已跑閘紅時的失敗清單摘要上限，過長截斷（避免注入無界成長）
@@ -268,9 +268,7 @@ export function incrementIterationAtomic(filePath, snapshot) {
 }
 
 function writeStateAtomic(filePath, stateObj) {
-  const tmp = join(dirname(filePath), `.state.${process.pid}.${Date.now()}.tmp`);
-  writeFileSync(tmp, JSON.stringify(stateObj, null, 2));
-  renameSync(tmp, filePath); // 同目錄 rename → 對 reader 原子可見
+  writeFileAtomic(filePath, JSON.stringify(stateObj, null, 2)); // tmp+rename → 對 reader 原子可見
 }
 
 function deleteState(filePath) {

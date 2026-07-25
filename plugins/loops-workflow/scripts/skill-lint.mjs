@@ -667,6 +667,7 @@ const NON_HOOK_LEAF_FILES = new Set([
   'hook-flags.mjs',
   'hook-input-normalize.mjs',
   'hook-decision-emit.mjs',
+  'atomic-write.mjs',
 ]);
 
 function isHookWiringExempt(relPath) {

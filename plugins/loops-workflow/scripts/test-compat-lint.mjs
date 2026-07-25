@@ -11,6 +11,13 @@
 //
 // 只對 scripts/fixtures/compat-lint/ 底下的 fixture 跑；本次任務刻意不對真實 repo 全掃
 // （--root . 現況還有大量未清理的命中，那是 T21–T24 的工作，不在本次驗證範圍）。
+//
+// T18 新增 C2（capability-registry ↔ gaps.json 對帳）：S4=I7（孤兒／懸空／歸屬不明二擇一）、
+// S5=I10（status/measurability 保守序一致性 + override_rationale 逃生門）、
+// S18=rationale_if_no_gaps_ref（gaps_refs 為空的 facet 須有理由）。C2 是資料對帳、不是文字掃描，
+// 純函式測試直接用 inline JS 物件（比照本檔既有 normalizeScopes/formatSummary 的作法，不另開
+// JSON fixture 檔——minimalism：純資料結構用字面量就夠，不需要 IO）；C2 的 IO 邊界
+// （buildC2Report）與真實 repo 資料的整合測試才用檔案（temp dir / 真實 root）。
 
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -34,6 +41,12 @@ import {
   formatSummary,
   listScopeFiles,
   buildReport,
+  checkGapsFacetReconciliation,
+  checkFacetStatusConsistency,
+  checkRationaleForEmptyGapsRefs,
+  checkCapabilityRegistryReconciliation,
+  parseGapsArrayJson,
+  buildC2Report,
 } from './compat-lint.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -474,6 +487,192 @@ function runCli(root, args = ['--json']) {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// C2：checkGapsFacetReconciliation（I7，S4）——孤兒／懸空／歸屬不明二擇一
+// ══════════════════════════════════════════════════════════════════════════
+
+// S4 正向：capability_id 恰好被一個 facet 引用、不在 deferred → 0 筆 finding
+{
+  const registry = { facets: { foo: { gaps_refs: ['codex.a'] } }, deferred: [] };
+  const gaps = [{ capability_id: 'codex.a' }];
+  const findings = checkGapsFacetReconciliation(registry, gaps);
+  assert(findings.length === 0, `checkGapsFacetReconciliation [S4 正向]：唯一歸屬（引用）→ 0 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+// S4 正向：capability_id 只在 deferred[]、未被任何 facet 引用 → 0 筆 finding（deferred 也是合法歸屬）
+{
+  const registry = { facets: { foo: { gaps_refs: [] } }, deferred: [{ capability_id: 'codex.b' }] };
+  const gaps = [{ capability_id: 'codex.b' }];
+  const findings = checkGapsFacetReconciliation(registry, gaps);
+  assert(findings.length === 0, `checkGapsFacetReconciliation [S4 正向]：唯一歸屬（deferred）→ 0 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+// S4 負向：孤兒——兩者皆無
+{
+  const registry = { facets: { foo: { gaps_refs: [] } }, deferred: [] };
+  const gaps = [{ capability_id: 'codex.orphan' }];
+  const findings = checkGapsFacetReconciliation(registry, gaps);
+  assert(findings.length === 1 && findings[0].check === 'C2' && findings[0].detail.includes('孤兒'),
+    `checkGapsFacetReconciliation [S4 負向-孤兒]：既未被引用也不在 deferred → 1 筆 finding 標「孤兒」（實際：${JSON.stringify(findings)}）`);
+}
+// S4 負向：懸空——gaps_refs 引用 gaps.json 沒有的 id
+{
+  const registry = { facets: { foo: { gaps_refs: ['codex.does-not-exist'] } }, deferred: [] };
+  const gaps = [{ capability_id: 'codex.real' }];
+  const findings = checkGapsFacetReconciliation(registry, gaps);
+  assert(
+    findings.some((f) => f.detail.includes('懸空') && f.detail.includes('codex.does-not-exist'))
+      && findings.some((f) => f.detail.includes('孤兒') && f.detail.includes('codex.real')),
+    `checkGapsFacetReconciliation [S4 負向-懸空]：懸空引用（1 筆）+ codex.real 因而孤兒（另 1 筆）（實際：${JSON.stringify(findings)}）`,
+  );
+}
+// S4 負向：歸屬不明——同一 capability_id 同時被 facet 引用又在 deferred[]
+{
+  const registry = { facets: { foo: { gaps_refs: ['codex.c'] } }, deferred: [{ capability_id: 'codex.c' }] };
+  const gaps = [{ capability_id: 'codex.c' }];
+  const findings = checkGapsFacetReconciliation(registry, gaps);
+  assert(findings.length === 1 && findings[0].detail.includes('歸屬不明') && findings[0].detail.includes('foo'),
+    `checkGapsFacetReconciliation [S4 負向-歸屬不明]：同時被引用又 deferred → 1 筆 finding 標「歸屬不明」（實際：${JSON.stringify(findings)}）`);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// C2：checkFacetStatusConsistency（I10，S5）——保守序一致性 + override_rationale 逃生門
+// ══════════════════════════════════════════════════════════════════════════
+
+// S5 正向：單一 ref，facet 自身 status/measurability 與 ref 一致 → 0 筆 finding
+{
+  const registry = { facets: { foo: { gaps_refs: ['codex.a'], platforms: { codex: { status: 'not_measured', measurability: 'needs_auth' } } } } };
+  const gaps = [{ capability_id: 'codex.a', status: 'not_measured', measurability: 'needs_auth' }];
+  const findings = checkFacetStatusConsistency(registry, gaps);
+  assert(findings.length === 0, `checkFacetStatusConsistency [S5 正向-單筆一致]：0 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+// S5 正向：多筆 ref 狀態互異，facet 自身取最保守者（degraded 比 not_measured 保守）→ 0 筆 finding
+{
+  const registry = { facets: { foo: { gaps_refs: ['codex.a', 'codex.b'], platforms: { codex: { status: 'degraded', measurability: 'needs_auth' } } } } };
+  const gaps = [
+    { capability_id: 'codex.a', status: 'not_measured', measurability: 'needs_auth' },
+    { capability_id: 'codex.b', status: 'degraded', measurability: 'needs_auth' },
+  ];
+  const findings = checkFacetStatusConsistency(registry, gaps);
+  assert(findings.length === 0, `checkFacetStatusConsistency [S5 正向-保守序]：取最保守者 degraded 與 facet 自身相符 → 0 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+// S5 負向：status 偏離保守序推導值、無 override_rationale → 1 筆 finding
+{
+  const registry = { facets: { foo: { gaps_refs: ['codex.a', 'codex.b'], platforms: { codex: { status: 'not_measured', measurability: 'needs_auth' } } } } };
+  const gaps = [
+    { capability_id: 'codex.a', status: 'not_measured', measurability: 'needs_auth' },
+    { capability_id: 'codex.b', status: 'degraded', measurability: 'needs_auth' },
+  ];
+  const findings = checkFacetStatusConsistency(registry, gaps);
+  assert(findings.length === 1 && findings[0].check === 'C2' && findings[0].detail.includes('I10'),
+    `checkFacetStatusConsistency [S5 負向-status]：facet 自身 not_measured 但保守序應取 degraded、無 override → 1 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+// S5 正向：status 偏離保守序推導值，但有 override_rationale → 逃生門生效，0 筆 finding
+{
+  const registry = {
+    facets: {
+      foo: {
+        gaps_refs: ['codex.a', 'codex.b'],
+        override_rationale: '語意越界，故意不沿用保守序',
+        platforms: { codex: { status: 'not_measured', measurability: 'needs_auth' } },
+      },
+    },
+  };
+  const gaps = [
+    { capability_id: 'codex.a', status: 'not_measured', measurability: 'needs_auth' },
+    { capability_id: 'codex.b', status: 'degraded', measurability: 'needs_auth' },
+  ];
+  const findings = checkFacetStatusConsistency(registry, gaps);
+  assert(findings.length === 0, `checkFacetStatusConsistency [S5 正向-override]：有 override_rationale → 逃生門生效，0 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+// S5 負向：measurability 偏離一致值、無 override_rationale → 1 筆 finding
+{
+  const registry = { facets: { foo: { gaps_refs: ['codex.a'], platforms: { codex: { status: 'not_measured', measurability: 'login_free' } } } } };
+  const gaps = [{ capability_id: 'codex.a', status: 'not_measured', measurability: 'needs_auth' }];
+  const findings = checkFacetStatusConsistency(registry, gaps);
+  assert(findings.length === 1 && findings[0].detail.includes('measurability'),
+    `checkFacetStatusConsistency [S5 負向-measurability]：facet 自身 login_free 但 ref 一致值是 needs_auth、無 override → 1 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// C2：checkRationaleForEmptyGapsRefs（S18）——gaps_refs 為空須有 rationale_if_no_gaps_ref
+// ══════════════════════════════════════════════════════════════════════════
+
+// S18 正向：gaps_refs 為空但有 rationale_if_no_gaps_ref → 0 筆 finding
+{
+  const registry = { facets: { hook_concurrency: { gaps_refs: [], rationale_if_no_gaps_ref: '未涵蓋此面向' } } };
+  const findings = checkRationaleForEmptyGapsRefs(registry);
+  assert(findings.length === 0, `checkRationaleForEmptyGapsRefs [S18 正向]：有理由 → 0 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+// S18 負向：gaps_refs 為空且沒有 rationale_if_no_gaps_ref → 1 筆 finding
+{
+  const registry = { facets: { hook_concurrency: { gaps_refs: [] } } };
+  const findings = checkRationaleForEmptyGapsRefs(registry);
+  assert(findings.length === 1 && findings[0].check === 'C2' && findings[0].detail.includes('rationale_if_no_gaps_ref'),
+    `checkRationaleForEmptyGapsRefs [S18 負向]：無理由 → 1 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+// 對照組：gaps_refs 非空時完全不受此檢查影響，無論有無 rationale 都不誤報
+{
+  const findings = checkRationaleForEmptyGapsRefs({ facets: { foo: { gaps_refs: ['codex.a'] } } });
+  assert(findings.length === 0, 'checkRationaleForEmptyGapsRefs：gaps_refs 非空 → 不受此檢查限制，0 筆 finding');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// C2：checkCapabilityRegistryReconciliation（彙整器）+ parseGapsArrayJson
+// ══════════════════════════════════════════════════════════════════════════
+{
+  const registry = {
+    facets: {
+      a: { gaps_refs: [], rationale_if_no_gaps_ref: 'ok' },
+      b: { gaps_refs: ['codex.orphan-check'] },
+    },
+    deferred: [],
+  };
+  const gaps = [{ capability_id: 'codex.orphan-check', status: 'not_measured', measurability: 'needs_auth' }];
+  // b 未填 platforms.codex，狀態不比對（無 gapEntries 情境已在 S5 測過）；這裡只驗三批合併不漏也不重複。
+  const findings = checkCapabilityRegistryReconciliation(registry, gaps);
+  assert(Array.isArray(findings) && findings.every((f) => f.check === 'C2'),
+    `checkCapabilityRegistryReconciliation：彙整三批 findings，皆標 check='C2'（實際：${JSON.stringify(findings)}）`);
+}
+{
+  const parsed = parseGapsArrayJson('[{"capability_id":"x"}]');
+  assert(Array.isArray(parsed.gapsArray) && parsed.gapsArray.length === 1, 'parseGapsArrayJson：合法陣列 JSON → 解析成功');
+}
+{
+  const parsed = parseGapsArrayJson('{"not":"an array"}');
+  assert(typeof parsed.error === 'string', 'parseGapsArrayJson：非陣列（物件）→ error');
+}
+{
+  const parsed = parseGapsArrayJson('not json at all {');
+  assert(typeof parsed.error === 'string', 'parseGapsArrayJson：JSON 解析失敗 → error');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// C2 IO：buildC2Report——缺檔靜默略過、真實 repo 資料須零 finding
+// ══════════════════════════════════════════════════════════════════════════
+
+// 缺檔（假 repo 沒有 capability-registry.json / gaps.json）→ 靜默回傳空 findings，不報錯
+{
+  const dir = mkdtempSync(join(tmpdir(), 'compat-lint-c2-'));
+  try {
+    const { findings } = buildC2Report(dir);
+    assert(Array.isArray(findings) && findings.length === 0, 'buildC2Report：兩份資料源皆缺 → 靜默略過，0 筆 finding（不是報錯）');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// 真實 repo 資料（--root 指向本 repo）：C2 對帳必須零 finding（任務要求：先跑過確認現況綠燈）
+const REPO_ROOT = join(HERE, '..', '..', '..');
+{
+  const { findings } = buildC2Report(REPO_ROOT);
+  assert(findings.length === 0, `buildC2Report [真實資料]：capability-registry.json ↔ gaps.json 對帳零 finding（實際：${JSON.stringify(findings)}）`);
+}
+{
+  // 透過 buildReport 的整合路徑（真正被 CLI --root . 使用的那條路徑）也驗一次，確保 C2 真的被掛進主報告
+  const report = buildReport(REPO_ROOT, {});
+  const c2Findings = report.findings.filter((f) => f.check === 'C2');
+  assert(c2Findings.length === 0, `buildReport [真實資料整合]：篩 check==='C2' 之後為 0 筆（實際：${JSON.stringify(c2Findings)}）`);
 }
 
 // ══════════════════════════════════════════════════════════════════════════

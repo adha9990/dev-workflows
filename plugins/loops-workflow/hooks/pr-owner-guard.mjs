@@ -43,7 +43,8 @@
 //      deny 理由組字函式。
 //   2) IO 薄邊界：main()（讀 stdin、印 deny）——import 時不執行。
 // 依賴：node 內建 fs（readFileSync 讀 stdin）＋ url（pathToFileURL 判 invokedDirectly）；不需
-// child_process。+ 同目錄 hook-flags（flagEnabled）、pr-gate
+// child_process。+ 同目錄 hook-flags（flagEnabled）、hook-input-normalize（tokenizeShellLike——
+// 尊重引號切詞的唯一正本，#183 T5 收斂，原本三支 guard 各存一份同寫法複本）、pr-gate
 // （stripQuotedValues / isPrReadyCommand / isPrCreateCommand / prSubcommandAtSegmentStart，#164
 // plan：pr-gate.mjs 僅加一個 export、零行為變更）——子指令詞剝殼判定不重抄 pr-gate.mjs 已寫好、
 // 已測過的邏輯。
@@ -65,6 +66,7 @@ import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 import { flagEnabled } from './hook-flags.mjs';
+import { tokenizeShellLike } from './hook-input-normalize.mjs';
 import { stripQuotedValues, isPrReadyCommand, isPrCreateCommand, prSubcommandAtSegmentStart } from './pr-gate.mjs';
 
 // ── 純函式層（無 IO）──────────────────────────────────────────────────────────────
@@ -88,21 +90,6 @@ function isPrEditCommand(cmd) {
 function isEditAddReviewerCommand(cmd) {
   if (!isPrEditCommand(cmd)) return false;
   return /--add-reviewer[=\s]/.test(stripQuotedValues(cmd));
-}
-
-/**
- * 把指令尊重引號切成 token（單/雙引號包住的整段回傳去引號後的值＋是否為引號 token），仿
- * pr-gate.mjs 的 hasExplicitPrTarget／merge-guard.mjs 的 tokenizeShellLike 同一寫法——只做字面
- * 「切詞＋去引號」，足夠應付 `-r` 短旗標的 token 化判定。
- */
-function tokenizeShellLike(cmd) {
-  const tokens = [];
-  const re = /'([^']*)'|"([^"]*)"|(\S+)/g;
-  let m;
-  while ((m = re.exec(cmd)) !== null) {
-    tokens.push({ value: m[1] ?? m[2] ?? m[3], quoted: m[1] !== undefined || m[2] !== undefined });
-  }
-  return tokens;
 }
 
 /**
