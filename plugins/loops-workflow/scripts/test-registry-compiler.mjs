@@ -19,6 +19,7 @@ import {
   checkPolicyPaths,
   checkPolicyApproval,
   checkPolicyFailClosed,
+  checkPolicyTiers,
   checkPolicyProjectionMarkers,
   relateScopes,
   checkPolicies,
@@ -89,6 +90,11 @@ function validPolicy(overrides = {}) {
     title: '範例規則',
     scope: { kind: 'path-based', paths: ['docs/**'], activities: [], stages: [] },
     enforcement: 'require',
+    // #173：每條規則都要標 tier；advisory 是「靠 prompt 承接」那一級，不需要綁 runtime.guard，
+    // 所以拿它當通用 fixture 的預設值，各 case 只覆蓋自己要測壞的欄位。
+    tier: 'advisory',
+    runtime: null,
+    evaluator: null,
     overridable: false,
     approval: { required: false, by: null },
     precedence: null,
@@ -1594,6 +1600,31 @@ testCase('T10-6', 'CLI：空 registry 不得 exit 0（一條都沒登記＝檢�
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+testCase('T12-1', 'checkPolicyTiers（#173）：tier 與執行綁定必須自洽', () => {
+  const ok = checkPolicyTiers(registryOf(validPolicy()));
+  assert(ok.length === 0, `advisory + 無 runtime → 無 finding（實際：${JSON.stringify(ok)}）`);
+
+  const noTier = checkPolicyTiers(registryOf(validPolicy({ tier: undefined })));
+  assert(noTier.some((f) => f.check === 'policy-tier'), '缺 tier → policy-tier finding');
+
+  const hardNoGuard = checkPolicyTiers(registryOf(validPolicy({ tier: 'hard-invariant', runtime: null })));
+  assert(hardNoGuard.some((f) => f.check === 'policy-runtime-binding'), 'tier 1 缺 guard → policy-runtime-binding finding（沒有執行者的 hard rule 是自欺）');
+
+  const advisoryWithGuard = checkPolicyTiers(registryOf(validPolicy({ tier: 'advisory', runtime: { guard: 'some-hook', protected_actions: ['x'] } })));
+  assert(advisoryWithGuard.some((f) => f.check === 'policy-tier' && f.detail.includes('advisory')), 'advisory 綁 guard → 紅（會讓人誤以為它擋得住）');
+
+  const wrongEvaluator = checkPolicyTiers(registryOf(validPolicy({ tier: 'advisory', evaluator: 'promptfoo' })));
+  assert(wrongEvaluator.some((f) => f.check === 'policy-tier' && f.detail.includes('evaluator')), '非 semantic 卻指名 evaluator → 紅');
+
+  const semanticOk = checkPolicyTiers(registryOf(validPolicy({ tier: 'semantic', evaluator: 'promptfoo' })));
+  assert(semanticOk.length === 0, '反向：semantic + evaluator → 無 finding（殺掉「恆紅」的實作）');
+});
+
+testCase('T12-2', 'checkPolicies 已把 tier 檢查接進既有 gate（不是另開一支沒人跑的腳本）', () => {
+  const { findings } = checkPolicies(registryOf(validPolicy({ tier: undefined })), { readText: () => 'x', pathExists: () => true });
+  assert(findings.some((f) => f.check === 'policy-tier'), '缺 tier 會讓 checkPolicies 直接紅');
 });
 
 // ══════════════════════════════════════════════════════════════════════════

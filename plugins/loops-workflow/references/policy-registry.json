@@ -8,24 +8,48 @@
       "scope": {
         "kind": "activity-based",
         "paths": [],
-        "activities": ["author-user-facing-narrative", "author-outbound-comment", "report-to-user"],
+        "activities": [
+          "author-user-facing-narrative",
+          "author-outbound-comment",
+          "report-to-user"
+        ],
         "stages": []
       },
       "enforcement": "require",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "outbound-comment-guard",
+        "protected_actions": [
+          "outbound-message"
+        ]
+      },
+      "evaluator": null,
       "overridable": false,
-      "approval": { "required": false, "by": null },
+      "approval": {
+        "required": false,
+        "by": null
+      },
       "precedence": null,
       "fail_closed_on_missing_state": false,
-      "requires": ["面向人的敘述用繁體中文"],
-      "forbids": ["把-code-identifier-或路徑翻成中文"],
+      "requires": [
+        "面向人的敘述用繁體中文"
+      ],
+      "forbids": [
+        "把-code-identifier-或路徑翻成中文"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md"],
+      "projection": [
+        "AGENTS.md"
+      ],
       "projection_marker": "對外敘述一律繁體中文",
       "tests": [
         "plugins/loops-workflow/hooks/test-outbound-comment-guard.mjs",
         "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
       ],
-      "docs": ["AGENTS.md", "plugins/loops-workflow/references/shared/delivery/comment-policy.md"]
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/delivery/comment-policy.md"
+      ]
     },
     {
       "id": "stage-advance-without-asking",
@@ -33,50 +57,105 @@
       "scope": {
         "kind": "activity-based",
         "paths": [],
-        "activities": ["stage-transition", "open-decision-point", "safety-stop"],
+        "activities": [
+          "stage-transition",
+          "open-decision-point",
+          "safety-stop"
+        ],
         "stages": []
       },
       "enforcement": "require",
+      "tier": "advisory",
+      "runtime": null,
+      "evaluator": null,
       "overridable": false,
-      "approval": { "required": false, "by": null },
+      "approval": {
+        "required": false,
+        "by": null
+      },
       "precedence": null,
       "fail_closed_on_missing_state": true,
-      "requires": ["真正要選時開一個決策點", "危險或分類模糊時安全停"],
-      "forbids": ["每進一階段就問要不要繼續", "用純文字要使用者打字回覆", "auto-模式吞掉安全停"],
+      "requires": [
+        "真正要選時開一個決策點",
+        "危險或分類模糊時安全停"
+      ],
+      "forbids": [
+        "每進一階段就問要不要繼續",
+        "用純文字要使用者打字回覆",
+        "auto-模式吞掉安全停"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md", "plugins/loops-workflow/references/shared/runtime/auto-mode.md"],
+      "projection": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/runtime/auto-mode.md"
+      ],
       "projection_marker": "安全停",
       "tests": [
         "plugins/loops-workflow/scripts/test-safe-stop-assertion.mjs",
         "plugins/loops-workflow/hooks/test-loop-driver.mjs"
       ],
-      "docs": ["AGENTS.md", "plugins/loops-workflow/references/shared/delivery/interaction-adapter.md"]
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/delivery/interaction-adapter.md"
+      ]
     },
     {
       "id": "loops-stage-memory",
       "title": ".loops/<slug>/ 是階段間記憶體，每階段寫對應 markdown 並更新 loop.md",
       "scope": {
         "kind": "path-based",
-        "paths": [".loops/**"],
+        "paths": [
+          ".loops/**"
+        ],
         "activities": [],
-        "stages": ["dispatch", "goal", "explore", "plan", "build", "verify", "iterate"]
+        "stages": [
+          "dispatch",
+          "goal",
+          "explore",
+          "plan",
+          "build",
+          "verify",
+          "iterate"
+        ]
       },
       "enforcement": "require",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "loops-path-guard",
+        "protected_actions": [
+          "write-file"
+        ]
+      },
+      "evaluator": null,
       "overridable": false,
-      "approval": { "required": false, "by": null },
+      "approval": {
+        "required": false,
+        "by": null
+      },
       "precedence": 30,
       "fail_closed_on_missing_state": true,
-      "requires": ["每階段把結論寫成對應-markdown", "進入階段更新-loop-md-當前階段與-journal"],
-      "forbids": ["下一階段重讀原始素材", "單份階段檔超過-2000-行"],
+      "requires": [
+        "每階段把結論寫成對應-markdown",
+        "進入階段更新-loop-md-當前階段與-journal"
+      ],
+      "forbids": [
+        "下一階段重讀原始素材",
+        "單份階段檔超過-2000-行"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md"],
+      "projection": [
+        "AGENTS.md"
+      ],
       "projection_marker": "階段間記憶體",
       "tests": [
         "plugins/loops-workflow/scripts/test-canonical-contracts.mjs",
         "plugins/loops-workflow/scripts/test-progress.mjs",
         "plugins/loops-workflow/hooks/test-path-guard.mjs"
       ],
-      "docs": ["AGENTS.md", "plugins/loops-workflow/references/shared/runtime/journaling.md"]
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/runtime/journaling.md"
+      ]
     },
     {
       "id": "surface-ambiguity",
@@ -84,24 +163,41 @@
       "scope": {
         "kind": "activity-based",
         "paths": [],
-        "activities": ["classify-request", "interpret-requirement"],
+        "activities": [
+          "classify-request",
+          "interpret-requirement"
+        ],
         "stages": []
       },
       "enforcement": "require",
+      "tier": "advisory",
+      "runtime": null,
+      "evaluator": null,
       "overridable": false,
-      "approval": { "required": false, "by": null },
+      "approval": {
+        "required": false,
+        "by": null
+      },
       "precedence": null,
       "fail_closed_on_missing_state": true,
-      "requires": ["不清楚就停下來問"],
-      "forbids": ["用自行假設補齊不清楚的需求"],
+      "requires": [
+        "不清楚就停下來問"
+      ],
+      "forbids": [
+        "用自行假設補齊不清楚的需求"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md"],
+      "projection": [
+        "AGENTS.md"
+      ],
       "projection_marker": "模糊就 surface",
       "tests": [
         "plugins/loops-workflow/scripts/test-safe-stop-assertion.mjs",
         "plugins/loops-workflow/scripts/test-baseline-corpus.mjs"
       ],
-      "docs": ["AGENTS.md"]
+      "docs": [
+        "AGENTS.md"
+      ]
     },
     {
       "id": "metric-honesty",
@@ -109,25 +205,45 @@
       "scope": {
         "kind": "activity-based",
         "paths": [],
-        "activities": ["claim-metric", "report-run-status", "cite-tool-result"],
+        "activities": [
+          "claim-metric",
+          "report-run-status",
+          "cite-tool-result"
+        ],
         "stages": []
       },
       "enforcement": "require",
+      "tier": "semantic",
+      "runtime": null,
+      "evaluator": "promptfoo",
       "overridable": false,
-      "approval": { "required": false, "by": null },
+      "approval": {
+        "required": false,
+        "by": null
+      },
       "precedence": null,
       "fail_closed_on_missing_state": true,
-      "requires": ["未實測標-not-measured", "只引用單一乾淨指令的實際回傳"],
-      "forbids": ["憑感覺填數字", "工具沒回傳仍敘述狀態"],
+      "requires": [
+        "未實測標-not-measured",
+        "只引用單一乾淨指令的實際回傳"
+      ],
+      "forbids": [
+        "憑感覺填數字",
+        "工具沒回傳仍敘述狀態"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md"],
+      "projection": [
+        "AGENTS.md"
+      ],
       "projection_marker": "Metric-Honesty",
       "tests": [
         "plugins/loops-workflow/scripts/test-check-e2e-evidence.mjs",
         "plugins/loops-workflow/scripts/test-check-baseline-whitelist.mjs",
         "plugins/loops-workflow/scripts/test-check-registry-shape.mjs"
       ],
-      "docs": ["AGENTS.md"]
+      "docs": [
+        "AGENTS.md"
+      ]
     },
     {
       "id": "reuse-before-build",
@@ -135,18 +251,38 @@
       "scope": {
         "kind": "activity-based",
         "paths": [],
-        "activities": ["write-implementation", "choose-approach"],
-        "stages": ["plan", "build"]
+        "activities": [
+          "write-implementation",
+          "choose-approach"
+        ],
+        "stages": [
+          "plan",
+          "build"
+        ]
       },
       "enforcement": "require",
+      "tier": "semantic",
+      "runtime": null,
+      "evaluator": "promptfoo",
       "overridable": false,
-      "approval": { "required": false, "by": null },
+      "approval": {
+        "required": false,
+        "by": null
+      },
       "precedence": null,
       "fail_closed_on_missing_state": false,
-      "requires": ["動手前先搜既有實作", "優先參數化既有方法"],
-      "forbids": ["in-scope-實作以-MVP-交付", "先寫爛再靠-refactor-救"],
+      "requires": [
+        "動手前先搜既有實作",
+        "優先參數化既有方法"
+      ],
+      "forbids": [
+        "in-scope-實作以-MVP-交付",
+        "先寫爛再靠-refactor-救"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md"],
+      "projection": [
+        "AGENTS.md"
+      ],
       "projection_marker": "重用優先",
       "tests": [
         "plugins/loops-workflow/hooks/test-config-protection.mjs",
@@ -164,22 +300,53 @@
       "title": "文件紀律：新子系統寫 docs/<topic>.md 並維護索引，慣例改變才動 AGENTS.md",
       "scope": {
         "kind": "path-based",
-        "paths": ["docs/**", "plugins/loops-workflow/docs/**", "AGENTS.md", "CLAUDE.md"],
+        "paths": [
+          "docs/**",
+          "plugins/loops-workflow/docs/**",
+          "AGENTS.md",
+          "CLAUDE.md"
+        ],
         "activities": [],
-        "stages": ["iterate"]
+        "stages": [
+          "iterate"
+        ]
       },
       "enforcement": "require",
+      "tier": "workflow-invariant",
+      "runtime": {
+        "guard": "skill-lint",
+        "protected_actions": [
+          "finish-loop"
+        ]
+      },
+      "evaluator": null,
       "overridable": false,
-      "approval": { "required": false, "by": null },
+      "approval": {
+        "required": false,
+        "by": null
+      },
       "precedence": 40,
       "fail_closed_on_missing_state": false,
-      "requires": ["新子系統或跨切面寫-docs-topic-md", "維護-docs-readme-索引"],
-      "forbids": ["小功能塞進-docs", "慣例未變仍改-agents-md"],
+      "requires": [
+        "新子系統或跨切面寫-docs-topic-md",
+        "維護-docs-readme-索引"
+      ],
+      "forbids": [
+        "小功能塞進-docs",
+        "慣例未變仍改-agents-md"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md"],
+      "projection": [
+        "AGENTS.md"
+      ],
       "projection_marker": "文件紀律",
-      "tests": ["plugins/loops-workflow/scripts/test-skill-lint.mjs"],
-      "docs": ["AGENTS.md", "plugins/loops-workflow/references/shared/docs/docs-policy.md"]
+      "tests": [
+        "plugins/loops-workflow/scripts/test-skill-lint.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/docs/docs-policy.md"
+      ]
     },
     {
       "id": "outbound-communication",
@@ -187,18 +354,44 @@
       "scope": {
         "kind": "activity-based",
         "paths": [],
-        "activities": ["author-outbound-comment", "reply-to-review", "report-acceptance"],
-        "stages": ["verify", "iterate"]
+        "activities": [
+          "author-outbound-comment",
+          "reply-to-review",
+          "report-acceptance"
+        ],
+        "stages": [
+          "verify",
+          "iterate"
+        ]
       },
       "enforcement": "require",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "outbound-comment-guard",
+        "protected_actions": [
+          "outbound-message"
+        ]
+      },
+      "evaluator": null,
       "overridable": false,
-      "approval": { "required": false, "by": null },
+      "approval": {
+        "required": false,
+        "by": null
+      },
       "precedence": null,
       "fail_closed_on_missing_state": true,
-      "requires": ["送出前先讀對外規範", "對外內容先寫暫存草稿校稿"],
-      "forbids": ["對外書面寫客套話", "暫存草稿留在專案或進版控"],
+      "requires": [
+        "送出前先讀對外規範",
+        "對外內容先寫暫存草稿校稿"
+      ],
+      "forbids": [
+        "對外書面寫客套話",
+        "暫存草稿留在專案或進版控"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md"],
+      "projection": [
+        "AGENTS.md"
+      ],
       "projection_marker": "對外溝通",
       "tests": [
         "plugins/loops-workflow/hooks/test-outbound-comment-guard.mjs",
@@ -215,25 +408,54 @@
       "title": "會動 code 的迴圈在獨立 worktree 裡做，.loops 狀態一律留主 repo",
       "scope": {
         "kind": "path-based",
-        "paths": [".claude/worktrees/**", ".loops/**"],
+        "paths": [
+          ".claude/worktrees/**",
+          ".loops/**"
+        ],
         "activities": [],
-        "stages": ["dispatch", "build", "verify", "iterate"]
+        "stages": [
+          "dispatch",
+          "build",
+          "verify",
+          "iterate"
+        ]
       },
       "enforcement": "forbid",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "worktree-guard",
+        "protected_actions": [
+          "create-loop-branch"
+        ]
+      },
+      "evaluator": null,
       "overridable": false,
-      "approval": { "required": false, "by": null },
+      "approval": {
+        "required": false,
+        "by": null
+      },
       "precedence": 10,
       "fail_closed_on_missing_state": true,
-      "requires": ["isolated-worktree-per-loop", "loops-state-in-main-checkout"],
-      "forbids": ["loop-branch-in-main-checkout", "loops-state-inside-worktree"],
+      "requires": [
+        "isolated-worktree-per-loop",
+        "loops-state-in-main-checkout"
+      ],
+      "forbids": [
+        "loop-branch-in-main-checkout",
+        "loops-state-inside-worktree"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md"],
+      "projection": [
+        "AGENTS.md"
+      ],
       "projection_marker": "git worktree",
       "tests": [
         "plugins/loops-workflow/hooks/test-worktree-guard.mjs",
         "plugins/loops-workflow/hooks/test-path-guard.mjs"
       ],
-      "docs": ["AGENTS.md"]
+      "docs": [
+        "AGENTS.md"
+      ]
     },
     {
       "id": "cost-awareness",
@@ -241,18 +463,39 @@
       "scope": {
         "kind": "activity-based",
         "paths": [],
-        "activities": ["dispatch-subagent", "choose-model-tier", "escalate-research", "recommend-option"],
+        "activities": [
+          "dispatch-subagent",
+          "choose-model-tier",
+          "escalate-research",
+          "recommend-option"
+        ],
         "stages": []
       },
       "enforcement": "require",
+      "tier": "advisory",
+      "runtime": null,
+      "evaluator": null,
       "overridable": false,
-      "approval": { "required": false, "by": null },
+      "approval": {
+        "required": false,
+        "by": null
+      },
       "precedence": null,
       "fail_closed_on_missing_state": false,
-      "requires": ["subagent-只拿它需要的那段脈絡", "貴動作預設不開要才開", "留債選項明標它埋的債"],
-      "forbids": ["為省成本略過-mandatory-gate", "以實作代價最小當取捨主軸", "把留債選項標成推薦"],
+      "requires": [
+        "subagent-只拿它需要的那段脈絡",
+        "貴動作預設不開要才開",
+        "留債選項明標它埋的債"
+      ],
+      "forbids": [
+        "為省成本略過-mandatory-gate",
+        "以實作代價最小當取捨主軸",
+        "把留債選項標成推薦"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md"],
+      "projection": [
+        "AGENTS.md"
+      ],
       "projection_marker": "成本意識",
       "tests": [
         "plugins/loops-workflow/hooks/test-cost-hooks.mjs",
@@ -270,18 +513,41 @@
       "scope": {
         "kind": "activity-based",
         "paths": [],
-        "activities": ["write-implementation", "review-change"],
-        "stages": ["build", "verify"]
+        "activities": [
+          "write-implementation",
+          "review-change"
+        ],
+        "stages": [
+          "build",
+          "verify"
+        ]
       },
       "enforcement": "require",
+      "tier": "workflow-invariant",
+      "runtime": {
+        "guard": "pr-gate",
+        "protected_actions": [
+          "pr-create"
+        ]
+      },
+      "evaluator": null,
       "overridable": false,
-      "approval": { "required": false, "by": null },
+      "approval": {
+        "required": false,
+        "by": null
+      },
       "precedence": null,
       "fail_closed_on_missing_state": false,
-      "requires": ["build-當下套用-verify-同一套品質標準"],
-      "forbids": ["把品質問題留到-verify-才抓"],
+      "requires": [
+        "build-當下套用-verify-同一套品質標準"
+      ],
+      "forbids": [
+        "把品質問題留到-verify-才抓"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md"],
+      "projection": [
+        "AGENTS.md"
+      ],
       "projection_marker": "品質前置",
       "tests": [
         "plugins/loops-workflow/hooks/test-stop-gate.mjs",
@@ -299,24 +565,55 @@
       "scope": {
         "kind": "activity-based",
         "paths": [],
-        "activities": ["start-work", "create-issue"],
-        "stages": ["dispatch", "goal", "explore", "plan", "build"]
+        "activities": [
+          "start-work",
+          "create-issue"
+        ],
+        "stages": [
+          "dispatch",
+          "goal",
+          "explore",
+          "plan",
+          "build"
+        ]
       },
       "enforcement": "forbid",
+      "tier": "workflow-invariant",
+      "runtime": {
+        "guard": "pr-gate",
+        "protected_actions": [
+          "pr-create"
+        ]
+      },
+      "evaluator": null,
       "overridable": false,
-      "approval": { "required": false, "by": null },
+      "approval": {
+        "required": false,
+        "by": null
+      },
       "precedence": null,
       "fail_closed_on_missing_state": true,
-      "requires": ["動工前有對應-issue", "issue-一律用-repo-template-由-define-建"],
-      "forbids": ["以-ad-hoc-指令直接開-issue", "從口頭描述或父-issue-切片直接動工"],
+      "requires": [
+        "動工前有對應-issue",
+        "issue-一律用-repo-template-由-define-建"
+      ],
+      "forbids": [
+        "以-ad-hoc-指令直接開-issue",
+        "從口頭描述或父-issue-切片直接動工"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md"],
+      "projection": [
+        "AGENTS.md"
+      ],
       "projection_marker": "沒有獨立的「研究 issue」",
       "tests": [
         "plugins/loops-workflow/hooks/test-pr-gate.mjs",
         "plugins/loops-workflow/hooks/test-pr-owner-guard.mjs"
       ],
-      "docs": ["AGENTS.md", "plugins/loops-workflow/references/shared/delivery/pr-spec.md"]
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/delivery/pr-spec.md"
+      ]
     },
     {
       "id": "canonical-platform-neutral",
@@ -333,17 +630,191 @@
         "stages": []
       },
       "enforcement": "forbid",
+      "tier": "workflow-invariant",
+      "runtime": {
+        "guard": "compat-lint",
+        "protected_actions": [
+          "edit-canonical-text"
+        ]
+      },
+      "evaluator": null,
       "overridable": true,
-      "approval": { "required": true, "by": "capability-registry-override-owner" },
+      "approval": {
+        "required": true,
+        "by": "capability-registry-override-owner"
+      },
       "precedence": 20,
       "fail_closed_on_missing_state": true,
-      "requires": ["capability-描述取代工具名", "override-登記-owner-理由-測試"],
-      "forbids": ["canonical-散文寫死平台工具名", "canonical-散文寫死廠商-model-id"],
+      "requires": [
+        "capability-描述取代工具名",
+        "override-登記-owner-理由-測試"
+      ],
+      "forbids": [
+        "canonical-散文寫死平台工具名",
+        "canonical-散文寫死廠商-model-id"
+      ],
       "conflicts_with": [],
-      "projection": ["AGENTS.md"],
+      "projection": [
+        "AGENTS.md"
+      ],
       "projection_marker": "平台中立",
-      "tests": ["plugins/loops-workflow/scripts/test-compat-lint.mjs"],
-      "docs": ["AGENTS.md", "plugins/loops-workflow/references/shared/delivery/interaction-adapter.md"]
+      "tests": [
+        "plugins/loops-workflow/scripts/test-compat-lint.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/delivery/interaction-adapter.md"
+      ]
+    },
+    {
+      "id": "merge-is-human-gate",
+      "title": "合併回主幹是人的動作，agent 不代按",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "merge-to-trunk"
+        ],
+        "stages": []
+      },
+      "enforcement": "forbid",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "merge-guard",
+        "protected_actions": [
+          "merge-to-trunk"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": true,
+      "requires": [
+        "把合併交回使用者親自執行或親自按下合併鍵"
+      ],
+      "forbids": [
+        "agent-自行執行-gh-pr-merge-或推送主幹"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/runtime/journaling.md",
+        "plugins/loops-workflow/docs/settings.md"
+      ],
+      "projection_marker": "LOOPS_MERGE_GUARD",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-merge-guard.mjs",
+        "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/runtime/journaling.md",
+        "plugins/loops-workflow/docs/settings.md"
+      ]
+    },
+    {
+      "id": "pr-owner-acceptance",
+      "title": "draft→ready 與指派審查者是 owner 的驗收動作",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "pr-ready",
+          "request-review"
+        ],
+        "stages": []
+      },
+      "enforcement": "forbid",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "pr-owner-guard",
+        "protected_actions": [
+          "pr-ready",
+          "request-review"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": true,
+      "requires": [
+        "把送審與加審查者交回 owner 本人操作，agent 只在回報中提醒"
+      ],
+      "forbids": [
+        "agent-代按-draft-轉-ready-或代加-reviewer"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/runtime/journaling.md",
+        "plugins/loops-workflow/docs/settings.md"
+      ],
+      "projection_marker": "LOOPS_PR_OWNER_GUARD",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-pr-owner-guard.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/runtime/journaling.md",
+        "plugins/loops-workflow/docs/settings.md"
+      ]
+    },
+    {
+      "id": "linter-config-protection",
+      "title": "不得以放寬 linter/型別設定的方式讓閘變綠",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "edit-linter-config"
+        ],
+        "stages": []
+      },
+      "enforcement": "forbid",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "config-protection",
+        "protected_actions": [
+          "edit-linter-config"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": true,
+      "requires": [
+        "讓閘變綠要靠改 code、不是改設定門檻"
+      ],
+      "forbids": [
+        "關閉或放寬既有-lint-型別規則以繞過品質閘"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/runtime/journaling.md",
+        "plugins/loops-workflow/docs/settings.md"
+      ],
+      "projection_marker": "LOOPS_CONFIG_PROTECTION",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-config-protection.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/runtime/journaling.md",
+        "plugins/loops-workflow/docs/settings.md"
+      ]
     }
   ]
 }
