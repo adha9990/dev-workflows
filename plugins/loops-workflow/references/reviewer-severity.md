@@ -28,6 +28,8 @@
 - **P2**：有意義的缺點、狹窄的邊界狀況、效能 / 可靠性疑慮，或單獨不至於擋合併的可維護性陷阱。
 - **P3**：低影響觀察；本身永遠不是 blocker，不放進候選 finding（有用就放 Non-blocking notes，否則省略）。
 
+> **並發 / 樂觀狀態的嚴重度下限（僅 `multi-user-concurrency-reviewer` 該軸適用，非全體 reviewer 通則）**：靜默過期 / 靜默吞他人變更 / 顯示一個已不存在的東西這族缺陷 **P1 起評**，「窗口有界 / 會自癒」不算降級理由（除非自癒被標記 load-bearing 且有測試守）。全文與 durability 例外邊界見 `multi-user-review.md` §七。
+
 ## 信心（Confidence）
 
 - **100**：可直接從 code 或明確的專案規則驗證。
