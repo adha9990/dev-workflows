@@ -69,6 +69,7 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 
 - **coordinator（主線）**去重、濾純 style / 低信心雜訊；併入本機 `/code-review` 的 findings。
 - **finding-validator 二輪**：每個 blocking finding 確認 是否真實 / 是否本次引入 / 是否已被 caller·middleware·既有防護處理 / 修法是否對症 → `validated` / `rejected` / `degraded`（判準見 `references/finding-validation.md`）。
+- **MUCR 收貨檢查（承步驟 2）**：若這回合派了 `multi-user-concurrency-reviewer`，coordinator 去重前先確認它交出了兩張表（逐格窮舉表 + 「同一問題被回答幾次」對照表）與測試可觀測性核對——**缺表 → 該軸判「未跑 / 證據不足」，重派或擋 acceptance，不當 clean 放行**（見步驟 2）。
 
 ### 4. acceptance 閘 — 有沒有做到 issue（所有級通用）
 
@@ -84,7 +85,7 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 
 - 每個 finding 標 **P0–P2（P3 落 Non-blocking notes）+ Confidence(50/75/100) + Route**（見 `references/reviewer-severity.md`），先工程視角（哪檔哪行 + 機制 + 驗證）再使用者視角（什麼操作會踩到 + 看到什麼）；沒實跑標 `not measured`（**Metric-Honesty**）。
 - 主線 merge 成 **Ready / Not ready** 寫 `stages/04-verify.md` + 摘要，**直接進 iterate**（routine 不問）；**只有出 P0** 才停下用 `AskUserQuestion` 問（先修 / 接受風險 / 看細節）。
-- **回環再驗（delta re-verify）**：iterate 修完回來，聚焦「改了什麼 + **波及面**（誰用到被改的）」再派 fresh reviewer 驗一輪 —— 不是只重跑 diff、更不是只看測試綠；改到共用元件要把 consumer 一起納入。修完一律再驗，是 closed-loop 預設、不是選項。**再驗一律走本 skill 步驟 1 選軸**（依 fix + 波及面的領域定核心軸 + 加派 conditional reviewer），**不是臨場手挑幾個 reviewer 充當再驗** —— 手挑子集會把改動所在領域最該派的 lens 系統性跳過（例：修同步 / 併發競態 / **前端樂觀狀態層（樂觀更新 / 回滾 / 快照對帳）**卻沒派 `multi-user-concurrency-reviewer`〔窮舉事件順序 / 亂序 / lost-update / read-your-writes ＋前端樂觀層歸屬 / 回滾語意 / 變動歸因 / 失敗路徑對稱性〕、修 bug 沒派 `root-cause`），於是 sibling 競態 / 同類入口一輪一輪被外部 reviewer 才抓到、而非內部一次收斂。
+- **回環再驗（delta re-verify）**：iterate 修完回來，聚焦「改了什麼 + **波及面**（誰用到被改的）」再派 fresh reviewer 驗一輪 —— 不是只重跑 diff、更不是只看測試綠；改到共用元件要把 consumer 一起納入。修完一律再驗，是 closed-loop 預設、不是選項。**再驗一律走本 skill 步驟 1 選軸**（依 fix + 波及面的領域定核心軸 + 加派 conditional reviewer），**不是臨場手挑幾個 reviewer 充當再驗** —— 手挑子集會把改動所在領域最該派的 lens 系統性跳過（例：修同步 / 併發競態 / **前端樂觀狀態層（樂觀更新 / 回滾 / 快照對帳）**卻沒派 `multi-user-concurrency-reviewer`〔窮舉事件順序 / 亂序 / lost-update / read-your-writes ＋前端樂觀層歸屬 / 回滾語意 / 變動歸因 / 本地預測 vs 伺服器真相 / 失敗路徑對稱性〕、修 bug 沒派 `root-cause`），於是 sibling 競態 / 同類入口一輪一輪被外部 reviewer 才抓到、而非內部一次收斂。
   - **驗證深度只進不退（下界棘輪）**：上一輪若有 finding 是被某個**更深的驗證手段**第一次看見的（首次真機驅動 / 首次 scripted 量測 / 某個 lens 第一次看這塊——即 `iterate` §5 的「findings 沒變少先歸因」判成**進展**的那種），**該手段納入本輪與其後每輪再驗的下界、不得退回淺驗證**。否則下一輪的「findings 變少」是**驗證變淺造成的假象**，收斂判斷會被它騙過。
   - **機械化：re-verify 選軸推導表（不靠當下記得、非空殼）**。每輪 delta re-verify **在 fan-out 之前**於 `stages/04-verify.md` 寫一份**選軸推導表**——逐列 `本輪改動領域 / 簽名 → 步驟 1 定的核心軸下界 → 觸發的 conditional lens`（依 `references/optional-reviewers.md` 觸發對照表逐條核：並發 / 前端樂觀狀態層〔樂觀更新 / 回滾 / 快照對帳〕→`multi-user-concurrency`〔專案宣告多人才觸發〕、bug fix→`root-cause`、queue/背景→`processing-reliability`、UI→`frontend-ui`/`accessibility`、migration→`migration`…；**延後回呼 / debounce / timer 捕捉可變 target 的 stale-capture 由恆派的 `code-quality`〔correctness §六〕承接，不必另派 conditional**）。**這份表不是事後補的合理化**：Verification 要求 (1) 表在派 reviewer **之前**寫、(2) **這輪實際派出的 reviewer 集合＝表推導出的集合**（下一輪 verify / 人可對 fan-out 記錄否證）。這是把既有的「走步驟 1 選軸」文字警告變成**必寫、可否證的 checklist gate**，堵住「憑印象手挑子集」。此表**單一真相源在本步驟**；iterate §4 指回這裡、不另立第二份。
   - **裁測 consolidation override（iterate 收尾裁測、測試移除）**：這輪改動＝收尾裁測 pass 時，**不套步驟 1「test-only→瑣碎→核心軸 0」**——刪測試不會紅，0 軸＝複查空過、裁過頭無人抓；推導表該列固定寫 `核心軸（至少 code-quality）＋ tests（fresh）`，複查「裁掉的有沒有守著行為的、留下的過不過 `test-rubric.md` §10 判必要下限」。

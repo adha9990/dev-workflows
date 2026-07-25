@@ -64,7 +64,7 @@
 | `ui-interaction-review` | UI 交互閉環盯點：真的寫進去了嗎 / 假成功要回滾 / 快取同步 / 亂序 / 編輯 flush | verify（frontend-ui） |
 | `root-cause-review` | bug 修得夠根本嗎：症狀 vs 病根 / 因果鏈 / 同類入口一起查 / 撤掉 fix 測試必須紅 | verify（root-cause，條件式） |
 | `docs-devex-review` | 文件跟上了嗎＋PR body 的驗證證據夠不夠誠實 | verify（docs-devex，條件式） |
-| `multi-user-review` | 多人同時用會不會壞：lost update / 跨帳號授權隔離 / 交易競態 / 排序 / 冪等 / read-your-writes | verify（multi-user-concurrency，**專案宣告多人才派**） |
+| `multi-user-review` | 多人同時用會不會壞：伺服器 / DB 層（lost update / 跨帳號授權隔離 / 交易競態 / 排序 / 冪等 / read-your-writes）＋前端樂觀層（樂觀視窗歸屬 / 回滾語意 / 變動歸因 / 本地預測 vs 伺服器真相 / 失敗路徑對稱性）＋嚴重度下限 / 窮舉交付 / 測試可觀測性 | verify（multi-user-concurrency，**專案宣告多人才派**） |
 
 ## 4. 對外溝通與產出
 
