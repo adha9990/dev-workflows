@@ -7,7 +7,7 @@
 // projection/tests 填 [] ⇒ dangling 恆真。compiler 的 unmatched[] 只擋「路徑沒對上元件」，
 // 擋不住「對上了元件、但該元件沒宣告任何必跑檢查」——後者是更隱蔽的同型假綠，本檔的 D 組專擋它。
 //
-// 五組地板，每一組都能被「把 registry 填空」打紅：
+// 七組地板，每一組都能被「把 registry 填空」打紅：
 //   A. hooks/*.mjs 的每一支非測試 hook 都要被某個 component 的 paths 或 required_checks.hooks 涵蓋。
 //      刻意不留「純函式葉節點」的豁免名單：葉節點（hook-flags／hook-decision-emit／
 //      hook-input-normalize／atomic-write）正是 guard 全家的共同依賴，漏登記它們，波及面查詢會
@@ -23,6 +23,13 @@
 //   F. 端到端煙霧：以子行程跑真正的 CLI（不是 import 純函式），驗波及面查詢在真實資料上有意義——
 //      已登記路徑查得到下游必跑測試、未登記路徑落進 unmatched、查詢模式 exit code 一律 0。
 //      A–E 都在行程內呼叫函式，繞過了 CLI 的參數解析與輸出格式；F 補的正是那一段。
+//   G. skills／agents／references 的逐檔枚舉地板（#171 T1）：遞迴枚舉磁碟上的實檔，逐檔斷言
+//      「恰好被一個 component 逐字登記」。A–E 全是「已登記的東西之間關係對不對」，對「整片檔案
+//      根本沒進 registry」零鑑別力——實測在一棵所有路徑都失效的樹上，A–F 仍然全綠，因為地板只管
+//      hooks 與測試檔。G 另外擋 glob 分組：一個 id 用 references/*.md 蓋掉 57 份檔，波及面對
+//      「改了其中一份」只答得出整包，等於沒有解析度，所以要求 paths 逐字列出該檔（skill 是目錄
+//      元件，要求逐字列出該 skill 自己的目錄 glob、且不兼管別的 skill）。順帶驗三個 #171 欄位
+//      （owner_class／target_path／user_invocable）與反向的「registry 每條 path 都對得到實體檔案」。
 //
 // 用法：node scripts/test-registry-coverage.mjs（全綠 → exit 0）。自帶極簡 harness、不引測試框架。
 // 重用（不重造）：glob 比對與傳遞閉包一律走 registry-compiler.mjs 已 export 的 computeAffected，
@@ -33,8 +40,9 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-import { computeAffected } from './registry-compiler.mjs';
+import { computeAffected, globCovers } from './registry-compiler.mjs';
 import { parseRegistryJson } from './check-registry-shape.mjs';
+import { parseDescription } from './skill-lint.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, '..', '..', '..');
@@ -55,6 +63,26 @@ const NAMED_EDGE_PROBE = 'plugins/loops-workflow/hooks/pr-gate.mjs';
 const NAMED_EDGE_LOST_CHECK = 'plugins/loops-workflow/hooks/test-merge-guard.mjs';
 
 const REQUIRED_CHECK_PATH_BUCKETS = ['hooks', 'evals', 'docs'];
+
+// G 組：逐檔枚舉的三棵樹。
+const PLUGIN_REL = 'plugins/loops-workflow';
+const SKILLS_REL = `${PLUGIN_REL}/skills`;
+const AGENTS_DIR_REL = `${PLUGIN_REL}/agents`;
+const REFERENCES_TREE_REL = `${PLUGIN_REL}/references`;
+// 掃到的檔數地板（實測 11／25／74）。取「不得少於」而非「恰等於」：新增一支 skill／agent／
+// reference 不該讓這裡紅，該紅的是「它沒被登記」——那由逐檔斷言負責，一漏就指名檔案。
+// 掃成 0（掃錯目錄）會讓逐檔斷言一條都不跑、整組退化成空綠，所以這條下界必須在。
+const SKILL_FLOOR = 11;
+const AGENT_FLOOR = 25;
+const REFERENCE_FLOOR = 74;
+// #171 T1b 的 owner 分類值域（skills 不搬目錄，分類只記在 registry）。
+const OWNER_CLASSES = {
+  skill: ['entrypoint', 'stage', 'support'],
+  agent: ['build', 'verify-core', 'verify-conditional', 'verify-validation', 'eval'],
+  reference: ['stage', 'persona', 'shared-runtime', 'shared-quality', 'shared-delivery', 'shared-docs'],
+};
+// G6 走訪整棵 repo 時略過的目錄：版控內部、外部套件、執行期狀態、worktree 巢狀 checkout。
+const WALK_SKIP_DIRS = new Set(['.git', 'node_modules', '.loops', '.claude']);
 
 // F 組煙霧探針。
 // 已登記端取 merge-guard.mjs：它有下游 consumers，答案不會退化成「只有自己」。
@@ -343,6 +371,118 @@ assert(
   (smokeMixed.parsed?.hooks ?? []).includes(SMOKE_EXPECTED_CHECK),
   'F3：未登記路徑不會淹掉同批已登記路徑的答案',
 );
+
+// ── G. skills／agents／references 逐檔枚舉地板 ─────────────────────────────────
+
+/** 遞迴枚舉某棵樹底下符合 keep(檔名) 的實檔，回 repo 相對路徑。 */
+function collectFiles(dirRel, keep) {
+  const out = [];
+  for (const entry of readdirSync(join(REPO_ROOT, ...dirRel.split('/')), { withFileTypes: true })) {
+    const rel = `${dirRel}/${entry.name}`;
+    if (entry.isDirectory()) {
+      if (WALK_SKIP_DIRS.has(entry.name)) continue;
+      out.push(...collectFiles(rel, keep));
+      continue;
+    }
+    if (keep(entry.name, rel)) out.push(rel);
+  }
+  return out.sort();
+}
+
+const skillFiles = collectFiles(SKILLS_REL, (name) => name === 'SKILL.md');
+const agentFiles = collectFiles(AGENTS_DIR_REL, (name) => name.endsWith('.md'));
+const referenceFiles = collectFiles(REFERENCES_TREE_REL, (name) => name.endsWith('.md'));
+
+console.log('\n[G1] 三棵樹掃得到東西（掃不到就是掃錯目錄，逐檔斷言會整組退化成空綠）');
+assert(skillFiles.length >= SKILL_FLOOR, `掃到 ${skillFiles.length} 個 SKILL.md（地板 ${SKILL_FLOOR}）`);
+assert(agentFiles.length >= AGENT_FLOOR, `掃到 ${agentFiles.length} 支 agent（地板 ${AGENT_FLOOR}）`);
+assert(referenceFiles.length >= REFERENCE_FLOOR, `掃到 ${referenceFiles.length} 份 reference（地板 ${REFERENCE_FLOOR}）`);
+
+/**
+ * 逐檔斷言：恰好一個 component 擁有它，且那個 component 是「逐字登記」這個檔——
+ * 檔案元件要求 paths 逐字列出該路徑；skill 是目錄元件，要求逐字列出自己的目錄 glob 且只列它。
+ * 只驗「被某個 glob 蓋到」不夠：references/*.md 這種一網打盡的寫法也蓋得到，
+ * 而那正是本組要擋的東西（波及面對「改了其中一份」只答得出整包）。
+ */
+function assertExactlyRegistered(rel, { expectedPaths, kindLabel }) {
+  const owners = ownersOf(rel);
+  if (owners.length !== 1) {
+    assert(false, `${kindLabel} ${rel} 恰好被一個 component 擁有（實際 ${owners.length} 個：${owners.map((o) => o.id).join('、') || '無'}）`);
+    return null;
+  }
+  const owner = owners[0];
+  const paths = owner.paths ?? [];
+  assert(
+    expectedPaths.length === paths.length && expectedPaths.every((p) => paths.includes(p)),
+    `${kindLabel} ${rel} 被 component "${owner.id}" 逐字登記（期望 paths ${JSON.stringify(expectedPaths)}，實際 ${JSON.stringify(paths)}）`,
+  );
+  return owner;
+}
+
+/** #171 的三個欄位：分類在值域內、target_path 是非空字串、user_invocable 是布林。 */
+function assertOwnerClassification(owner, rel) {
+  const allowed = OWNER_CLASSES[owner.kind] ?? [];
+  assert(
+    allowed.includes(owner.owner_class),
+    `component "${owner.id}"（${rel}）的 owner_class 落在 ${owner.kind} 的值域 ${allowed.join('／')} 內（實際：${JSON.stringify(owner.owner_class)}）`,
+  );
+  assert(
+    typeof owner.target_path === 'string' && owner.target_path !== '',
+    `component "${owner.id}"（${rel}）的 target_path 是非空字串（實際：${JSON.stringify(owner.target_path)}）`,
+  );
+  assert(
+    typeof owner.user_invocable === 'boolean',
+    `component "${owner.id}"（${rel}）的 user_invocable 顯式為布林值（實際：${JSON.stringify(owner.user_invocable)}）`,
+  );
+}
+
+console.log('\n[G2] 每一支 skill 都有唯一 component，且分類欄位齊備');
+for (const rel of skillFiles) {
+  const dirRel = rel.slice(0, -'/SKILL.md'.length);
+  const owner = assertExactlyRegistered(rel, { expectedPaths: [`${dirRel}/**`], kindLabel: 'skill' });
+  if (owner) assertOwnerClassification(owner, rel);
+}
+
+console.log('\n[G3] 每一支 agent 都有唯一 component，且分類欄位齊備');
+for (const rel of agentFiles) {
+  const owner = assertExactlyRegistered(rel, { expectedPaths: [rel], kindLabel: 'agent' });
+  if (owner) assertOwnerClassification(owner, rel);
+}
+
+console.log('\n[G4] 每一份 reference 都有唯一 component，且分類欄位齊備');
+for (const rel of referenceFiles) {
+  const owner = assertExactlyRegistered(rel, { expectedPaths: [rel], kindLabel: 'reference' });
+  if (owner) assertOwnerClassification(owner, rel);
+}
+
+/**
+ * G5：user_invocable 與各 SKILL.md frontmatter 的 user-invocable 對帳。
+ * 只驗 registry 內部一致（例如「恰好一個 true」）擋不住填錯對象——真相在 frontmatter，
+ * 沒宣告 user-invocable 的 skill 依 loader 慣例即為使用者入口。
+ */
+console.log('\n[G5] user_invocable 與 SKILL.md frontmatter 對帳');
+for (const rel of skillFiles) {
+  const declared = parseDescription(readFileSync(join(REPO_ROOT, ...rel.split('/')), 'utf8')).userInvocable;
+  const expected = declared !== false;
+  const owner = ownersOf(rel)[0];
+  assert(
+    owner?.user_invocable === expected,
+    `${rel} 的 frontmatter user-invocable=${JSON.stringify(declared)} ⇒ registry 應為 ${expected}（component "${owner?.id}" 實際：${JSON.stringify(owner?.user_invocable)}）`,
+  );
+}
+
+/** G6：反向——registry 登記的每條 path 都要對得到實體檔案（glob 至少命中一個）。 */
+console.log('\n[G6] registry 的每條 path 都對得到實體檔案');
+const repoFiles = collectFiles('.', () => true).map((rel) => rel.replace(/^\.\//, ''));
+assert(repoFiles.length > 100, `走訪到 ${repoFiles.length} 個檔案（走不到就是走錯根目錄）`);
+for (const component of components) {
+  for (const path of component.paths ?? []) {
+    assert(
+      repoFiles.some((file) => globCovers(path, file)),
+      `component "${component.id}" 的 path 對得到實體檔案：${path}`,
+    );
+  }
+}
 
 // ── 收尾 ─────────────────────────────────────────────────────────────────────
 
