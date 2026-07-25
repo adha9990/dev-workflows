@@ -50,6 +50,15 @@ loops-workflow 會用到幾個外部來源（跨檔案的 code graph、評測執
 - **一步失敗不影響其餘步驟**（各來源獨立），但失敗的那一步**絕不留半套**。
 - **來源更新只做相容性與 canary 檢查，不自動改 repo 內容**——升級一個工具不該順手改你的專案。
 
+### 3.5 已納管來源的 detect / health / update 契約（#177）
+
+- **code graph**：`detect` ＝列出已索引的專案、比對本 repo 的 canonical root；偵測到就走 **verify → update-if-needed，不重裝**。`health` ＝查索引狀態須為 ready 且節點／邊數非零。
+  - **重建時機**：`stage-exit` / `build-checkpoint` / `pre-verify` 這種**穩定的批次邊界**，**不是每次 file edit**——每存一次檔就重建會把時間全花在索引上，而且中途的半成品狀態進了圖也沒有意義（判定在 `scripts/affected-sources.mjs` 的 `shouldReindex`）。
+  - 沒有 code／hook 改動時**不重建**（圖不會因此變舊）。
+- **評測執行器**：`health` ＝以一個最小可跑的案例確認它產得出結論。**跑不起來時該輪的語意級規則一律標 `degraded`／`not-measured`，絕不寫成 `passed`**。
+- **hard invariant 不交給評測器**：tier 1／2 的規則由 hook 與 state 測試判定；評測套件若宣告要判那些規則，`checkNoHardInvariantDelegation` 判紅——把確定的東西換成機率的，是退步不是進步。
+- **證據不外洩**：寫進 fixture 與報告的文字一律先過 `redactEvidence()`——絕對路徑收斂成 `<repo>`、憑證遮成 `<redacted:型別>`，**但 `file:line` 保留**（Metric-Honesty 需要的證據不能被遮掉），並逐項列出遮了什麼。
+
 ### 4. Receipt
 
 輸出一張表：來源 · 動作 · **實際解析到的版本** · 健康檢查 · 是否回滾 · 說明。這是之後查「當時到底裝了什麼」的唯一依據。

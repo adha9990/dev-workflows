@@ -100,15 +100,15 @@
     {
       "id": "code-graph-index",
       "capability": "為 repo 建立符號圖索引，供查詢定義、引用與依賴方向",
-      "support_status": "not_measured",
+      "support_status": "supported",
       "exclusive_group": "code-retrieval",
       "lifecycle": {
-        "detect": null,
-        "install_latest": null,
-        "update_latest": null,
-        "health": null,
-        "uninstall": null,
-        "rollback": null
+        "detect": "列出已索引的專案，比對本 repo 的 canonical root",
+        "install_latest": "依 /setup 的安裝步驟裝最新穩定版",
+        "update_latest": "更新到最新穩定版後重新索引一次",
+        "health": "查該專案的索引狀態，須為 ready 且節點/邊數非零",
+        "uninstall": "移除該專案的索引",
+        "rollback": "退回上一個可用版本並以其索引續用"
       },
       "triggers": [
         "探索既有實作的呼叫鏈與架構",
@@ -128,10 +128,10 @@
       "support_status": "not_measured",
       "exclusive_group": "code-retrieval",
       "lifecycle": {
-        "detect": null,
+        "detect": "確認可用的全文搜尋指令存在",
         "install_latest": null,
         "update_latest": null,
-        "health": null,
+        "health": "對本 repo 跑一次已知會命中的搜尋",
         "uninstall": null,
         "rollback": null
       },
@@ -177,12 +177,12 @@
       "support_status": "not_measured",
       "exclusive_group": "eval-runner",
       "lifecycle": {
-        "detect": null,
-        "install_latest": null,
-        "update_latest": null,
-        "health": null,
-        "uninstall": null,
-        "rollback": null
+        "detect": "查詢評測執行器是否可用",
+        "install_latest": "依 /setup 的安裝步驟裝最新穩定版",
+        "update_latest": "更新到最新穩定版",
+        "health": "以最小可跑的評測案例確認能產出結論",
+        "uninstall": "移除評測執行器",
+        "rollback": "退回上一個可用版本"
       },
       "triggers": [
         "把 baseline 語料接到外部評測平台重跑"
