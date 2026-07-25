@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "baseline_commit": "828aada9910e2e85d038f565230b4b171663409a",
+  "baseline_commit": "911d1800f48f359fdf3d545361e85a630be670a7",
   "entries": [
     {
       "referrer_component_id": "accessibility-reviewer-agent",
@@ -225,6 +225,13 @@
       "ordinal": 0,
       "class": "real",
       "normalized_sha256": "eb896b8250f4fe67c13715cc6947414cf2243fc3f12519ed52b5607a10810046"
+    },
+    {
+      "referrer_component_id": "agents-md-maintainer-skill",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
     },
     {
       "referrer_component_id": "architecture-reviewer-agent",
