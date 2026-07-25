@@ -56,3 +56,27 @@ jobs:
         # 21 個 reviewer/validator agent 檔由 gen-reviewers.mjs 從單一真相源重生；
         # 手改 agents/*.md 而非改真相源 → 此步紅（指出漂移檔 + 漂在哪塊）。
         run: node plugins/loops-workflow/scripts/gen-reviewers.mjs --check
+
+      - name: compat-lint
+        shell: bash
+        # 雙 harness 相容層機械 guard（C2/C3/C4/C5/C6，#183）：capability-registry.json
+        # 與 references/ 交付物對帳；--root . 用 repo root 掃描。
+        run: node plugins/loops-workflow/scripts/compat-lint.mjs --root .
+
+      - name: check-registry-shape
+        shell: bash
+        # capability-registry.json 機械形狀 guard（#183）：facet 身分／fallback·repro
+        # 完整性／agent tier·effort 對帳／overrides 完整性。
+        run: node plugins/loops-workflow/scripts/check-registry-shape.mjs --root .
+
+      - name: check-emit-residual
+        shell: bash
+        # 決策輸出點 guard（#183 T13）：確認 production hook 都改走 emitDecision()，
+        # 沒有人私下自組決策信封（那會在切 harness 時靜默漏接）。
+        run: node plugins/loops-workflow/scripts/check-emit-residual.mjs
+
+      - name: check-baseline-whitelist
+        shell: bash
+        # 基線測試檔白名單 guard（#183 T27）：Run tests 的 glob 迴圈只保證「跑到的都綠」，
+        # 不保證「該跑的都在」——此步逐檔存在性檢查 master 基線 31 支測試檔，防刪測試假綠。
+        run: node plugins/loops-workflow/scripts/check-baseline-whitelist.mjs --root .
