@@ -31,7 +31,9 @@ const DEAD_COMMAND_TOKENS = [
   'loops-workflow:loop',
 ];
 // 已知的「佔位符」token：文件裡用來示意任意檔名，非真實可解析路徑，broken-ref 不誤報。
-const REFERENCE_PLACEHOLDER_FILENAMES = new Set(['xxx.md']);
+// export 供 reference-graph.mjs 的 placeholder 分類共用同一份清單（#171 T3）——佔位符的定義
+// 只該有一處，兩邊各抄一份遲早分叉。
+export const REFERENCE_PLACEHOLDER_FILENAMES = new Set(['xxx.md']);
 const EXCLUDED_DIR_NAMES = new Set(['.loops', '.claude', '.git', 'evals']);
 const PLUGIN_SUBDIRS = ['skills', 'agents', 'docs', 'references', 'hooks', 'scripts'];
 
@@ -830,7 +832,9 @@ export function walk(root) {
 // skill-lint 自身與 test-skill-lint 不參與 deadCommand/countLint 掃描（自身原始碼裡含大量
 // 「舊指令 token」「錯誤計數」字面示例，掃自己會把測試 fixture 誤判成真違規）；
 // 全部 hooks/與 scripts/底下的 test-*.mjs 同理（fixture 字面常故意放故障字串）。
-function isExcludedFromLintScan(relPath) {
+// export 供 reference-graph.mjs 判 fixture 類引用共用同一條界線（#171 T3）：本函式已經是本 repo
+// 對「這個檔裡的字面是合成的、不是真引用」的既有共識，重整掃描不該另立一套自己的名單。
+export function isExcludedFromLintScan(relPath) {
   const base = basename(relPath);
   if (base === 'skill-lint.mjs' || base === 'test-skill-lint.mjs') return true;
   const underHooksOrScripts = relPath.includes('/hooks/') || relPath.includes('/scripts/');
