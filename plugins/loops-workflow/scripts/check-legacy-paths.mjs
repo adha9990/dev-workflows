@@ -38,7 +38,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { REFERENCE_PLACEHOLDER_FILENAMES, isExcludedFromLintScan } from './skill-lint.mjs';
 
-const LEGACY_FLAT_RE = /(references|agents)\/([A-Za-z0-9_.-]+\.md)/g;
+// 左界 `(?<![\w-])`：`references` / `agents` 這個路徑段前面不得緊接識別字元或連字號。少了這道界，
+// 任何**以這兩個字結尾的目錄名**都會被誤判成扁平舊路徑——實測踩到一個 branch slug
+// （`…-skills-agents-references/loop.md`）被判成殘留。合法形狀（行首、`/` 之後、引號/反引號後）
+// 前面都不是 `[\w-]`，所以這道界只砍偽陽性、不放過真殘留。
+const LEGACY_FLAT_RE = /(?<![\w-])(references|agents)\/([A-Za-z0-9_.-]+\.md)/g;
 const SKILL_DIR_RE = /^(plugins\/[^/]+\/skills\/[^/]+)\//;
 const SCAN_SKIP_DIRS = new Set(['.git', '.claude', 'node_modules']);
 const SCAN_FILE_RE = /\.(md|mjs|json)$/;

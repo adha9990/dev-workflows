@@ -1,14 +1,18 @@
 # 跨 session resume / journaling
 
-> `.loops/<slug>/loop.md` 不只是儀表板，還是**可續跑的事件日誌**。把每個重要動作 append 進去，新 session 只要讀它就能重建狀態、接著跑 —— 不靠對話記憶。
+> 一條 loop 的記憶分兩層（#172）：**`events.jsonl` 是唯一真相源**（append-only、機器讀的精確事件流），**`loop.md` 是由它重生的人類快照**（當前狀態＋最近必要事件，長度有界）。新 session 只要 replay 事件流就能重建狀態、接著跑 —— 不靠對話記憶，也不必整包重讀一份越長越大的 Journal。
 
 ## `.loops/<slug>/` 資料夾佈局（單一來源）
 
 一條 loop 的所有產物**都放 `.loops/<slug>/` 底下、分兩層資料夾整理**（不要全平放）：
 
 ```
-.loops/<slug>/
-├── loop.md                 # 索引 + 事件日誌（Journal）——留在根、進出各階段都讀/寫它
+.loops/
+├── .index/loops.sqlite     # 全域 work graph read model——由各 loop 的 events.jsonl 重建，可整個刪掉重來
+└── <slug>/
+├── events.jsonl            # ★ 唯一真相源：append-only 事件流（每行一筆 JSON；只增不改、永不裁切）
+├── loop.md                 # 由 events.jsonl 重生的人類快照（generated；手改會被下次重生蓋掉）
+├── loop.md.legacy          # （遷移後才有）遷移前的舊 loop.md 逐字備份
 ├── blocking-waiver.md      # （選用）知情豁免留痕——僅在使用者知情帶未修 P0/P1 進 PR 時才有；pr-gate 閘⑥ 認可的機械訊號
 ├── stages/                 # 各階段的過程檔（帶編號、依流程順序）
 │   ├── 00-goal.md
@@ -23,33 +27,43 @@
     └── real-run/           # 真機驗證證據（截圖 *.png/*.jpg，或非空 no-ui.md）——驗證階段產、非三份完工文件
 ```
 
-- **`loop.md` 留在 loop 根**（不進子資料夾）——它是 resume 的唯一入口。
+- **`events.jsonl` 是唯一真相源、也是唯一寫入路徑**（`scripts/loop-ledger.mjs` 的 `appendEvent`）。它是 audit trail：**只增不改、永不 rotate、永不裁切**——「無界成長」要解的是人與 agent 每回合重讀的 `loop.md`，不是機器逐行讀的 jsonl。損壞行為有明文契約：中斷的 append（尾行無換行）視為殘骸丟棄並回報、壞行讓 `replayExact()` 停在**最早**那筆並指名行號（gate 判定走這支）、`replayPrefix()` 回可展示的前綴狀態＋`haltedAt`（唯讀展示走這支，呼叫端必須把它顯眼呈現）。`seq` 只保證單調不減、**不保證唯一**（併發寫者會撞號），**排序權威一律是檔案行序**。
+- **`loop.md` 留在 loop 根、且是 generated**（不進子資料夾）——它是人的 resume 入口，內容由 `scripts/loop-snapshot.mjs` 從 `events.jsonl` 重生：欄位表 + 仍擋著收圈的清單 + 未完成任務 + **最多 12 筆**最近事件（高訊號優先，`toolrun`/`note` 只在額度有剩時才佔位）。**手改沒有意義**（下次重生就蓋掉）；要改狀態就 append 事件。
+- **`.loops/.index/loops.sqlite` 是可丟棄的衍生物**（`scripts/loop-graph.mjs`）：把事件流投影成 work graph（node：Loop / Issue / Stage / Decision / Task / Artifact / Finding / Gate / Commit / PR / ToolRun；edge：HAS_STAGE / DEPENDS_ON / PRODUCED_BY / SUPERSEDES / ADDRESSES / VERIFIED_BY / IMPLEMENTS）＋ FTS 全文索引。整個刪掉重建必須得到逐欄位相同的結果；**FTS 壞掉只降級搜尋**，不影響 exact 查詢、blocking 判定與 audit trail。
+- **context pack 依「當前階段 × 變更範圍 × token 預算」組**（`scripts/context-pack.mjs`），不再整包重讀：預算是**硬上限**，但「仍擋著收圈的」（未修 P0/P1、沒過的閘、未決決策）是**受保護區段、預算再緊也不丟**；塞不下時標 `overBudget` 並逐條列出沒放進來的東西（不做靜默截斷）。
 - **`blocking-waiver.md`（選用、留 loop 根）**：只在**使用者知情決定帶著未修 P0/P1 進 PR** 時才寫（見 `skills/iterate` §5 知情豁免）——寫明豁免哪幾條 P0/P1 + 理由，是 `pr-gate` 閘⑥（`LOOPS_PR_BLOCKING_GATE`）認可的機械留痕（非空才算、**僅 attended 生效、auto 不認**）。屬審計 artifact、非臨時 scratch，隨 `.loops/` gitignore、收尾清理時不當 scratch 刪（同 `real-run/`）。
 - **`stages/`**：goal/explore/plan/build/verify 各寫自己那份 `NN-<stage>.md`（帶編號＝流程順序、可排序）。
 - **`deliverables/`**：放兩類收尾產出——①**三份完工文件**（`explain.md`＋`checklist.md`＋`cost.md`）：iterate 完工才產、**無編號**、完整迴圈一律三份齊全（見 `skills/iterate` §6）、修正型不產；②**`real-run/` 真機驗證證據**：驗證改動時把真機截圖（或非視覺 loop 的非空 `no-ui.md`）存這裡，**在開 PR 之前**就產（不是完工才產），是 pr-gate 閘④ 查驗的 receipt（`LOOPS_PR_REALRUN_GATE`）。兩類都隨 `.loops/` gitignore、不入庫。`real-run/` 是**驗證證據、非臨時 scratch**，收尾清理時不當截圖 scratch 一併刪（見 `skills/iterate` 收尾清理）。
 - **所有 loop 暫存與產出一律留 `.loops/`**，不塞進 PR/issue comment、不入庫（`.loops/` 應被 gitignore）。對外 comment 是另外先寫 tmp 草稿 post 的東西、不放 `.loops/`。
 
-## loop.md 的 journal 區段
+## 事件流：怎麼記一筆
 
-在 `loop.md` 末尾維護一個 **append-only** 的事件日誌（只加不改、保留順序）：
+**每個重要動作 append 一筆事件進 `events.jsonl`**（走 `loop-ledger.appendEvent`，不要手寫這個檔）。
+一筆事件的正規欄位恰為 `{ v, id, seq, type, payload }`——`v`（schema 版本）與 `id`（冪等去重用）
+省略時由 ledger 補完，`seq` 一律由 ledger 配號（呼叫端自己算的號沒有意義），其餘資訊全放 `payload`。
 
-```markdown
-## Journal（append-only）
+投影層（`loop-graph.mjs`）認得的 `type` 與各自的 `payload` 重點欄位：
 
-- [E1] 進入 explore：讀 stages/00-goal.md，派 Explore 掃 codebase
-- [E2] gate：explore→plan，使用者選「方案 B（擴充既有 SearchService）」
-- [E3] 進入 plan：拆 4 任務，ADR-1 記選型
-- [E4] gate：plan→build 拍板
-- [E5] 進入 build：任務 1 Red→Green→commit a1b2c3d
-- [E6] 回環 #1：verify 報 P1（缺 owner 過濾）→ 回 build
-- ...
-```
+| type | payload 重點 | 對應 node |
+|---|---|---|
+| `loop-create` / `loop-close` | `type` / `operation` / `mode` / `session` / `stopCondition`；`outcome` | Loop |
+| `issue` | `number` | Issue |
+| `stage-enter` / `stage-exit` | `stage`（＋`summary`） | Stage（同名階段可重入，各自成節點） |
+| `round` | `round` | — |
+| `decision` | `decisionId` / `question` / `choice` / **`status`（`pending`｜`decided`，必填）** / `supersedes` | Decision |
+| `task` | `taskId` / `title` / `status` / `dependsOn` / `addresses` | Task |
+| `finding` | `findingId` / `severity` / `title` / `axis` / `status`（`open`｜`resolved`｜`waived`） | Finding |
+| `gate` | `gate` / `status`（`pass`｜`fail`） / `detail` | Gate |
+| `artifact` / `commit` / `pr` / `toolrun` | `path`；`sha`＋`implements`；`number`＋`merged`；`tool`＋`outcome` | Artifact / Commit / PR / ToolRun |
+| `note` | `text`（自由敘述，沒有更精確的型別時用它） | — |
 
-事件用**序號**（E1, E2…）排序，不用時間戳（跨工具 / 跨 session 時間不可靠）。每筆一行：**動作 + 結果 / 產物（commit SHA、選擇、回環）**。
+- **同一個實體的後續事件只覆蓋自己帶到的欄位**（部分更新）：`{taskId:'T2', status:'done'}` 不會把上一筆宣告的 `dependsOn` 抹掉。
+- **認不得的 `type` 一律被投影層忽略**（不丟例外、不猜語意）——schema 演進靠 `v` 表達，舊版投影讀新版事件流最壞是少投影一種節點，而不是整條 loop 讀不出來。
+- `loop.md` 上那幾行 `- [E<n>] …` 是**快照**上的顯示，`<n>` 是行序序號（不是 `seq`——seq 會撞號）。要看完整歷史請讀 `events.jsonl`。
 
 ## 完工 outcome 度量（完工 / 中止收尾時 append 一行）
 
-loop **完工（或中止）收尾時**，在 Journal 末尾 append **一行** outcome 度量 —— 給每條 loop 留下可回顧、可比較的**成本 / 規模輪廓**，把 `AGENTS.md` 規則 10「成本意識」從**只有意識**落實成**可觀測**。一行、pipe 分隔、緊接最後一筆 E：
+loop **完工（或中止）收尾時**，append 一筆 `loop-close` 事件，其 `payload.outcome` 就是下面這**一行** outcome 度量（快照會把它渲染成 `★[outcome]` 那行）—— 給每條 loop 留下可回顧、可比較的**成本 / 規模輪廓**，把 `AGENTS.md` 規則 10「成本意識」從**只有意識**落實成**可觀測**。一行、pipe 分隔：
 
 > 這行是 `loop.md` 索引裡的**一眼摘要**；完整迴圈完工另產 `deliverables/cost.md` 把它**展開**（各 stage token 粗估拆解、sub-agent 逐個、回環軌跡、findings 處置、交付物明細）。一行版與 `cost.md` 內容互補、同一組數字。
 

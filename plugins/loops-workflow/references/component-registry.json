@@ -3,6 +3,36 @@
   "notes": "#170 T11：以本 repo 現況實填。粒度是「檔案群」不是函式；dependencies 一律指向「這個元件實際讀進來的輸入」（hook 匯入的葉節點模組、lint 掃描的文字面、generator 的真相源；另含一種宣告型輸入：AGENTS.md 明載「本條已由某元件機械化」時，該元件依賴 policy-registry——規則宣告變了，承載它的 guard 與其測試要重驗），consumers 是它的反轉——雙向由產生器機械推導，不手抄。測試元件（*-tests）消費被測元件：script 層的測試沒有對應的required_checks 桶（只有 hooks／evals／docs／integrations），只能自成元件、靠 consumers 傳遞閉包被撈出來；hook 層的測試則走 required_checks.hooks。paths 的 glob 只做「字面前綴＋字面尾綴」近似比對（見registry-compiler 的 globCovers），因此 references/*.md 這種寫法會連 references/reviewers/*.md 一起涵蓋——寧可多跑檢查、不可漏掉。覆蓋率地板由 scripts/test-registry-coverage.mjs 機械驗收（含拿掉 consumers 邊必須讓 --affected 答案變小的變異斷言）。\n\n#171 T1／T1b：skills／agents／references 改為「逐檔唯一 id」——原本 workflow-references／reviewer-references／stage-skills／side-skills／review-agents／build-agents 這六個 glob 分組各自蓋掉一大票檔（其中一個 id 蓋掉 57 份 reference），波及面查詢對「改了其中一份」只答得出整包，等於沒有解析度。拆開後：11 個 skill（<name>-skill）、25 支 agent（<name>-agent）、57 份頂層 reference（ref-<檔名>）、17 份 reviewer 模板（ref-persona-<檔名>）各自成元件。\n\n新增三個欄位：\n· owner_class —— #171 的目錄重整分類。skill：entrypoint／stage／support；agent：build／verify-core／verify-conditional／verify-validation／eval（core/conditional 的名單以 references/stages/optional-reviewers.md 的核心 6 軸 vs 條件式加派為準，deep 變體跟隨其 base）；reference：stage／persona／shared-runtime／shared-quality／shared-delivery／shared-docs（分類沿用 docs/REFERENCES.md 既有六類的切法，不另立一套人各自解讀的標準）。非本次重整範圍的 hook／script／doc／registry 元件填 null。\n· target_path —— 搬遷後的落點。skills 依使用者拍板「不搬目錄」，其 target_path 就是現況路徑；agents 與 references 記的是 issue #171 目標結構下的新路徑（搬遷本身是後續任務，本欄先固定答案，避免搬的時候各處各猜）。多路徑且無單一落點的元件填 null。\n· user_invocable —— 使用者可發現／可直接叫起的入口。刻意不覆用 visibility：visibility 在本表既有語意是「外部可依賴」（依賴圖語意），既有 63 筆是照那個語意填的，改讀成「使用者可發現」會讓既有資料意義悄悄變掉。目前只有 dispatch-skill 為 true——與各 SKILL.md frontmatter 的 user-invocable 對帳（其餘 10 支都顯式寫 user-invocable: false），對帳由 test-registry-coverage 的 G 組機械驗收。\n\n拆分後的邊怎麼填（只填「實際把該檔讀進來當輸入」的邊，寧可少填也不亂填——填錯比填空更糟）：\n· skill／agent → reference：以該 skill／agent 的正文逐字提到該 reference 檔名為準（判準與 skill-lint 的 orphan-ref 同一套，不另發明）。\n· reference → reference：一律不建邊。文件之間互相 cross-link 是「延伸閱讀」不是輸入，且互指普遍（例如 clean-code ↔ code-simplification），強行定向會造出假答案與依賴環。\n· 掃描面／生成器：skill-lint 走訪 skills／agents／docs／references／hooks／scripts 全樹，故依賴全部 skill／agent／reference；compat-lint 的 C3 掃 skills（遞迴）＋references 頂層、C4 另讀 25 支 agent 的 frontmatter；check-registry-shape 的 I8 讀 agents/ frontmatter；gen-reviewers 由 reviewer-shared.md＋reviewers/*.md＋capability-registry 生成 21 支 agent（故生成物依賴其 base 模板與生成器）。\n· 原本掛在群組 id 上的邊，一律展開成該群組的實際成員，不趁機擴張也不縮減；只有兩處收斂成更精確的實際輸入：validate-plan（machine-plan-schema）與 safe-stop-tests（auto-mode）。required_checks 同理下放到成員——explain 專屬的 gold/explanation-quality eval 只掛回 explain-skill，不再攤給 clarify／define／scaffold-fullstack。",
   "components": [
     {
+      "id": "accessibility-reviewer-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/conditional/accessibility-reviewer.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-conditional",
+      "target_path": "plugins/loops-workflow/agents/verify/conditional/accessibility-reviewer.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "reviewer-generator",
+        "ref-code-retrieval",
+        "ref-reviewer-severity",
+        "ref-persona-accessibility-reviewer"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
       "id": "agents-constitution",
       "kind": "doc",
       "paths": [
@@ -40,6 +70,246 @@
           "plugins/loops-workflow/docs/FLOW.md",
           "plugins/loops-workflow/docs/README.md"
         ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "architecture-reviewer-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/core/architecture-reviewer.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-core",
+      "target_path": "plugins/loops-workflow/agents/verify/core/architecture-reviewer.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "reviewer-generator",
+        "ref-architecture-review",
+        "ref-clean-architecture",
+        "ref-code-retrieval",
+        "ref-design-patterns",
+        "ref-minimalism-ladder",
+        "ref-reviewer-severity",
+        "ref-persona-architecture-reviewer"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "architecture-reviewer-deep-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/core/architecture-reviewer-deep.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-core",
+      "target_path": "plugins/loops-workflow/agents/verify/core/architecture-reviewer-deep.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "reviewer-generator",
+        "ref-architecture-review",
+        "ref-clean-architecture",
+        "ref-code-retrieval",
+        "ref-design-patterns",
+        "ref-minimalism-ladder",
+        "ref-reviewer-severity",
+        "ref-persona-architecture-reviewer"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "baseline-corpus-data",
+      "kind": "eval",
+      "paths": [
+        "plugins/loops-workflow/evals/baseline/**"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "baseline-harness",
+        "canonical-contracts-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [
+          "plugins/loops-workflow/evals/baseline/corpus/high-risk-182-safe-stop.json"
+        ],
+        "docs": [
+          "plugins/loops-workflow/evals/baseline/promptfoo-adapter.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "baseline-harness",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/baseline-*.mjs",
+        "plugins/loops-workflow/scripts/check-baseline-whitelist.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [
+        "path-containment",
+        "baseline-corpus-data"
+      ],
+      "consumers": [
+        "baseline-harness-tests",
+        "loop-memory-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [
+          "plugins/loops-workflow/evals/baseline/corpus/high-risk-182-safe-stop.json"
+        ],
+        "docs": [
+          "plugins/loops-workflow/evals/baseline/promptfoo-adapter.md"
+        ],
+        "integrations": [
+          "prompt-eval-runner"
+        ]
+      }
+    },
+    {
+      "id": "baseline-harness-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-baseline-*.mjs",
+        "plugins/loops-workflow/scripts/test-check-baseline-whitelist.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [
+        "baseline-harness"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "build-skill",
+      "kind": "skill",
+      "paths": [
+        "plugins/loops-workflow/skills/build/**"
+      ],
+      "stage_role": "build",
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/skills/build",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution",
+        "capability-registry",
+        "ref-bdd-scenarios",
+        "ref-change-summaries",
+        "ref-clean-architecture",
+        "ref-clean-code",
+        "ref-code-simplification",
+        "ref-commit-spec",
+        "ref-context-diet",
+        "ref-docs-policy",
+        "ref-interaction-adapter",
+        "ref-journaling",
+        "ref-model-effort-policy",
+        "ref-operation-first-move",
+        "ref-quality-gate-schema",
+        "ref-refactoring",
+        "ref-reuse-check",
+        "ref-security-checklist",
+        "ref-task-template",
+        "ref-test-rubric"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "canonical-contracts-tests",
+        "safe-stop-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [
+          "plugins/loops-workflow/evals/trajectories/issue-lifecycle.json",
+          "plugins/loops-workflow/evals/gate-recommendation/scenarios.json"
+        ],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/docs/FLOW.md"
+        ],
+        "integrations": [
+          "code-graph-index"
+        ]
+      }
+    },
+    {
+      "id": "canonical-contracts-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-canonical-contracts.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-canonical-contracts.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "plugin-manifests",
+        "skill-lint",
+        "baseline-corpus-data",
+        "build-skill",
+        "clarify-skill",
+        "define-skill",
+        "dispatch-skill",
+        "explain-skill",
+        "explore-skill",
+        "goal-skill",
+        "iterate-skill",
+        "plan-skill",
+        "scaffold-fullstack-skill",
+        "verify-skill"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
         "integrations": []
       }
     },
@@ -101,901 +371,18 @@
       }
     },
     {
-      "id": "policy-registry",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/policy-registry.json"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/references/policy-registry.json",
-      "user_invocable": false,
-      "dependencies": [
-        "agents-constitution"
-      ],
-      "consumers": [
-        "worktree-guard",
-        "loops-path-guard",
-        "compat-lint",
-        "registry-compiler",
-        "registry-coverage-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "AGENTS.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "component-registry",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/component-registry.json"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/references/component-registry.json",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "registry-compiler",
-        "registry-coverage-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "integration-registry",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/integration-registry.json"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/references/integration-registry.json",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "registry-compiler",
-        "registry-coverage-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "plugin-manifests",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/.claude-plugin/plugin.json",
-        "plugins/loops-workflow/.codex-plugin/plugin.json",
-        ".claude-plugin/marketplace.json"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "codex-plugin-lint",
-        "canonical-contracts-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "plugin-docs",
-      "kind": "doc",
-      "paths": [
-        "plugins/loops-workflow/docs/**"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "evidence-checks"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "repo-docs",
-      "kind": "doc",
-      "paths": [
-        "docs/**",
-        "README.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "compat-lint"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "hook-shared-runtime",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/hook-flags.mjs",
-        "plugins/loops-workflow/hooks/hook-decision-emit.mjs",
-        "plugins/loops-workflow/hooks/hook-input-normalize.mjs",
-        "plugins/loops-workflow/hooks/atomic-write.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "suggest-compact",
-        "read-accumulator",
-        "edit-accumulator",
-        "cost-tracker",
-        "config-protection",
-        "worktree-guard",
-        "loops-path-guard",
-        "outbound-comment-guard",
-        "pr-gate",
-        "merge-guard",
-        "pr-owner-guard",
-        "stop-gate",
-        "eval-gate",
-        "loop-driver",
-        "hook-wiring",
-        "evidence-checks"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-hook-flags.mjs",
-          "plugins/loops-workflow/hooks/test-hook-decision-emit.mjs",
-          "plugins/loops-workflow/hooks/test-hook-input-normalize.mjs",
-          "plugins/loops-workflow/hooks/test-harness-equivalence.mjs",
-          "plugins/loops-workflow/hooks/test-characterization-mutation.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/references/shared/runtime/journaling.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "suggest-compact",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/suggest-compact.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/suggest-compact.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime"
-      ],
-      "consumers": [
-        "read-accumulator",
-        "edit-accumulator",
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs",
-          "plugins/loops-workflow/hooks/test-cost-hooks.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "read-accumulator",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/read-accumulator.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/read-accumulator.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime",
-        "suggest-compact"
-      ],
-      "consumers": [
-        "outbound-comment-guard",
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-read-accumulator.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "edit-accumulator",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/edit-accumulator.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/edit-accumulator.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime",
-        "suggest-compact"
-      ],
-      "consumers": [
-        "stop-gate",
-        "eval-gate",
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-edit-accumulator.mjs",
-          "plugins/loops-workflow/hooks/test-stop-concurrency.mjs",
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "cost-tracker",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/cost-tracker.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/cost-tracker.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime"
-      ],
-      "consumers": [
-        "loop-driver",
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-cost-hooks.mjs",
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "config-protection",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/config-protection.mjs"
-      ],
-      "stage_role": "build",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/config-protection.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime"
-      ],
-      "consumers": [
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-config-protection.mjs",
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "worktree-guard",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/worktree-guard.mjs"
-      ],
-      "stage_role": "dispatch",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/worktree-guard.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "policy-registry",
-        "hook-shared-runtime"
-      ],
-      "consumers": [
-        "pr-gate",
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-worktree-guard.mjs",
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md"
-        ],
-        "integrations": [
-          "worktree-cli"
-        ]
-      }
-    },
-    {
-      "id": "loops-path-guard",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/loops-path-guard.mjs"
-      ],
-      "stage_role": "build",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/loops-path-guard.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "policy-registry",
-        "hook-shared-runtime"
-      ],
-      "consumers": [
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-path-guard.mjs",
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md"
-        ],
-        "integrations": [
-          "worktree-cli"
-        ]
-      }
-    },
-    {
-      "id": "outbound-comment-guard",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/outbound-comment-guard.mjs"
-      ],
-      "stage_role": "iterate",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/outbound-comment-guard.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime",
-        "read-accumulator"
-      ],
-      "consumers": [
-        "pr-gate",
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-outbound-comment-guard.mjs",
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md",
-          "plugins/loops-workflow/references/shared/delivery/comment-policy.md",
-          "plugins/loops-workflow/references/shared/delivery/outbound-templates.md"
-        ],
-        "integrations": [
-          "forge-cli"
-        ]
-      }
-    },
-    {
-      "id": "pr-gate",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/pr-gate.mjs"
-      ],
-      "stage_role": "verify",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/pr-gate.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime",
-        "worktree-guard",
-        "outbound-comment-guard"
-      ],
-      "consumers": [
-        "merge-guard",
-        "pr-owner-guard",
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-pr-gate.mjs",
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md",
-          "plugins/loops-workflow/references/shared/delivery/pr-spec.md"
-        ],
-        "integrations": [
-          "forge-cli"
-        ]
-      }
-    },
-    {
-      "id": "merge-guard",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/merge-guard.mjs"
-      ],
-      "stage_role": "iterate",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/merge-guard.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime",
-        "pr-gate"
-      ],
-      "consumers": [
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-merge-guard.mjs",
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md"
-        ],
-        "integrations": [
-          "forge-cli"
-        ]
-      }
-    },
-    {
-      "id": "pr-owner-guard",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/pr-owner-guard.mjs"
-      ],
-      "stage_role": "iterate",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/pr-owner-guard.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime",
-        "pr-gate"
-      ],
-      "consumers": [
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-pr-owner-guard.mjs",
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md"
-        ],
-        "integrations": [
-          "forge-cli"
-        ]
-      }
-    },
-    {
-      "id": "stop-gate",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/stop-gate.mjs"
-      ],
-      "stage_role": "build",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/stop-gate.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime",
-        "edit-accumulator",
-        "quality-gate"
-      ],
-      "consumers": [
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-stop-gate.mjs",
-          "plugins/loops-workflow/hooks/test-stop-characterization.mjs",
-          "plugins/loops-workflow/hooks/test-stop-concurrency.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "eval-gate",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/eval-gate.mjs"
-      ],
-      "stage_role": "verify",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/eval-gate.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime",
-        "edit-accumulator",
-        "eval-harness"
-      ],
-      "consumers": [
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-eval-gate.mjs",
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md",
-          "plugins/loops-workflow/references/shared/runtime/eval-harness.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "loop-driver",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/loop-driver.mjs"
-      ],
-      "stage_role": "build",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/loop-driver.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime",
-        "cost-tracker"
-      ],
-      "consumers": [
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-loop-driver.mjs",
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "progress-render",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/progress-render.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/progress-render.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "progress-cli"
-      ],
-      "consumers": [
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md",
-          "plugins/loops-workflow/docs/settings.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "session-start",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/session-start.mjs"
-      ],
-      "stage_role": "dispatch",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/hooks/session-start.mjs",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "hook-wiring"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-session-start.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/references/shared/runtime/journaling.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "hook-wiring",
-      "kind": "hook",
-      "paths": [
-        "plugins/loops-workflow/hooks/hooks.json",
-        "plugins/loops-workflow/hooks/hooks-codex.json"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [
-        "hook-shared-runtime",
-        "suggest-compact",
-        "read-accumulator",
-        "edit-accumulator",
-        "cost-tracker",
-        "config-protection",
-        "worktree-guard",
-        "loops-path-guard",
-        "outbound-comment-guard",
-        "pr-gate",
-        "merge-guard",
-        "pr-owner-guard",
-        "stop-gate",
-        "eval-gate",
-        "loop-driver",
-        "progress-render",
-        "session-start"
-      ],
-      "consumers": [
-        "hooks-codex-generator"
-      ],
-      "required_checks": {
-        "hooks": [
-          "plugins/loops-workflow/hooks/test-harness-equivalence.mjs"
-        ],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/dual-harness.md",
-          "plugins/loops-workflow/references/shared/runtime/journaling.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "quality-gate",
+      "id": "check-registry-shape",
       "kind": "script",
       "paths": [
-        "plugins/loops-workflow/scripts/loops-quality-gate.mjs"
-      ],
-      "stage_role": "build",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/loops-quality-gate.mjs",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "stop-gate",
-        "quality-gate-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/references/stages/quality-gate-schema.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "progress-cli",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/progress.mjs",
-        "plugins/loops-workflow/scripts/loops-scan.mjs"
+        "plugins/loops-workflow/scripts/check-registry-shape.mjs"
       ],
       "stage_role": null,
       "visibility": "internal",
       "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "progress-render",
-        "progress-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/references/shared/runtime/journaling.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "path-containment",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/path-containment.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/path-containment.mjs",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "eval-harness",
-        "baseline-harness"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "validate-plan",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/validate-plan.mjs"
-      ],
-      "stage_role": "plan",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/validate-plan.mjs",
+      "target_path": "plugins/loops-workflow/scripts/check-registry-shape.mjs",
       "user_invocable": false,
       "dependencies": [
-        "ref-machine-plan-schema"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/references/stages/machine-plan-schema.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "skill-lint",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/skill-lint.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/skill-lint.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "agents-constitution",
-        "plugin-docs",
-        "build-skill",
-        "clarify-skill",
-        "define-skill",
-        "dispatch-skill",
-        "explain-skill",
-        "explore-skill",
-        "goal-skill",
-        "iterate-skill",
-        "plan-skill",
-        "scaffold-fullstack-skill",
-        "verify-skill",
+        "capability-registry",
         "accessibility-reviewer-agent",
         "architecture-reviewer-agent",
         "architecture-reviewer-deep-agent",
@@ -1020,92 +407,199 @@
         "security-reviewer-deep-agent",
         "test-author-agent",
         "tests-reviewer-agent",
-        "web-performance-reviewer-agent",
-        "ref-acceptance-review",
-        "ref-adr-template",
-        "ref-architecture-review",
-        "ref-auto-mode",
-        "ref-automations",
-        "ref-bdd-scenarios",
-        "ref-change-summaries",
-        "ref-clean-architecture",
-        "ref-clean-code",
-        "ref-code-retrieval",
-        "ref-code-simplification",
-        "ref-comment-policy",
-        "ref-commit-spec",
-        "ref-context-diet",
-        "ref-contract-spec",
-        "ref-correctness-review",
-        "ref-cross-model-review",
-        "ref-design-patterns",
-        "ref-design-plan-schema",
-        "ref-docs-devex-review",
-        "ref-docs-policy",
-        "ref-edd-comment-template",
-        "ref-eval-harness",
-        "ref-eval-judge-panel",
-        "ref-eval-judge-rubric",
-        "ref-eval-live-candidate",
-        "ref-finding-author-decision-rule",
-        "ref-finding-validation",
-        "ref-fleet",
-        "ref-goal-restate-schema",
-        "ref-interaction-adapter",
-        "ref-journaling",
-        "ref-machine-plan-schema",
-        "ref-minimalism-ladder",
-        "ref-model-effort-policy",
-        "ref-multi-user-review",
-        "ref-onboarding",
-        "ref-operation-first-move",
-        "ref-optional-reviewers",
-        "ref-outbound-templates",
-        "ref-performance-review",
-        "ref-pr-feedback-sources",
-        "ref-pr-spec",
-        "ref-preflight",
-        "ref-project-conventions",
-        "ref-quality-gate-schema",
-        "ref-refactoring",
-        "ref-reuse-check",
-        "ref-review-dispositions",
-        "ref-reviewer-severity",
-        "ref-reviewer-shared",
-        "ref-root-cause-review",
-        "ref-security-checklist",
-        "ref-task-template",
-        "ref-test-rubric",
-        "ref-ui-interaction-review",
-        "ref-verify-triage",
-        "ref-persona-accessibility-reviewer",
-        "ref-persona-architecture-reviewer",
-        "ref-persona-ci-cd-reviewer",
-        "ref-persona-code-quality-reviewer",
-        "ref-persona-docs-devex-reviewer",
-        "ref-persona-finding-validator",
-        "ref-persona-frontend-ui-reviewer",
-        "ref-persona-migration-reviewer",
-        "ref-persona-multi-user-concurrency-reviewer",
-        "ref-persona-observability-reviewer",
-        "ref-persona-performance-reviewer",
-        "ref-persona-processing-reliability-reviewer",
-        "ref-persona-product-contract-reviewer",
-        "ref-persona-root-cause-reviewer",
-        "ref-persona-security-reviewer",
-        "ref-persona-tests-reviewer",
-        "ref-persona-web-performance-reviewer"
+        "web-performance-reviewer-agent"
       ],
       "consumers": [
-        "skill-lint-tests",
+        "registry-compiler",
+        "registry-shape-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/references/shared/delivery/interaction-adapter.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ci-cd-reviewer-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/conditional/ci-cd-reviewer.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-conditional",
+      "target_path": "plugins/loops-workflow/agents/verify/conditional/ci-cd-reviewer.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "reviewer-generator",
+        "ref-code-retrieval",
+        "ref-reviewer-severity",
+        "ref-persona-ci-cd-reviewer"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "clarify-skill",
+      "kind": "skill",
+      "paths": [
+        "plugins/loops-workflow/skills/clarify/**"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/skills/clarify",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution",
+        "ref-comment-policy",
+        "ref-goal-restate-schema",
+        "ref-interaction-adapter"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
         "canonical-contracts-tests"
       ],
       "required_checks": {
         "hooks": [],
         "evals": [],
         "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
+          "AGENTS.md"
         ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "code-quality-reviewer-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/core/code-quality-reviewer.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-core",
+      "target_path": "plugins/loops-workflow/agents/verify/core/code-quality-reviewer.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "reviewer-generator",
+        "ref-clean-code",
+        "ref-code-retrieval",
+        "ref-code-simplification",
+        "ref-correctness-review",
+        "ref-minimalism-ladder",
+        "ref-refactoring",
+        "ref-reuse-check",
+        "ref-reviewer-severity",
+        "ref-persona-code-quality-reviewer"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "code-quality-reviewer-deep-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/core/code-quality-reviewer-deep.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-core",
+      "target_path": "plugins/loops-workflow/agents/verify/core/code-quality-reviewer-deep.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "reviewer-generator",
+        "ref-clean-code",
+        "ref-code-retrieval",
+        "ref-code-simplification",
+        "ref-correctness-review",
+        "ref-minimalism-ladder",
+        "ref-refactoring",
+        "ref-reuse-check",
+        "ref-reviewer-severity",
+        "ref-persona-code-quality-reviewer"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "codex-plugin-lint",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/codex-plugin-lint.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/codex-plugin-lint.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "plugin-manifests"
+      ],
+      "consumers": [
+        "codex-plugin-lint-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/dual-harness.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "codex-plugin-lint-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-codex-plugin-lint.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-codex-plugin-lint.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "codex-plugin-lint"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
         "integrations": []
       }
     },
@@ -1235,423 +729,6 @@
       }
     },
     {
-      "id": "codex-plugin-lint",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/codex-plugin-lint.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/codex-plugin-lint.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "plugin-manifests"
-      ],
-      "consumers": [
-        "codex-plugin-lint-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/dual-harness.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "check-registry-shape",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/check-registry-shape.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/check-registry-shape.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "accessibility-reviewer-agent",
-        "architecture-reviewer-agent",
-        "architecture-reviewer-deep-agent",
-        "ci-cd-reviewer-agent",
-        "code-quality-reviewer-agent",
-        "code-quality-reviewer-deep-agent",
-        "docs-devex-reviewer-agent",
-        "eval-judge-agent",
-        "finding-validator-agent",
-        "finding-validator-deep-agent",
-        "frontend-ui-reviewer-agent",
-        "impl-author-agent",
-        "migration-reviewer-agent",
-        "multi-user-concurrency-reviewer-agent",
-        "observability-reviewer-agent",
-        "performance-reviewer-agent",
-        "processing-reliability-reviewer-agent",
-        "product-contract-reviewer-agent",
-        "referee-agent",
-        "root-cause-reviewer-agent",
-        "security-reviewer-agent",
-        "security-reviewer-deep-agent",
-        "test-author-agent",
-        "tests-reviewer-agent",
-        "web-performance-reviewer-agent"
-      ],
-      "consumers": [
-        "registry-compiler",
-        "registry-shape-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/references/shared/delivery/interaction-adapter.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "registry-compiler",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/registry-compiler.mjs"
-      ],
-      "stage_role": "verify",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/registry-compiler.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "policy-registry",
-        "component-registry",
-        "integration-registry",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "consumers": [
-        "registry-compiler-tests",
-        "registry-coverage-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "AGENTS.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "reviewer-generator",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/gen-reviewers.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/gen-reviewers.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "ref-reviewer-shared",
-        "ref-persona-accessibility-reviewer",
-        "ref-persona-architecture-reviewer",
-        "ref-persona-ci-cd-reviewer",
-        "ref-persona-code-quality-reviewer",
-        "ref-persona-docs-devex-reviewer",
-        "ref-persona-finding-validator",
-        "ref-persona-frontend-ui-reviewer",
-        "ref-persona-migration-reviewer",
-        "ref-persona-multi-user-concurrency-reviewer",
-        "ref-persona-observability-reviewer",
-        "ref-persona-performance-reviewer",
-        "ref-persona-processing-reliability-reviewer",
-        "ref-persona-product-contract-reviewer",
-        "ref-persona-root-cause-reviewer",
-        "ref-persona-security-reviewer",
-        "ref-persona-tests-reviewer",
-        "ref-persona-web-performance-reviewer"
-      ],
-      "consumers": [
-        "reviewer-generator-tests",
-        "accessibility-reviewer-agent",
-        "architecture-reviewer-agent",
-        "architecture-reviewer-deep-agent",
-        "ci-cd-reviewer-agent",
-        "code-quality-reviewer-agent",
-        "code-quality-reviewer-deep-agent",
-        "docs-devex-reviewer-agent",
-        "finding-validator-agent",
-        "finding-validator-deep-agent",
-        "frontend-ui-reviewer-agent",
-        "migration-reviewer-agent",
-        "multi-user-concurrency-reviewer-agent",
-        "observability-reviewer-agent",
-        "performance-reviewer-agent",
-        "processing-reliability-reviewer-agent",
-        "product-contract-reviewer-agent",
-        "root-cause-reviewer-agent",
-        "security-reviewer-agent",
-        "security-reviewer-deep-agent",
-        "tests-reviewer-agent",
-        "web-performance-reviewer-agent"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/references/personas/reviewer-shared.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "hooks-codex-generator",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/gen-hooks-codex.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/gen-hooks-codex.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "hook-wiring"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/dual-harness.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "evidence-checks",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/check-e2e-evidence.mjs",
-        "plugins/loops-workflow/scripts/check-emit-residual.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [
-        "plugin-docs",
-        "hook-shared-runtime"
-      ],
-      "consumers": [
-        "evidence-check-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/dual-harness-e2e.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "eval-harness",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/eval-*.mjs",
-        "plugins/loops-workflow/scripts/run-eval.mjs"
-      ],
-      "stage_role": "verify",
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [
-        "path-containment",
-        "eval-suites"
-      ],
-      "consumers": [
-        "eval-gate",
-        "eval-harness-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [
-          "plugins/loops-workflow/evals/build/b1-add.json",
-          "plugins/loops-workflow/evals/gold/explanation-quality.json"
-        ],
-        "docs": [
-          "plugins/loops-workflow/references/shared/runtime/eval-harness.md"
-        ],
-        "integrations": [
-          "container-sandbox"
-        ]
-      }
-    },
-    {
-      "id": "baseline-harness",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/baseline-*.mjs",
-        "plugins/loops-workflow/scripts/check-baseline-whitelist.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [
-        "path-containment",
-        "baseline-corpus-data"
-      ],
-      "consumers": [
-        "baseline-harness-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [
-          "plugins/loops-workflow/evals/baseline/corpus/high-risk-182-safe-stop.json"
-        ],
-        "docs": [
-          "plugins/loops-workflow/evals/baseline/promptfoo-adapter.md"
-        ],
-        "integrations": [
-          "prompt-eval-runner"
-        ]
-      }
-    },
-    {
-      "id": "eval-suites",
-      "kind": "eval",
-      "paths": [
-        "plugins/loops-workflow/evals/build/*.json",
-        "plugins/loops-workflow/evals/gold/*.json",
-        "plugins/loops-workflow/evals/trajectories/*.json",
-        "plugins/loops-workflow/evals/gate-recommendation/*.json",
-        "plugins/loops-workflow/evals/fixtures/**",
-        "plugins/loops-workflow/evals/live/**"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "eval-harness"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [
-          "plugins/loops-workflow/evals/build/b1-add.json"
-        ],
-        "docs": [
-          "plugins/loops-workflow/references/shared/runtime/eval-harness.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "baseline-corpus-data",
-      "kind": "eval",
-      "paths": [
-        "plugins/loops-workflow/evals/baseline/**"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "baseline-harness",
-        "canonical-contracts-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [
-          "plugins/loops-workflow/evals/baseline/corpus/high-risk-182-safe-stop.json"
-        ],
-        "docs": [
-          "plugins/loops-workflow/evals/baseline/promptfoo-adapter.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "quality-gate-tests",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/test-quality-gate.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/test-quality-gate.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "quality-gate"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "progress-tests",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/test-progress.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/test-progress.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "progress-cli"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "skill-lint-tests",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/test-skill-lint.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/test-skill-lint.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "skill-lint"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
       "id": "compat-lint-tests",
       "kind": "script",
       "paths": [
@@ -1674,20 +751,21 @@
       }
     },
     {
-      "id": "codex-plugin-lint-tests",
-      "kind": "script",
+      "id": "component-registry",
+      "kind": "reference",
       "paths": [
-        "plugins/loops-workflow/scripts/test-codex-plugin-lint.mjs"
+        "plugins/loops-workflow/references/component-registry.json"
       ],
       "stage_role": null,
-      "visibility": "internal",
+      "visibility": "public",
       "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/test-codex-plugin-lint.mjs",
+      "target_path": "plugins/loops-workflow/references/component-registry.json",
       "user_invocable": false,
-      "dependencies": [
-        "codex-plugin-lint"
+      "dependencies": [],
+      "consumers": [
+        "registry-compiler",
+        "registry-coverage-tests"
       ],
-      "consumers": [],
       "required_checks": {
         "hooks": [],
         "evals": [],
@@ -1696,310 +774,113 @@
       }
     },
     {
-      "id": "registry-shape-tests",
-      "kind": "script",
+      "id": "config-protection",
+      "kind": "hook",
       "paths": [
-        "plugins/loops-workflow/scripts/test-check-registry-shape.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/test-check-registry-shape.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "check-registry-shape"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "registry-compiler-tests",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/test-registry-compiler.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/test-registry-compiler.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "registry-compiler"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "registry-coverage-tests",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/test-registry-coverage.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/test-registry-coverage.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "agents-constitution",
-        "policy-registry",
-        "component-registry",
-        "integration-registry",
-        "registry-compiler"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "reviewer-generator-tests",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/test-gen-reviewers.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/test-gen-reviewers.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "reviewer-generator"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "canonical-contracts-tests",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/test-canonical-contracts.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/test-canonical-contracts.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "plugin-manifests",
-        "skill-lint",
-        "baseline-corpus-data",
-        "build-skill",
-        "clarify-skill",
-        "define-skill",
-        "dispatch-skill",
-        "explain-skill",
-        "explore-skill",
-        "goal-skill",
-        "iterate-skill",
-        "plan-skill",
-        "scaffold-fullstack-skill",
-        "verify-skill"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "safe-stop-tests",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/test-safe-stop-assertion.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": "plugins/loops-workflow/scripts/test-safe-stop-assertion.mjs",
-      "user_invocable": false,
-      "dependencies": [
-        "build-skill",
-        "dispatch-skill",
-        "explore-skill",
-        "goal-skill",
-        "iterate-skill",
-        "plan-skill",
-        "verify-skill",
-        "ref-auto-mode"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "eval-harness-tests",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/test-eval-*.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [
-        "eval-harness"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "baseline-harness-tests",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/test-baseline-*.mjs",
-        "plugins/loops-workflow/scripts/test-check-baseline-whitelist.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [
-        "baseline-harness"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "evidence-check-tests",
-      "kind": "script",
-      "paths": [
-        "plugins/loops-workflow/scripts/test-check-e2e-evidence.mjs",
-        "plugins/loops-workflow/scripts/test-check-emit-residual.mjs"
-      ],
-      "stage_role": null,
-      "visibility": "internal",
-      "owner_class": null,
-      "target_path": null,
-      "user_invocable": false,
-      "dependencies": [
-        "evidence-checks"
-      ],
-      "consumers": [],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "build-skill",
-      "kind": "skill",
-      "paths": [
-        "plugins/loops-workflow/skills/build/**"
+        "plugins/loops-workflow/hooks/config-protection.mjs"
       ],
       "stage_role": "build",
-      "visibility": "public",
-      "owner_class": "stage",
-      "target_path": "plugins/loops-workflow/skills/build",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/config-protection.mjs",
       "user_invocable": false,
       "dependencies": [
-        "agents-constitution",
-        "capability-registry",
-        "ref-bdd-scenarios",
-        "ref-change-summaries",
-        "ref-clean-architecture",
-        "ref-clean-code",
-        "ref-code-simplification",
-        "ref-commit-spec",
-        "ref-context-diet",
-        "ref-docs-policy",
-        "ref-interaction-adapter",
-        "ref-journaling",
-        "ref-model-effort-policy",
-        "ref-operation-first-move",
-        "ref-quality-gate-schema",
-        "ref-refactoring",
-        "ref-reuse-check",
-        "ref-security-checklist",
-        "ref-task-template",
-        "ref-test-rubric"
+        "hook-shared-runtime"
       ],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "canonical-contracts-tests",
-        "safe-stop-tests"
+        "hook-wiring"
       ],
       "required_checks": {
-        "hooks": [],
-        "evals": [
-          "plugins/loops-workflow/evals/trajectories/issue-lifecycle.json",
-          "plugins/loops-workflow/evals/gate-recommendation/scenarios.json"
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-config-protection.mjs",
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
         ],
+        "evals": [],
         "docs": [
           "AGENTS.md",
-          "plugins/loops-workflow/docs/FLOW.md"
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md"
         ],
-        "integrations": [
-          "code-graph-index"
-        ]
+        "integrations": []
       }
     },
     {
-      "id": "clarify-skill",
-      "kind": "skill",
+      "id": "context-pack",
+      "kind": "script",
       "paths": [
-        "plugins/loops-workflow/skills/clarify/**"
+        "plugins/loops-workflow/scripts/context-pack.mjs"
       ],
       "stage_role": null,
-      "visibility": "public",
-      "owner_class": "stage",
-      "target_path": "plugins/loops-workflow/skills/clarify",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/context-pack.mjs",
       "user_invocable": false,
       "dependencies": [
-        "agents-constitution",
-        "ref-comment-policy",
-        "ref-goal-restate-schema",
-        "ref-interaction-adapter"
+        "loop-ledger",
+        "loop-graph",
+        "loop-snapshot"
       ],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "canonical-contracts-tests"
+        "context-pack-tests"
       ],
       "required_checks": {
         "hooks": [],
         "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "context-pack-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-context-pack.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-context-pack.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "context-pack",
+        "loop-graph"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "cost-tracker",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/cost-tracker.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/cost-tracker.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "hook-shared-runtime"
+      ],
+      "consumers": [
+        "loop-driver",
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-cost-hooks.mjs",
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+        ],
+        "evals": [],
         "docs": [
-          "AGENTS.md"
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md"
         ],
         "integrations": []
       }
@@ -2075,6 +956,273 @@
       }
     },
     {
+      "id": "docs-devex-reviewer-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/conditional/docs-devex-reviewer.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-conditional",
+      "target_path": "plugins/loops-workflow/agents/verify/conditional/docs-devex-reviewer.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "reviewer-generator",
+        "ref-code-retrieval",
+        "ref-docs-devex-review",
+        "ref-docs-policy",
+        "ref-reviewer-severity",
+        "ref-persona-docs-devex-reviewer"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "edit-accumulator",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/edit-accumulator.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/edit-accumulator.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "hook-shared-runtime",
+        "suggest-compact"
+      ],
+      "consumers": [
+        "stop-gate",
+        "eval-gate",
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-edit-accumulator.mjs",
+          "plugins/loops-workflow/hooks/test-stop-concurrency.mjs",
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "eval-gate",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/eval-gate.mjs"
+      ],
+      "stage_role": "verify",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/eval-gate.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "hook-shared-runtime",
+        "edit-accumulator",
+        "eval-harness"
+      ],
+      "consumers": [
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-eval-gate.mjs",
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md",
+          "plugins/loops-workflow/references/shared/runtime/eval-harness.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "eval-harness",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/eval-*.mjs",
+        "plugins/loops-workflow/scripts/run-eval.mjs"
+      ],
+      "stage_role": "verify",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [
+        "path-containment",
+        "eval-suites"
+      ],
+      "consumers": [
+        "eval-gate",
+        "eval-harness-tests",
+        "loop-memory-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [
+          "plugins/loops-workflow/evals/build/b1-add.json",
+          "plugins/loops-workflow/evals/gold/explanation-quality.json"
+        ],
+        "docs": [
+          "plugins/loops-workflow/references/shared/runtime/eval-harness.md"
+        ],
+        "integrations": [
+          "container-sandbox"
+        ]
+      }
+    },
+    {
+      "id": "eval-harness-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-eval-*.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [
+        "eval-harness"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "eval-judge-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/eval/eval-judge.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "eval",
+      "target_path": "plugins/loops-workflow/agents/eval/eval-judge.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "ref-eval-judge-rubric"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "eval-suites",
+      "kind": "eval",
+      "paths": [
+        "plugins/loops-workflow/evals/build/*.json",
+        "plugins/loops-workflow/evals/gold/*.json",
+        "plugins/loops-workflow/evals/trajectories/*.json",
+        "plugins/loops-workflow/evals/gate-recommendation/*.json",
+        "plugins/loops-workflow/evals/fixtures/**",
+        "plugins/loops-workflow/evals/live/**"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "eval-harness"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [
+          "plugins/loops-workflow/evals/build/b1-add.json"
+        ],
+        "docs": [
+          "plugins/loops-workflow/references/shared/runtime/eval-harness.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "evidence-check-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-check-e2e-evidence.mjs",
+        "plugins/loops-workflow/scripts/test-check-emit-residual.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [
+        "evidence-checks"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "evidence-checks",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/check-e2e-evidence.mjs",
+        "plugins/loops-workflow/scripts/check-emit-residual.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [
+        "plugin-docs",
+        "hook-shared-runtime"
+      ],
+      "consumers": [
+        "evidence-check-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/dual-harness-e2e.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
       "id": "explain-skill",
       "kind": "skill",
       "paths": [
@@ -2144,499 +1292,6 @@
         "integrations": [
           "code-graph-index"
         ]
-      }
-    },
-    {
-      "id": "goal-skill",
-      "kind": "skill",
-      "paths": [
-        "plugins/loops-workflow/skills/goal/**"
-      ],
-      "stage_role": "goal",
-      "visibility": "public",
-      "owner_class": "stage",
-      "target_path": "plugins/loops-workflow/skills/goal",
-      "user_invocable": false,
-      "dependencies": [
-        "agents-constitution",
-        "capability-registry",
-        "ref-bdd-scenarios",
-        "ref-goal-restate-schema",
-        "ref-interaction-adapter",
-        "ref-operation-first-move",
-        "ref-project-conventions"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "canonical-contracts-tests",
-        "safe-stop-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [
-          "plugins/loops-workflow/evals/trajectories/issue-lifecycle.json",
-          "plugins/loops-workflow/evals/gate-recommendation/scenarios.json"
-        ],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/docs/FLOW.md"
-        ],
-        "integrations": [
-          "code-graph-index"
-        ]
-      }
-    },
-    {
-      "id": "iterate-skill",
-      "kind": "skill",
-      "paths": [
-        "plugins/loops-workflow/skills/iterate/**"
-      ],
-      "stage_role": "iterate",
-      "visibility": "public",
-      "owner_class": "stage",
-      "target_path": "plugins/loops-workflow/skills/iterate",
-      "user_invocable": false,
-      "dependencies": [
-        "agents-constitution",
-        "capability-registry",
-        "ref-acceptance-review",
-        "ref-auto-mode",
-        "ref-comment-policy",
-        "ref-context-diet",
-        "ref-cross-model-review",
-        "ref-docs-policy",
-        "ref-interaction-adapter",
-        "ref-journaling",
-        "ref-pr-feedback-sources",
-        "ref-pr-spec",
-        "ref-reviewer-severity",
-        "ref-test-rubric"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "canonical-contracts-tests",
-        "safe-stop-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [
-          "plugins/loops-workflow/evals/trajectories/issue-lifecycle.json",
-          "plugins/loops-workflow/evals/gate-recommendation/scenarios.json"
-        ],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/docs/FLOW.md"
-        ],
-        "integrations": [
-          "code-graph-index"
-        ]
-      }
-    },
-    {
-      "id": "plan-skill",
-      "kind": "skill",
-      "paths": [
-        "plugins/loops-workflow/skills/plan/**"
-      ],
-      "stage_role": "plan",
-      "visibility": "public",
-      "owner_class": "stage",
-      "target_path": "plugins/loops-workflow/skills/plan",
-      "user_invocable": false,
-      "dependencies": [
-        "agents-constitution",
-        "capability-registry",
-        "ref-adr-template",
-        "ref-clean-architecture",
-        "ref-comment-policy",
-        "ref-contract-spec",
-        "ref-design-patterns",
-        "ref-design-plan-schema",
-        "ref-fleet",
-        "ref-interaction-adapter",
-        "ref-machine-plan-schema",
-        "ref-pr-spec",
-        "ref-project-conventions",
-        "ref-reuse-check",
-        "ref-task-template",
-        "ref-test-rubric"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "canonical-contracts-tests",
-        "safe-stop-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [
-          "plugins/loops-workflow/evals/trajectories/issue-lifecycle.json",
-          "plugins/loops-workflow/evals/gate-recommendation/scenarios.json"
-        ],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/docs/FLOW.md"
-        ],
-        "integrations": [
-          "code-graph-index"
-        ]
-      }
-    },
-    {
-      "id": "scaffold-fullstack-skill",
-      "kind": "skill",
-      "paths": [
-        "plugins/loops-workflow/skills/scaffold-fullstack/**"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "stage",
-      "target_path": "plugins/loops-workflow/skills/scaffold-fullstack",
-      "user_invocable": false,
-      "dependencies": [
-        "agents-constitution",
-        "ref-context-diet"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "canonical-contracts-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "AGENTS.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "verify-skill",
-      "kind": "skill",
-      "paths": [
-        "plugins/loops-workflow/skills/verify/**"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "stage",
-      "target_path": "plugins/loops-workflow/skills/verify",
-      "user_invocable": false,
-      "dependencies": [
-        "agents-constitution",
-        "capability-registry",
-        "ref-acceptance-review",
-        "ref-architecture-review",
-        "ref-bdd-scenarios",
-        "ref-clean-architecture",
-        "ref-clean-code",
-        "ref-code-retrieval",
-        "ref-code-simplification",
-        "ref-comment-policy",
-        "ref-context-diet",
-        "ref-correctness-review",
-        "ref-design-patterns",
-        "ref-docs-devex-review",
-        "ref-finding-author-decision-rule",
-        "ref-finding-validation",
-        "ref-interaction-adapter",
-        "ref-model-effort-policy",
-        "ref-multi-user-review",
-        "ref-optional-reviewers",
-        "ref-performance-review",
-        "ref-preflight",
-        "ref-project-conventions",
-        "ref-refactoring",
-        "ref-reuse-check",
-        "ref-review-dispositions",
-        "ref-reviewer-severity",
-        "ref-root-cause-review",
-        "ref-security-checklist",
-        "ref-test-rubric",
-        "ref-ui-interaction-review",
-        "ref-verify-triage"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "canonical-contracts-tests",
-        "safe-stop-tests"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [
-          "plugins/loops-workflow/evals/trajectories/issue-lifecycle.json",
-          "plugins/loops-workflow/evals/gate-recommendation/scenarios.json"
-        ],
-        "docs": [
-          "AGENTS.md",
-          "plugins/loops-workflow/docs/FLOW.md"
-        ],
-        "integrations": [
-          "code-graph-index"
-        ]
-      }
-    },
-    {
-      "id": "accessibility-reviewer-agent",
-      "kind": "agent",
-      "paths": [
-        "plugins/loops-workflow/agents/verify/conditional/accessibility-reviewer.md"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-conditional",
-      "target_path": "plugins/loops-workflow/agents/verify/conditional/accessibility-reviewer.md",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "reviewer-generator",
-        "ref-code-retrieval",
-        "ref-reviewer-severity",
-        "ref-persona-accessibility-reviewer"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "architecture-reviewer-agent",
-      "kind": "agent",
-      "paths": [
-        "plugins/loops-workflow/agents/verify/core/architecture-reviewer.md"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-core",
-      "target_path": "plugins/loops-workflow/agents/verify/core/architecture-reviewer.md",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "reviewer-generator",
-        "ref-architecture-review",
-        "ref-clean-architecture",
-        "ref-code-retrieval",
-        "ref-design-patterns",
-        "ref-minimalism-ladder",
-        "ref-reviewer-severity",
-        "ref-persona-architecture-reviewer"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "architecture-reviewer-deep-agent",
-      "kind": "agent",
-      "paths": [
-        "plugins/loops-workflow/agents/verify/core/architecture-reviewer-deep.md"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-core",
-      "target_path": "plugins/loops-workflow/agents/verify/core/architecture-reviewer-deep.md",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "reviewer-generator",
-        "ref-architecture-review",
-        "ref-clean-architecture",
-        "ref-code-retrieval",
-        "ref-design-patterns",
-        "ref-minimalism-ladder",
-        "ref-reviewer-severity",
-        "ref-persona-architecture-reviewer"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ci-cd-reviewer-agent",
-      "kind": "agent",
-      "paths": [
-        "plugins/loops-workflow/agents/verify/conditional/ci-cd-reviewer.md"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-conditional",
-      "target_path": "plugins/loops-workflow/agents/verify/conditional/ci-cd-reviewer.md",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "reviewer-generator",
-        "ref-code-retrieval",
-        "ref-reviewer-severity",
-        "ref-persona-ci-cd-reviewer"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "code-quality-reviewer-agent",
-      "kind": "agent",
-      "paths": [
-        "plugins/loops-workflow/agents/verify/core/code-quality-reviewer.md"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-core",
-      "target_path": "plugins/loops-workflow/agents/verify/core/code-quality-reviewer.md",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "reviewer-generator",
-        "ref-clean-code",
-        "ref-code-retrieval",
-        "ref-code-simplification",
-        "ref-correctness-review",
-        "ref-minimalism-ladder",
-        "ref-refactoring",
-        "ref-reuse-check",
-        "ref-reviewer-severity",
-        "ref-persona-code-quality-reviewer"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "code-quality-reviewer-deep-agent",
-      "kind": "agent",
-      "paths": [
-        "plugins/loops-workflow/agents/verify/core/code-quality-reviewer-deep.md"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-core",
-      "target_path": "plugins/loops-workflow/agents/verify/core/code-quality-reviewer-deep.md",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "reviewer-generator",
-        "ref-clean-code",
-        "ref-code-retrieval",
-        "ref-code-simplification",
-        "ref-correctness-review",
-        "ref-minimalism-ladder",
-        "ref-refactoring",
-        "ref-reuse-check",
-        "ref-reviewer-severity",
-        "ref-persona-code-quality-reviewer"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "docs-devex-reviewer-agent",
-      "kind": "agent",
-      "paths": [
-        "plugins/loops-workflow/agents/verify/conditional/docs-devex-reviewer.md"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-conditional",
-      "target_path": "plugins/loops-workflow/agents/verify/conditional/docs-devex-reviewer.md",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "reviewer-generator",
-        "ref-code-retrieval",
-        "ref-docs-devex-review",
-        "ref-docs-policy",
-        "ref-reviewer-severity",
-        "ref-persona-docs-devex-reviewer"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "eval-judge-agent",
-      "kind": "agent",
-      "paths": [
-        "plugins/loops-workflow/agents/eval/eval-judge.md"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "eval",
-      "target_path": "plugins/loops-workflow/agents/eval/eval-judge.md",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "ref-eval-judge-rubric"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
       }
     },
     {
@@ -2731,6 +1386,168 @@
       }
     },
     {
+      "id": "goal-skill",
+      "kind": "skill",
+      "paths": [
+        "plugins/loops-workflow/skills/goal/**"
+      ],
+      "stage_role": "goal",
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/skills/goal",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution",
+        "capability-registry",
+        "ref-bdd-scenarios",
+        "ref-goal-restate-schema",
+        "ref-interaction-adapter",
+        "ref-operation-first-move",
+        "ref-project-conventions"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "canonical-contracts-tests",
+        "safe-stop-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [
+          "plugins/loops-workflow/evals/trajectories/issue-lifecycle.json",
+          "plugins/loops-workflow/evals/gate-recommendation/scenarios.json"
+        ],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/docs/FLOW.md"
+        ],
+        "integrations": [
+          "code-graph-index"
+        ]
+      }
+    },
+    {
+      "id": "hook-shared-runtime",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/hook-flags.mjs",
+        "plugins/loops-workflow/hooks/hook-decision-emit.mjs",
+        "plugins/loops-workflow/hooks/hook-input-normalize.mjs",
+        "plugins/loops-workflow/hooks/atomic-write.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "config-protection",
+        "cost-tracker",
+        "edit-accumulator",
+        "eval-gate",
+        "evidence-checks",
+        "hook-wiring",
+        "loop-driver",
+        "loop-migrate",
+        "loop-snapshot",
+        "loops-path-guard",
+        "merge-guard",
+        "outbound-comment-guard",
+        "pr-gate",
+        "pr-owner-guard",
+        "read-accumulator",
+        "stop-gate",
+        "suggest-compact",
+        "worktree-guard"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-hook-flags.mjs",
+          "plugins/loops-workflow/hooks/test-hook-decision-emit.mjs",
+          "plugins/loops-workflow/hooks/test-hook-input-normalize.mjs",
+          "plugins/loops-workflow/hooks/test-harness-equivalence.mjs",
+          "plugins/loops-workflow/hooks/test-characterization-mutation.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/references/shared/runtime/journaling.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "hook-wiring",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/hooks.json",
+        "plugins/loops-workflow/hooks/hooks-codex.json"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [
+        "hook-shared-runtime",
+        "suggest-compact",
+        "read-accumulator",
+        "edit-accumulator",
+        "cost-tracker",
+        "config-protection",
+        "worktree-guard",
+        "loops-path-guard",
+        "outbound-comment-guard",
+        "pr-gate",
+        "merge-guard",
+        "pr-owner-guard",
+        "stop-gate",
+        "eval-gate",
+        "loop-driver",
+        "progress-render",
+        "session-start"
+      ],
+      "consumers": [
+        "hooks-codex-generator"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-harness-equivalence.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/dual-harness.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "hooks-codex-generator",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/gen-hooks-codex.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/gen-hooks-codex.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "hook-wiring"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/dual-harness.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
       "id": "impl-author-agent",
       "kind": "agent",
       "paths": [
@@ -2762,6 +1579,440 @@
         "evals": [],
         "docs": [],
         "integrations": []
+      }
+    },
+    {
+      "id": "integration-registry",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/integration-registry.json"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/references/integration-registry.json",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "registry-compiler",
+        "registry-coverage-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "iterate-skill",
+      "kind": "skill",
+      "paths": [
+        "plugins/loops-workflow/skills/iterate/**"
+      ],
+      "stage_role": "iterate",
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/skills/iterate",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution",
+        "capability-registry",
+        "ref-acceptance-review",
+        "ref-auto-mode",
+        "ref-comment-policy",
+        "ref-context-diet",
+        "ref-cross-model-review",
+        "ref-docs-policy",
+        "ref-interaction-adapter",
+        "ref-journaling",
+        "ref-pr-feedback-sources",
+        "ref-pr-spec",
+        "ref-reviewer-severity",
+        "ref-test-rubric"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "canonical-contracts-tests",
+        "safe-stop-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [
+          "plugins/loops-workflow/evals/trajectories/issue-lifecycle.json",
+          "plugins/loops-workflow/evals/gate-recommendation/scenarios.json"
+        ],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/docs/FLOW.md"
+        ],
+        "integrations": [
+          "code-graph-index"
+        ]
+      }
+    },
+    {
+      "id": "loop-driver",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/loop-driver.mjs"
+      ],
+      "stage_role": "build",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/loop-driver.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "hook-shared-runtime",
+        "cost-tracker"
+      ],
+      "consumers": [
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-loop-driver.mjs",
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "loop-graph",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/loop-graph.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/loop-graph.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "loop-ledger",
+        "ref-reviewer-severity"
+      ],
+      "consumers": [
+        "context-pack",
+        "context-pack-tests",
+        "loop-graph-tests",
+        "loop-migrate",
+        "loop-migrate-tests",
+        "loop-snapshot",
+        "loop-snapshot-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "loop-graph-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-loop-graph.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-loop-graph.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "loop-graph",
+        "loop-ledger"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "loop-ledger",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/loop-ledger.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/loop-ledger.mjs",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "context-pack",
+        "loop-graph",
+        "loop-graph-tests",
+        "loop-ledger-tests",
+        "loop-memory-tests",
+        "loop-migrate",
+        "loop-migrate-tests",
+        "loop-snapshot",
+        "loop-snapshot-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "loop-ledger-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-loop-ledger.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-loop-ledger.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "loop-ledger"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "loop-memory-fixtures",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/fixtures/loop-memory/real-loops/*.md"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/fixtures/loop-memory/real-loops/*.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "loop-memory-tests",
+        "loop-migrate-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "loop-memory-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-loop-memory.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-loop-memory.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "loop-ledger",
+        "loop-memory-fixtures",
+        "progress-cli",
+        "session-start",
+        "eval-harness",
+        "baseline-harness"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "loop-migrate",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/loop-migrate.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/loop-migrate.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "loop-ledger",
+        "loop-graph",
+        "loop-snapshot",
+        "progress-cli",
+        "hook-shared-runtime"
+      ],
+      "consumers": [
+        "loop-migrate-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "loop-migrate-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-loop-migrate.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-loop-migrate.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "loop-migrate",
+        "loop-ledger",
+        "loop-graph",
+        "loop-memory-fixtures",
+        "progress-cli"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "loop-snapshot",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/loop-snapshot.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/loop-snapshot.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "loop-ledger",
+        "loop-graph",
+        "hook-shared-runtime"
+      ],
+      "consumers": [
+        "context-pack",
+        "loop-migrate",
+        "loop-snapshot-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "loop-snapshot-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-loop-snapshot.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-loop-snapshot.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "loop-snapshot",
+        "loop-ledger",
+        "loop-graph",
+        "progress-cli"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "loops-path-guard",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/loops-path-guard.mjs"
+      ],
+      "stage_role": "build",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/loops-path-guard.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "policy-registry",
+        "hook-shared-runtime"
+      ],
+      "consumers": [
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-path-guard.mjs",
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md"
+        ],
+        "integrations": [
+          "worktree-cli"
+        ]
+      }
+    },
+    {
+      "id": "merge-guard",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/merge-guard.mjs"
+      ],
+      "stage_role": "iterate",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/merge-guard.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "hook-shared-runtime",
+        "pr-gate"
+      ],
+      "consumers": [
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-merge-guard.mjs",
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md"
+        ],
+        "integrations": [
+          "forge-cli"
+        ]
       }
     },
     {
@@ -2858,6 +2109,66 @@
       }
     },
     {
+      "id": "outbound-comment-guard",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/outbound-comment-guard.mjs"
+      ],
+      "stage_role": "iterate",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/outbound-comment-guard.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "hook-shared-runtime",
+        "read-accumulator"
+      ],
+      "consumers": [
+        "pr-gate",
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-outbound-comment-guard.mjs",
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md",
+          "plugins/loops-workflow/references/shared/delivery/comment-policy.md",
+          "plugins/loops-workflow/references/shared/delivery/outbound-templates.md"
+        ],
+        "integrations": [
+          "forge-cli"
+        ]
+      }
+    },
+    {
+      "id": "path-containment",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/path-containment.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/path-containment.mjs",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "eval-harness",
+        "baseline-harness"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
       "id": "performance-reviewer-agent",
       "kind": "agent",
       "paths": [
@@ -2886,6 +2197,207 @@
         "evals": [],
         "docs": [],
         "integrations": []
+      }
+    },
+    {
+      "id": "plan-skill",
+      "kind": "skill",
+      "paths": [
+        "plugins/loops-workflow/skills/plan/**"
+      ],
+      "stage_role": "plan",
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/skills/plan",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution",
+        "capability-registry",
+        "ref-adr-template",
+        "ref-clean-architecture",
+        "ref-comment-policy",
+        "ref-contract-spec",
+        "ref-design-patterns",
+        "ref-design-plan-schema",
+        "ref-fleet",
+        "ref-interaction-adapter",
+        "ref-machine-plan-schema",
+        "ref-pr-spec",
+        "ref-project-conventions",
+        "ref-reuse-check",
+        "ref-task-template",
+        "ref-test-rubric"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "canonical-contracts-tests",
+        "safe-stop-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [
+          "plugins/loops-workflow/evals/trajectories/issue-lifecycle.json",
+          "plugins/loops-workflow/evals/gate-recommendation/scenarios.json"
+        ],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/docs/FLOW.md"
+        ],
+        "integrations": [
+          "code-graph-index"
+        ]
+      }
+    },
+    {
+      "id": "plugin-docs",
+      "kind": "doc",
+      "paths": [
+        "plugins/loops-workflow/docs/**"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "evidence-checks"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "plugin-manifests",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/.claude-plugin/plugin.json",
+        "plugins/loops-workflow/.codex-plugin/plugin.json",
+        ".claude-plugin/marketplace.json"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "codex-plugin-lint",
+        "canonical-contracts-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "policy-registry",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/policy-registry.json"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/references/policy-registry.json",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution"
+      ],
+      "consumers": [
+        "worktree-guard",
+        "loops-path-guard",
+        "compat-lint",
+        "registry-compiler",
+        "registry-coverage-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "AGENTS.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "pr-gate",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/pr-gate.mjs"
+      ],
+      "stage_role": "verify",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/pr-gate.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "hook-shared-runtime",
+        "worktree-guard",
+        "outbound-comment-guard"
+      ],
+      "consumers": [
+        "merge-guard",
+        "pr-owner-guard",
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-pr-gate.mjs",
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md",
+          "plugins/loops-workflow/references/shared/delivery/pr-spec.md"
+        ],
+        "integrations": [
+          "forge-cli"
+        ]
+      }
+    },
+    {
+      "id": "pr-owner-guard",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/pr-owner-guard.mjs"
+      ],
+      "stage_role": "iterate",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/pr-owner-guard.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "hook-shared-runtime",
+        "pr-gate"
+      ],
+      "consumers": [
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-pr-owner-guard.mjs",
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md"
+        ],
+        "integrations": [
+          "forge-cli"
+        ]
       }
     },
     {
@@ -2952,24 +2464,80 @@
       }
     },
     {
-      "id": "referee-agent",
-      "kind": "agent",
+      "id": "progress-cli",
+      "kind": "script",
       "paths": [
-        "plugins/loops-workflow/agents/verify/validation/referee.md"
+        "plugins/loops-workflow/scripts/progress.mjs",
+        "plugins/loops-workflow/scripts/loops-scan.mjs"
       ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-validation",
-      "target_path": "plugins/loops-workflow/agents/verify/validation/referee.md",
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "loop-memory-tests",
+        "loop-migrate",
+        "loop-migrate-tests",
+        "loop-snapshot-tests",
+        "progress-render",
+        "progress-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/references/shared/runtime/journaling.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "progress-render",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/progress-render.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/progress-render.mjs",
       "user_invocable": false,
       "dependencies": [
-        "capability-registry"
+        "progress-cli"
       ],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
+        "hook-wiring"
       ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "progress-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-progress.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-progress.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "progress-cli"
+      ],
+      "consumers": [],
       "required_checks": {
         "hooks": [],
         "evals": [],
@@ -2978,122 +2546,45 @@
       }
     },
     {
-      "id": "root-cause-reviewer-agent",
-      "kind": "agent",
+      "id": "quality-gate",
+      "kind": "script",
       "paths": [
-        "plugins/loops-workflow/agents/verify/conditional/root-cause-reviewer.md"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-conditional",
-      "target_path": "plugins/loops-workflow/agents/verify/conditional/root-cause-reviewer.md",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "reviewer-generator",
-        "ref-code-retrieval",
-        "ref-reviewer-severity",
-        "ref-root-cause-review",
-        "ref-test-rubric",
-        "ref-persona-root-cause-reviewer"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "security-reviewer-agent",
-      "kind": "agent",
-      "paths": [
-        "plugins/loops-workflow/agents/verify/core/security-reviewer.md"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-core",
-      "target_path": "plugins/loops-workflow/agents/verify/core/security-reviewer.md",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "reviewer-generator",
-        "ref-code-retrieval",
-        "ref-reviewer-severity",
-        "ref-security-checklist",
-        "ref-persona-security-reviewer"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "security-reviewer-deep-agent",
-      "kind": "agent",
-      "paths": [
-        "plugins/loops-workflow/agents/verify/core/security-reviewer-deep.md"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-core",
-      "target_path": "plugins/loops-workflow/agents/verify/core/security-reviewer-deep.md",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "reviewer-generator",
-        "ref-code-retrieval",
-        "ref-reviewer-severity",
-        "ref-security-checklist",
-        "ref-persona-security-reviewer"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "test-author-agent",
-      "kind": "agent",
-      "paths": [
-        "plugins/loops-workflow/agents/build/test-author.md"
+        "plugins/loops-workflow/scripts/loops-quality-gate.mjs"
       ],
       "stage_role": "build",
-      "visibility": "public",
-      "owner_class": "build",
-      "target_path": "plugins/loops-workflow/agents/build/test-author.md",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/loops-quality-gate.mjs",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "stop-gate",
+        "quality-gate-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/references/stages/quality-gate-schema.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "quality-gate-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-quality-gate.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-quality-gate.mjs",
       "user_invocable": false,
       "dependencies": [
-        "agents-constitution",
-        "capability-registry",
-        "ref-bdd-scenarios",
-        "ref-context-diet",
-        "ref-test-rubric"
+        "quality-gate"
       ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
+      "consumers": [],
       "required_checks": {
         "hooks": [],
         "evals": [],
@@ -3102,63 +2593,34 @@
       }
     },
     {
-      "id": "tests-reviewer-agent",
-      "kind": "agent",
+      "id": "read-accumulator",
+      "kind": "hook",
       "paths": [
-        "plugins/loops-workflow/agents/verify/core/tests-reviewer.md"
+        "plugins/loops-workflow/hooks/read-accumulator.mjs"
       ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-core",
-      "target_path": "plugins/loops-workflow/agents/verify/core/tests-reviewer.md",
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/read-accumulator.mjs",
       "user_invocable": false,
       "dependencies": [
-        "capability-registry",
-        "reviewer-generator",
-        "ref-code-retrieval",
-        "ref-reviewer-severity",
-        "ref-test-rubric",
-        "ref-persona-tests-reviewer"
+        "hook-shared-runtime",
+        "suggest-compact"
       ],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
+        "outbound-comment-guard",
+        "hook-wiring"
       ],
       "required_checks": {
-        "hooks": [],
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-read-accumulator.mjs"
+        ],
         "evals": [],
-        "docs": [],
-        "integrations": []
-      }
-    },
-    {
-      "id": "web-performance-reviewer-agent",
-      "kind": "agent",
-      "paths": [
-        "plugins/loops-workflow/agents/verify/conditional/web-performance-reviewer.md"
-      ],
-      "stage_role": "verify",
-      "visibility": "public",
-      "owner_class": "verify-conditional",
-      "target_path": "plugins/loops-workflow/agents/verify/conditional/web-performance-reviewer.md",
-      "user_invocable": false,
-      "dependencies": [
-        "capability-registry",
-        "reviewer-generator",
-        "ref-code-retrieval",
-        "ref-reviewer-severity",
-        "ref-persona-web-performance-reviewer"
-      ],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "check-registry-shape"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md"
+        ],
         "integrations": []
       }
     },
@@ -4313,468 +3775,6 @@
       }
     },
     {
-      "id": "ref-pr-feedback-sources",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/shared/delivery/pr-feedback-sources.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "shared-delivery",
-      "target_path": "plugins/loops-workflow/references/shared/delivery/pr-feedback-sources.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "iterate-skill"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-pr-spec",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/shared/delivery/pr-spec.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "shared-delivery",
-      "target_path": "plugins/loops-workflow/references/shared/delivery/pr-spec.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "iterate-skill",
-        "plan-skill"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-preflight",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/stages/preflight.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "stage",
-      "target_path": "plugins/loops-workflow/references/stages/preflight.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "verify-skill"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-project-conventions",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/shared/docs/project-conventions.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "shared-docs",
-      "target_path": "plugins/loops-workflow/references/shared/docs/project-conventions.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "goal-skill",
-        "plan-skill",
-        "verify-skill"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-quality-gate-schema",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/stages/quality-gate-schema.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "stage",
-      "target_path": "plugins/loops-workflow/references/stages/quality-gate-schema.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "build-skill"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-refactoring",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/shared/quality/refactoring.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "shared-quality",
-      "target_path": "plugins/loops-workflow/references/shared/quality/refactoring.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "build-skill",
-        "verify-skill",
-        "code-quality-reviewer-agent",
-        "code-quality-reviewer-deep-agent",
-        "impl-author-agent"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-reuse-check",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/shared/quality/reuse-check.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "shared-quality",
-      "target_path": "plugins/loops-workflow/references/shared/quality/reuse-check.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "build-skill",
-        "explore-skill",
-        "plan-skill",
-        "verify-skill",
-        "code-quality-reviewer-agent",
-        "code-quality-reviewer-deep-agent",
-        "impl-author-agent"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-review-dispositions",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/personas/review-dispositions.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "persona",
-      "target_path": "plugins/loops-workflow/references/personas/review-dispositions.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "verify-skill"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-reviewer-severity",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/personas/reviewer-severity.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "persona",
-      "target_path": "plugins/loops-workflow/references/personas/reviewer-severity.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "iterate-skill",
-        "verify-skill",
-        "accessibility-reviewer-agent",
-        "architecture-reviewer-agent",
-        "architecture-reviewer-deep-agent",
-        "ci-cd-reviewer-agent",
-        "code-quality-reviewer-agent",
-        "code-quality-reviewer-deep-agent",
-        "docs-devex-reviewer-agent",
-        "frontend-ui-reviewer-agent",
-        "migration-reviewer-agent",
-        "multi-user-concurrency-reviewer-agent",
-        "observability-reviewer-agent",
-        "performance-reviewer-agent",
-        "processing-reliability-reviewer-agent",
-        "product-contract-reviewer-agent",
-        "root-cause-reviewer-agent",
-        "security-reviewer-agent",
-        "security-reviewer-deep-agent",
-        "tests-reviewer-agent",
-        "web-performance-reviewer-agent"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-reviewer-shared",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/personas/reviewer-shared.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "persona",
-      "target_path": "plugins/loops-workflow/references/personas/reviewer-shared.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "reviewer-generator"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-root-cause-review",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/personas/root-cause-review.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "persona",
-      "target_path": "plugins/loops-workflow/references/personas/root-cause-review.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "verify-skill",
-        "root-cause-reviewer-agent"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-security-checklist",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/shared/quality/security-checklist.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "shared-quality",
-      "target_path": "plugins/loops-workflow/references/shared/quality/security-checklist.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "build-skill",
-        "verify-skill",
-        "impl-author-agent",
-        "security-reviewer-agent",
-        "security-reviewer-deep-agent"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-task-template",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/stages/task-template.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "stage",
-      "target_path": "plugins/loops-workflow/references/stages/task-template.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "build-skill",
-        "plan-skill"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-test-rubric",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/shared/quality/test-rubric.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "shared-quality",
-      "target_path": "plugins/loops-workflow/references/shared/quality/test-rubric.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "build-skill",
-        "iterate-skill",
-        "plan-skill",
-        "verify-skill",
-        "root-cause-reviewer-agent",
-        "test-author-agent",
-        "tests-reviewer-agent"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-ui-interaction-review",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/personas/ui-interaction-review.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "persona",
-      "target_path": "plugins/loops-workflow/references/personas/ui-interaction-review.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "verify-skill",
-        "frontend-ui-reviewer-agent"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
-      "id": "ref-verify-triage",
-      "kind": "reference",
-      "paths": [
-        "plugins/loops-workflow/references/stages/verify-triage.md"
-      ],
-      "stage_role": null,
-      "visibility": "public",
-      "owner_class": "stage",
-      "target_path": "plugins/loops-workflow/references/stages/verify-triage.md",
-      "user_invocable": false,
-      "dependencies": [],
-      "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "verify-skill"
-      ],
-      "required_checks": {
-        "hooks": [],
-        "evals": [],
-        "docs": [
-          "plugins/loops-workflow/docs/REFERENCES.md"
-        ],
-        "integrations": []
-      }
-    },
-    {
       "id": "ref-persona-accessibility-reviewer",
       "kind": "reference",
       "paths": [
@@ -5184,6 +4184,1328 @@
         "evals": [],
         "docs": [],
         "integrations": []
+      }
+    },
+    {
+      "id": "ref-pr-feedback-sources",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/shared/delivery/pr-feedback-sources.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "shared-delivery",
+      "target_path": "plugins/loops-workflow/references/shared/delivery/pr-feedback-sources.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "iterate-skill"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-pr-spec",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/shared/delivery/pr-spec.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "shared-delivery",
+      "target_path": "plugins/loops-workflow/references/shared/delivery/pr-spec.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "iterate-skill",
+        "plan-skill"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-preflight",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/stages/preflight.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/references/stages/preflight.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "verify-skill"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-project-conventions",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/shared/docs/project-conventions.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "shared-docs",
+      "target_path": "plugins/loops-workflow/references/shared/docs/project-conventions.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "goal-skill",
+        "plan-skill",
+        "verify-skill"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-quality-gate-schema",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/stages/quality-gate-schema.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/references/stages/quality-gate-schema.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "build-skill"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-refactoring",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/shared/quality/refactoring.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "shared-quality",
+      "target_path": "plugins/loops-workflow/references/shared/quality/refactoring.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "build-skill",
+        "verify-skill",
+        "code-quality-reviewer-agent",
+        "code-quality-reviewer-deep-agent",
+        "impl-author-agent"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-reuse-check",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/shared/quality/reuse-check.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "shared-quality",
+      "target_path": "plugins/loops-workflow/references/shared/quality/reuse-check.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "build-skill",
+        "explore-skill",
+        "plan-skill",
+        "verify-skill",
+        "code-quality-reviewer-agent",
+        "code-quality-reviewer-deep-agent",
+        "impl-author-agent"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-review-dispositions",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/personas/review-dispositions.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "persona",
+      "target_path": "plugins/loops-workflow/references/personas/review-dispositions.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "verify-skill"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-reviewer-severity",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/personas/reviewer-severity.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "persona",
+      "target_path": "plugins/loops-workflow/references/personas/reviewer-severity.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "accessibility-reviewer-agent",
+        "architecture-reviewer-agent",
+        "architecture-reviewer-deep-agent",
+        "ci-cd-reviewer-agent",
+        "code-quality-reviewer-agent",
+        "code-quality-reviewer-deep-agent",
+        "compat-lint",
+        "docs-devex-reviewer-agent",
+        "frontend-ui-reviewer-agent",
+        "iterate-skill",
+        "loop-graph",
+        "migration-reviewer-agent",
+        "multi-user-concurrency-reviewer-agent",
+        "observability-reviewer-agent",
+        "performance-reviewer-agent",
+        "processing-reliability-reviewer-agent",
+        "product-contract-reviewer-agent",
+        "root-cause-reviewer-agent",
+        "security-reviewer-agent",
+        "security-reviewer-deep-agent",
+        "skill-lint",
+        "tests-reviewer-agent",
+        "verify-skill",
+        "web-performance-reviewer-agent"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-reviewer-shared",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/personas/reviewer-shared.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "persona",
+      "target_path": "plugins/loops-workflow/references/personas/reviewer-shared.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "reviewer-generator"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-root-cause-review",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/personas/root-cause-review.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "persona",
+      "target_path": "plugins/loops-workflow/references/personas/root-cause-review.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "verify-skill",
+        "root-cause-reviewer-agent"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-security-checklist",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/shared/quality/security-checklist.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "shared-quality",
+      "target_path": "plugins/loops-workflow/references/shared/quality/security-checklist.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "build-skill",
+        "verify-skill",
+        "impl-author-agent",
+        "security-reviewer-agent",
+        "security-reviewer-deep-agent"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-task-template",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/stages/task-template.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/references/stages/task-template.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "build-skill",
+        "plan-skill"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-test-rubric",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/shared/quality/test-rubric.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "shared-quality",
+      "target_path": "plugins/loops-workflow/references/shared/quality/test-rubric.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "build-skill",
+        "iterate-skill",
+        "plan-skill",
+        "verify-skill",
+        "root-cause-reviewer-agent",
+        "test-author-agent",
+        "tests-reviewer-agent"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-ui-interaction-review",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/personas/ui-interaction-review.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "persona",
+      "target_path": "plugins/loops-workflow/references/personas/ui-interaction-review.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "verify-skill",
+        "frontend-ui-reviewer-agent"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-verify-triage",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/stages/verify-triage.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/references/stages/verify-triage.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "verify-skill"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "referee-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/validation/referee.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-validation",
+      "target_path": "plugins/loops-workflow/agents/verify/validation/referee.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "registry-compiler",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/registry-compiler.mjs"
+      ],
+      "stage_role": "verify",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/registry-compiler.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "policy-registry",
+        "component-registry",
+        "integration-registry",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "consumers": [
+        "registry-compiler-tests",
+        "registry-coverage-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "AGENTS.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "registry-compiler-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-registry-compiler.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-registry-compiler.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "registry-compiler"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "registry-coverage-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-registry-coverage.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-registry-coverage.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution",
+        "policy-registry",
+        "component-registry",
+        "integration-registry",
+        "registry-compiler"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "registry-shape-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-check-registry-shape.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-check-registry-shape.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "check-registry-shape"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "repo-docs",
+      "kind": "doc",
+      "paths": [
+        "docs/**",
+        "README.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": null,
+      "target_path": null,
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "compat-lint"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "reviewer-generator",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/gen-reviewers.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/gen-reviewers.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "ref-reviewer-shared",
+        "ref-persona-accessibility-reviewer",
+        "ref-persona-architecture-reviewer",
+        "ref-persona-ci-cd-reviewer",
+        "ref-persona-code-quality-reviewer",
+        "ref-persona-docs-devex-reviewer",
+        "ref-persona-finding-validator",
+        "ref-persona-frontend-ui-reviewer",
+        "ref-persona-migration-reviewer",
+        "ref-persona-multi-user-concurrency-reviewer",
+        "ref-persona-observability-reviewer",
+        "ref-persona-performance-reviewer",
+        "ref-persona-processing-reliability-reviewer",
+        "ref-persona-product-contract-reviewer",
+        "ref-persona-root-cause-reviewer",
+        "ref-persona-security-reviewer",
+        "ref-persona-tests-reviewer",
+        "ref-persona-web-performance-reviewer"
+      ],
+      "consumers": [
+        "reviewer-generator-tests",
+        "accessibility-reviewer-agent",
+        "architecture-reviewer-agent",
+        "architecture-reviewer-deep-agent",
+        "ci-cd-reviewer-agent",
+        "code-quality-reviewer-agent",
+        "code-quality-reviewer-deep-agent",
+        "docs-devex-reviewer-agent",
+        "finding-validator-agent",
+        "finding-validator-deep-agent",
+        "frontend-ui-reviewer-agent",
+        "migration-reviewer-agent",
+        "multi-user-concurrency-reviewer-agent",
+        "observability-reviewer-agent",
+        "performance-reviewer-agent",
+        "processing-reliability-reviewer-agent",
+        "product-contract-reviewer-agent",
+        "root-cause-reviewer-agent",
+        "security-reviewer-agent",
+        "security-reviewer-deep-agent",
+        "tests-reviewer-agent",
+        "web-performance-reviewer-agent"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/references/personas/reviewer-shared.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "reviewer-generator-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-gen-reviewers.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-gen-reviewers.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "reviewer-generator"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "root-cause-reviewer-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/conditional/root-cause-reviewer.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-conditional",
+      "target_path": "plugins/loops-workflow/agents/verify/conditional/root-cause-reviewer.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "reviewer-generator",
+        "ref-code-retrieval",
+        "ref-reviewer-severity",
+        "ref-root-cause-review",
+        "ref-test-rubric",
+        "ref-persona-root-cause-reviewer"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "safe-stop-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-safe-stop-assertion.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-safe-stop-assertion.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "build-skill",
+        "dispatch-skill",
+        "explore-skill",
+        "goal-skill",
+        "iterate-skill",
+        "plan-skill",
+        "verify-skill",
+        "ref-auto-mode"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "scaffold-fullstack-skill",
+      "kind": "skill",
+      "paths": [
+        "plugins/loops-workflow/skills/scaffold-fullstack/**"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/skills/scaffold-fullstack",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution",
+        "ref-context-diet"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "canonical-contracts-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "AGENTS.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "security-reviewer-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/core/security-reviewer.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-core",
+      "target_path": "plugins/loops-workflow/agents/verify/core/security-reviewer.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "reviewer-generator",
+        "ref-code-retrieval",
+        "ref-reviewer-severity",
+        "ref-security-checklist",
+        "ref-persona-security-reviewer"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "security-reviewer-deep-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/core/security-reviewer-deep.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-core",
+      "target_path": "plugins/loops-workflow/agents/verify/core/security-reviewer-deep.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "reviewer-generator",
+        "ref-code-retrieval",
+        "ref-reviewer-severity",
+        "ref-security-checklist",
+        "ref-persona-security-reviewer"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "session-start",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/session-start.mjs"
+      ],
+      "stage_role": "dispatch",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/session-start.mjs",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "hook-wiring",
+        "loop-memory-tests"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-session-start.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/references/shared/runtime/journaling.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "skill-lint",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/skill-lint.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/skill-lint.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution",
+        "plugin-docs",
+        "build-skill",
+        "clarify-skill",
+        "define-skill",
+        "dispatch-skill",
+        "explain-skill",
+        "explore-skill",
+        "goal-skill",
+        "iterate-skill",
+        "plan-skill",
+        "scaffold-fullstack-skill",
+        "verify-skill",
+        "accessibility-reviewer-agent",
+        "architecture-reviewer-agent",
+        "architecture-reviewer-deep-agent",
+        "ci-cd-reviewer-agent",
+        "code-quality-reviewer-agent",
+        "code-quality-reviewer-deep-agent",
+        "docs-devex-reviewer-agent",
+        "eval-judge-agent",
+        "finding-validator-agent",
+        "finding-validator-deep-agent",
+        "frontend-ui-reviewer-agent",
+        "impl-author-agent",
+        "migration-reviewer-agent",
+        "multi-user-concurrency-reviewer-agent",
+        "observability-reviewer-agent",
+        "performance-reviewer-agent",
+        "processing-reliability-reviewer-agent",
+        "product-contract-reviewer-agent",
+        "referee-agent",
+        "root-cause-reviewer-agent",
+        "security-reviewer-agent",
+        "security-reviewer-deep-agent",
+        "test-author-agent",
+        "tests-reviewer-agent",
+        "web-performance-reviewer-agent",
+        "ref-acceptance-review",
+        "ref-adr-template",
+        "ref-architecture-review",
+        "ref-auto-mode",
+        "ref-automations",
+        "ref-bdd-scenarios",
+        "ref-change-summaries",
+        "ref-clean-architecture",
+        "ref-clean-code",
+        "ref-code-retrieval",
+        "ref-code-simplification",
+        "ref-comment-policy",
+        "ref-commit-spec",
+        "ref-context-diet",
+        "ref-contract-spec",
+        "ref-correctness-review",
+        "ref-cross-model-review",
+        "ref-design-patterns",
+        "ref-design-plan-schema",
+        "ref-docs-devex-review",
+        "ref-docs-policy",
+        "ref-edd-comment-template",
+        "ref-eval-harness",
+        "ref-eval-judge-panel",
+        "ref-eval-judge-rubric",
+        "ref-eval-live-candidate",
+        "ref-finding-author-decision-rule",
+        "ref-finding-validation",
+        "ref-fleet",
+        "ref-goal-restate-schema",
+        "ref-interaction-adapter",
+        "ref-journaling",
+        "ref-machine-plan-schema",
+        "ref-minimalism-ladder",
+        "ref-model-effort-policy",
+        "ref-multi-user-review",
+        "ref-onboarding",
+        "ref-operation-first-move",
+        "ref-optional-reviewers",
+        "ref-outbound-templates",
+        "ref-performance-review",
+        "ref-pr-feedback-sources",
+        "ref-pr-spec",
+        "ref-preflight",
+        "ref-project-conventions",
+        "ref-quality-gate-schema",
+        "ref-refactoring",
+        "ref-reuse-check",
+        "ref-review-dispositions",
+        "ref-reviewer-severity",
+        "ref-reviewer-shared",
+        "ref-root-cause-review",
+        "ref-security-checklist",
+        "ref-task-template",
+        "ref-test-rubric",
+        "ref-ui-interaction-review",
+        "ref-verify-triage",
+        "ref-persona-accessibility-reviewer",
+        "ref-persona-architecture-reviewer",
+        "ref-persona-ci-cd-reviewer",
+        "ref-persona-code-quality-reviewer",
+        "ref-persona-docs-devex-reviewer",
+        "ref-persona-finding-validator",
+        "ref-persona-frontend-ui-reviewer",
+        "ref-persona-migration-reviewer",
+        "ref-persona-multi-user-concurrency-reviewer",
+        "ref-persona-observability-reviewer",
+        "ref-persona-performance-reviewer",
+        "ref-persona-processing-reliability-reviewer",
+        "ref-persona-product-contract-reviewer",
+        "ref-persona-root-cause-reviewer",
+        "ref-persona-security-reviewer",
+        "ref-persona-tests-reviewer",
+        "ref-persona-web-performance-reviewer"
+      ],
+      "consumers": [
+        "skill-lint-tests",
+        "canonical-contracts-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "skill-lint-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-skill-lint.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-skill-lint.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "skill-lint"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "stop-gate",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/stop-gate.mjs"
+      ],
+      "stage_role": "build",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/stop-gate.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "hook-shared-runtime",
+        "edit-accumulator",
+        "quality-gate"
+      ],
+      "consumers": [
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-stop-gate.mjs",
+          "plugins/loops-workflow/hooks/test-stop-characterization.mjs",
+          "plugins/loops-workflow/hooks/test-stop-concurrency.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "suggest-compact",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/suggest-compact.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/suggest-compact.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "hook-shared-runtime"
+      ],
+      "consumers": [
+        "read-accumulator",
+        "edit-accumulator",
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs",
+          "plugins/loops-workflow/hooks/test-cost-hooks.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "test-author-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/build/test-author.md"
+      ],
+      "stage_role": "build",
+      "visibility": "public",
+      "owner_class": "build",
+      "target_path": "plugins/loops-workflow/agents/build/test-author.md",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution",
+        "capability-registry",
+        "ref-bdd-scenarios",
+        "ref-context-diet",
+        "ref-test-rubric"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "tests-reviewer-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/core/tests-reviewer.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-core",
+      "target_path": "plugins/loops-workflow/agents/verify/core/tests-reviewer.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "reviewer-generator",
+        "ref-code-retrieval",
+        "ref-reviewer-severity",
+        "ref-test-rubric",
+        "ref-persona-tests-reviewer"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "validate-plan",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/validate-plan.mjs"
+      ],
+      "stage_role": "plan",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/validate-plan.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "ref-machine-plan-schema"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/references/stages/machine-plan-schema.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "verify-skill",
+      "kind": "skill",
+      "paths": [
+        "plugins/loops-workflow/skills/verify/**"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/skills/verify",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution",
+        "capability-registry",
+        "ref-acceptance-review",
+        "ref-architecture-review",
+        "ref-bdd-scenarios",
+        "ref-clean-architecture",
+        "ref-clean-code",
+        "ref-code-retrieval",
+        "ref-code-simplification",
+        "ref-comment-policy",
+        "ref-context-diet",
+        "ref-correctness-review",
+        "ref-design-patterns",
+        "ref-docs-devex-review",
+        "ref-finding-author-decision-rule",
+        "ref-finding-validation",
+        "ref-interaction-adapter",
+        "ref-model-effort-policy",
+        "ref-multi-user-review",
+        "ref-optional-reviewers",
+        "ref-performance-review",
+        "ref-preflight",
+        "ref-project-conventions",
+        "ref-refactoring",
+        "ref-reuse-check",
+        "ref-review-dispositions",
+        "ref-reviewer-severity",
+        "ref-root-cause-review",
+        "ref-security-checklist",
+        "ref-test-rubric",
+        "ref-ui-interaction-review",
+        "ref-verify-triage"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "canonical-contracts-tests",
+        "safe-stop-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [
+          "plugins/loops-workflow/evals/trajectories/issue-lifecycle.json",
+          "plugins/loops-workflow/evals/gate-recommendation/scenarios.json"
+        ],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/docs/FLOW.md"
+        ],
+        "integrations": [
+          "code-graph-index"
+        ]
+      }
+    },
+    {
+      "id": "web-performance-reviewer-agent",
+      "kind": "agent",
+      "paths": [
+        "plugins/loops-workflow/agents/verify/conditional/web-performance-reviewer.md"
+      ],
+      "stage_role": "verify",
+      "visibility": "public",
+      "owner_class": "verify-conditional",
+      "target_path": "plugins/loops-workflow/agents/verify/conditional/web-performance-reviewer.md",
+      "user_invocable": false,
+      "dependencies": [
+        "capability-registry",
+        "reviewer-generator",
+        "ref-code-retrieval",
+        "ref-reviewer-severity",
+        "ref-persona-web-performance-reviewer"
+      ],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "check-registry-shape"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "worktree-guard",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/worktree-guard.mjs"
+      ],
+      "stage_role": "dispatch",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/worktree-guard.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "policy-registry",
+        "hook-shared-runtime"
+      ],
+      "consumers": [
+        "pr-gate",
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-worktree-guard.mjs",
+          "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md",
+          "plugins/loops-workflow/docs/settings.md"
+        ],
+        "integrations": [
+          "worktree-cli"
+        ]
       }
     }
   ]

@@ -249,7 +249,10 @@ export function deepSyncCheck(pairs, threshold = DEEP_SYNC_THRESHOLD) {
 // 字面 glob（references/*.md）因含 `*` 天然不落入 [\w./-]+ 而不匹配；skill-local 形狀
 // （skills/x/references/y.md）由呼叫端依 referrer 是否落在 skills/ 底下判斷是否略過，
 // 這裡只單純抓 references/ 之後那段相對路徑。
-const REFERENCE_MENTION_RE = /references\/([\w.-]+(?:\/[\w.-]+)*\.md)/g;
+// 左界 `(?<![\w-])`：同 check-legacy-paths.mjs——這個路徑段前面緊接識別字元或連字號時，那不是一段
+// reference 路徑，而是某個**以該字結尾的目錄名**（實測踩到一個 branch slug
+// `…-skills-agents-references/loop.md` 被判成 broken-ref）。
+const REFERENCE_MENTION_RE = /(?<![\w-])references\/([\w.-]+(?:\/[\w.-]+)*\.md)/g;
 
 function extractReferenceMentions(content) {
   const filenames = new Set();
