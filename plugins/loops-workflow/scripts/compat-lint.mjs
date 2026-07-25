@@ -18,8 +18,8 @@
 // findings 歸零就收工——否則「整段包 marker」就能不真正抽象化、豁免面積會隱形，notes 讓豁免面積
 // 對審查者可見（#183 plan「不得靜默假裝已執行」同源精神）。
 //
-// T18 補上 C2（capability-registry ↔ evals/baseline/codex/gaps.json 對帳）；C4（persona 能力等級
-// 對帳）留給後續任務接續同一支腳本。
+// T18 補上 C2（capability-registry ↔ evals/baseline/codex/gaps.json 對帳）。
+// T19 補上 C4（agent tier/effort/model 對帳，見下方 C4 區塊註解）。
 // C2 驗的三條不變式：
 //   I7　gaps.json 每筆 capability_id 二擇一——要嘛被某 facet 的 gaps_refs 引用、要嘛在 registry
 //       的 deferred[]，不可兩者皆無（孤兒）、不可兩者皆有（歸屬不明）；gaps_refs 引用 gaps.json
@@ -29,6 +29,33 @@
 //       override_rationale。gaps_refs 為空的 facet 須有 rationale_if_no_gaps_ref。
 // I5（descriptor fallback 完整性）／I6（not_measured 須有 repro）已由 check-registry-shape.mjs
 // 的 checkDescriptorFallback／checkDescriptorRepro 驗過，C2 這裡不重複實作，避免同一件事兩個入口。
+//
+// C4（agent tier/effort/model 對帳，本次 T19 新增）：
+//   對帳 capability-registry.json 的 agent_tiers／agent_effort／model_tier 三張表，與
+//   plugins/loops-workflow/agents/*.md（25 支）frontmatter 的 model:／effort: 是否一致。
+// 與既有檢查的分工（先讀過 check-registry-shape.mjs 與 skill-lint.mjs 才動手，避免兩個入口）：
+//   - check-registry-shape.mjs 的 I8（checkAgentTiers）已經驗 agent_tiers／agent_effort **鍵集合**
+//     是否恰好等於 agents/ 目錄現況、agent_tiers 的**值**是否落在 model_tier 鍵集合內、以及
+//     agent_effort 的**值**是否與 frontmatter effort 一致——這條線其實已經有值級對帳，不是只驗鍵
+//     集合（實測：把 eval-judge.md 的 effort 從 low 改成 medium，check-registry-shape.mjs 會紅）。
+//   - 但完全沒有人驗 **model** 這條線：model_tier 展開後的 claude.model 是否等於 agents/*.md
+//     frontmatter 的 model: 值——這是真正的洞，C4 補的就是這塊。
+//   - effort 值對帳雖與 I8 有實質重疊，這裡仍在 C4 裡對稱寫一份（而不是 parse I8 的 detail 字串
+//     或硬 import 內部細節去拼裝），理由：①I8 的 findings 是 registry-internal 形狀（不含
+//     per-agent file 欄位），硬要在這裡改寫成 compat-lint 的 finding 形狀，需要從人讀 detail
+//     字串反解 agent 名稱，比重寫一次同等於三行的等式判斷更脆弱；②C4 的定位是「registry ↔
+//     agents frontmatter」這條跨檔關係的單一彙整報告（model + effort 對稱兩維），拆成一半 reuse
+//     一半新寫，維護時更難看出全貌。effort 這一小段等式判斷刻意保持極簡（見 minimalism-ladder：
+//     一行等式，不開新抽象），不是重造一個功能。
+//   - skill-lint.mjs 的 agents 相關檢查完全不讀 model/effort/tier，管的是 description/body 文字
+//     健康度（duplicateCheck、deepSyncCheck、footprint 字數），與 C4 零重疊。
+//
+// 誠實覆蓋面聲明（AGENTS.md 規則 5，別讓覆蓋面看起來比實際強）：25 支 agents 裡 **21 支是
+// gen-reviewers.mjs 從 registry 生成的**（見 EXCLUDED_PATH_PREFIXES 對 agents/** 在 C3 的排除
+// 理由同源）——對這 21 支跑 C4 對帳是**恆真**：生成物的 model/effort 本來就是抄 registry 填進去
+// 的，C4 抓不到「生成器本身寫錯」這種洞，只能抓「生成後被手動改動、與 registry 脫鉤」。
+// 真正有鑑別力的只有 **4 支手寫 agent**：referee、test-author、impl-author、eval-judge——
+// 只有這 4 支的 model/effort 是人工填寫，才可能獨立於 registry 漂移，C4 的紅燈價值集中在這裡。
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -52,6 +79,11 @@ const ROOT_DOCS_FILES = ['AGENTS.md', 'README.md'];
 // C2 對帳的兩份資料源（repo-relative posix，與 check-registry-shape.mjs 的 REGISTRY_REL 同源）。
 const CAPABILITY_REGISTRY_REL = 'plugins/loops-workflow/references/capability-registry.json';
 const GAPS_JSON_REL = 'plugins/loops-workflow/evals/baseline/codex/gaps.json';
+
+// C4 對帳的資料源：agents/*.md（與 check-registry-shape.mjs 的 AGENTS_DIR_REL 同源）。
+const AGENTS_DIR_REL = 'plugins/loops-workflow/agents';
+const MODEL_FRONTMATTER_RE = /^model:\s*(\S+)\s*$/m;
+const EFFORT_FRONTMATTER_RE = /^effort:\s*(\S+)\s*$/m;
 
 // I10 保守序：數字越大越保守，取 gaps_refs 對應筆狀態互異時的最保守者。
 const STATUS_CONSERVATISM_RANK = { not_supported: 3, degraded: 2, not_measured: 1, supported: 0 };
@@ -291,7 +323,7 @@ export function formatSummary(result) {
 
   const lines = [];
   if (findings.length === 0) {
-    lines.push(`✓ compat-lint（C2+C3）：${filesScanned} 檔全綠，無 finding。`);
+    lines.push(`✓ compat-lint（C2+C3+C4）：${filesScanned} 檔全綠，無 finding。`);
   } else {
     lines.push(...findings.map((f) => `✗ [${f.check}] ${f.severity} ${f.file} — ${f.detail}`));
   }
@@ -455,6 +487,98 @@ export function parseGapsArrayJson(content) {
   return { gapsArray: parsed };
 }
 
+// ── C4：agent tier/effort/model 對帳（純函式，無 IO，測試直接 import）──────────────
+
+/**
+ * C4：對每一支有 agent_tiers 對應 tier 的 agent，比對兩維：
+ * ①effort：registry.agent_effort[name] 與 frontmatter effort 是否一致（與 check-registry-shape.mjs
+ *   的 I8 有實質重疊，見檔頭 C4 分工說明，這裡刻意保持極簡的一行等式，不是重造功能）；
+ * ②model：registry.agent_tiers[name] 展開 model_tier[tier].claude.model 是否等於 frontmatter
+ *   model:（目前唯一沒人驗的洞，見檔頭）。
+ * agentNames / effortByAgent / modelByAgent 由呼叫端注入（IO 已在邊界讀完，這裡純比對）。
+ * 任一邊缺值（tier 未知、model_tier 未填 claude.model、frontmatter 缺欄位）→ 略過該筆，不誤報
+ * ——鍵集合本身的缺失已由 check-registry-shape.mjs 的 I8 回報，C4 不重複那個噪音。
+ */
+export function checkAgentTierEffortModelReconciliation(registry, { agentNames, effortByAgent, modelByAgent } = {}) {
+  const names = Array.isArray(agentNames) ? agentNames : [];
+  const agentTiers = registry?.agent_tiers ?? {};
+  const agentEffort = registry?.agent_effort ?? {};
+  const modelTier = registry?.model_tier ?? {};
+  const findings = [];
+
+  for (const name of names) {
+    const tier = agentTiers[name];
+    if (tier == null) continue; // 鍵集合缺失已由 check-registry-shape.mjs 的 I8 回報
+
+    const registryEffort = agentEffort[name];
+    const actualEffort = effortByAgent?.[name];
+    if (registryEffort != null && actualEffort != null && registryEffort !== actualEffort) {
+      findings.push({
+        check: 'C4',
+        severity: 'P1',
+        file: `${AGENTS_DIR_REL}/${name}.md`,
+        detail: `agent "${name}" 的 registry agent_effort="${registryEffort}"，與 agents/${name}.md frontmatter 的 effort="${actualEffort}" 不符`,
+      });
+    }
+
+    const expectedModel = modelTier[tier]?.claude?.model;
+    const actualModel = modelByAgent?.[name];
+    if (expectedModel != null && actualModel != null && actualModel !== expectedModel) {
+      findings.push({
+        check: 'C4',
+        severity: 'P1',
+        file: `${AGENTS_DIR_REL}/${name}.md`,
+        detail: `agent "${name}" 的 agent_tiers="${tier}" 展開 model_tier.claude.model="${expectedModel}"，與 agents/${name}.md frontmatter 的 model="${actualModel}" 不符`,
+      });
+    }
+  }
+
+  return findings;
+}
+
+/**
+ * C4 的 IO 邊界：讀 capability-registry.json + agents/*.md frontmatter，跑
+ * checkAgentTierEffortModelReconciliation。任一資料源不存在（假 repo fixture 常常兩者都沒準備）
+ * → 靜默回傳空 findings，理由同 buildC2Report：C4 對該 root 不適用不該讓整體報告失敗。
+ */
+export function buildC4Report(root) {
+  const registryAbs = join(root, ...CAPABILITY_REGISTRY_REL.split('/'));
+  const agentsDirAbs = join(root, ...AGENTS_DIR_REL.split('/'));
+  if (!existsSync(registryAbs) || !existsSync(agentsDirAbs)) return { findings: [] };
+
+  let registryRaw;
+  let agentFileNames;
+  try {
+    registryRaw = readFileSync(registryAbs, 'utf8');
+    agentFileNames = readdirSync(agentsDirAbs).filter((f) => f.endsWith('.md'));
+  } catch (e) {
+    return { findings: [{ check: 'C4', severity: 'P1', file: CAPABILITY_REGISTRY_REL, detail: `讀取失敗：${e.message}` }] };
+  }
+
+  const parsedRegistry = parseRegistryJson(registryRaw);
+  if (parsedRegistry.error) {
+    return { findings: [{ check: 'C4', severity: 'P1', file: CAPABILITY_REGISTRY_REL, detail: parsedRegistry.error }] };
+  }
+
+  const agentNames = agentFileNames.map((f) => f.replace(/\.md$/, ''));
+  const effortByAgent = {};
+  const modelByAgent = {};
+  for (const name of agentNames) {
+    let content;
+    try {
+      content = readFileSync(join(agentsDirAbs, `${name}.md`), 'utf8');
+    } catch {
+      continue;
+    }
+    effortByAgent[name] = content.match(EFFORT_FRONTMATTER_RE)?.[1] ?? null;
+    modelByAgent[name] = content.match(MODEL_FRONTMATTER_RE)?.[1] ?? null;
+  }
+
+  return {
+    findings: checkAgentTierEffortModelReconciliation(parsedRegistry.registry, { agentNames, effortByAgent, modelByAgent }),
+  };
+}
+
 // ── IO 邊界：依 scope 掃檔 + CLI main ────────────────────────────────────────
 
 function toRelPosix(root, absPath) {
@@ -549,8 +673,9 @@ export function buildReport(root, opts = {}) {
     notes.push(...result.notes);
   }
 
-  // C2 對帳與 scope 篩選無關（不是 markdown 面掃描），一律跑、findings 併入同一份報告。
+  // C2／C4 對帳與 scope 篩選無關（不是 markdown 面掃描），一律跑、findings 併入同一份報告。
   findings.push(...buildC2Report(root).findings);
+  findings.push(...buildC4Report(root).findings);
 
   return {
     ok: findings.length === 0,

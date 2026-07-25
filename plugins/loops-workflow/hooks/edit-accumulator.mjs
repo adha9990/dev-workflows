@@ -22,6 +22,11 @@ import { flagEnabled } from './hook-flags.mjs';
 // tmp+rename 原子覆寫（#183 T14）：stop-gate 與 eval-gate 都會在 Stop 時對同一 session 呼叫
 // clearEditsState，兩者併發時若直接整檔覆寫 writeFileSync，reader 有機會讀到半寫檔——改走原子寫入。
 import { writeFileAtomic } from './atomic-write.mjs';
+// 雙 harness 正規化（#183 T10）：Codex 的 apply_patch 一次可能夾帶多檔 diff（tool_input.command 裡
+// `*** Add/Update/Delete File:` 多個標頭），改讀 normalize() 的 filePaths[]（逐檔累積）取代舊的
+// 「只讀 tool_input.file_path 單一字串」——後者在 apply_patch 形狀下只會記到 undefined、漏記全部
+// 檔案。degraded 只影響可見性、不改本檔「記不記」的判斷（issue 拍板）。
+import { normalize } from './hook-input-normalize.mjs';
 
 export { sanitizeSessionId };
 
@@ -125,11 +130,13 @@ function main() {
   const cwd = payload?.cwd;
   if (typeof cwd !== 'string' || !existsSync(join(cwd, '.loops'))) return;
 
-  const filePath = payload?.tool_input?.file_path;
-  if (typeof filePath !== 'string' || !filePath) return; // 無檔路徑 → 無事可記
+  // filePaths：Claude 形狀（tool_input.file_path）→ 單一元素陣列；Codex apply_patch → patch 裡
+  // 逐檔標頭抽出的多檔陣列。逐檔 fold 進 addEdit，同一次 hook 呼叫要能一次記多檔（核心修復）。
+  const { filePaths } = normalize(payload, process.env);
+  if (filePaths.length === 0) return; // 無檔路徑 → 無事可記
 
   const sessionId = payload.session_id;
-  const next = addEdit(readEditsForSession(sessionId), filePath);
+  const next = filePaths.reduce((acc, filePath) => addEdit(acc, filePath), readEditsForSession(sessionId));
   writeEditsState(sessionId, next);
 }
 

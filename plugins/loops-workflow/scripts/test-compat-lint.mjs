@@ -18,6 +18,12 @@
 // 純函式測試直接用 inline JS 物件（比照本檔既有 normalizeScopes/formatSummary 的作法，不另開
 // JSON fixture 檔——minimalism：純資料結構用字面量就夠，不需要 IO）；C2 的 IO 邊界
 // （buildC2Report）與真實 repo 資料的整合測試才用檔案（temp dir / 真實 root）。
+//
+// T19 新增 C4（agent tier/effort/model 對帳）：S19=model 漂移（負向，鎖住 model_tier.claude.model
+// 與 frontmatter model: 不符）、S20=effort 漂移（負向，補 I8 只驗鍵集合這個歷史說法的洞——實測
+// I8 其實已驗值，這裡是對稱寫一份，理由見 compat-lint.mjs 檔頭 C4 分工註解）、S21=兩者皆一致的
+// 正向 fixture。純函式測試一樣用 inline 物件；buildC4Report 的 IO 整合測試用 temp dir 假 repo
+// （不直接竄改真實 agents/*.md，竄改真實檔案風險留給下面「真實 repo 零 finding」那組整合測試）。
 
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -47,6 +53,8 @@ import {
   checkCapabilityRegistryReconciliation,
   parseGapsArrayJson,
   buildC2Report,
+  checkAgentTierEffortModelReconciliation,
+  buildC4Report,
 } from './compat-lint.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -673,6 +681,148 @@ const REPO_ROOT = join(HERE, '..', '..', '..');
   const report = buildReport(REPO_ROOT, {});
   const c2Findings = report.findings.filter((f) => f.check === 'C2');
   assert(c2Findings.length === 0, `buildReport [真實資料整合]：篩 check==='C2' 之後為 0 筆（實際：${JSON.stringify(c2Findings)}）`);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// C4：checkAgentTierEffortModelReconciliation——model/effort 兩維對帳（純函式）
+// ══════════════════════════════════════════════════════════════════════════
+
+// S21 正向：model 與 effort 皆與 registry 一致 → 0 筆 finding
+{
+  const registry = {
+    agent_tiers: { referee: 'referee' },
+    agent_effort: { referee: 'high' },
+    model_tier: { referee: { claude: { model: 'opus' } } },
+  };
+  const findings = checkAgentTierEffortModelReconciliation(registry, {
+    agentNames: ['referee'],
+    effortByAgent: { referee: 'high' },
+    modelByAgent: { referee: 'opus' },
+  });
+  assert(findings.length === 0, `checkAgentTierEffortModelReconciliation [S21 正向]：model/effort 皆一致 → 0 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+// S19 負向：model 漂移——frontmatter model 與 model_tier.claude.model 展開值不符
+{
+  const registry = {
+    agent_tiers: { referee: 'referee' },
+    agent_effort: { referee: 'high' },
+    model_tier: { referee: { claude: { model: 'opus' } } },
+  };
+  const findings = checkAgentTierEffortModelReconciliation(registry, {
+    agentNames: ['referee'],
+    effortByAgent: { referee: 'high' },
+    modelByAgent: { referee: 'sonnet' },
+  });
+  assert(
+    findings.length === 1 && findings[0].check === 'C4' && findings[0].detail.includes('referee') && findings[0].detail.includes('sonnet') && findings[0].detail.includes('opus'),
+    `checkAgentTierEffortModelReconciliation [S19 負向-model]：model 漂移 → 1 筆 finding 指名 agent 與雙方值（實際：${JSON.stringify(findings)}）`,
+  );
+}
+// S20 負向：effort 漂移——frontmatter effort 與 registry agent_effort 不符
+{
+  const registry = {
+    agent_tiers: { 'eval-judge': 'fast-readonly' },
+    agent_effort: { 'eval-judge': 'low' },
+    model_tier: { 'fast-readonly': { claude: { model: 'sonnet' } } },
+  };
+  const findings = checkAgentTierEffortModelReconciliation(registry, {
+    agentNames: ['eval-judge'],
+    effortByAgent: { 'eval-judge': 'medium' },
+    modelByAgent: { 'eval-judge': 'sonnet' },
+  });
+  assert(
+    findings.length === 1 && findings[0].check === 'C4' && findings[0].detail.includes('eval-judge') && findings[0].detail.includes('medium') && findings[0].detail.includes('low'),
+    `checkAgentTierEffortModelReconciliation [S20 負向-effort]：effort 漂移 → 1 筆 finding 指名 agent 與雙方值（實際：${JSON.stringify(findings)}）`,
+  );
+}
+// 對照組：agent_tiers 沒有這個 agent（鍵集合缺失）→ 略過，不誤報（該由 I8 回報）
+{
+  const findings = checkAgentTierEffortModelReconciliation({ agent_tiers: {}, agent_effort: {}, model_tier: {} }, {
+    agentNames: ['unknown-agent'],
+    effortByAgent: { 'unknown-agent': 'high' },
+    modelByAgent: { 'unknown-agent': 'opus' },
+  });
+  assert(findings.length === 0, 'checkAgentTierEffortModelReconciliation：agent_tiers 缺鍵 → 略過不誤報（鍵集合缺失由 I8 負責）');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// C4 IO：buildC4Report——缺檔靜默略過、temp fake repo 正負向、真實 repo 須零 finding
+// ══════════════════════════════════════════════════════════════════════════
+
+function makeC4FakeRepo({ model = 'opus', effort = 'high' } = {}) {
+  const dir = mkdtempSync(join(tmpdir(), 'compat-lint-c4-'));
+  const registry = {
+    agent_tiers: { referee: 'referee' },
+    agent_effort: { referee: 'high' },
+    model_tier: { referee: { claude: { model: 'opus' } } },
+  };
+  writeFiles(dir, {
+    'plugins/loops-workflow/references/capability-registry.json': JSON.stringify(registry, null, 2),
+    'plugins/loops-workflow/agents/referee.md': `---\nname: referee\nmodel: ${model}\neffort: ${effort}\n---\n\n本文。`,
+  });
+  return dir;
+}
+
+// 缺檔（假 repo 沒有 capability-registry.json / agents/）→ 靜默回傳空 findings，不報錯
+{
+  const dir = mkdtempSync(join(tmpdir(), 'compat-lint-c4-empty-'));
+  try {
+    const { findings } = buildC4Report(dir);
+    assert(Array.isArray(findings) && findings.length === 0, 'buildC4Report：兩份資料源皆缺 → 靜默略過，0 筆 finding（不是報錯）');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// 正向：假 repo 的 referee.md model/effort 皆與 registry 一致 → 0 筆 finding
+{
+  const dir = makeC4FakeRepo({});
+  try {
+    const { findings } = buildC4Report(dir);
+    assert(findings.length === 0, `buildC4Report [正向]：假 repo model/effort 皆一致 → 0 筆 finding（實際：${JSON.stringify(findings)}）`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// S19 負向（IO 整合）：手寫 agent 的 model: 值被改動 → C4 須紅並指名該 agent
+{
+  const dir = makeC4FakeRepo({ model: 'sonnet' });
+  try {
+    const { findings } = buildC4Report(dir);
+    assert(
+      findings.length === 1 && findings[0].check === 'C4' && findings[0].file.includes('referee.md') && findings[0].detail.includes('referee'),
+      `buildC4Report [S19 負向-IO]：referee.md model 被改成 sonnet → 1 筆 C4 finding 指名 referee（實際：${JSON.stringify(findings)}）`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// S20 負向（IO 整合）：手寫 agent 的 effort: 值被改動 → C4 須紅並指名該 agent
+{
+  const dir = makeC4FakeRepo({ effort: 'medium' });
+  try {
+    const { findings } = buildC4Report(dir);
+    assert(
+      findings.length === 1 && findings[0].check === 'C4' && findings[0].file.includes('referee.md') && findings[0].detail.includes('referee'),
+      `buildC4Report [S20 負向-IO]：referee.md effort 被改成 medium → 1 筆 C4 finding 指名 referee（實際：${JSON.stringify(findings)}）`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// 真實 repo 資料：C4 對帳必須零 finding（25 支 agents，21 支生成恆真、4 支手寫現況一致）
+{
+  const { findings } = buildC4Report(REPO_ROOT);
+  assert(findings.length === 0, `buildC4Report [真實資料]：capability-registry.json ↔ agents/*.md 對帳零 finding（實際：${JSON.stringify(findings)}）`);
+}
+{
+  // 透過 buildReport 的整合路徑再驗一次，確保 C4 真的被掛進主報告
+  const report = buildReport(REPO_ROOT, {});
+  const c4Findings = report.findings.filter((f) => f.check === 'C4');
+  assert(c4Findings.length === 0, `buildReport [真實資料整合]：篩 check==='C4' 之後為 0 筆（實際：${JSON.stringify(c4Findings)}）`);
 }
 
 // ══════════════════════════════════════════════════════════════════════════

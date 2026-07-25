@@ -227,6 +227,44 @@ try {
     assert(res.status === 0 && stdoutOf(res).trim() === '',
       '[C5] tool_name="PowerShell" + git status（非建立指令）→ 放行（stdout 空，零誤擋）');
   }
+  // =============================================================================
+  // D) #183 T9 —— 接上 hook-input-normalize.mjs 正規化層
+  // =============================================================================
+
+  // ── D1：Codex 形狀（tool_input.command 為一般 shell 指令，經 normalize 取值）——
+  //        主 checkout 對已建 loop 的 checkout -b → deny（正向：normalize 接線後行為不變）───
+  {
+    const res = runHook({
+      rawInput: JSON.stringify({
+        tool_name: 'Bash',
+        tool_input: { command: 'git checkout -b 206-foo master' },
+        cwd: MAIN_ROOT,
+      }),
+    });
+    assert(res.error == null && res.status === 0, '[D1] spawn 無 error、exit 0');
+    assert(parseOut(res)?.hookSpecificOutput?.permissionDecision === 'deny',
+      '[D1] Codex 形狀 payload（command 經 normalize 取值）+ 主 checkout 對已建 loop 的 checkout -b → deny');
+  }
+
+  // ── D2：反向——Codex 形狀、乾淨指令 → 放行（零誤擋）─────────────────────────────
+  {
+    const res = runHook({
+      rawInput: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'git status' }, cwd: MAIN_ROOT }),
+    });
+    assert(res.status === 0 && stdoutOf(res).trim() === '',
+      '[D2] Codex 形狀、乾淨指令（git status）→ 放行（stdout 空，零誤擋）');
+  }
+
+  // ── D3：結構殘缺（harness 判不出來，command 與 file_path 皆缺）→ degraded 訊息
+  //        可見（stderr），但仍放行（fail-open，degraded 不改變擋不擋）────────────────
+  {
+    const res = runHook({ rawInput: JSON.stringify({ tool_input: {}, cwd: MAIN_ROOT }) });
+    assert(res.status === 0, '[D3] exit 0（結構殘缺仍放行）');
+    assert(stdoutOf(res).trim() === '', '[D3] stdout 空（degraded 不改變放行判定）');
+    const stderr = typeof res.stderr === 'string' ? res.stderr : '';
+    assert(stderr.includes('[worktree-guard]') && /[一-鿿]/.test(stderr),
+      '[D3] stderr 含人可讀的繁中 degraded 說明（結構殘缺可見，不影響放行）');
+  }
 } finally {
   rmSync(SANDBOX, { recursive: true, force: true });
 }

@@ -18,6 +18,7 @@ import { spawnSync } from 'node:child_process';
 import {
   RATE_TABLE,
   getRates,
+  isKnownModel,
   sumUsageFromTranscript,
   sumUsageByStage,
   estimateCostUsd,
@@ -246,6 +247,45 @@ function callSafe(fn) {
   assert(row && row.cache_creation_input_tokens === 0, 'buildCostRow：負值 cacheWriteTokens(-100) → cache_creation_input_tokens === 0 [A5-neg]');
   assert(row && row.cache_read_input_tokens === 0, 'buildCostRow：NaN cacheReadTokens → cache_read_input_tokens === 0 [A5-neg]');
   assert(row && row.cost_usd === 0, 'buildCostRow：負值 costUsd(-1) → cost_usd === 0 [A5-neg]');
+}
+
+// ── A7 未知 model 誠實降級（T16：不再靜默套用預設費率）─────────────────────────
+{
+  // A7a：isKnownModel —— haiku/sonnet/opus 命中 true，任意其他平台 model 名 → false
+  assert(isKnownModel('claude-opus-4-8') === true, 'isKnownModel：含 "opus" → true [A7a]');
+  assert(isKnownModel('claude-3-5-haiku-20241022') === true, 'isKnownModel：含 "haiku" → true [A7a]');
+  assert(isKnownModel('claude-sonnet-4-5') === true, 'isKnownModel：含 "sonnet" → true [A7a]');
+  assert(isKnownModel('gpt-4o') === false, 'isKnownModel：其他平台 model（gpt-4o）→ false [A7a]');
+  assert(isKnownModel('grok-4') === false, 'isKnownModel：其他平台 model（grok-4）→ false [A7a]');
+}
+{
+  // A7b（回歸防護）：已知 model → buildCostRow 金額與既有行為完全相同、無降級欄位
+  const usage = { inputTokens: 3000, outputTokens: 1300, cacheWriteTokens: 600, cacheReadTokens: 50300 };
+  const costUsd = estimateCostUsd(usage, 'claude-opus-4-8');
+  const row = buildCostRow({ sessionId: 's-known', usage, model: 'claude-opus-4-8', costUsd, ts: 't' });
+  assert(near(row.cost_usd, 0.2292), 'buildCostRow：已知 model → cost_usd 與現況完全相同（0.2292）[A7b]');
+  assert(row.cost_status === undefined, 'buildCostRow：已知 model → 無 cost_status 欄（不降級）[A7b]');
+  assert(row.cost_note === undefined, 'buildCostRow：已知 model → 無 cost_note 欄 [A7b]');
+}
+{
+  // A7c（核心修復）：未知 model → 不寫出金額（cost_usd 強制 0）、標降級、有人可讀繁中說明
+  const usage = { inputTokens: 1_000_000, outputTokens: 500_000, cacheWriteTokens: 0, cacheReadTokens: 0 };
+  const fakeCost = estimateCostUsd(usage, 'gpt-4o'); // 若靜默套用 sonnet 預設，這裡會是非 0 假金額
+  const row = buildCostRow({ sessionId: 's-unknown', usage, model: 'gpt-4o', costUsd: fakeCost, ts: 't' });
+  assert(row.cost_usd === 0, 'buildCostRow：未知 model（gpt-4o）→ cost_usd 強制 0，不寫出假金額 [A7c]');
+  assert(row.cost_status === 'not_measured', 'buildCostRow：未知 model → cost_status === "not_measured" [A7c]');
+  assert(typeof row.cost_note === 'string' && row.cost_note.length > 0, 'buildCostRow：未知 model → 有人可讀說明（cost_note 非空字串）[A7c]');
+  assert(row.cost_note.includes('gpt-4o'), 'buildCostRow：cost_note 含實際 model 名，利於排查 [A7c]');
+}
+{
+  // A7d（反向）：未知 model 的 token 數等實測欄位仍正常記錄，不是整筆丟掉
+  const usage = { inputTokens: 4321, outputTokens: 1234, cacheWriteTokens: 111, cacheReadTokens: 222 };
+  const row = buildCostRow({ sessionId: 's-unknown-tok', usage, model: 'mystery-model-v9', costUsd: 999, ts: 't' });
+  assert(row.input_tokens === 4321, 'buildCostRow：未知 model → input_tokens 仍實測記錄 [A7d]');
+  assert(row.output_tokens === 1234, 'buildCostRow：未知 model → output_tokens 仍實測記錄 [A7d]');
+  assert(row.cache_creation_input_tokens === 111, 'buildCostRow：未知 model → cache_creation_input_tokens 仍實測記錄 [A7d]');
+  assert(row.cache_read_input_tokens === 222, 'buildCostRow：未知 model → cache_read_input_tokens 仍實測記錄 [A7d]');
+  assert(row.session_id === 's-unknown-tok' && row.model === 'mystery-model-v9', 'buildCostRow：未知 model → session_id / model 仍原樣帶出 [A7d]');
 }
 
 // =============================================================================

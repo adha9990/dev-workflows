@@ -419,6 +419,26 @@ function assertReasonMentions(res, substr, label) {
 }
 
 // =============================================================================
+// S9 —— MCP tool_name 判定改吃 normalize() 的 toolName 欄（#183 T10 接線）：normalize() 對
+// tool_name 純粹是 `payload?.tool_name ?? null` 透傳，行為應與直讀 payload.tool_name 完全等價
+// ——這裡補兩案覆蓋接線本身（tool_name 缺欄／非字串怪值），確保換讀 normalize() 沒有引入新的
+// coercion 或漏判。
+// =============================================================================
+{
+  // tool_name 完全缺欄（非 undefined 顯式賦值，是欄位不存在）＋ command 也缺 → 落到 MCP 分流，
+  // toolName 應為 null（normalize() 的 ?? null 透傳）→ isMcpTool(null, ...) 為 false → 放行。
+  const res = runHook({ rawInput: JSON.stringify({ cwd: HERE, tool_input: { draft: false } }) });
+  assert(isAllow(res), '[S9-1] tool_name 缺欄 ＋ tool_input:{draft:false}（非 shell、非受管 MCP 名）→ 放行');
+}
+{
+  // tool_name 是非字串怪值（數字）→ normalize() 的 toolName 直接透傳該怪值（無型別轉換）→
+  // isMcpTool 內部 typeof 檢查擋下非字串 → 放行（不得因换讀入口而拋例外或誤判）。
+  const res = runHook({ rawInput: JSON.stringify({ cwd: HERE, tool_name: 42, tool_input: { draft: false } }) });
+  assert(res.status === 0 && isAllow(res),
+    '[S9-2] tool_name 為非字串怪值（數字 42）→ normalize() 透傳、isMcpTool 型別守門 → 放行、不崩');
+}
+
+// =============================================================================
 // S7 —— 逃生口 LOOPS_PR_OWNER_GUARD='0'；flag 語意（僅字面 '0' 關、defaultOn）
 // =============================================================================
 {
@@ -478,5 +498,5 @@ function assertReasonMentions(res, substr, label) {
 
 const total = passed + failed.length;
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
-console.log(`(共 ${total} 條斷言：M1=接線／S1-S2=ready+undo／S3=edit+create reviewer／S4=api requested_reviewers／S5=graphql／S6=MCP／S7=escape+flag語意／S8=引號防誤擋／e1-e2=characterization／fail-open)`);
+console.log(`(共 ${total} 條斷言：M1=接線／S1-S2=ready+undo／S3=edit+create reviewer／S4=api requested_reviewers／S5=graphql／S6=MCP／S7=escape+flag語意／S8=引號防誤擋／S9=normalize toolName接線／e1-e2=characterization／fail-open)`);
 process.exit(failed.length > 0 ? 1 : 0);
