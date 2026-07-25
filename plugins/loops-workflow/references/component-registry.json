@@ -33,6 +33,51 @@
       }
     },
     {
+      "id": "affected-sources",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/affected-sources.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/affected-sources.mjs",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "affected-sources-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "affected-sources-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-affected-sources.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-affected-sources.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "affected-sources",
+        "policy-runtime"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
       "id": "agents-constitution",
       "kind": "doc",
       "paths": [
@@ -2458,6 +2503,7 @@
         "loop-ledger"
       ],
       "consumers": [
+        "affected-sources-tests",
         "policy-change",
         "policy-change-tests",
         "policy-runtime-tests",
