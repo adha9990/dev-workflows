@@ -45,6 +45,7 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
+        "agents-md-maintainer-skill",
         "build-skill",
         "clarify-skill",
         "compat-lint",
@@ -70,6 +71,31 @@
         "docs": [
           "plugins/loops-workflow/docs/FLOW.md",
           "plugins/loops-workflow/docs/README.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "agents-md-maintainer-skill",
+      "kind": "skill",
+      "paths": [
+        "plugins/loops-workflow/skills/agents-md-maintainer/**"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": "support",
+      "target_path": "plugins/loops-workflow/skills/agents-md-maintainer",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution",
+        "ref-comment-policy"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "AGENTS.md"
         ],
         "integrations": []
       }
@@ -2333,6 +2359,55 @@
       }
     },
     {
+      "id": "policy-change",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/policy-change.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/policy-change.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "registry-compiler",
+        "policy-runtime",
+        "policy-registry"
+      ],
+      "consumers": [
+        "policy-change-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "policy-change-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-policy-change.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-policy-change.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "policy-change",
+        "policy-runtime"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
       "id": "policy-registry",
       "kind": "reference",
       "paths": [
@@ -2349,6 +2424,7 @@
       "consumers": [
         "compat-lint",
         "loops-path-guard",
+        "policy-change",
         "policy-runtime",
         "registry-compiler",
         "registry-coverage-tests",
@@ -2379,6 +2455,8 @@
         "loop-ledger"
       ],
       "consumers": [
+        "policy-change",
+        "policy-change-tests",
         "policy-runtime-tests",
         "registry-compiler"
       ],
@@ -3052,6 +3130,7 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
+        "agents-md-maintainer-skill",
         "clarify-skill",
         "compat-lint",
         "decision-interview-skill",
@@ -4782,6 +4861,7 @@
         "policy-runtime"
       ],
       "consumers": [
+        "policy-change",
         "registry-compiler-tests",
         "registry-coverage-tests"
       ],
