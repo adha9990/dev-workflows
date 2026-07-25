@@ -78,5 +78,19 @@ jobs:
       - name: check-baseline-whitelist
         shell: bash
         # 基線測試檔白名單 guard（#183 T27）：Run tests 的 glob 迴圈只保證「跑到的都綠」，
-        # 不保證「該跑的都在」——此步逐檔存在性檢查 master 基線 31 支測試檔，防刪測試假綠。
+        # 不保證「該跑的都在」——此步逐檔存在性檢查基線測試檔清單，防刪測試假綠。
         run: node plugins/loops-workflow/scripts/check-baseline-whitelist.mjs --root .
+
+      - name: registry-compiler
+        shell: bash
+        # policy／component／integration 三份 registry 的機械 guard：id 唯一與 dangling、
+        # 覆寫核可、fail-closed 必填、投影標記漂移、元件雙向一致與環、互斥組與平台中立。
+        # 沒有這步，registry 可以寫成互相矛盾或指向不存在的檔案而無人察覺。
+        run: node plugins/loops-workflow/scripts/registry-compiler.mjs --root .
+
+      - name: registry 覆蓋率與波及面煙霧
+        shell: bash
+        # 上一步只保證 registry 自洽——填得越空越容易全綠。此步壓覆蓋率地板（每支 production
+        # hook 都要登記、每條 Operating Rule 都要有非空 policy 承載），並端到端跑一次
+        # --affected 查詢：已登記路徑查得到下游必跑測試、未登記路徑落進 unmatched。
+        run: node plugins/loops-workflow/scripts/test-registry-coverage.mjs

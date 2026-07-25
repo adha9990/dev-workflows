@@ -1,0 +1,142 @@
+{
+  "schema_version": "1",
+  "notes": "#170 T11：以本 repo 現況實填。lifecycle 六階段只是宣告字串，registry-compiler 只驗形狀、絕不執行；本票不實作任何安裝器。exclusive_group 表示同組能力互斥（至多一個 supported），用來擋『兩個實作同時被當成正式路徑』。自由文字欄（capability／triggers／outputs）只寫能力描述，不寫平台專屬工具名或廠商 model id。support_status 的判準是 Metric-Honesty：只有在這次填表時真的跑過 lifecycle.detect／health 並看到回傳，才標 supported（worktree-cli 與 forge-cli 兩條實跑過），其餘一律 not_measured 並在 docs 指向說明來源——code-graph-index 與 text-search-fallback 這組檢索路徑本 repo 沒有任何自動檢查會執行它們（見 code-retrieval.md 的 Fallback 條件），container-sandbox 的第二層真容器執行按 eval-harness.md 明載屬 CI recipe（script 只建構與驗證 policy、不執行容器），prompt-eval-runner 只有一份映射範例文件、沒有跑過的 runner。",
+  "integrations": [
+    {
+      "id": "worktree-cli",
+      "capability": "以指令列建立、列出與移除隔離的分支工作區目錄",
+      "support_status": "supported",
+      "exclusive_group": "workspace-isolation",
+      "lifecycle": {
+        "detect": "git worktree list",
+        "install_latest": null,
+        "update_latest": null,
+        "health": "git worktree list",
+        "uninstall": "git worktree remove",
+        "rollback": null
+      },
+      "triggers": ["迴圈要動 code、需要與主 checkout 隔離的工作區"],
+      "outputs": ["工作區絕對路徑", "工作區對應分支名"],
+      "docs": ["AGENTS.md"]
+    },
+    {
+      "id": "workspace-clone",
+      "capability": "以完整複製一份 repo 取得隔離工作區",
+      "support_status": "not_measured",
+      "exclusive_group": "workspace-isolation",
+      "lifecycle": {
+        "detect": "git --version",
+        "install_latest": null,
+        "update_latest": null,
+        "health": null,
+        "uninstall": null,
+        "rollback": null
+      },
+      "triggers": ["工作區隔離能力不可用時的替代路徑"],
+      "outputs": ["複製目錄絕對路徑"],
+      "docs": ["AGENTS.md"]
+    },
+    {
+      "id": "forge-cli",
+      "capability": "以指令列讀寫遠端代管服務的 PR、review 與 issue",
+      "support_status": "supported",
+      "exclusive_group": "remote-forge",
+      "lifecycle": {
+        "detect": "gh --version",
+        "install_latest": null,
+        "update_latest": null,
+        "health": "gh auth status",
+        "uninstall": null,
+        "rollback": null
+      },
+      "triggers": ["建立或更新 PR", "抓取 review 意見"],
+      "outputs": ["PR 編號與 URL", "review 意見清單"],
+      "docs": ["plugins/loops-workflow/references/pr-spec.md"]
+    },
+    {
+      "id": "forge-web-api",
+      "capability": "以 HTTP API 讀寫遠端代管服務的 PR 與 issue",
+      "support_status": "not_measured",
+      "exclusive_group": "remote-forge",
+      "lifecycle": {
+        "detect": null,
+        "install_latest": null,
+        "update_latest": null,
+        "health": null,
+        "uninstall": null,
+        "rollback": null
+      },
+      "triggers": ["指令列路徑不可用時的替代路徑"],
+      "outputs": ["PR 編號與 URL"],
+      "docs": ["plugins/loops-workflow/references/pr-feedback-sources.md"]
+    },
+    {
+      "id": "code-graph-index",
+      "capability": "為 repo 建立符號圖索引，供查詢定義、引用與依賴方向",
+      "support_status": "not_measured",
+      "exclusive_group": "code-retrieval",
+      "lifecycle": {
+        "detect": null,
+        "install_latest": null,
+        "update_latest": null,
+        "health": null,
+        "uninstall": null,
+        "rollback": null
+      },
+      "triggers": ["探索既有實作的呼叫鏈與架構", "驗證階段需要追依賴方向"],
+      "outputs": ["符號定義與引用位置", "依賴方向摘要"],
+      "docs": ["plugins/loops-workflow/references/code-retrieval.md"]
+    },
+    {
+      "id": "text-search-fallback",
+      "capability": "以字面與正則比對在檔案樹中定位符號",
+      "support_status": "not_measured",
+      "exclusive_group": "code-retrieval",
+      "lifecycle": {
+        "detect": null,
+        "install_latest": null,
+        "update_latest": null,
+        "health": null,
+        "uninstall": null,
+        "rollback": null
+      },
+      "triggers": ["符號圖索引不可用", "只需定位少數符號、不需追呼叫鏈"],
+      "outputs": ["命中檔案與行號"],
+      "docs": ["plugins/loops-workflow/references/code-retrieval.md"]
+    },
+    {
+      "id": "container-sandbox",
+      "capability": "以容器隔離執行不可信候選程式碼（斷網、唯讀根、資源上限）",
+      "support_status": "not_measured",
+      "exclusive_group": "candidate-isolation",
+      "lifecycle": {
+        "detect": null,
+        "install_latest": null,
+        "update_latest": null,
+        "health": null,
+        "uninstall": null,
+        "rollback": null
+      },
+      "triggers": ["要真跑候選解答並量測", "評測需要與主機檔案系統隔離"],
+      "outputs": ["候選執行結果", "隔離政策驗證結論"],
+      "docs": ["plugins/loops-workflow/references/eval-live-candidate.md"]
+    },
+    {
+      "id": "prompt-eval-runner",
+      "capability": "以外部評測工具批次跑提示語料並收集判定結果",
+      "support_status": "not_measured",
+      "exclusive_group": "eval-runner",
+      "lifecycle": {
+        "detect": null,
+        "install_latest": null,
+        "update_latest": null,
+        "health": null,
+        "uninstall": null,
+        "rollback": null
+      },
+      "triggers": ["把 baseline 語料接到外部評測平台重跑"],
+      "outputs": ["逐 task 的判定結果", "彙總通過率"],
+      "docs": ["plugins/loops-workflow/evals/baseline/promptfoo-adapter.md"]
+    }
+  ]
+}
