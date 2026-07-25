@@ -1,0 +1,45 @@
+[
+  {
+    "id": "deny-main-checkout",
+    "description": "主 checkout 對已建 loop 的 slug 做 checkout -b → deny",
+    "payload": {
+      "cwd": "$ROLE$WG_PROJ",
+      "tool_input": {
+        "command": "git checkout -b 220-feature"
+      }
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"loop `220-feature` 的 code 要在獨立 worktree 做、不在主 checkout：改用 `git worktree add .claude/worktrees/220-feature -b 220-feature <base>`（branch 已存在則 `git worktree add .claude/worktrees/220-feature 220-feature`），之後在 worktree 內改 code（.loops/ 續留主 repo）。session／harness 的「work in place」「skip EnterWorktree」設定不豁免本條（那管 session 隔離、與「為 loop 的 code 開 worktree」是不同層且相容）——見 AGENTS 規則 9。確需繞過：設 LOOPS_WORKTREE_GUARD=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "allow-inside-worktree",
+    "description": "已在 worktree 內 → 放行",
+    "payload": {
+      "cwd": "$ROLE$WG_WORKTREE",
+      "tool_input": {
+        "command": "git checkout -b 220-feature"
+      }
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "allow-nonloop-branch",
+    "description": "slug 非已建 loop → 放行",
+    "payload": {
+      "cwd": "$ROLE$WG_PROJ",
+      "tool_input": {
+        "command": "git checkout -b totally-unregistered-branch"
+      }
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "malformed-json",
+    "description": "stdin 非 JSON → fail-open 放行",
+    "rawInput": "nope",
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  }
+]

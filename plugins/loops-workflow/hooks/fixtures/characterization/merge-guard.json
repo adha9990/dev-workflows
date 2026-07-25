@@ -1,0 +1,69 @@
+[
+  {
+    "id": "deny-pr-merge",
+    "description": "`gh pr merge`（任意 flag 組合）→ deny",
+    "payload": {
+      "cwd": "$ROLE$GENERIC",
+      "tool_input": {
+        "command": "gh pr merge 123 --squash"
+      }
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"合併回主幹是需要人核可（human gate）的動作，不能由 Claude 直接執行。偵測到 `gh pr merge`——PR 合併請由人類在 GitHub 上按下合併鍵，或請人類親自執行這個指令。確需繞過：設 LOOPS_MERGE_GUARD=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "deny-git-merge-master",
+    "description": "cwd 所在分支=master ＋ `git merge` → deny",
+    "payload": {
+      "cwd": "$ROLE$MG_MASTER",
+      "tool_input": {
+        "command": "git merge feature-x"
+      }
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"合併回主幹是需要人核可（human gate）的動作，不能由 Claude 直接執行。偵測到目前分支已是 main/master、指令是 `git merge`——把其他分支併入主幹前要有人核可。確需繞過：設 LOOPS_MERGE_GUARD=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "deny-push-master",
+    "description": "`git push origin master` → deny",
+    "payload": {
+      "cwd": "$ROLE$GENERIC",
+      "tool_input": {
+        "command": "git push origin master"
+      }
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"合併回主幹是需要人核可（human gate）的動作，不能由 Claude 直接執行。偵測到 `git push` 的目的地是 main/master——直接推進主幹等同繞過 PR review。確需繞過：設 LOOPS_MERGE_GUARD=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "deny-api-put-merge",
+    "description": "`gh api .../pulls/1/merge -X PUT` → deny",
+    "payload": {
+      "cwd": "$ROLE$GENERIC",
+      "tool_input": {
+        "command": "gh api repos/x/y/pulls/1/merge -X PUT"
+      }
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"合併回主幹是需要人核可（human gate）的動作，不能由 Claude 直接執行。偵測到 `gh api` 對 `/pulls/.../merge` 路徑送出 PUT——這是透過 API 直接合併 PR，效果等同 `gh pr merge`。確需繞過：設 LOOPS_MERGE_GUARD=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "allow-push-feature",
+    "description": "push 到 feature 分支 → 放行",
+    "payload": {
+      "cwd": "$ROLE$GENERIC",
+      "tool_input": {
+        "command": "git push origin feature-x"
+      }
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "malformed-json",
+    "description": "stdin 非 JSON → fail-open 放行",
+    "rawInput": "not { json",
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  }
+]

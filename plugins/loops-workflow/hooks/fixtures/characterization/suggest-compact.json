@@ -1,0 +1,71 @@
+[
+  {
+    "id": "hint-triggered",
+    "description": "context 估算跨級距 ＋ flag on ＋ 新鮮 session → 印提醒",
+    "payload": {
+      "session_id": "loops-t3-char-compact-session-c",
+      "transcript_path": "$ROLE$SC_TRANSCRIPT_HIGH"
+    },
+    "env": {
+      "LOOPS_COMPACT_HINT": "1"
+    },
+    "stateSetup": {
+      "kind": "compact",
+      "preset": null
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"[loops-workflow] 估計 context 已約 ~260k tokens（依 API usage 估算、非精確）。可考慮 /compact 省 token。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "no-hint-below-threshold",
+    "description": "context 估算低於門檻 → 靜默",
+    "payload": {
+      "session_id": "loops-t3-char-compact-session-d",
+      "transcript_path": "$ROLE$SC_TRANSCRIPT_LOW"
+    },
+    "env": {
+      "LOOPS_COMPACT_HINT": "1"
+    },
+    "stateSetup": {
+      "kind": "compact",
+      "preset": null
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "flag-off",
+    "description": "LOOPS_COMPACT_HINT 未設（optIn 預設關）→ 靜默",
+    "payload": {
+      "session_id": "loops-t3-char-compact-session-c",
+      "transcript_path": "$ROLE$SC_TRANSCRIPT_HIGH"
+    },
+    "env": {},
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "transcript-missing",
+    "description": "transcript_path 讀不到 → 靜默（不崩）",
+    "payload": {
+      "session_id": "loops-t3-char-compact-session-e",
+      "transcript_path": "$ROLE$SC_TRANSCRIPT_MISSING"
+    },
+    "env": {
+      "LOOPS_COMPACT_HINT": "1"
+    },
+    "stateSetup": {
+      "kind": "compact",
+      "preset": null
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "malformed-json",
+    "description": "stdin 非 JSON → fail-open 靜默",
+    "rawInput": "ww",
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  }
+]

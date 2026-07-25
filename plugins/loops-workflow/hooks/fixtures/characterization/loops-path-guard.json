@@ -1,0 +1,33 @@
+[
+  {
+    "id": "deny-worktree-loops-path",
+    "description": "worktree 內寫入 .loops/ → deny",
+    "payload": {
+      "cwd": "$ROLE$GENERIC",
+      "tool_input": {
+        "file_path": "$ROLE$GENERIC/.claude/worktrees/220-feature/.loops/bar.md"
+      }
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\".loops/ 一律錨定主 repo —— 請寫入 $LOOPS_ROOT/.loops/<slug>/（LOOPS_ROOT = git worktree list --porcelain 第一筆 worktree 根）；worktree 只放 code。確需繞過：設 LOOPS_PATH_CONTAINMENT=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "allow-normal-path",
+    "description": "一般路徑 → 放行",
+    "payload": {
+      "cwd": "$ROLE$GENERIC",
+      "tool_input": {
+        "file_path": "$ROLE$GENERIC/src/index.js"
+      }
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "malformed-json",
+    "description": "stdin 非 JSON → fail-open 放行",
+    "rawInput": "][",
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  }
+]
