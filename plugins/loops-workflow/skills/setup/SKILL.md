@@ -59,6 +59,16 @@ loops-workflow 會用到幾個外部來源（跨檔案的 code graph、評測執
 - **hard invariant 不交給評測器**：tier 1／2 的規則由 hook 與 state 測試判定；評測套件若宣告要判那些規則，`checkNoHardInvariantDelegation` 判紅——把確定的東西換成機率的，是退步不是進步。
 - **證據不外洩**：寫進 fixture 與報告的文字一律先過 `redactEvidence()`——絕對路徑收斂成 `<repo>`、憑證遮成 `<redacted:型別>`，**但 `file:line` 保留**（Metric-Honesty 需要的證據不能被遮掉），並逐項列出遮了什麼。
 
+### 3.6 token optimizer 的忠實度契約（#178）
+
+同一能力的兩個實作**互斥、擇一或停用**（`exclusive_group`）。啟用之後，每一次壓縮都要過同一道驗收：
+
+- **受保護證據不得被壓掉**：policy denial／測試失敗／exit code／`file:line`／security finding（含 P0/P1）。判準是「**條數不得減少**」——壓縮本來就會改排版，但證據的條數不該變少。
+- **忠實度沒過 → bypass 回原始輸出**。optimizer 丟例外、回非字串、回空字串也一樣。**失敗要被隔離**：壞掉的 optimizer 只該讓人少省一點 token，不該讓人拿到殘缺的證據。
+- **每次處理留 receipt**：來源／版本／原始與處理後大小／保留與截斷策略／錯誤／是否 bypass。receipt 不得自相矛盾（宣稱忠實度未過卻沒 bypass ＝ 殘缺的輸出被送出去了）。
+- **候選比較：品質先於 token**。task success 或規則遵循度退步 → 一律不接受，不論省多少 token；**品質維度沒量到也不接受**（沒量不等於沒退步）。token／call／duration **只報實測**：沒量標 `not measured`、量到但沒變好標 `not improved`——不拿宣傳數字當實測。
+- **資格審查六項全綠才進選單**：平台實測／hook 掛載順序／輸出忠實度／失敗隔離／rollback／真實 benchmark。**`not-measured` 與失敗一樣擋。**
+
 ### 4. Receipt
 
 輸出一張表：來源 · 動作 · **實際解析到的版本** · 健康檢查 · 是否回滾 · 說明。這是之後查「當時到底裝了什麼」的唯一依據。
