@@ -58,11 +58,11 @@ dispatch → goal → explore → plan → build → verify → iterate
                                                         └──▶ 完工（交 PR / 收尾）
 ```
 
-> **只在真正該你選的決策點才停**（用 `AskUserQuestion`）：explore 選做法 / plan 拍板 / iterate 完工或回環 / 真正的 scope 取捨 / 內容型交付的載體 / 安全停（分類模糊·危險操作·P0·規格不清）。**其餘 routine 轉場直接往下**，產出寫進 `.loops/`。**修完一定再過一輪 verify**（不是「測試綠」就算完）。需要時設 `LOOPS_AUTO=1` 開 opt-in 自動連跑。
+> **只在真正該你選的決策點才停**（結構化提問，見 `plugins/loops-workflow/references/interaction-adapter.md`）：explore 選做法 / plan 拍板 / iterate 完工或回環 / 真正的 scope 取捨 / 內容型交付的載體 / 安全停（分類模糊·危險操作·P0·規格不清）。**其餘 routine 轉場直接往下**，產出寫進 `.loops/`。**修完一定再過一輪 verify**（不是「測試綠」就算完）。需要時設 `LOOPS_AUTO=1` 開 opt-in 自動連跑。
 
 ### 每個階段在做什麼
 
-「停下問你？」欄：✋ = 一定停下用 `AskUserQuestion` 的真決策點；其餘只在列出的條件才停。**下表是階段名、不是指令**——你打的永遠是 `dispatch`，它才是唯一入口。
+「停下問你？」欄：✋ = 一定停下開結構化決策點的真決策點；其餘只在列出的條件才停。**下表是階段名、不是指令**——你打的永遠是 `dispatch`，它才是唯一入口。
 
 | 階段 | 停下問你？ | 做什麼 |
 |---|---|---|
@@ -84,7 +84,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 
 迴圈進度全寫在 `.loops/<slug>/`：`loop.md`（狀態 + Journal 事件日誌）與 **`PROGRESS.md`**（可讀儀表板：mermaid 階段圖 + checkbox + Journal 時間軸）。**免安裝、零 token、跨平台**——開 `.loops/<slug>/PROGRESS.md` 的 markdown preview 即可，由恆跑的 Stop hook **每回合自動重生**、永遠最新；SessionStart hook 也會在開場自動浮出所有 active 迴圈（slug / 階段 / 模式 / 最後一筆 Journal）。
 
-> 機制：`scripts/progress.mjs`（renderer，吃 `loop.md` + `0N-*.md`）由恆跑 Stop hook `hooks/progress-render.mjs` 驅動，每回合對「本 session 正在跑」的 loop 重生 `PROGRESS.md`（靠 `CLAUDE_CODE_SESSION_ID` 比對，已完工 / 別 session 不顯示）。`PROGRESS.md` 寫在主 repo 的 `.loops/`、被 gitignore 涵蓋、不入庫。
+> 機制：`scripts/progress.mjs`（renderer，吃 `loop.md` + `0N-*.md`）由恆跑 Stop hook `hooks/progress-render.mjs` 驅動，每回合對「本 session 正在跑」的 loop 重生 `PROGRESS.md`（靠 session 識別碼比對，已完工 / 別 session 不顯示）。`PROGRESS.md` 寫在主 repo 的 `.loops/`、被 gitignore 涵蓋、不入庫。
 
 ## 進階（opt-in）
 
@@ -96,7 +96,7 @@ dispatch → goal → explore → plan → build → verify → iterate
 | 機器可驗證計畫 + eval | 計畫塊 `scripts/validate-plan.mjs`（見 `references/machine-plan-schema.md`）/ dispatch 場景評測 `scripts/run-eval.mjs`（見 `references/eval-harness.md`） |
 | 全部開關總覽 | `docs/settings.md` —— settings.json `env` 可設的全部 `LOOPS_*` 參數一頁看完 |
 | 工程師理解包 | 完整迴圈完工一律產 `deliverables/explain.md`（三份 deliverable 之一）；其他情境自然語言請 Claude 跑 `explain` skill（唯讀側用） |
-| code 工作隔離 | 會動 code 的迴圈（issue / fix）在 **git worktree**（自帶 branch）裡做，不擾動主 checkout；`EnterWorktree` 或 `.claude/worktrees/<issue#>-<slug>`（例 `137-trash-delete-permanent`，**不加 `fix/` 前綴**） |
+| code 工作隔離 | 會動 code 的迴圈（issue / fix）在 **git worktree**（自帶 branch）裡做，不擾動主 checkout；用環境提供的 worktree 進入能力，或 `.claude/worktrees/<issue#>-<slug>`（例 `137-trash-delete-permanent`，**不加 `fix/` 前綴**） |
 
 intent→入口對照與全程操作規則見 `AGENTS.md`（marketplace 根）。
 

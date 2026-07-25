@@ -10,7 +10,7 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 
 `goal` 把一句模糊的需求 / 一張 issue，逼成「**明確的完工定義 + 可驗證的停止條件**」。方法是**一次只問一個問題**的適應性訪談，問完把理解 restate 成六欄給使用者看，然後**直接進 explore**（restate 不是要使用者點頭的 gate —— 有錯他會插話改）。
 
-訪談一次只問一個問題、用 `AskUserQuestion` 給選項並標推薦，只問會改變方向的 blocking 決策；每問記下信心，restate 成六欄完工定義後**直接往 explore**，不停下要使用者確認 DoD。
+訪談一次只問一個問題、開一個決策點給選項並標推薦（表述形狀與各平台互動能力的映射見 `references/interaction-adapter.md`），只問會改變方向的 blocking 決策；每問記下信心，restate 成六欄完工定義後**直接往 explore**，不停下要使用者確認 DoD。
 
 > 需求若一進來就很模糊（連「要做什麼」都不清楚），那是 `clarify` 階段的事；goal 處理的是**已明確 / 已被 clarify 釐清**的目標 —— 逐句理解它、釘成 DoD。
 
@@ -32,13 +32,13 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 
 **issue 裡寫的實作做法 / 指名的套件，記成「建議」不是「需求」** —— 需求是「要達成 X」，「用套件 Y」只是建議，**留給 explore 多方法評估**（可能有更好的，見 explore §4.5）。別把「用 Y」當成 locked 的完工條件填進六欄。
 
-**能從素材推得的不要問** —— 只問會改變方向的 blocking 決策。**內容型交付**（研究 / 提案 / 文檔——交付物是內容而非 code）的**載體**——成果發到哪、什麼形式（issue comment / repo 文檔 / 獨立報告…）——**就是這種 blocking 決策**，必用 `AskUserQuestion` 問、不當假設推進。
+**能從素材推得的不要問** —— 只問會改變方向的 blocking 決策。**內容型交付**（研究 / 提案 / 文檔——交付物是內容而非 code）的**載體**——成果發到哪、什麼形式（issue comment / repo 文檔 / 獨立報告…）——**就是這種 blocking 決策**，必開一個決策點問、不當假設推進。
 
 **同時讀專案憲章、把跨切面約定折進 DoD（必做，見 `references/project-conventions.md`）**：除了掃 issue，**還要讀目標專案的 root `CLAUDE.md`/`AGENTS.md` + 改動落點就近的 `AGENTS.md`/`CLAUDE.md`**（例 `client/AGENTS.md`），抽出其宣告的**跨切面約定**（i18n / logging / a11y / 錯誤處理 / 安全 / 分層…），把**這次改動會觸及的**那些寫進第 3 步六欄的 **Constraint**（成為隱含驗收標準）。**issue 沒寫不代表不用做** —— 專案約定是 repo 所有改動的預設底線（例：新 user-facing 字串→i18n；新功能模組→logging；新 UI→a11y）。這不必問使用者、直接推得就折進 DoD。
 
 ### 2. 一次一問
 
-- 一則訊息只問一個問題；用 `AskUserQuestion` 給 2–4 個選項。
+- 一則訊息只問一個問題；開一個決策點給 2–4 個選項。
 - 每個選項標**推薦**並一句話講為什麼（端決策一定要明確推薦）。
 - 每問在內部記一條 **HYPOTHESIS + CONFIDENCE**（0–100）：你目前猜答案是什麼、多有把握。優先打 confidence 最低、影響最大的點。
 - **should-want 偵測**：見 `references/goal-restate-schema.md`（表演式「應該／好的工程會」作答 → 追問一次真意圖）。
@@ -63,8 +63,8 @@ DoD 的「Success / 停止條件」用 **GWT 場景（帶 ID `S1…`，見 `refe
 - **95% 信心**就停止訪談，不無止境追問。
 - restate 完工定義寫進 `stages/00-goal.md` + chat 摘要給使用者看，然後**直接進 explore**。
 - **不要停下問「DoD 正確嗎 / 可以鎖定嗎 / 要不要進 explore」** —— restate 出來就是給使用者看的，有錯他會插話改；「鎖定 DoD + 進 explore」是 **routine 轉場、不是決策點**（連 closed 模式也一樣，routine 轉場不問）。
-- **在 goal 停下用 `AskUserQuestion` 的情況只有三種**：**具體的 scope 取捨選擇**（像「行為 X 要不要納入範圍」這種有明確選項、會改變方向的決策）、**內容型交付的載體**（見步驟 1）、與下條的**需求講不清**。把「DoD 對不對」當成這種決策來問 = 誤用。
-- 需求講不清（資訊不足以定義完工）→ 停下用 `AskUserQuestion` 問；但「whatever you think」不是把決定權丟回給你的藉口，能推得的就推。
+- **在 goal 停下開決策點問的情況只有三種**：**具體的 scope 取捨選擇**（像「行為 X 要不要納入範圍」這種有明確選項、會改變方向的決策）、**內容型交付的載體**（見步驟 1）、與下條的**需求講不清**。把「DoD 對不對」當成這種決策來問 = 誤用。
+- 需求講不清（資訊不足以定義完工）→ 停下開一個決策點問；但「whatever you think」不是把決定權丟回給你的藉口，能推得的就推。
 
 ## Common Rationalizations
 
@@ -82,7 +82,7 @@ DoD 的「Success / 停止條件」用 **GWT 場景（帶 ID `S1…`，見 `refe
 - **只讀「驗收標準」段就定完工定義**，沒逐句掃完整 issue（漏掉散在描述 / 舉例 / 非目標裡的隱含需求）。
 - 第 1 步抽的 requirement 有條沒落到六欄、就直接往下。
 - 六欄有欄位空著就產 `stages/00-goal.md`。
-- 有真正的 scope 取捨**或內容型交付的載體選擇**卻沒用 `AskUserQuestion` 問就逕自決定。
+- 有真正的 scope 取捨**或內容型交付的載體選擇**卻沒開決策點問就逕自決定。
 - **把「DoD 正確嗎 / 可以鎖定進 explore 嗎」當 gate 停下問** —— 那是 routine 轉場，restate 給使用者看就直接進 explore（只有具體 scope 取捨 / 內容型交付的載體 / 需求講不清才問）。
 - 訪談超過必要、把非 blocking 的細節也逼問。
 
@@ -92,4 +92,4 @@ DoD 的「Success / 停止條件」用 **GWT 場景（帶 ID `S1…`，見 `refe
 - [ ] 已讀**專案 root + 就近 `CLAUDE.md`/`AGENTS.md`**，把這次改動觸及的**跨切面約定**（i18n / logging / a11y…）折進 Constraint 欄（見 `references/project-conventions.md`）。
 - [ ] `stages/00-goal.md` 六欄齊全，每欄有實質內容。
 - [ ] Success 欄 = 可驗證的停止條件（不是「做得好」這種無法驗的話）。
-- [ ] restate DoD 後**直接進 explore**，沒把「DoD 對嗎 / 可以鎖定嗎 / 要不要進 explore」當 gate 問；只有**具體 scope 取捨 / 內容型交付的載體 / 需求講不清**才用 `AskUserQuestion` 停下。
+- [ ] restate DoD 後**直接進 explore**，沒把「DoD 對嗎 / 可以鎖定嗎 / 要不要進 explore」當 gate 問；只有**具體 scope 取捨 / 內容型交付的載體 / 需求講不清**才開決策點停下。
