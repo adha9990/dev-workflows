@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "baseline_commit": "911d1800f48f359fdf3d545361e85a630be670a7",
+  "baseline_commit": "c55b3ed0555804f30d26fdbe2275c7ed9d219562",
   "entries": [
     {
       "referrer_component_id": "accessibility-reviewer-agent",
@@ -2297,6 +2297,13 @@
       "ordinal": 0,
       "class": "real",
       "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "setup-skill",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
     },
     {
       "referrer_component_id": "skill-lint",
