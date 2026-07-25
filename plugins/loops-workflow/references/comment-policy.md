@@ -1,8 +1,8 @@
 # 對外溝通規範（comment policy）
 
-> 所有**面向人**的書面溝通共用：AskUserQuestion、issue / PR 回覆、驗收報告、端給使用者的決策、reviewer 回覆。把散在各階段的溝通規則統整在這裡。
+> 所有**面向人**的書面溝通共用：決策點提問、issue / PR 回覆、驗收報告、端給使用者的決策、reviewer 回覆。把散在各階段的溝通規則統整在這裡。
 >
-> **每型對外訊息對到哪個樣板**：見 **`outbound-templates.md`**（統一索引：issue 建立 / plan 對齊 comment / verify 驗收報告 / iterate 修正回覆 / 研究／提案 EDD comment / PR body / AskUserQuestion）。本檔是這些樣板共用的 house-style + §7/§8 兩個版型本體。
+> **每型對外訊息對到哪個樣板**：見 **`outbound-templates.md`**（統一索引：issue 建立 / plan 對齊 comment / verify 驗收報告 / iterate 修正回覆 / 研究／提案 EDD comment / PR body / 決策點提問）。本檔是這些樣板共用的 house-style + §7/§8 兩個版型本體。
 >
 > **⛔ 硬規則（貼任何對外 comment 前必守，已被 `outbound-comment-guard` hook 機械擋）**：
 > 1. **不 `@` 點名人**（`@me` 除外）——`gh pr/issue comment`、`gh api .../comments` 的 body 含 `@人名` 會被 hook **deny**（見 §6/§8）。
@@ -53,7 +53,7 @@ issue comment / PR body / reviewer 回覆等**任何 post 上 GitHub 的內容**
 
 **排版（GitHub 渲染）**：`**工程角度**` / `**客戶角度**` 標籤各自**獨立一行**，其下每個子項（根因／怎麼修／怎麼驗、修正前／修正後）用 markdown list **一項一行** —— 不得把多個子項壓進同一段落。GitHub 不渲染單一換行，壓段會糊成一整坨長文，讀者抓不到「怎麼修」「修正前後」的邊界。
 
-## 4. AskUserQuestion 推薦準則
+## 4. 決策點推薦準則
 
 > 決策點該怎麼平台中立地表述、怎麼映射到各平台的互動能力（含不可用時的 fallback）：見 `interaction-adapter.md`。本節講的是內容準則（優缺兩面 / 推薦標記 / 白話），不重複那份的映射規則。
 

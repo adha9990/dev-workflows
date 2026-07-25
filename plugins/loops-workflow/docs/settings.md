@@ -22,7 +22,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 | 參數 | 幫你做什麼 | 想關掉 |
 |---|---|---|
 | `LOOPS_PATH_CONTAINMENT` | 擋住「loop 記錄被誤寫進 worktree」（會被清掉、毀掉歷程）——寫錯位置時直接拒絕並指路 | `"LOOPS_PATH_CONTAINMENT": "0"` |
-| `LOOPS_COST_TRACKER` | 每回合把 token 成本記到 `.loops/.metrics/costs.jsonl`（只在有 `.loops/` 的 repo 寫、純觀測） | `"LOOPS_COST_TRACKER": "0"` |
+| `LOOPS_COST_TRACKER` | 每回合把 token 成本記到<!-- adapter-projection --> `.loops/.metrics/costs.jsonl`<!-- /adapter-projection -->（只在有 `.loops/` 的 repo 寫、純觀測） | `"LOOPS_COST_TRACKER": "0"` |
 | `LOOPS_EVAL_GATE` | 改檔回合自動檢查 eval 成績有沒有退化，退化才提醒（沒有 eval 資料＝完全沉默） | `"LOOPS_EVAL_GATE": "0"` |
 | `LOOPS_EVAL_TAGS_GATE` | 同上，提醒「哪一類 eval 在失敗」 | `"LOOPS_EVAL_TAGS_GATE": "0"` |
 | `LOOPS_EVAL_POLL_GATE` | 同上，顯示 judge panel 共識計數 | `"LOOPS_EVAL_POLL_GATE": "0"` |
@@ -50,7 +50,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 ## 怎麼自己驗證有沒有生效
 
 1. **確認 env 有傳進來**：在 Claude Code 裡跑 `node -e "console.log(process.env.LOOPS_STOP_GATE)"`（換成你設的參數名）——印出你設的值＝有生效；印 `undefined`＝settings.json 位置或格式錯了。
-2. **行為驗證（挑一個便宜的）**：設 `"LOOPS_COST_TRACKER": "0"` 後確認 `.loops/.metrics/costs.jsonl` 不再新增行；或跑完一條完整 loop，收尾應在 `.loops/<slug>/deliverables/` 產出 `explain.md`＋`checklist.md`＋`cost.md` 三份。
+2. **行為驗證（挑一個便宜的）**：設 `"LOOPS_COST_TRACKER": "0"` 後確認<!-- adapter-projection --> `.loops/.metrics/costs.jsonl`<!-- /adapter-projection --> 不再新增行；或跑完一條完整 loop，收尾應在 `.loops/<slug>/deliverables/` 產出 `explain.md`＋`checklist.md`＋`cost.md` 三份。
 3. 改完 settings.json 要**開新 session** 才會載入。
 
 ## 進階／內部（一般使用者不用管）
@@ -58,4 +58,4 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 - `LOOPS_SANDBOX_RUNNER`（`docker`/`podman`/`none`）：eval sandbox 用哪個容器執行器——跑 eval harness 的人才需要，詳 `references/eval-harness.md`。
 - `LOOPS_LOOP_DRIVER_GATE_SCRIPT`：loop-driver 測試注入用的內部參數，不要在正常使用設定。
 - `LOOPS_PR_CONFLICT_STUB`：pr-gate 閘⑤ 測試注入用的內部參數——有值時把它當「`gh pr view` 會印的原始 JSON」餵給 mergeability 判定（跳過真 gh spawn），供 `test-pr-gate.mjs` 黑箱測試用，不要在正常使用設定。
-- 你可能在文檔看到的 `LOOPS_ROOT`：那是「主 repo 根目錄」的**代稱**（文檔與錯誤訊息用語），不是環境變數；`CLAUDE_CODE_SESSION_ID` 由 Claude Code 自動帶入，不用手設。
+- 你可能在文檔看到的 `LOOPS_ROOT`：那是「主 repo 根目錄」的**代稱**（文檔與錯誤訊息用語），不是環境變數；session 識別碼環境變數由平台自動帶入、不用手設（<!-- adapter-projection -->Claude Code 上為 `CLAUDE_CODE_SESSION_ID`<!-- /adapter-projection -->）。

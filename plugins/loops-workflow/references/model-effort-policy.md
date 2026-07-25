@@ -14,6 +14,7 @@
 <!-- BEGIN:generated-tier-table -->
 <!-- 本區塊由 `gen-reviewers.mjs` 從 `capability-registry.json` 生成，請勿手改；要改請改 registry 再跑 `--write`。 -->
 
+<!-- adapter-projection -->
 | agent | model | effort | tier |
 |---|---|---|---|
 | `referee` | `opus` | `high` | `referee` |
@@ -41,9 +42,10 @@
 | `impl-author` | `sonnet` | `medium` | `implementation` |
 | `finding-validator` | `sonnet` | `medium` | `fast-readonly` |
 | `eval-judge` | `sonnet` | `low` | `fast-readonly` |
+<!-- /adapter-projection -->
 <!-- END:generated-tier-table -->
 
-> 分層依據：`broad-review`／`implementation` tier 對應 `sonnet`·`medium`，為廣度審查 / 一般實作的預設；`fast-readonly` tier 的純評分窄任務（`eval-judge`）降 `sonnet`·`low`，但守門判斷責任重的 `finding-validator` 留 `sonnet`·`medium`；`referee` tier（罕見高判斷）用 `opus`·`high`。四個 `-deep` 變體同屬 `referee` tier，frontmatter 靜態即 `opus`·`high`，但平常不派、僅 Phase 2 高風險改派時才出。
+> 分層依據：`broad-review`／`implementation` tier effort 為 `medium`，是廣度審查 / 一般實作的預設；`fast-readonly` tier 的純評分窄任務（`eval-judge`）effort 降為 `low`，但守門判斷責任重的 `finding-validator` 仍留 `medium`；`referee` tier（罕見高判斷）effort 為 `high`。各 tier 對應的 model 字面見上表（由 registry 投影）。四個 `-deep` 變體同屬 `referee` tier，frontmatter 靜態即該 tier 的 model/effort，但平常不派、僅 Phase 2 高風險改派時才出。
 
 ## Phase 2：動態覆寫 model（派工時，只 model）
 - **verify**：步驟 1 判**高風險**時——審查軸 `security` / `architecture` / `code-quality`(correctness) 改派其 **`referee` tier 的 `-deep` 變體**（`security-reviewer-deep` / `architecture-reviewer-deep` / `code-quality-reviewer-deep`；因 effort 無法 per-dispatch，高 effort 只能靠變體）；步驟 3 的 `finding-validator`（驗證者、非審查軸）同樣改派 `finding-validator-deep`（同為 `referee` tier）；其餘軸維持 base（`broad-review` tier）+ per-dispatch 覆寫至 `referee` tier 的 model。瑣碎 / 一般維持 `broad-review` tier 的 model。

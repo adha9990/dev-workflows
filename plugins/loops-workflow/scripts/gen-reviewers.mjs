@@ -172,13 +172,20 @@ export function buildTierTable(registry) {
   return [...header, ...rows].join('\n');
 }
 
-/** 表格外包上 marker + 生成標示註解，得到可直接嵌回 model-effort-policy.md 的完整區塊。 */
+/**
+ * 表格外包上 marker + 生成標示註解，得到可直接嵌回 model-effort-policy.md 的完整區塊。
+ * 表格本身（model 欄含 vendor model 字面如 `opus`/`sonnet`）額外包一層
+ * `<!-- adapter-projection -->`……`<!-- /adapter-projection -->`——這是 registry 投影出的合法內容，
+ * 而非本檔手寫的平台耦合散文，讓 compat-lint 的 vendor-model-id 檢查認得此區塊屬豁免①。
+ */
 export function buildPolicyBlock(registry) {
   return [
     POLICY_TABLE_BEGIN,
     '<!-- 本區塊由 `gen-reviewers.mjs` 從 `capability-registry.json` 生成，請勿手改；要改請改 registry 再跑 `--write`。 -->',
     '',
+    '<!-- adapter-projection -->',
     buildTierTable(registry),
+    '<!-- /adapter-projection -->',
     POLICY_TABLE_END,
   ].join('\n');
 }
