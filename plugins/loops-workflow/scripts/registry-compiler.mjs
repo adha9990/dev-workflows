@@ -24,6 +24,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { parseRegistryJson } from './check-registry-shape.mjs';
 import { scanPlatformToolNames, scanVendorModelIds } from './compat-lint.mjs';
+import { compilePolicyRuntime } from './policy-runtime.mjs';
 
 const POLICY_REGISTRY_REL = 'plugins/loops-workflow/references/policy-registry.json';
 const COMPONENT_REGISTRY_REL = 'plugins/loops-workflow/references/component-registry.json';
@@ -321,6 +322,29 @@ export function checkPolicyFailClosed(registry) {
 }
 
 /**
+ * P8（#173 四級模型）：每條規則都要標 `tier`，且 tier 與它的執行綁定必須自洽——
+ *   · tier 1/2（會真的擋動作）必須指名 `runtime.guard` 與非空 `runtime.protected_actions`：
+ *     沒有 guard 的「hard rule」擋不了任何東西，那是自欺，該老實降級成 semantic/advisory；
+ *   · tier 3 必須指名 `evaluator`：評不到要標 degraded，得先知道是誰評；
+ *   · tier 4 不得綁 guard：advisory 就是靠 prompt，掛一個不存在的執行者會讓人以為它擋得住。
+ * 判定邏輯與 runtime 同一份真相源（policy-runtime.compilePolicyRuntime），這裡只是把它接上既有 gate。
+ */
+export function checkPolicyTiers(registry) {
+  const { findings: runtimeFindings } = compilePolicyRuntime(registry);
+  const findings = runtimeFindings.map((f) => finding(f.check, null, f.detail));
+  for (const policy of policyList(registry)) {
+    const id = policy?.id ?? null;
+    if (policy?.tier === 'advisory' && policy?.runtime) {
+      findings.push(finding('policy-tier', id, `policy "${id}" 是 advisory 卻綁了 runtime.guard=${JSON.stringify(policy.runtime.guard)}——advisory 靠 prompt 承接，綁執行者會讓人誤以為它擋得住`));
+    }
+    if (policy?.tier !== 'semantic' && typeof policy?.evaluator === 'string' && policy.evaluator) {
+      findings.push(finding('policy-tier', id, `policy "${id}" 的 tier=${policy.tier} 卻指名了 evaluator——只有 semantic 級走 eval`));
+    }
+  }
+  return findings;
+}
+
+/**
  * P7（generated drift）：projection[] 的每個目標檔必須逐字含有該規則的標記
  * （projection_marker，未填則預設為 id）。只驗「檔案存在」不夠——檔案還在、規則段落被拿掉，
  * 正是要抓的漂移；readText 以 port 注入（讀不到回 null）。
@@ -592,6 +616,7 @@ export function checkPolicies(registry, ctx = {}) {
       ...checkPolicyPaths(registry, ctx),
       ...checkPolicyApproval(registry),
       ...checkPolicyFailClosed(registry),
+      ...checkPolicyTiers(registry),
       // 沒注入 readText 時以「讀不到」代入 —— 有 projection 就會紅（fail-closed），不會靜默跳過。
       ...checkPolicyProjectionMarkers(registry, { readText: ctx.readText ?? (() => null) }),
     ],

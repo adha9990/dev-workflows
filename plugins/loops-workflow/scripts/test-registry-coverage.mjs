@@ -197,7 +197,10 @@ function readOperatingRules() {
 
 console.log('\n[B] AGENTS.md 的每一條 Operating Rule 都有非空的 policy 承載');
 const rules = readOperatingRules();
-assert(rules.length === 13, `AGENTS.md §2 解析出 ${rules.length} 條 Operating Rule（預期 13 條）`);
+// 16 條：#173 把三條原本只寫在 flag 表裡的擋人規則（合併回主幹要人按／draft→ready 是 owner 動作／
+// 不得放寬 linter 設定）補進 §2 —— 它們本來就有 hook 在擋，卻沒有 canonical 正文，正是「多份文件
+// 各寫一份、互相漂移」要治的形狀。改這個數字是刻意的一次提交，不是意外漂移。
+assert(rules.length === 16, `AGENTS.md §2 解析出 ${rules.length} 條 Operating Rule（預期 16 條）`);
 assert(
   rules.every((rule, index) => rule.number === index + 1),
   '規則編號連續、無跳號（解析沒漏塊）',

@@ -1759,7 +1759,9 @@
         "loop-migrate",
         "loop-migrate-tests",
         "loop-snapshot",
-        "loop-snapshot-tests"
+        "loop-snapshot-tests",
+        "policy-runtime",
+        "policy-runtime-tests"
       ],
       "required_checks": {
         "hooks": [],
@@ -2313,11 +2315,12 @@
         "agents-constitution"
       ],
       "consumers": [
-        "worktree-guard",
-        "loops-path-guard",
         "compat-lint",
+        "loops-path-guard",
+        "policy-runtime",
         "registry-compiler",
-        "registry-coverage-tests"
+        "registry-coverage-tests",
+        "worktree-guard"
       ],
       "required_checks": {
         "hooks": [],
@@ -2325,6 +2328,55 @@
         "docs": [
           "AGENTS.md"
         ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "policy-runtime",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/policy-runtime.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/policy-runtime.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "policy-registry",
+        "loop-ledger"
+      ],
+      "consumers": [
+        "policy-runtime-tests",
+        "registry-compiler"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "policy-runtime-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-policy-runtime.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-policy-runtime.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "policy-runtime",
+        "loop-ledger"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
         "integrations": []
       }
     },
@@ -4687,11 +4739,12 @@
       "target_path": "plugins/loops-workflow/scripts/registry-compiler.mjs",
       "user_invocable": false,
       "dependencies": [
-        "policy-registry",
+        "check-registry-shape",
+        "compat-lint",
         "component-registry",
         "integration-registry",
-        "compat-lint",
-        "check-registry-shape"
+        "policy-registry",
+        "policy-runtime"
       ],
       "consumers": [
         "registry-compiler-tests",

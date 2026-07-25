@@ -263,6 +263,26 @@ flowchart TD
 - **方法論鏈（§1）**：各階段被哪個方法論強化見 `AGENTS.md §1` 方法論鏈框定。
 - **★ 成本意識（規則 10）**：迴圈很貴 → 全程**高上下文效率**、**便宜的先·貴的 gate**、**不重複勞動**、**fail-fast**。**carve-out：只砍非必要貴動作（deep-research/Fleet/真機/多餘 reviewer）+ 浪費,絕不砍 mandatory 流程（define/issue-first/human gate/verify）—— 跳流程的 rework 才最貴。便宜的先只管資訊蒐集 / 驗證的執行順序，不外溢到方案取捨——推薦與拍板以長期正確性與風險消除為先，「代價小」只當同等正確間 tie-breaker，便宜但留債選項明標、不得預設標推薦。**
 
+### 9.1 規則怎麼被執行（四級模型，#173）
+
+`references/policy-registry.json` 是**每一條規則的正式來源**；每條規則依**可判定性**標一個 `tier`，由不同機制承接。同一條規則只在一個層級被執行，不重複疊：
+
+| tier | 機制（`runtime.guard` / `evaluator`） | 判定方式 | 目前落在這一級的規則 |
+|---|---|---|---|
+| 1 `hard-invariant` | 工具呼叫前 deny（`hooks/*.mjs`） | 完全機械、零語意 | 繁中敘述 / `.loops` 落點 / 對外訊息 / worktree 隔離 / 合併回主幹 / PR owner 驗收 / linter 設定保護 |
+| 2 `workflow-invariant` | 流程狀態閘（lint script、pr-gate 階段閘） | 機械讀狀態檔、掃樹 | 文檔同步 / 品質前置 / issue-first / 平台中立表面 |
+| 3 `semantic` | bounded context ＋ eval | 需語意判斷；**評不到一律標 `degraded`，絕不寫 `passed`** | Metric-Honesty / 重用優先 |
+| 4 `advisory` | skill / agent 正文 | 靠模型遵循，不宣稱保證 | 階段推進不問 / 模糊就 surface / 成本意識 |
+
+執行引擎是 `scripts/policy-runtime.mjs`，四條硬規則：
+
+1. **只能執行 registry 宣告的規則**——未登記的 rule id 一律 deny。反過來也查：任何**發得出 deny 的 hook**，都必須有至少一條 policy 宣告 `runtime.guard` 指向它，否則 `policy-runtime` 紅燈（一條擋人的規則沒有正式來源＝查不到誰定的、也沒有測試契約可套）。
+2. **`forbid-wins`**——多條規則同時適用時，任一條 deny 就整體 deny，且**理由一次列全**（不讓人修一項再撞下一項）。
+3. **protected action 的 state 缺失／壞掉 fail closed**——標了 `fail_closed_on_missing_state` 的規則，讀不到判定所需狀態時**擋下**而不是放行。沒標的規則維持 hook 家族既有的 fail-open 慣例（刻意取捨、逐條可查）。
+4. **逃生口有 scope、有到期、有留痕**——只有 registry 標 `overridable: true` 的規則能被 approval token 繞過；token 必填 `rule / target / expires_at / reason / issued_by`，每次動用寫進 `.loops/.audit/policy-approvals.jsonl`（append-only）。**環境變數不得成為無記錄、無 scope 的永久逃生口。**
+
+每條 tier 1/2 規則自動帶**五種必過的測試契約**：`allow`／`direct-deny`／`common-bypass`／`scoped-approval`／`malformed-state`——新增一條 hard rule 就自動多五個必過的 case，不靠作者記得寫哪幾種。
+
 ---
 
 ## 10. 數字總結
