@@ -576,6 +576,7 @@ function parseJournalingFlagTable(journalingContent) {
 // 環境變數）——flag-sync 的「未知旗標」P2 檢查不誤報這些（見 docs/settings.md「進階／內部」一節）。
 const FLAG_NAME_ALLOWLIST = new Set([
   'LOOPS_AUTO',
+  'LOOPS_AUTO_MAX_ROUNDS',
   'LOOPS_EXPLAIN',
   'LOOPS_SANDBOX_RUNNER',
   'LOOPS_LOOP_DRIVER_GATE_SCRIPT',

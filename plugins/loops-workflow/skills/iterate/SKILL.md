@@ -78,7 +78,9 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
   - 這條堵的是實測踩過的路徑：**後面的圈次挖出更多 P1，往往不是因為前面修壞了，而是驗證手段變深了** —— 某一圈第一次真機驅動 / 第一次 scripted 量測，當場抓到「從 build 就壞著、綠燈測試看不到」的功能中斷。此時用固定圈數喊停，等於在**剛看見真問題的那一刻收手**，把已知缺陷帶進 PR。
   - **這是下界、不是新的完工門檻**：§6 的完工前提「最近一輪 verify 無 actionable findings」照舊（P2/P3 一樣全修，見 §2–3）。本條只取消「圈數用完」這個繞過它的出口。
 - **跨越軟上限要回報，不是靜默續跑**：上限之後的**每一圈**都在 `loop.md` Journal ＋ chat 摘要寫一段現況 —— **第幾圈 / 未清的 P0/P1 逐條 / 每輪 findings 軌跡 / 上一圈為什麼沒收斂或為什麼新增（歸因，見下） / 下一圈打算換什麼手法**。closed 模式在此開一個決策點停下問（**有未清 P0/P1 時的推薦項＝繼續修**）；auto 模式取推薦續修，但**照樣把同一段現況寫進 Journal ＋ chat**（auto ≠ 靜默）。
+- **auto 專屬：硬性總圈數天花板（`LOOPS_AUTO_MAX_ROUNDS`，預設 6）**。軟上限之後「續修 P0/P1 到清零」的意圖在 auto 一樣保留，但 auto **無人監管**——若修一條 P1 不斷揭露新 P1，會無界繞圈燒 token（實測 P1 序列 3→1→5→2→4→1→3…）。所以 auto **另有一個絕不超過 N 圈的硬天花板**（N＝環境變數 `LOOPS_AUTO_MAX_ROUNDS`，未設＝**6**；與軟上限**同一個持續累加的計數**、不重置）。回環總圈數**達到 N** 且仍有未修 P0/P1 → **escalate 停下回報**（未清 P0/P1 逐條 ＋ 每圈換過什麼手法 ＋ 為什麼還沒收斂），**不自動收圈、不自動帶過**，交使用者接手（見 `references/shared/runtime/auto-mode.md` 硬煞車 #4）；**未達 N 照上一條續修**。**attended（closed）模式不受此天花板影響**——它每碰軟上限都已停下讓使用者選，人本來就是天花板。
 - **使用者喊停的出口（知情豁免）**：使用者可以明確決定「**這些 P0/P1 我知道，先進 PR**」——那是**使用者的 scope 決策，agent 不得代決**（auto 模式也**不得**自動選此項，見 `references/shared/runtime/auto-mode.md` 硬煞車 #4；P0 另依 verify §5 一律停下問）。確認豁免後比照〈AC-衝突檢查〉的知情留痕：**豁免哪幾條 + 理由同步進 issue / PR（reviewer 看得到的權威留痕）**，`loop.md` Journal 記一筆內部副本。
+  - **機械後盾（別只靠文字）**：這條「未清 P0/P1 不准收圈」由 `hooks/pr-gate.mjs` **閘⑥** 機械化（`LOOPS_PR_BLOCKING_GATE`，預設開）——最近一輪 verify 報告的機械 marker 仍標 P0/P1 未清時，`gh pr create` / `gh pr ready` 會被 deny。**知情豁免的機械訊號＝非空 `.loops/<slug>/blocking-waiver.md`**（寫明豁免哪幾條 + 理由）：**僅 attended 生效、auto 一律不認**（防 auto 用豁免繞過，對齊硬煞車 #4）。故確認豁免時，除了同步 issue/PR，也把該檔寫上（它就是閘⑥ 認可的留痕）。marker 由 verify 每輪吐（見 `verify` §5）；閘⑥ 讀不到 marker 時 fail-open 放行——所以文字紀律仍是主防線、機械閘是後盾。
 - **P2/P3 不是硬條件**（這就是防無限迴圈的第一道邊界）：actionable 一律全修的紀律不變，但**只有 P0/P1 鎖住收圈**。碰軟上限時若**已無未修 P0/P1、只剩 P2/P3** → 沿用既有停損語意，停下讓使用者選（**收圈**〔＝使用者知情接受剩下的 P2/P3，同樣要留痕，因為 §6 的完工前提是零 actionable〕/ **授權再繞**〔計數重置〕/ 把剩下的**記成 out-of-scope**〔帶理由，見〈follow-up〉〕）。
 - **防無限繞的真防線是收斂感知、不是圈數**：同一條 finding 修了又復現 / 修出新問題 ＝ 原地打轉，**當下 escalate 換手法** —— escalate 是**換手法**，不是「放行帶著 P1 收圈」。
 
@@ -154,6 +156,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - 修了 bug 沒加回歸測試。
 - 回環**沒在收斂**（同條 finding 復現 / 修出新問題）卻硬繞、沒 escalate 換手法。
 - **碰圈數軟上限就收圈、帶著未修的 P0/P1 進 PR**（把圈數當收圈理由）—— 圈數到頂只觸發回報，硬條件是 P0/P1 清零；要帶著已知 P0/P1 進 PR 只能走**使用者知情豁免**（agent 代決 / auto 自動帶過都是違規），且要同步 issue/PR 留痕。
+- **auto 模式撞到硬性總圈數天花板（`LOOPS_AUTO_MAX_ROUNDS`，預設 6）卻自動收圈 / 自動帶過，而非 escalate 停下**——天花板是給無人監管 auto 的絕對上界（防無界繞圈燒 token），撞到要停下回報交使用者接手，不是「跑到 N 圈就放行」。attended 不受此天花板影響。
+- **知情豁免只靠嘴、沒落 `.loops/<slug>/blocking-waiver.md`**（於是 pr-gate 閘⑥ 仍 deny）；或**在 auto 模式下試圖用 waiver 繞過閘⑥**（auto 一律不認 waiver）。
 - **跨越軟上限後靜默續跑**：Journal / chat 沒有那一圈的現況回報（未清 P0/P1 逐條 + findings 軌跡 + 歸因 + 下一圈換什麼手法）。
 - **findings 沒變少就一律當原地打轉 escalate、沒先歸因** —— 漏掉「這輪第一次真機驅動 / 第一次 scripted 量測才看見既有缺陷」這種**進展**，在最該繼續的一刻喊停。
 - **拿「這輪驗得比較深」當免死金牌**：指不出哪幾條是被哪個具體新手段第一次看見的、或用過的手段下一圈又退回淺驗證（讓「變少」變成假象）。
@@ -186,6 +190,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 每個 actionable 修的是根因 + 有回歸測試（GUARD）。
 - [ ] 回環**看收斂不看次數**：findings 沒變少時**先歸因**（驗證手段變深挖出既有問題 → 記歸因續修；同條復現 / 修出新問題 → 當下 escalate 換手法）；`loop.md` 有回環歷史 + 每輪 findings 數 + 沒變少那輪的歸因。
 - [ ] **圈數只當軟上限（回報檢查點）、沒被當成收圈理由**：跨越上限的每一圈都有現況回報（未清 P0/P1 逐條 + findings 軌跡 + 歸因 + 下一圈手法）進 Journal ＋ chat；**未修的 P0/P1 存在時沒有收圈**——除非**使用者知情豁免**（agent 未代決、auto 未自動選），且豁免哪幾條 + 理由已同步 issue / PR 權威留痕。碰上限時只剩 P2/P3 才走既有停損檢查點。
+- [ ] **auto 硬性天花板已守**：auto 模式回環總圈數撞 `LOOPS_AUTO_MAX_ROUNDS`（預設 6）且仍有未修 P0/P1 時，escalate 停下回報（未清逐條 + 每圈手法），沒自動收圈 / 帶過；attended 不受此天花板影響。知情豁免要帶 P0/P1 進 PR 時，除同步 issue/PR，也已落 `.loops/<slug>/blocking-waiver.md`（pr-gate 閘⑥ 認可的機械留痕；auto 不認）。
 - [ ] **用戶回饋撞書面 AC 已知情拍板**：用戶回饋驅動的改動若反轉 / 抵觸某條書面 issue AC，實作前已開一個決策點（informed descope、選項標推薦）；確認 descope 已同步 **issue/PR 權威留痕**（`loop.md` 僅內部稽核）；不撞任何書面 AC 的回饋照常當 actionable、沒冒多餘問句（見〈AC-衝突檢查〉、`references/shared/runtime/auto-mode.md` 硬煞車 #6）。
 - [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工；**且再驗走 `verify` step-1 選軸（依領域自動派 conditional reviewer），不是臨場手挑 reviewer 子集**；**選軸推導寫成表落進 `stages/04-verify.md`、派出集合＝推導集合（單一真相源在 `verify` §5）**。
 - [ ] 完工前最近一輪 verify 無 actionable findings。
