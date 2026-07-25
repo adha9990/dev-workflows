@@ -5323,7 +5323,8 @@
         "integration-registry"
       ],
       "consumers": [
-        "setup-plan-tests"
+        "setup-plan-tests",
+        "token-optimizer-tests"
       ],
       "required_checks": {
         "hooks": [],
@@ -5663,6 +5664,51 @@
         "compat-lint",
         "check-registry-shape"
       ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "token-optimizer",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/token-optimizer.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/token-optimizer.mjs",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "token-optimizer-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "token-optimizer-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-token-optimizer.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-token-optimizer.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "token-optimizer",
+        "setup-plan"
+      ],
+      "consumers": [],
       "required_checks": {
         "hooks": [],
         "evals": [],
