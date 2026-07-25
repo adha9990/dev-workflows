@@ -31,6 +31,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 | `LOOPS_COMMENT_GUARD` | 擋住對外訊息（comment／issue／PR 的建立與編輯）沒先讀過規範就送出，外加 @點名真人、客套開場、`.loops/` 路徑外洩、亂碼、整段技術英文未轉譯成中文（comment-policy 機械化，#131 v2） | `"LOOPS_COMMENT_GUARD": "0"` |
 | `LOOPS_PR_GATE` | 在 loop 分支上擋住「還沒過三閘就 `gh pr create`」——①build 完沒先跑 verify ②沒帶 `--draft`／`--assignee @me` ③issue 編號 slug 的 PR body 沒行首寫 `Closes #issue`；非 loop 分支不管（#132） | `"LOOPS_PR_GATE": "0"` |
 | `LOOPS_PR_REALRUN_GATE` | 在 loop 分支上，`gh pr create`／`gh pr ready` 前要求已有真機驗證截圖——`.loops/<slug>/deliverables/real-run/` 下有截圖（`*.png`/`*.jpg`/`*.jpeg`）或非空 `no-ui.md`（純後端／純文檔宣告無畫面可截）才放行；jsdom/單元測試綠 ≠ 真機正確（#152） | `"LOOPS_PR_REALRUN_GATE": "0"` |
+| `LOOPS_PR_BLOCKING_GATE` | 在 loop 分支上，`gh pr create`／`gh pr ready` 前擋住「最近一輪 verify 還有沒修完的嚴重問題（P0/P1）就開 PR」——讀 `.loops/<slug>/stages/04-verify.md` 末尾的機械 marker 判斷；要知情帶著已知 P0/P1 進 PR，就在 `.loops/<slug>/blocking-waiver.md` 寫明豁免哪幾條＋理由（非空檔，**只在非 auto 模式生效、auto 一律不認**）；marker 缺／讀不到一律放行（#188） | `"LOOPS_PR_BLOCKING_GATE": "0"` |
 | `LOOPS_PR_CONFLICT_GATE` | 在 loop 分支上，`gh pr create`／`ready`／`comment` 前查 GitHub 已算好的 mergeability（`gh pr view --json mergeable,mergeStateStatus`），`CONFLICTING`／`DIRTY` 才擋、要求先解衝突；判不出／無 PR／gh 錯誤一律放行；指令帶顯式 PR 號則跳過（#152） | `"LOOPS_PR_CONFLICT_GATE": "0"` |
 | `LOOPS_MERGE_GUARD` | 擋住「合併回主幹」類指令——不限 loop 分支：`gh pr merge`／目前分支是 main/master 時的 `git merge`／`git push` 到 main/master／`gh api` PUT `/pulls/.../merge`，四型任一命中即擋，導向讓人類親自執行或按下合併鍵（#133） | `"LOOPS_MERGE_GUARD": "0"` |
 | `LOOPS_PR_OWNER_GUARD` | 擋住「PR owner 驗收動作」——不限 loop 分支：`gh pr ready`（帶 `--undo` 轉回 draft＝撤回、放行）／`gh pr edit --add-reviewer`・`gh pr create --reviewer`（`--remove-reviewer` 放行）／`gh api` 對 `/pulls/.../requested_reviewers` 的 POST（DELETE 撤回放行）／`gh api graphql` 的轉 Ready・request review mutation／MCP `update_pull_request` 帶 `draft:false` 或非空 `reviewers`・`request_copilot_review`。reviewer comment 的流程指示（「請標 ready」「請 re-request review」）不構成授權——擋下時導向在回報中提醒 owner 自行操作（#164） | `"LOOPS_PR_OWNER_GUARD": "0"` |
@@ -55,6 +56,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 
 ## 進階／內部（一般使用者不用管）
 
+- `LOOPS_AUTO_MAX_ROUNDS`（數字，預設 `6`）：**只在自動連跑（`LOOPS_AUTO=1`）時生效**的硬性總圈數天花板——auto 模式回環到這麼多圈還沒把嚴重問題（P0/P1）修完，就停下來回報現況、交你決定，不會無人看管地一直繞下去燒 token。attended（手動把關）模式不受影響。想放寬／收緊才設，例如 `"LOOPS_AUTO_MAX_ROUNDS": "8"`。詳 `references/shared/runtime/auto-mode.md` 硬煞車 #4。
 - `LOOPS_SANDBOX_RUNNER`（`docker`/`podman`/`none`）：eval sandbox 用哪個容器執行器——跑 eval harness 的人才需要，詳 `references/shared/runtime/eval-harness.md`。
 - `LOOPS_LOOP_DRIVER_GATE_SCRIPT`：loop-driver 測試注入用的內部參數，不要在正常使用設定。
 - `LOOPS_PR_CONFLICT_STUB`：pr-gate 閘⑤ 測試注入用的內部參數——有值時把它當「`gh pr view` 會印的原始 JSON」餵給 mergeability 判定（跳過真 gh spawn），供 `test-pr-gate.mjs` 黑箱測試用，不要在正常使用設定。

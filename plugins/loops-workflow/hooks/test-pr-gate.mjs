@@ -244,6 +244,10 @@ try {
     // 手刻 spawnSync（不經過本函式），不受此變動影響。
     if (!('LOOPS_PR_GATE' in env)) delete mergedEnv.LOOPS_PR_GATE;
     if (!('LOOPS_PR_REALRUN_GATE' in env)) delete mergedEnv.LOOPS_PR_REALRUN_GATE;
+    // 閘⑥（#188）與 auto 偵測：預設不繼承 ambient（刪除 → LOOPS_PR_BLOCKING_GATE defaultOn 生效、
+    // LOOPS_AUTO 判為 attended）；閘⑥ 專屬案例才顯式傳入。
+    if (!('LOOPS_PR_BLOCKING_GATE' in env)) delete mergedEnv.LOOPS_PR_BLOCKING_GATE;
+    if (!('LOOPS_AUTO' in env)) delete mergedEnv.LOOPS_AUTO;
     // 閘⑤（會 spawn 真 gh）預設關掉，維持閘①②③④ 案例的 hermeticity（不 spawn、不依賴 ambient
     // gh/auth 狀態）——閘⑤ 專屬案例才顯式 LOOPS_PR_CONFLICT_GATE='1' + 注入 LOOPS_PR_CONFLICT_STUB。
     if (!('LOOPS_PR_CONFLICT_GATE' in env)) mergedEnv.LOOPS_PR_CONFLICT_GATE = '0';
@@ -828,6 +832,114 @@ try {
       assert(isAllow(res), '[G3] 真 spawn 假 gh 回 MERGEABLE+CLEAN → 閘⑤ allow（解析真輸出的非衝突路徑）');
     }
   }
+  // ===========================================================================
+  // B —— #188 閘⑥「P0/P1 未清不准收圈」（create + ready；verify marker 契約 + 知情豁免 + auto 不繞過）
+  // ===========================================================================
+  // marker 契約：`<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`；閘⑥ 取
+  // stripCode 後最後一個 marker。fixture slug 皆非數字前綴（跳過閘③）、備 04-verify + real-run 截圖
+  // （過①②④），把閘⑥ 隔離成決定者。
+  const MK_NOT_READY = '# verify\n\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=0 p1=1 round=1 -->\n';
+  const MK_READY = '# verify\n\n判定：Ready\n<!-- loops-verify verdict=ready p0=0 p1=0 round=2 -->\n';
+  const MK_CONTRADICT = '# verify\n<!-- loops-verify verdict=ready p0=0 p1=1 round=1 -->\n';
+  const MK_NONE = '# verify\n\n判定：Ready（此報告刻意無 marker）\n';
+  const MK_MULTI_NR = '# verify\n<!-- loops-verify verdict=not-ready p0=0 p1=2 round=1 -->\n修完再驗\n<!-- loops-verify verdict=ready p0=0 p1=0 round=2 -->\n';
+  const MK_MULTI_RN = '# verify\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 -->\n又發現新問題\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=2 -->\n';
+  const MK_FENCE = '# verify\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\n\nmarker 格式範例：\n```text\n<!-- loops-verify verdict=ready p0=0 p1=0 round=9 -->\n```\n';
+  const MK_CRLF = '# verify\r\n判定\r\n<!-- loops-verify verdict=not-ready p0=0 p1=1 round=1 -->\r\n';
+  const MK_TWO_ONE_LINE = '# verify\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 --> <!-- loops-verify verdict=not-ready p0=1 p1=0 round=2 -->\n';
+  const LOOP_CLOSED = '# Loop\n- 推進模式：closed\n';
+  const LOOP_AUTO = '# Loop\n- 推進模式：auto（LOOPS_AUTO 未設、task 授權）\n';
+
+  const mkG6 = (name, slug, verify, opts = {}) => {
+    const root = join(SANDBOX, name);
+    const cwd = join(root, '.claude', 'worktrees', slug);
+    mkdirSync(join(root, '.loops', slug, 'stages'), { recursive: true });
+    writeFileSync(join(root, '.loops', slug, 'loop.md'), opts.loopMd ?? LOOP_CLOSED);
+    writeFileSync(join(root, '.loops', slug, 'stages', '04-verify.md'), verify);
+    addRealRunShot(root, slug); // 過閘④
+    if (opts.waiver !== undefined) writeFileSync(join(root, '.loops', slug, 'blocking-waiver.md'), opts.waiver);
+    mkdirSync(cwd, { recursive: true });
+    return cwd;
+  };
+
+  {
+    const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g6-nr', 'block-nr', MK_NOT_READY) });
+    assert(isDeny(res), '[B1] create：verify not-ready + 無 waiver + 非 auto → 閘⑥ deny（S5）');
+    assert(reasonOf(res).includes('P0/P1') && reasonOf(res).includes('LOOPS_PR_BLOCKING_GATE'), '[B1-2] reason 含硬條件語意 + 閘⑥ 逃生口');
+    assert(reasonOf(res).includes('blocking-waiver'), '[B1-3] 非 auto reason 指引知情豁免 waiver 出口');
+  }
+  assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-ready', 'block-ready', MK_READY) })),
+    '[B2] create：verify ready（p0=0 p1=0）→ 閘⑥ allow（S6）');
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-contra', 'block-contra', MK_CONTRADICT) })),
+    '[B3] create：verdict=ready 但 p1=1（自相矛盾）→ blocking-first → deny');
+  assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-none', 'block-none', MK_NONE) })),
+    '[B4] create：verify 無 marker → fail-open allow（S9）');
+  assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-mnr', 'block-multinr', MK_MULTI_NR) })),
+    '[B5] create：多 marker 最後一個 ready（舊 not-ready → 新 ready）→ allow（最近一輪 wins）');
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-mrn', 'block-multirn', MK_MULTI_RN) })),
+    '[B6] create：多 marker 最後一個 not-ready（舊 ready → 新 not-ready）→ deny');
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-fence', 'block-fence', MK_FENCE) })),
+    '[B7] create：真 verdict not-ready + 尾段 fenced 示範 ready marker → stripCode 去 fence → 仍 deny（示範 marker 不被誤選）');
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-crlf', 'block-crlf', MK_CRLF) })),
+    '[B8] create：CRLF 行尾的 not-ready marker → deny（無行錨、CRLF 安全）');
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-two', 'block-twoline', MK_TWO_ONE_LINE) })),
+    '[B9] create：同一行兩個 marker、最後一個 not-ready → deny（matchAll 取最後）');
+  assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-waiver', 'block-waiver', MK_NOT_READY, { waiver: '知情豁免：P1-#3 屬既有、獨立處理；使用者拍板先進 PR。' }) })),
+    '[B10] create：not-ready + 非空 waiver + 非 auto → allow（知情豁免，S7）');
+  {
+    const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g6-wa', 'block-waiver-auto', MK_NOT_READY, { waiver: '豁免說明' }), env: { LOOPS_AUTO: '1' } });
+    assert(isDeny(res), '[B11] create：not-ready + waiver + LOOPS_AUTO=1（env auto）→ 仍 deny（auto 不認 waiver，S8）');
+    assert(reasonOf(res).includes('硬煞車') && !reasonOf(res).includes('blocking-waiver'), '[B11-2] auto reason 說明硬煞車 #4、不指 waiver 出口');
+  }
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-wla', 'block-waiver-loopauto', MK_NOT_READY, { waiver: '豁免', loopMd: LOOP_AUTO }) })),
+    '[B12] create：not-ready + waiver + loop.md 推進模式：auto（env 未設）→ 仍 deny（loop.md auto 偵測，S8）');
+  assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-off', 'block-flagoff', MK_NOT_READY), env: { LOOPS_PR_BLOCKING_GATE: '0' } })),
+    '[B13] create：LOOPS_PR_BLOCKING_GATE=0 → 閘⑥ 關、not-ready 也放行（S10 逃生口）');
+  assert(isDeny(runHook({ command: 'gh pr ready', cwd: mkG6('g6-rnr', 'block-ready-nr', MK_NOT_READY) })),
+    '[B14] ready：verify not-ready → 閘⑥ 在 ready 也 deny（縱深；pr-owner-guard 關時）');
+  assert(isAllow(runHook({ command: 'gh pr ready', cwd: mkG6('g6-rok', 'block-ready-ok', MK_READY) })),
+    '[B15] ready：verify ready → 閘⑥ allow');
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-ew', 'block-emptywaiver', MK_NOT_READY, { waiver: '' }) })),
+    '[B16] create：not-ready + 空 waiver（0 bytes）+ 非 auto → deny（空檔不算知情豁免）');
+  assert(isAllow(runHook({ command: 'gh pr comment --body "近況"', cwd: mkG6('g6-cm', 'block-comment', MK_NOT_READY) })),
+    '[B17] comment：verify not-ready → 閘⑥ 不套 comment → allow（作用範圍 = create + ready）');
+  assert(isDeny(runHook({ command: 'gh pr create', cwd: mkG6('g6-indep', 'block-indep', MK_NOT_READY), env: { LOOPS_PR_GATE: '0' } })),
+    '[B18] create：LOOPS_PR_GATE=0 關①②③、閘⑥ 獨立 flag 仍 defaultOn → not-ready 仍 deny（互不牽連）');
+
+  // ── BN 純函式直測（動態 import，仿 N/Q 系列）──────────────────────────────────────
+  {
+    const m = prGateModule;
+    const safe = (fn, ...a) => { try { return fn(...a); } catch { return '__throw__'; } };
+    const p1 = safe(m?.parseLatestVerifyVerdict, '<!-- loops-verify verdict=not-ready p0=1 p1=2 round=3 -->');
+    assert(p1 && p1.verdict === 'not-ready' && p1.p0 === 1 && p1.p1 === 2 && p1.round === 3, '[BN1] parseLatestVerifyVerdict 解出 verdict/p0/p1/round');
+    const p2 = safe(m?.parseLatestVerifyVerdict, 'x\n<!-- loops-verify verdict=not-ready p0=0 p1=1 round=1 -->\ny\n<!-- loops-verify verdict=ready p0=0 p1=0 round=2 -->');
+    assert(p2 && p2.verdict === 'ready' && p2.round === 2, '[BN2] parse 取最後一個 marker（round=2 ready）');
+    const p3 = safe(m?.parseLatestVerifyVerdict, 'not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\n```\n<!-- loops-verify verdict=ready p0=0 p1=0 round=9 -->\n```');
+    assert(p3 && p3.verdict === 'not-ready' && p3.round === 1, '[BN3] parse 先 stripCode：fenced 示範 marker 不被選、取真 not-ready');
+    assert(safe(m?.parseLatestVerifyVerdict, '完全沒有任何 marker') === null, '[BN4] parse 無 marker → null');
+    assert(safe(m?.parseLatestVerifyVerdict, 42) === null, '[BN4b] parse 非字串 → null');
+    assert(safe(m?.hasBlockingFindings, { verdict: 'not-ready' }) === true, '[BN5] hasBlocking：not-ready → true');
+    assert(safe(m?.hasBlockingFindings, { verdict: 'ready', p0: 0, p1: 0 }) === false, '[BN6] hasBlocking：ready+0/0 → false');
+    assert(safe(m?.hasBlockingFindings, { verdict: 'ready', p0: 0, p1: 1 }) === true, '[BN7] hasBlocking：ready 但 p1=1（矛盾）→ true（blocking-first）');
+    assert(safe(m?.hasBlockingFindings, null) === false, '[BN8] hasBlocking：null → false（fail-open）');
+    assert(safe(m?.hasBlockingFindings, { p1: 2 }) === true, '[BN9] hasBlocking：verdict 缺但 p1=2 → true');
+    assert(safe(m?.hasBlockingFindings, { verdict: 'notready' }) === false, '[BN9b] hasBlocking：verdict 嚴格全等——"notready"（非 "not-ready"）不算 blocking');
+    assert(safe(m?.isAutoMode, { LOOPS_AUTO: '1' }, '') === true, '[BN10] isAutoMode：env LOOPS_AUTO=1 → true');
+    assert(safe(m?.isAutoMode, {}, '- 推進模式：auto（x）') === true, '[BN11] isAutoMode：loop.md 全形冒號 auto → true');
+    assert(safe(m?.isAutoMode, {}, '- **推進模式**：auto') === true, '[BN12] isAutoMode：loop.md 粗體+全形冒號 auto → true');
+    assert(safe(m?.isAutoMode, {}, '- **推進模式**: auto（x）') === true, '[BN13] isAutoMode：loop.md 粗體+半形冒號+空格 auto → true');
+    assert(safe(m?.isAutoMode, {}, '# Loop\n- 推進模式：closed\n\n- E5：把推進模式：auto 改回 closed') === false, '[BN14] isAutoMode：closed 欄位 + Journal 提到 auto → false（field-anchored，不誤中 Journal 敘述）');
+    assert(safe(m?.isAutoMode, { LOOPS_AUTO: '0' }, '- 推進模式：closed') === false, '[BN15] isAutoMode：env=0 + loop.md closed → false');
+    const wroot = join(SANDBOX, 'g6-waiver-fn');
+    mkdirSync(join(wroot, '.loops', 'w-slug'), { recursive: true });
+    writeFileSync(join(wroot, '.loops', 'w-slug', 'blocking-waiver.md'), '非空豁免說明');
+    assert(safe(m?.waiverExists, wroot, 'w-slug') === true, '[BN16] waiverExists：非空 waiver → true');
+    const wroot2 = join(SANDBOX, 'g6-waiver-fn2');
+    mkdirSync(join(wroot2, '.loops', 'w2'), { recursive: true });
+    writeFileSync(join(wroot2, '.loops', 'w2', 'blocking-waiver.md'), '');
+    assert(safe(m?.waiverExists, wroot2, 'w2') === false, '[BN17] waiverExists：空 waiver（0 bytes）→ false');
+    assert(safe(m?.waiverExists, wroot2, 'nope') === false, '[BN18] waiverExists：不存在 → false');
+  }
 } finally {
   rmSync(SANDBOX, { recursive: true, force: true });
 }
@@ -836,5 +948,7 @@ const total = passed + failed.length;
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
 console.log(`(共 ${total} 條斷言：P1–P8／EXTRA／WIN＝#132 三閘與接線、Q1–Q8＝#132 verify 修正輪邊界、`
   + `R＝#152 閘④ real-run receipt、C＝#152 閘⑤ 合併衝突、N＝#152 新純函式直測、`
-  + `F5＝三 flag 互不牽連、G＝閘⑤ 真 gh spawn 端到端（假 gh，POSIX/CI）；R5b/c·N9–N11·C10/11·F5·G＝#152 verify/wiring 修正輪)`);
+  + `F5＝三 flag 互不牽連、G＝閘⑤ 真 gh spawn 端到端（假 gh，POSIX/CI）、`
+  + `B／BN＝#188 閘⑥ P0/P1 未清不准收圈（marker 契約 + 知情豁免 + auto 不繞過 + 純函式）；`
+  + `R5b/c·N9–N11·C10/11·F5·G＝#152 verify/wiring 修正輪)`);
 process.exit(failed.length > 0 ? 1 : 0);

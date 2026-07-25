@@ -4,7 +4,7 @@
 // （worktree 路徑段或 `.git/HEAD` 反查 `.loops/<slug>/loop.md` 存在）時生效。
 //
 // 依指令型別分派各自適用的閘（`classifyPrCommand` → create / ready / comment），依序、命中即擋：
-//   `gh pr create` → 閘①②③④⑤；`gh pr ready` → 閘④⑤；`gh pr comment` → 閘⑤。
+//   `gh pr create` → 閘①②③⑥④⑤；`gh pr ready` → 閘⑥④⑤；`gh pr comment` → 閘⑤。
 //   （既有三閘①②③ 維持只作用於 `gh pr create`，不套到 ready/comment，避免誤擋。）
 //
 //   ① `stages/04-verify.md` 不存在 → deny（build 完必先過 verify，不能跳過直接送審）
@@ -19,6 +19,11 @@
 //     從當前分支推斷 PR），`mergeable === 'CONFLICTING'` 或 `mergeStateStatus === 'DIRTY'` → deny，
 //     要求先解衝突再送。**指令帶顯式 PR 號 / branch / url**（如 `gh pr comment 123`）時**跳過本閘**
 //     ——那針對的未必是當前分支的 PR，查當前分支 mergeability 會誤擋。
+//   ⑥ 收圈硬條件＝P0/P1 清零（#188，create + ready）：讀 `stages/04-verify.md` 末尾的機械 marker
+//     `<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`（取最後一個、stripCode 去
+//     fence、CRLF 安全），最近一輪仍有未修 P0/P1（verdict=not-ready 或 p0/p1>0）→ deny，除非**知情
+//     豁免**：非 auto 模式且 `.loops/<slug>/blocking-waiver.md` 非空 → 放行；**auto 模式一律不認 waiver**
+//     （防用豁免繞過、對齊 auto 硬煞車 #4）。marker 缺 / 無法解析 / 讀檔失敗 → fail-open 放行。
 //
 // 非 loop 分支／非受管 gh pr 指令／任何判不出的情況（含 detached HEAD）一律放行——這是提醒型
 // 守衛，不能因為自己判斷不出來就卡住人。
@@ -34,9 +39,10 @@
 // （重用 worktree-guard.mjs 的 findLoopRoot——它的祖先上溯天然涵蓋 worktree cwd 剝
 // `.claude/worktrees/<slug>` 後綴的那幾層，不必另外維護一條「捷徑」路徑）。
 //
-// 三個獨立 flag（皆 defaultOn，僅字面 '0' 關；各守一組行為、逃生口互不牽連）：
+// 四個獨立 flag（皆 defaultOn，僅字面 '0' 關；各守一組行為、逃生口互不牽連）：
 //   LOOPS_PR_GATE          → 閘①②③（build 完先 verify／draft+assignee／Closes 開法，只作用 create）
 //   LOOPS_PR_REALRUN_GATE  → 閘④（真機截圖 receipt，作用 create + ready）
+//   LOOPS_PR_BLOCKING_GATE → 閘⑥（P0/P1 未清不准收圈，作用 create + ready；純讀檔）
 //   LOOPS_PR_CONFLICT_GATE → 閘⑤（合併衝突，作用 create + ready + comment；唯一 spawn gh）
 // fail-open：payload 壞 / 讀檔失敗 / 判不出分支 / gh 錯誤一律放行 exit 0，永不因 hook 故障卡住使用者。
 //
@@ -216,6 +222,64 @@ export function hasExplicitPrTarget(cmd, kind) {
   return false;
 }
 
+/**
+ * 閘⑥（#188）：解析 verify 報告（`stages/04-verify.md`）末尾的機械可讀 marker，回傳
+ * `{ verdict, p0, p1, round }` 或 null（無 marker / 非字串）。契約（見 issue #188 plan §1）：
+ *   `<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`
+ * 其中 p0/p1 = 判定當下**仍未修（blocking）的** P0/P1 條數（Ready ⟹ p0=0 p1=0）。
+ * 解析紀律：①先 `stripCode` 去 code span/fence——報告裡示範用的 fenced marker 不被誤選（只留真
+ * marker，與閘③ 對 Closes 先 stripCode 同思路）；②`matchAll` global、取**最後一個**（多輪 append
+ * 時最近一輪 wins；`round` 僅供人讀 / debug，不用於選取）；③無行錨（`[^>]*?` 不跨 `-->`），CRLF 安全。
+ * verdict 值原樣回傳字串（呼叫端用**嚴格全等**比對，絕不 `includes`——`not-ready` 內含 `ready`）。
+ */
+export function parseLatestVerifyVerdict(text) {
+  if (typeof text !== 'string') return null;
+  const stripped = stripCode(text);
+  const ms = [...stripped.matchAll(/<!--\s*loops-verify\s+([^>]*?)\s*-->/g)];
+  if (ms.length === 0) return null;
+  const body = ms[ms.length - 1][1];
+  const field = (k) => {
+    const m = new RegExp(String.raw`(?:^|\s)${k}=(\S+)`).exec(body);
+    return m ? m[1] : undefined;
+  };
+  const num = (v) => {
+    const n = Number.parseInt(v, 10);
+    return Number.isNaN(n) ? undefined : n;
+  };
+  return { verdict: field('verdict'), p0: num(field('p0')), p1: num(field('p1')), round: num(field('round')) };
+}
+
+/**
+ * 閘⑥：這份 verify verdict 是否代表「仍有未修的 P0/P1」（blocking-first、fail-safe 向 deny）：
+ * `verdict === 'not-ready'`（嚴格全等）**或** p0>0 **或** p1>0 → true。null（無 marker / 讀檔失敗）→
+ * false（fail-open 放行）；`verdict=ready p1=1` 這種自相矛盾 → true（正是本閘要抓的「說 ready 卻還
+ * 有未修 P1」）；verdict 缺且 p0/p1 皆非數字（欄位無法解析）→ false（放行，同 fail-open 精神）。
+ */
+export function hasBlockingFindings(parsed) {
+  if (!parsed) return false;
+  if (parsed.verdict === 'not-ready') return true;
+  if (typeof parsed.p0 === 'number' && parsed.p0 > 0) return true;
+  if (typeof parsed.p1 === 'number' && parsed.p1 > 0) return true;
+  return false;
+}
+
+/**
+ * 閘⑥：目前是不是 auto 推進模式（決定豁免 waiver 認不認）。兩訊號：
+ *   ①`env.LOOPS_AUTO === '1'`——**唯一防竄改的權威訊號**（hook 讀 session env、agent 動不了；對齊
+ *     loop-driver 直讀慣例）；
+ *   ②loop.md 的「推進模式：auto」欄位行（field-anchored 正則：行首起 bullet/星號 + `推進模式` +
+ *     `：/:` + `auto`）——補「auto 經 loop.md 授權但 env 未設」（如 loop #113/#119/#164），值位置
+ *     錨定避免 Journal 裡「把推進模式：auto 改回 closed」這類敘述誤中。
+ * **誠實範圍（journaling 揭露）**：loop.md 由 agent 自己擁有、理論上可改掉欄位行規避——故「auto 不得
+ * 用豁免繞過」的機械保證在正常 auto（env）路徑成立，純靠 loop.md 而 env 未設是 best-effort；loop.md
+ * 讀不到時退為 env-only（fail-open 不誤擋，但 auto-bypass 防護退為 env 權威）。
+ */
+export function isAutoMode(env, loopMdText) {
+  if (env && env.LOOPS_AUTO === '1') return true;
+  return typeof loopMdText === 'string'
+    && /^[-*\s]*\*{0,2}推進模式\*{0,2}\s*[：:]\s*auto\b/m.test(loopMdText);
+}
+
 function buildVerifyDenyReason(slug) {
   return (
     `這是 loop \`${slug}\` 的分支，開 PR 前必須先過 verify——找不到 ` +
@@ -266,6 +330,21 @@ function buildConflictDenyReason(slug, info) {
     `（mergeable=${info?.mergeable} / mergeStateStatus=${info?.mergeStateStatus}）——` +
     `留言 / 開 PR / 轉正前請先解衝突：把 base（通常 master）merge 或 rebase 進本分支、解掉衝突、` +
     `push，等 GitHub 重新判定為可合併後再重試。確需繞過：設 LOOPS_PR_CONFLICT_GATE=0。`
+  );
+}
+
+function buildBlockingDenyReason(slug, parsed, auto) {
+  const counts = `p0=${parsed?.p0 ?? '?'} p1=${parsed?.p1 ?? '?'}` + (parsed?.verdict ? ` verdict=${parsed.verdict}` : '');
+  const exemptionLine = auto
+    ? `auto 模式**不得**帶著未修的 P0/P1 收圈（auto 硬煞車 #4）——請停下讓使用者接手（attended）決定；` +
+      `此時 waiver 不被認可（防 auto 用豁免繞過）。`
+    : `若使用者知情決定帶著這些 P0/P1 先進 PR：在 \`.loops/${slug}/blocking-waiver.md\` 寫明豁免哪幾條 ` +
+      `＋理由（非空檔）並同步 issue / PR 留痕，再重試（此知情豁免僅 attended 生效、auto 不認）。`;
+  return (
+    `這是 loop \`${slug}\` 的分支，最近一輪 verify 仍有未修的 P0/P1（${counts}）——收圈（開 / 轉正 PR）的` +
+    `硬條件是 P0/P1 清零（見 iterate §5）。請先把未修的 P0/P1 修完、再跑一輪 verify 到 Ready 再重試。` +
+    exemptionLine +
+    `確需繞過本閘：設 LOOPS_PR_BLOCKING_GATE=0。`
   );
 }
 
@@ -351,6 +430,42 @@ export function realRunReceiptExists(loopRoot, slug) {
 }
 
 /**
+ * 閘⑥：讀 `stages/04-verify.md` → 解析最後一個 verify marker（`parseLatestVerifyVerdict`）。
+ * 讀檔失敗 / 檔不存在 → null（fail-open 放行，同 `realRunReceiptExists` 的 try/catch 精神）。
+ */
+export function readVerifyVerdict(loopRoot, slug) {
+  try {
+    const text = readFileSync(join(loopRoot, '.loops', slug, 'stages', '04-verify.md'), 'utf8');
+    return parseLatestVerifyVerdict(text);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 閘⑥：知情豁免 waiver 是否存在且非空——`.loops/<slug>/blocking-waiver.md` 為**非空一般檔**
+ * （`statSync isFile && size>0`，仿 `realRunReceiptExists` 擋純 `touch` 空檔 / 同名子目錄）。
+ * 讀不到 / 不存在 → false。
+ */
+export function waiverExists(loopRoot, slug) {
+  try {
+    const st = statSync(join(loopRoot, '.loops', slug, 'blocking-waiver.md'));
+    return st.isFile() && st.size > 0;
+  } catch {
+    return false;
+  }
+}
+
+/** 閘⑥：讀 loop.md 文字（供 `isAutoMode` 的 loop.md 訊號）；讀不到回 ''（→ isAutoMode 退為 env-only）。 */
+function readLoopMdText(loopRoot, slug) {
+  try {
+    return readFileSync(join(loopRoot, '.loops', slug, 'loop.md'), 'utf8');
+  } catch {
+    return '';
+  }
+}
+
+/**
  * 閘⑤：讀 GitHub 已算好的 mergeability（`{ mergeable, mergeStateStatus }`）或 null（fail-open）。
  * `env.LOOPS_PR_CONFLICT_STUB` 有值 → 當「gh 會印的原始 JSON 字串」；否則 spawn
  * `gh pr view --json mergeable,mergeStateStatus`（不帶 PR 號、cwd 內從當前分支推斷 PR、5s timeout）。
@@ -422,8 +537,9 @@ function main() {
   // 各 flag 各守一組閘；先算出本指令實際會跑哪些閘，三組都沒開就免做分支偵測。
   const runClosesGates = flagEnabled('LOOPS_PR_GATE', process.env) && kind === 'create'; // ①②③
   const runRealRun = flagEnabled('LOOPS_PR_REALRUN_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ④
+  const runBlocking = flagEnabled('LOOPS_PR_BLOCKING_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ⑥
   const runConflict = flagEnabled('LOOPS_PR_CONFLICT_GATE', process.env); // ⑤（三型皆可能）
-  if (!runClosesGates && !runRealRun && !runConflict) return;
+  if (!runClosesGates && !runRealRun && !runBlocking && !runConflict) return;
 
   const cwd = typeof payload?.cwd === 'string' ? payload.cwd : process.cwd();
 
@@ -458,6 +574,20 @@ function main() {
       const body = extractCommentBody(command, readFileSafe);
       if (body != null && !hasClosesLine(stripCode(body), issueNumber)) {
         denyWith(buildClosesDenyReason(issueNumber));
+        return;
+      }
+    }
+  }
+
+  // 閘⑥（#188）：verify 仍有未修 P0/P1 → 不准收圈（create + ready）。排在閘④ 前——verify blocking
+  // 比截圖 receipt 更根本；仍在唯一 spawn gh 的閘⑤ 之前（純讀檔、廉價）。blocking 時：auto 一律 deny
+  // （waiver 不認、防繞過）；非 auto 則有非空 waiver 才放行（知情豁免）。
+  if (runBlocking) {
+    const verdict = readVerifyVerdict(loopRoot, slug);
+    if (hasBlockingFindings(verdict)) {
+      const auto = isAutoMode(process.env, readLoopMdText(loopRoot, slug));
+      if (auto || !waiverExists(loopRoot, slug)) {
+        denyWith(buildBlockingDenyReason(slug, verdict, auto));
         return;
       }
     }

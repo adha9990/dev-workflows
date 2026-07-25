@@ -9,11 +9,12 @@
 // 這就是 TDD 的紅燈起點。實作補齊後，下方斷言才有機會逐條轉綠。
 //
 // 對外契約（拍板後，見 issue #87 討論；#99 loop-driver 併入後追加 LOOPS_LOOP_DRIVER）：
-//   FLAG_DEFAULTS：11 個 flag 的分類表（defaultOn / optIn）。
+//   FLAG_DEFAULTS：17 個 flag 的分類表（defaultOn / optIn）。
 //   flagEnabled(name, env)：純函式，env 物件參數（非直接讀 process.env）。
 //   - defaultOn 類（LOOPS_PATH_CONTAINMENT / LOOPS_WORKTREE_GUARD / LOOPS_COST_TRACKER /
 //     LOOPS_EVAL_GATE / LOOPS_EVAL_TAGS_GATE / LOOPS_EVAL_POLL_GATE /
-//     LOOPS_CONFIG_PROTECTION / LOOPS_COMMENT_GUARD）：
+//     LOOPS_CONFIG_PROTECTION / LOOPS_COMMENT_GUARD / LOOPS_PR_GATE / LOOPS_PR_REALRUN_GATE /
+//     LOOPS_PR_BLOCKING_GATE / LOOPS_PR_CONFLICT_GATE / LOOPS_MERGE_GUARD / LOOPS_PR_OWNER_GUARD）：
 //     僅字面 '0' 關；'1' / '' / 未設 / 'true' / 'off' / '2' 等怪值皆開（不會關）。
 //   - optIn 類（LOOPS_STOP_GATE / LOOPS_COMPACT_HINT / LOOPS_LOOP_DRIVER）：
 //     僅字面 '1' 開；其餘（未設 / '' / '0' / 'true' / 'yes' 等）皆關。
@@ -39,7 +40,9 @@ function callSafe(fn) {
   }
 }
 
-// defaultOn 類（8）：未設 / 怪值一律「開」，只有字面 '0' 才關。
+// defaultOn 類（14）：未設 / 怪值一律「開」，只有字面 '0' 才關。
+// （#188：清單原缺 pr-gate 家族 5 枚〔已存在卻沒被 A1/A2 覆蓋的漂移〕，本輪一併補齊 + 加
+//   LOOPS_PR_BLOCKING_GATE，並在 A1 加反向完整性斷言，防後續新增 flag 又被漏測。）
 const DEFAULT_ON_FLAGS = [
   'LOOPS_PATH_CONTAINMENT',
   'LOOPS_WORKTREE_GUARD',
@@ -49,6 +52,12 @@ const DEFAULT_ON_FLAGS = [
   'LOOPS_EVAL_POLL_GATE',
   'LOOPS_CONFIG_PROTECTION',
   'LOOPS_COMMENT_GUARD',
+  'LOOPS_PR_GATE',
+  'LOOPS_PR_REALRUN_GATE',
+  'LOOPS_PR_BLOCKING_GATE',
+  'LOOPS_PR_CONFLICT_GATE',
+  'LOOPS_MERGE_GUARD',
+  'LOOPS_PR_OWNER_GUARD',
 ];
 // optIn 類（3）：未設 / 怪值一律「關」，只有字面 '1' 才開。
 const OPT_IN_FLAGS = [
@@ -61,7 +70,7 @@ const OPT_IN_FLAGS = [
 // A) FLAG_DEFAULTS：分類表本身的契約（值即契約，逐欄釘死）
 // =============================================================================
 
-// ── A1：FLAG_DEFAULTS 是物件，含全部 11 個 flag 的分類 ────────────────────────
+// ── A1：FLAG_DEFAULTS 是物件，含全部 17 個 flag 的分類 ────────────────────────
 {
   assert(FLAG_DEFAULTS && typeof FLAG_DEFAULTS === 'object', 'FLAG_DEFAULTS：是物件 [A1]');
   for (const name of DEFAULT_ON_FLAGS) {
@@ -72,6 +81,13 @@ const OPT_IN_FLAGS = [
     assert(Object.prototype.hasOwnProperty.call(FLAG_DEFAULTS ?? {}, name),
       `FLAG_DEFAULTS：含 ${name} 這個 key [A1]`);
   }
+  // A1-complete（#188）：反向完整性——FLAG_DEFAULTS 的 key 集合 = 兩份清單聯集，一個不多一個不少。
+  // 少了 → 上面兩迴圈已抓；多了（新增 flag 沒同步進清單 → 被 A2/A3 漏測）→ 這條抓。
+  const listed = new Set([...DEFAULT_ON_FLAGS, ...OPT_IN_FLAGS]);
+  const actual = Object.keys(FLAG_DEFAULTS ?? {});
+  const extra = actual.filter((k) => !listed.has(k));
+  assert(extra.length === 0, `FLAG_DEFAULTS 沒有未列進測試清單的 flag（漏測防線；多出：${extra.join(',') || '無'}）[A1-complete]`);
+  assert(actual.length === listed.size, `FLAG_DEFAULTS key 數（${actual.length}）= 清單聯集數（${listed.size}）[A1-complete]`);
 }
 
 // ── A2：defaultOn 類在 FLAG_DEFAULTS 中標記為 true（defaultOn === true）───────
