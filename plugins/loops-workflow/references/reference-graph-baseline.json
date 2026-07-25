@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "baseline_commit": "63b528bbf19db84d85eb3e9ffd0bb7b6a44dc826",
+  "baseline_commit": "828aada9910e2e85d038f565230b4b171663409a",
   "entries": [
     {
       "referrer_component_id": "accessibility-reviewer-agent",
@@ -568,6 +568,20 @@
       "ordinal": 2,
       "class": "fixture",
       "normalized_sha256": "52f5cd21cc201854cfa6e54866546eebe4a8300524ed2cca5766e48fa024695c"
+    },
+    {
+      "referrer_component_id": "decision-interview-skill",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "decision-interview-skill",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
     },
     {
       "referrer_component_id": "define-skill",
