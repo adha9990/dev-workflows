@@ -1,0 +1,80 @@
+{
+  "schema_version": "1",
+  "notes": "#170 policy registry 第一版。scope.kind 區分 path-based（有檔案面、參與 path 交集判定）與 activity-based（純活動型規則，無自然 glob、不參與 path 交集，改以 scope.activities 比對）——T0 用 AGENTS.md 規則 9／13／5 實填後確認：若沒有這個維度，活動型規則只能寫 paths:[\"**\"]，會與所有規則假交集、把衝突判定退化成噪音。",
+  "policies": [
+    {
+      "id": "worktree-isolation",
+      "title": "會動 code 的迴圈在獨立 worktree 裡做，.loops 狀態一律留主 repo",
+      "scope": {
+        "kind": "path-based",
+        "paths": [".claude/worktrees/**", ".loops/**"],
+        "activities": [],
+        "stages": ["dispatch", "build", "verify", "iterate"]
+      },
+      "enforcement": "forbid",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": 10,
+      "fail_closed_on_missing_state": true,
+      "requires": ["isolated-worktree-per-loop", "loops-state-in-main-checkout"],
+      "forbids": ["loop-branch-in-main-checkout", "loops-state-inside-worktree"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "git worktree",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-worktree-guard.mjs",
+        "plugins/loops-workflow/hooks/test-path-guard.mjs"
+      ],
+      "docs": ["AGENTS.md"]
+    },
+    {
+      "id": "canonical-platform-neutral",
+      "title": "canonical 規則文字只寫能力描述，平台專屬差異走登記過的 scoped override",
+      "scope": {
+        "kind": "path-based",
+        "paths": [
+          "AGENTS.md",
+          "plugins/loops-workflow/references/**/*.md",
+          "plugins/loops-workflow/skills/**",
+          "plugins/loops-workflow/docs/**"
+        ],
+        "activities": [],
+        "stages": []
+      },
+      "enforcement": "forbid",
+      "overridable": true,
+      "approval": { "required": true, "by": "capability-registry-override-owner" },
+      "precedence": 20,
+      "fail_closed_on_missing_state": true,
+      "requires": ["capability-描述取代工具名", "override-登記-owner-理由-測試"],
+      "forbids": ["canonical-散文寫死平台工具名", "canonical-散文寫死廠商-model-id"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "平台中立",
+      "tests": ["plugins/loops-workflow/scripts/test-compat-lint.mjs"],
+      "docs": ["AGENTS.md", "plugins/loops-workflow/references/interaction-adapter.md"]
+    },
+    {
+      "id": "metric-honesty",
+      "title": "沒實際跑出來的數字與狀態一律標 not measured，不得補一個看起來合理的值",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": ["claim-metric", "report-run-status", "cite-tool-result"],
+        "stages": []
+      },
+      "enforcement": "require",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": null,
+      "fail_closed_on_missing_state": true,
+      "requires": ["未實測標-not-measured", "只引用單一乾淨指令的實際回傳"],
+      "forbids": ["憑感覺填數字", "工具沒回傳仍敘述狀態"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "Metric-Honesty",
+      "tests": [],
+      "docs": ["AGENTS.md"]
+    }
+  ]
+}

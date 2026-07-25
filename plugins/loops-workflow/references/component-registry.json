@@ -1,0 +1,96 @@
+{
+  "schema_version": "1",
+  "notes": "#170 component registry 第一版。只登記 registry-compiler 這條鏈上的實體元件（policy/component/integration 三份 registry、compiler 本體與其測試、受 policy 約束的 path guard hook），驗證 schema 撐得住真實依賴圖：dependencies 與 consumers 必須雙向一致，required_checks 的路徑要真的存在，required_checks.integrations 走 integration-registry 跨表查。",
+  "components": [
+    {
+      "id": "policy-registry",
+      "kind": "reference",
+      "paths": ["plugins/loops-workflow/references/policy-registry.json"],
+      "stage_role": null,
+      "visibility": "public",
+      "dependencies": [],
+      "consumers": ["registry-compiler", "loops-path-guard"],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": ["AGENTS.md"],
+        "integrations": []
+      }
+    },
+    {
+      "id": "component-registry",
+      "kind": "reference",
+      "paths": ["plugins/loops-workflow/references/component-registry.json"],
+      "stage_role": null,
+      "visibility": "public",
+      "dependencies": [],
+      "consumers": ["registry-compiler"],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "integration-registry",
+      "kind": "reference",
+      "paths": ["plugins/loops-workflow/references/integration-registry.json"],
+      "stage_role": null,
+      "visibility": "public",
+      "dependencies": [],
+      "consumers": ["registry-compiler"],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "registry-compiler",
+      "kind": "script",
+      "paths": ["plugins/loops-workflow/scripts/registry-compiler.mjs"],
+      "stage_role": "verify",
+      "visibility": "internal",
+      "dependencies": ["policy-registry", "component-registry", "integration-registry"],
+      "consumers": ["registry-compiler-tests"],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "registry-compiler-tests",
+      "kind": "script",
+      "paths": ["plugins/loops-workflow/scripts/test-registry-compiler.mjs"],
+      "stage_role": "verify",
+      "visibility": "internal",
+      "dependencies": ["registry-compiler"],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "loops-path-guard",
+      "kind": "hook",
+      "paths": ["plugins/loops-workflow/hooks/loops-path-guard.mjs"],
+      "stage_role": "build",
+      "visibility": "internal",
+      "dependencies": ["policy-registry"],
+      "consumers": [],
+      "required_checks": {
+        "hooks": ["plugins/loops-workflow/hooks/test-path-guard.mjs"],
+        "evals": [],
+        "docs": ["AGENTS.md"],
+        "integrations": ["worktree-cli"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "schema_version": "1",
+  "notes": "#170 integration registry 第一版。lifecycle 六階段只是宣告字串，registry-compiler 只驗形狀、絕不執行；本票不實作任何安裝器。exclusive_group 表示同組能力互斥（至多一個 supported），用來擋『兩個實作同時被當成正式路徑』。自由文字欄（capability／triggers／outputs）只寫能力描述，不寫平台專屬工具名或廠商 model id。",
+  "integrations": [
+    {
+      "id": "worktree-cli",
+      "capability": "以指令列建立、列出與移除隔離的分支工作區目錄",
+      "support_status": "supported",
+      "exclusive_group": "workspace-isolation",
+      "lifecycle": {
+        "detect": "git worktree list",
+        "install_latest": null,
+        "update_latest": null,
+        "health": "git worktree list",
+        "uninstall": "git worktree remove",
+        "rollback": null
+      },
+      "triggers": ["迴圈要動 code、需要與主 checkout 隔離的工作區"],
+      "outputs": ["工作區絕對路徑", "工作區對應分支名"]
+    },
+    {
+      "id": "workspace-clone",
+      "capability": "以完整複製一份 repo 取得隔離工作區",
+      "support_status": "not_measured",
+      "exclusive_group": "workspace-isolation",
+      "lifecycle": {
+        "detect": "git --version",
+        "install_latest": null,
+        "update_latest": null,
+        "health": null,
+        "uninstall": null,
+        "rollback": null
+      },
+      "triggers": ["工作區隔離能力不可用時的替代路徑"],
+      "outputs": ["複製目錄絕對路徑"]
+    },
+    {
+      "id": "forge-cli",
+      "capability": "以指令列讀寫遠端代管服務的 PR、review 與 issue",
+      "support_status": "supported",
+      "exclusive_group": "remote-forge",
+      "lifecycle": {
+        "detect": "gh --version",
+        "install_latest": null,
+        "update_latest": null,
+        "health": "gh auth status",
+        "uninstall": null,
+        "rollback": null
+      },
+      "triggers": ["建立或更新 PR", "抓取 review 意見"],
+      "outputs": ["PR 編號與 URL", "review 意見清單"]
+    },
+    {
+      "id": "forge-web-api",
+      "capability": "以 HTTP API 讀寫遠端代管服務的 PR 與 issue",
+      "support_status": "not_measured",
+      "exclusive_group": "remote-forge",
+      "lifecycle": {
+        "detect": null,
+        "install_latest": null,
+        "update_latest": null,
+        "health": null,
+        "uninstall": null,
+        "rollback": null
+      },
+      "triggers": ["指令列路徑不可用時的替代路徑"],
+      "outputs": ["PR 編號與 URL"]
+    }
+  ]
+}
