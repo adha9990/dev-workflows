@@ -1,0 +1,246 @@
+{
+  "schema_version": "1",
+  "notes": "#183 dual-harness capability registry：Claude/Codex 逐 facet 對帳。status/measurability 以 evals/baseline/codex/gaps.json（#169）的實測值為準；facet 與 gaps capability_id 的對應見各 facet 的 gaps_refs。",
+  "facets": {
+    "plugin_root": {
+      "description": "plugin 根目錄與 data root 的識別／環境變數解析",
+      "gaps_refs": ["codex.manifest"],
+      "override_rationale": "codex.manifest 講的是 manifest／marketplace 安裝解析（已實測 supported），不是 plugin_root／data root 的環境變數解析（PLUGIN_ROOT/CLAUDE_PLUGIN_ROOT 等）——兩者是不同面向，manifest 面 supported 不能直接套用到 env 解析面，故本 facet 的 codex 狀態獨立標記為 not_measured，不沿用 codex.manifest 的 supported。",
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": {
+          "status": "not_measured",
+          "measurability": "needs_auth",
+          "interface": "PLUGIN_ROOT / CLAUDE_PLUGIN_ROOT 類環境變數解析（未驗證 Codex 端行為）",
+          "fallback": "以文件記載的固定安裝路徑手動設定，取代自動環境變數解析",
+          "repro": "CODEX_HOME=<已認證隔離 home> 對已安裝 plugin 跑一次 hook/skill，檢查其讀到的 plugin 根目錄環境變數是否正確解析"
+        }
+      }
+    },
+    "skill_discovery": {
+      "description": "skill 自動探索與載入（新 task 是否辨識為可呼叫 skill）",
+      "gaps_refs": ["codex.skill.discovery_invocation"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": {
+          "status": "not_measured",
+          "measurability": "needs_auth",
+          "interface": "skill picker / $ 呼叫；安裝後 skills/ 已確認落在 plugin cache（檔案層級可發現）",
+          "fallback": "以文件指向手動載入 skill 內容，取代自動 dispatch 判定",
+          "repro": "CODEX_HOME=<已認證隔離 home> \"<codex 絕對路徑>\" exec --json -C <repo> \"列出可用 skill，確認有無可呼叫的 dispatch\""
+        }
+      }
+    },
+    "structured_question": {
+      "description": "結構化提問（AskUserQuestion 等價機制）",
+      "gaps_refs": ["codex.interaction.questions"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": {
+          "status": "not_measured",
+          "measurability": "no_stable_interface",
+          "interface": "request_user_input（Codex 互動機制）；exec 非互動模式是否 surface 穩定 question 事件未驗證",
+          "fallback": "改用一般 CLI prompt 代替結構化提問",
+          "repro": "CODEX_HOME=<已認證隔離 home> \"<codex 絕對路徑>\" exec --json -C <repo> \"<會觸發決策點的 prompt>\" ；觀察是否出現 question / user-input 事件"
+        }
+      }
+    },
+    "subagent_dispatch": {
+      "description": "子代理派工（reviewer fan-out 等）",
+      "gaps_refs": ["codex.agents.subagent_model"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": {
+          "status": "not_measured",
+          "measurability": "needs_auth",
+          "interface": "Codex 子代理 / model profile（.codex/agents/*.toml 或動態 agent prompt）",
+          "fallback": "以單一 agent 循序執行取代子代理派工，待實測驗證後導入",
+          "repro": "CODEX_HOME=<已認證隔離 home> \"<codex 絕對路徑>\" exec --json -C <repo> \"<會派子代理的 prompt>\" ；觀察 subagent dispatch 事件"
+        }
+      }
+    },
+    "model_tier": {
+      "description": "capability tier（fast-readonly/implementation/broad-review/referee）到實際 model 的映射",
+      "gaps_refs": ["codex.agents.subagent_model"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": {
+          "status": "not_measured",
+          "measurability": "needs_auth",
+          "interface": "Codex 子代理 / model profile；capability tier ↔ OpenAI model 映射未定",
+          "fallback": "沿用單一預設 model，暫不做分層",
+          "repro": "CODEX_HOME=<已認證隔離 home> \"<codex 絕對路徑>\" exec --json -C <repo> \"<會派子代理的 prompt>\" ；觀察 subagent dispatch 事件"
+        }
+      }
+    },
+    "hook_events": {
+      "description": "hook 事件掛鉤（hooks.json 自動發現 + trust）",
+      "gaps_refs": ["codex.hooks.trigger_trust"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": {
+          "status": "not_measured",
+          "measurability": "needs_auth",
+          "interface": "hooks/hooks.json 慣例自動發現 + /hooks review/trust；trusted_hash 存於 config.toml [hooks.state]",
+          "fallback": "改用輪詢 transcript 檔取代 hook 事件",
+          "repro": "CODEX_HOME=<已認證隔離 home> 首次對已安裝 plugin 跑 session → /hooks review/trust → 查該 CODEX_HOME 的 config.toml [hooks.state] 是否新增本 plugin hooks.json 條目"
+        }
+      }
+    },
+    "hook_concurrency": {
+      "description": "hook 併發控制（多個 hook 同時觸發時的序列化／競態保護）",
+      "gaps_refs": [],
+      "rationale_if_no_gaps_ref": "#169 baseline（evals/baseline/codex/gaps.json）未涵蓋此面向；Claude 側由 Stop 併發本地實測填實為 supported。",
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": {
+          "status": "not_measured",
+          "measurability": "needs_auth",
+          "interface": "hooks/hooks.json 慣例（併發保護行為未知）",
+          "fallback": "以檔案鎖序列化取代原生 hook 併發保護",
+          "repro": "CODEX_HOME=<已認證隔離 home> 對同一 session 觸發兩個並發 hook 事件，觀察是否有序列化／競態保護機制"
+        }
+      }
+    },
+    "shell_file_transport": {
+      "description": "shell 執行與檔案編輯的 hook payload 傳輸層（PreToolUse/PostToolUse 讀到的欄位）",
+      "gaps_refs": ["codex.guard.shell_apply_patch"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": {
+          "status": "not_measured",
+          "measurability": "needs_auth",
+          "interface": "PreToolUse/PostToolUse；shell canonical tool_name=\"Bash\"；apply_patch matcher 支援 Edit/Write 別名",
+          "fallback": "guard 暫時 fail-open（不阻擋），待驗證 apply_patch payload 欄位對應後補強",
+          "repro": "CODEX_HOME=<已認證隔離 home> \"<codex 絕對路徑>\" exec --json -C <repo> \"跑 echo hello，然後編輯一個測試檔加一行\" ；讀事件的 tool_name 與 payload 欄位"
+        }
+      }
+    },
+    "worktree_and_state": {
+      "description": "worktree 建立與 .loops/ state resume（loop.md 續跑正確階段）",
+      "gaps_refs": ["codex.worktree", "codex.resume.loops_state"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": {
+          "status": "not_measured",
+          "measurability": "needs_auth",
+          "interface": "git worktree 原生（無 EnterWorktree 同名工具）；Codex session-resume（exec resume）與 .loops state-resume 是兩回事",
+          "fallback": "以文件記載手動 worktree／resume 流程，取代自動化不變式保證",
+          "repro": "CODEX_HOME=<已認證隔離 home> \"<codex 絕對路徑>\" exec -C <repo> \"dispatch 一條 build 類任務\" ；查是否建 git worktree 且 .loops 正確錨定主 repo；另對既有 .loops/<slug>/ 下 resume/dispatch，查是否正確從記錄階段續跑"
+        }
+      }
+    },
+    "transcript_metrics": {
+      "description": "transcript 指標統計（tokens/duration/tool_calls/repeated_reads/verify_findings/iterate_rounds/unresolved_unknowns）",
+      "gaps_refs": [
+        "codex.metrics.tokens",
+        "codex.metrics.tool_agent_calls",
+        "codex.metrics.duration",
+        "codex.metrics.repeated_reads",
+        "codex.metrics.verify_findings",
+        "codex.metrics.iterate_rounds",
+        "codex.metrics.unresolved_unknowns",
+        "codex.transcript_metrics_stability"
+      ],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": {
+          "status": "degraded",
+          "measurability": "needs_auth",
+          "interface": "codex exec --json JSONL（token_count / turn.completed.Usage）+ -o/--output-last-message + --output-schema",
+          "fallback": "以人工抽樣核對 --json 輸出取代自動化 metrics pipeline，直到 schema 穩定",
+          "repro": "CODEX_HOME=<已認證隔離 home> \"<codex 絕對路徑>\" exec --json -C <repo> \"<fixture prompt>\" ；解析 token_count/turn.completed.Usage 等事件並與 Claude 側口徑比對"
+        }
+      }
+    }
+  },
+  "overrides": [
+    {
+      "id": "codex-shell-guard-fail-open",
+      "runtime": "codex",
+      "scope": "plugins/loops-workflow/hooks/loops-path-guard.mjs",
+      "owner": "loops-workflow-maintainers",
+      "rationale": "loops-path-guard.mjs 讀 tool_input.file_path 皆 fail-open；Codex apply_patch payload 欄位是否對得上未量測（gaps codex.guard.shell_apply_patch），在驗證前維持 fail-open 而非 fail-closed，避免誤擋合法操作。",
+      "test_ref": "plugins/loops-workflow/hooks/test-path-guard.mjs"
+    }
+  ],
+  "deferred": [
+    {
+      "capability_id": "codex.replay.deterministic",
+      "deferred_to": "#176/#177",
+      "reason": "Codex 無確定性 replay 介面（無 --replay flag；resume/fork 為 continuation 而非 re-execution，一手 --help 查證）。eval 改採同 fixture 重跑 + 允許非決定性宣告 + --json 擷取的驅動方式，交由 #176/#177 的 eval 基礎設施處理，不屬本 registry 任何 facet。"
+    }
+  ],
+  "model_tier": {
+    "referee": {
+      "claude": { "model": "opus" },
+      "codex": { "model": null, "status": "not_measured" }
+    },
+    "broad-review": {
+      "claude": { "model": "sonnet" },
+      "codex": { "model": "gpt-5-codex", "status": "not_measured" }
+    },
+    "implementation": {
+      "claude": { "model": "sonnet" },
+      "codex": { "model": "gpt-5-codex", "status": "not_measured" }
+    },
+    "fast-readonly": {
+      "claude": { "model": "sonnet" },
+      "codex": { "model": "gpt-5-codex", "status": "not_measured" }
+    }
+  },
+  "agent_tiers": {
+    "referee": "referee",
+    "architecture-reviewer-deep": "referee",
+    "code-quality-reviewer-deep": "referee",
+    "security-reviewer-deep": "referee",
+    "finding-validator-deep": "referee",
+    "accessibility-reviewer": "broad-review",
+    "architecture-reviewer": "broad-review",
+    "ci-cd-reviewer": "broad-review",
+    "code-quality-reviewer": "broad-review",
+    "docs-devex-reviewer": "broad-review",
+    "frontend-ui-reviewer": "broad-review",
+    "migration-reviewer": "broad-review",
+    "multi-user-concurrency-reviewer": "broad-review",
+    "observability-reviewer": "broad-review",
+    "performance-reviewer": "broad-review",
+    "processing-reliability-reviewer": "broad-review",
+    "product-contract-reviewer": "broad-review",
+    "root-cause-reviewer": "broad-review",
+    "security-reviewer": "broad-review",
+    "tests-reviewer": "broad-review",
+    "web-performance-reviewer": "broad-review",
+    "test-author": "implementation",
+    "impl-author": "implementation",
+    "finding-validator": "fast-readonly",
+    "eval-judge": "fast-readonly"
+  },
+  "agent_effort": {
+    "referee": "high",
+    "architecture-reviewer-deep": "high",
+    "code-quality-reviewer-deep": "high",
+    "security-reviewer-deep": "high",
+    "finding-validator-deep": "high",
+    "accessibility-reviewer": "medium",
+    "architecture-reviewer": "medium",
+    "ci-cd-reviewer": "medium",
+    "code-quality-reviewer": "medium",
+    "docs-devex-reviewer": "medium",
+    "frontend-ui-reviewer": "medium",
+    "migration-reviewer": "medium",
+    "multi-user-concurrency-reviewer": "medium",
+    "observability-reviewer": "medium",
+    "performance-reviewer": "medium",
+    "processing-reliability-reviewer": "medium",
+    "product-contract-reviewer": "medium",
+    "root-cause-reviewer": "medium",
+    "security-reviewer": "medium",
+    "tests-reviewer": "medium",
+    "web-performance-reviewer": "medium",
+    "test-author": "medium",
+    "impl-author": "medium",
+    "finding-validator": "medium",
+    "eval-judge": "low"
+  }
+}

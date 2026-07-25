@@ -1,0 +1,90 @@
+{
+  "schema_version": "1",
+  "facets": {
+    "plugin_root": {
+      "description": "plugin 根目錄辨識與載入",
+      "gaps_refs": [],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "skill_discovery": {
+      "description": "skill 自動探索與載入",
+      "gaps_refs": [],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "structured_question": {
+      "description": "結構化提問",
+      "gaps_refs": [],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "subagent_dispatch": {
+      "description": "子代理派工",
+      "gaps_refs": [],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "model_tier": {
+      "description": "模型分層選型",
+      "gaps_refs": [],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "hook_event": {
+      "description": "＊被改名的鍵：原應為 hook_events（少了尾巴的 s），驗身分要抓出這種漂移",
+      "gaps_refs": [],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "hook_concurrency": {
+      "description": "hook 併發控制",
+      "gaps_refs": [],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "shell_file_transport": {
+      "description": "shell/檔案傳輸層",
+      "gaps_refs": [],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "worktree_and_state": {
+      "description": "worktree 與狀態管理",
+      "gaps_refs": [],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "transcript_metrics": {
+      "description": "transcript 指標統計",
+      "gaps_refs": [],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    }
+  },
+  "overrides": [],
+  "deferred": [],
+  "model_tier": {},
+  "agent_tiers": {},
+  "agent_effort": {}
+}
