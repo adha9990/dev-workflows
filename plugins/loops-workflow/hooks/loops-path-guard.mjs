@@ -25,6 +25,7 @@ import { pathToFileURL } from 'node:url';
 
 import { flagEnabled } from './hook-flags.mjs';
 import { normalize } from './hook-input-normalize.mjs';
+import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
 
 const DENY_REASON =
   '.loops/ 一律錨定主 repo —— 請寫入 $LOOPS_ROOT/.loops/<slug>/' +
@@ -91,15 +92,9 @@ function main() {
   // 逐檔判定：多檔 apply_patch diff 裡任一檔命中即擋（不只查第一檔）。
   if (!filePaths.some((filePath) => isWorktreeLoopsPath(filePath, cwd))) return; // 全數未違規 → 放行
 
-  console.log(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: 'deny',
-        permissionDecisionReason: DENY_REASON,
-      },
-    }),
-  );
+  // 「擋不擋、理由是什麼」留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+  const decision = emitDecision({ kind: 'deny', reason: DENY_REASON }, ACTIVE_HARNESS, 'PreToolUse');
+  if (decision !== null) console.log(decision);
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

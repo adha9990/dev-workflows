@@ -180,6 +180,12 @@ CODEX_HOME=<已認證的隔離 CODEX_HOME> "<codex 執行檔絕對路徑>" exec 
 | `.loops/` resume / progress | `not measured`（範疇邊界，非暫時性缺口） | Test 3i |
 | transcript / token metrics | `not measured`（範疇邊界，非暫時性缺口） | Test 3 |
 
+### shell / `apply_patch` guard 的 fail-open 決策
+
+<!-- runtime: codex id=codex-shell-guard-fail-open -->
+`loops-path-guard.mjs` 與 `config-protection.mjs` 讀 `tool_input.file_path`、`worktree-guard.mjs` 讀 `tool_input.command`，皆在讀不到欄位或發生例外時 fail-open（放行、不擋）。Codex `apply_patch` payload 的欄位是否對得上這些讀法尚未量測（見 `gaps.json` 的 `codex.guard.shell_apply_patch`），在驗證前維持 fail-open 而非 fail-closed，避免誤擋合法操作。
+<!-- /runtime -->
+
 ## 方法論
 
 - **隔離鐵則**：全程 `CODEX_HOME=$(mktemp -d)`，每個 Test 各自一份全新目錄，絕不讀寫使用者真實 `~/.codex`（含真實 auth/session、以及已知壞掉的 `eagle-project` marketplace 登記——那是使用者資料，只做觀察紀錄，不修改）。

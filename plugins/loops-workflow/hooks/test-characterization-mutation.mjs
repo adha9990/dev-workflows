@@ -16,11 +16,22 @@
 //
 // 兩種變異型（案例列表任務指定的最低兩種，逐一驗過「目標子字串在原始檔恰好出現一次」才動手，
 // 防未來原始碼格式漂移讓某個目標子字串消失、變異變成靜默 no-op）：
-//   A) decision-flip：把 `permissionDecision: 'deny',` 改成 `permissionDecision: 'allow',`——
-//      7 支「會 deny 的 hook」都有這個字面（merge-guard／config-protection／worktree-guard／
-//      loops-path-guard／pr-gate／pr-owner-guard／outbound-comment-guard）。
+//   A) decision-flip（issue #183 T12 決策輸出收斂重構後改鎖新位置——見下方說明）：把各 hook
+//      「呼叫端」自己的 `emitDecision({ kind: 'deny', ... }, ...)` 字面改成 `kind: 'noop'`——
+//      noop 讓 emitDecision 直接回傳 null，呼叫端的 `if (decision !== null) console.log(decision);`
+//      不會印出任何東西，stdout 從「deny JSON」變「空字串」，會被 fixture 的位元鎖抓到。
+//      7 支「會 deny 的 hook」各自的呼叫端都有且僅有一次這個字面（merge-guard／config-protection／
+//      worktree-guard／loops-path-guard／pr-gate／pr-owner-guard／outbound-comment-guard）——刻意
+//      鎖「呼叫端」而非共用的 hooks/hook-decision-emit.mjs 本體，是為了保留逐支鑑別力：改 A 支
+//      的呼叫端不會連帶讓 B 支的變異體也被判定「殺掉」，每支各自要證明自己被鎖住（若改鎖
+//      hook-decision-emit.mjs 一處，7 支會共用同一個變異點，一次變異就讓全部 7 支同時失效，
+//      看起來仍是「全殺」但其實只驗證了「有一支會紅」，不是「每一支都被鎖住」）。
+//      （T12 之前舊版鎖的是 `permissionDecision: 'deny',` 這個字面，重構把它從 7 支 hook 各自的
+//      輸出組裝收斂進 hook-decision-emit.mjs 之後，該字面在 7 支 hook 原始檔各自出現 0 次，
+//      使舊版 decision-flip 全數 setup 失敗——這正是「目標子字串恰好一次」前置檢查存在的意義：
+//      它讓漂移在 mutation 測試自己就先炸掉，而不是靜默退化成鑑別力歸零的裝飾。）
 //   B) reason-truncate：把 deny 理由文字開頭那個字串常數的第一個字元刪掉——同樣只在 7 支 deny hook
-//      適用（各自锁定的常數不同，逐一列在 MUTATIONS 表）。
+//      適用（各自锁定的常數不同，逐一列在 MUTATIONS 表；這批常數本身未被 T12 重構觸及，維持原目標）。
 //
 // suggest-compact.mjs／edit-accumulator.mjs 兩支不是 deny hook（沒有 permissionDecision／reason
 // 欄位），改用語意對應的兩種變異（皆會被「stdout/exit code 逐位元鎖」偵測到，型態解釋見各自的
@@ -71,8 +82,8 @@ const MUTATIONS = [
     mutations: [
       {
         id: 'decision-flip',
-        description: 'permissionDecision: deny → allow',
-        apply: (s) => replaceExactlyOnce(s, "permissionDecision: 'deny',", "permissionDecision: 'allow',", 'merge-guard decision-flip'),
+        description: "denyWith() 呼叫端 emitDecision kind: 'deny' → 'noop'（deny 輸出被靜默吃掉）",
+        apply: (s) => replaceExactlyOnce(s, "kind: 'deny'", "kind: 'noop'", 'merge-guard decision-flip'),
       },
       {
         id: 'reason-truncate',
@@ -91,8 +102,8 @@ const MUTATIONS = [
     mutations: [
       {
         id: 'decision-flip',
-        description: 'permissionDecision: deny → allow',
-        apply: (s) => replaceExactlyOnce(s, "permissionDecision: 'deny',", "permissionDecision: 'allow',", 'config-protection decision-flip'),
+        description: "呼叫端 emitDecision kind: 'deny' → 'noop'（deny 輸出被靜默吃掉）",
+        apply: (s) => replaceExactlyOnce(s, "kind: 'deny'", "kind: 'noop'", 'config-protection decision-flip'),
       },
       {
         id: 'reason-truncate',
@@ -111,8 +122,8 @@ const MUTATIONS = [
     mutations: [
       {
         id: 'decision-flip',
-        description: 'permissionDecision: deny → allow',
-        apply: (s) => replaceExactlyOnce(s, "permissionDecision: 'deny',", "permissionDecision: 'allow',", 'worktree-guard decision-flip'),
+        description: "呼叫端 emitDecision kind: 'deny' → 'noop'（deny 輸出被靜默吃掉）",
+        apply: (s) => replaceExactlyOnce(s, "kind: 'deny'", "kind: 'noop'", 'worktree-guard decision-flip'),
       },
       {
         id: 'reason-truncate',
@@ -131,8 +142,8 @@ const MUTATIONS = [
     mutations: [
       {
         id: 'decision-flip',
-        description: 'permissionDecision: deny → allow',
-        apply: (s) => replaceExactlyOnce(s, "permissionDecision: 'deny',", "permissionDecision: 'allow',", 'loops-path-guard decision-flip'),
+        description: "呼叫端 emitDecision kind: 'deny' → 'noop'（deny 輸出被靜默吃掉）",
+        apply: (s) => replaceExactlyOnce(s, "kind: 'deny'", "kind: 'noop'", 'loops-path-guard decision-flip'),
       },
       {
         id: 'reason-truncate',
@@ -151,8 +162,8 @@ const MUTATIONS = [
     mutations: [
       {
         id: 'decision-flip',
-        description: 'permissionDecision: deny → allow',
-        apply: (s) => replaceExactlyOnce(s, "permissionDecision: 'deny',", "permissionDecision: 'allow',", 'pr-gate decision-flip'),
+        description: "呼叫端 emitDecision kind: 'deny' → 'noop'（deny 輸出被靜默吃掉）",
+        apply: (s) => replaceExactlyOnce(s, "kind: 'deny'", "kind: 'noop'", 'pr-gate decision-flip'),
       },
       {
         id: 'reason-truncate',
@@ -171,8 +182,8 @@ const MUTATIONS = [
     mutations: [
       {
         id: 'decision-flip',
-        description: 'permissionDecision: deny → allow',
-        apply: (s) => replaceExactlyOnce(s, "permissionDecision: 'deny',", "permissionDecision: 'allow',", 'pr-owner-guard decision-flip'),
+        description: "呼叫端 emitDecision kind: 'deny' → 'noop'（deny 輸出被靜默吃掉）",
+        apply: (s) => replaceExactlyOnce(s, "kind: 'deny'", "kind: 'noop'", 'pr-owner-guard decision-flip'),
       },
       {
         id: 'reason-truncate',
@@ -191,8 +202,8 @@ const MUTATIONS = [
     mutations: [
       {
         id: 'decision-flip',
-        description: 'permissionDecision: deny → allow',
-        apply: (s) => replaceExactlyOnce(s, "permissionDecision: 'deny',", "permissionDecision: 'allow',", 'outbound-comment-guard decision-flip'),
+        description: "呼叫端 emitDecision kind: 'deny' → 'noop'（deny 輸出被靜默吃掉）",
+        apply: (s) => replaceExactlyOnce(s, "kind: 'deny'", "kind: 'noop'", 'outbound-comment-guard decision-flip'),
       },
       {
         id: 'reason-truncate',

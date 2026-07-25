@@ -162,6 +162,14 @@
       "owner": "loops-workflow-maintainers",
       "rationale": "loops-path-guard.mjs 讀 tool_input.file_path 皆 fail-open；Codex apply_patch payload 欄位是否對得上未量測（gaps codex.guard.shell_apply_patch），在驗證前維持 fail-open 而非 fail-closed，避免誤擋合法操作。",
       "test_ref": "plugins/loops-workflow/hooks/test-path-guard.mjs"
+    },
+    {
+      "id": "codex-request-user-input-shape",
+      "runtime": "codex",
+      "scope": "plugins/loops-workflow/references/interaction-adapter.md",
+      "owner": "loops-workflow-maintainers",
+      "rationale": "structured_question facet 的 codex 描述子（status=not_measured, measurability=no_stable_interface）是資料層事實；interaction-adapter.md 用 scoped override 把這個平台專屬限制明寫進 canonical 散文，避免『decision channel 已可用』被誤讀成規則本身邏輯的一部分，也避免散文與 registry 各說各話。",
+      "test_ref": "plugins/loops-workflow/scripts/test-check-registry-shape.mjs"
     }
   ],
   "deferred": [

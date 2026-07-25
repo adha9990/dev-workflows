@@ -28,6 +28,7 @@ import { spawnSync } from 'node:child_process';
 // state 讀 / 清、安全檔名規則都走 edit-accumulator 的單一真相源 IO（本檔不再自存一份 readStateRaw）。
 import { readEditsForSession, clearEditsState, sanitizeSessionId } from './edit-accumulator.mjs';
 import { flagEnabled } from './hook-flags.mjs';
+import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
 // tmp+rename 原子覆寫（#183 T14）：發現性提示 state 檔雖是低風險 per-session 節流檔，仍統一走
 // atomic-write，不留一支例外裸 writeFileSync。
 import { writeFileAtomic } from './atomic-write.mjs';
@@ -94,7 +95,9 @@ function maybeShowDiscoveryHint(sessionId, hasConfig) {
   if (!shouldShowDiscoveryHint({ flagOn: false, hasConfig, alreadyHinted })) return;
 
   writeFileAtomic(stateFile, JSON.stringify({ hinted: true }));
-  console.log(DISCOVERY_HINT);
+  // 提示什麼內容留在本檔；呈現形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+  const decision = emitDecision({ kind: 'text', text: DISCOVERY_HINT }, ACTIVE_HARNESS, 'Stop');
+  if (decision !== null) console.log(decision);
 }
 
 /**
@@ -137,14 +140,9 @@ function main() {
 
   const injection = buildGateInjection(res.stdout, res.status === 0);
   if (injection !== null) {
-    console.log(
-      JSON.stringify({
-        hookSpecificOutput: {
-          hookEventName: 'Stop',
-          additionalContext: injection,
-        },
-      }),
-    );
+    // 注入什麼內容留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+    const decision = emitDecision({ kind: 'context', context: injection }, ACTIVE_HARNESS, 'Stop');
+    if (decision !== null) console.log(decision);
   }
 
   // 無論綠紅，gate 跑完即清空 accumulator（下趟重新累積，避免舊編輯一直觸發重跑）。

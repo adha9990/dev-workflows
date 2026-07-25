@@ -39,6 +39,19 @@
 // unknown 分支形狀（I13）：不偽裝成任何平台 JSON（JSON.parse 必須失敗），改回傳人可讀的繁體中文
 // 說明，講清楚「這個 harness 未被辨識、原始決策內容是什麼」，讓操作者至少讀得懂發生了什麼事。
 
+// ── production 輸出點實際使用的 harness（#183 T13 接線）───────────────────────────
+//
+// 全部決策輸出點（共 13 處）一律以本常數當 harness 傳入 emitDecision，理由與已知限制（誠實標記）：
+//   1) 現況 production hook 只在 Claude 上實跑；codex 信封形狀仍是暫定（見上方 I12 誠實標記），
+//      未經真機校驗，不能拿沒驗過的信封去換掉正在生效的 Claude 輸出。
+//   2) hook-input-normalize.mjs 的 detectHarness() 判的是「payload 形狀」（apply_patch → codex），
+//      不是「執行環境」；且既有行為鎖（hooks/test-config-protection.mjs C3、hooks/test-path-guard.mjs
+//      的 apply_patch 案例）明確要求 apply_patch payload 仍收到 Claude deny 信封。把輸出改成隨
+//      payload 形狀切 harness 會改變既有行為、屬另一個決策，不在本次接線範圍。
+// 日後接上真實環境偵測時，改這一個常數（或把它換成偵測函式的回傳值）即可，13 個輸出點不必再動——
+// 這正是把輸出組裝收斂到本檔的目的。
+export const ACTIVE_HARNESS = 'claude';
+
 /** Claude 分支：五種 kind 對照現況輸出點的位元相同構形。 */
 function emitClaude(output, hookEvent) {
   switch (output.kind) {

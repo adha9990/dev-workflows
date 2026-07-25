@@ -24,6 +24,7 @@ import { basename, isAbsolute, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { normalize } from './hook-input-normalize.mjs';
+import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
 
 // ── 對外契約：受保護的 linter / formatter 設定檔 basename（值即契約，逐欄釘死）─────────
 // 只收 lint/format 類設定；tsconfig.json / package.json 等「非 lint/format」刻意不納入（見測試 NOT_PROTECTED）。
@@ -120,15 +121,9 @@ function main() {
     .find((p) => shouldBlock(p, existsSync));
   if (!blockedPath) return; // 無檔路徑 / 非受保護 / 新建 → 放行
 
-  console.log(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: 'deny',
-        permissionDecisionReason: DENY_REASON,
-      },
-    }),
-  );
+  // 「擋不擋、理由是什麼」留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+  const decision = emitDecision({ kind: 'deny', reason: DENY_REASON }, ACTIVE_HARNESS, 'PreToolUse');
+  if (decision !== null) console.log(decision);
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

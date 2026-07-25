@@ -55,6 +55,8 @@ import {
   buildC2Report,
   checkAgentTierEffortModelReconciliation,
   buildC4Report,
+  checkRuntimeOverrideCorrespondence,
+  buildC5Report,
 } from './compat-lint.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -823,6 +825,155 @@ function makeC4FakeRepo({ model = 'opus', effort = 'high' } = {}) {
   const report = buildReport(REPO_ROOT, {});
   const c4Findings = report.findings.filter((f) => f.check === 'C4');
   assert(c4Findings.length === 0, `buildReport [真實資料整合]：篩 check==='C4' 之後為 0 筆（實際：${JSON.stringify(c4Findings)}）`);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// C5：checkRuntimeOverrideCorrespondence（純函式）——scoped span ↔ overrides[] 雙向對帳
+// ══════════════════════════════════════════════════════════════════════════
+
+// 正向：span 有 id 且對應到某筆 override → 0 筆 finding
+{
+  const spans = [{ file: 'references/x.md', line: 3, runtime: 'codex', id: 'foo' }];
+  const overrides = [{ id: 'foo', owner: 'o', rationale: 'r', test_ref: 't' }];
+  const findings = checkRuntimeOverrideCorrespondence(spans, overrides);
+  assert(findings.length === 0, `checkRuntimeOverrideCorrespondence [C5 正向]：span/override id 對得上 → 0 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+// 負向①：span 缺 id → 孤兒（無法對應任何 override）。overrides 刻意留空，隔離「缺 id」這個
+// 現象本身，不讓另一筆 override 的懸空 finding 混進來干擾這條斷言。
+{
+  const spans = [{ file: 'references/x.md', line: 5, runtime: 'codex', id: null }];
+  const findings = checkRuntimeOverrideCorrespondence(spans, []);
+  assert(
+    findings.length === 1 && findings[0].check === 'C5' && findings[0].file === 'references/x.md' && findings[0].detail.includes('缺少 id'),
+    `checkRuntimeOverrideCorrespondence [C5 負向①-缺id]：span 無 id → 1 筆 finding 標「缺少 id」（實際：${JSON.stringify(findings)}）`,
+  );
+}
+// 負向②：span 有 id，但 registry overrides 找不到對應筆（overrides 為空，或 id 不存在）→ 孤兒
+{
+  const spans = [{ file: 'references/x.md', line: 7, runtime: 'codex', id: 'orphan-id' }];
+  const findings = checkRuntimeOverrideCorrespondence(spans, []);
+  assert(
+    findings.length === 1 && findings[0].check === 'C5' && findings[0].detail.includes('orphan-id') && findings[0].detail.includes('孤兒'),
+    `checkRuntimeOverrideCorrespondence [C5 負向②-overrides為空]：span 有 id 但 overrides[] 空 → 1 筆孤兒 finding（實際：${JSON.stringify(findings)}）`,
+  );
+}
+// 負向③：override 有 id，但沒有任何 span 使用過 → 懸空
+{
+  const overrides = [{ id: 'unused-id', owner: 'o', rationale: 'r', test_ref: 't' }];
+  const findings = checkRuntimeOverrideCorrespondence([], overrides);
+  assert(
+    findings.length === 1 && findings[0].check === 'C5' && findings[0].detail.includes('unused-id') && findings[0].detail.includes('懸空'),
+    `checkRuntimeOverrideCorrespondence [C5 負向③-懸空]：override 無任何 span 使用 → 1 筆懸空 finding（實際：${JSON.stringify(findings)}）`,
+  );
+}
+// 對照組：override 無 id（欄位缺失）→ C5 略過不誤報，那是 check-registry-shape.mjs I15 的職責
+{
+  const overrides = [{ owner: 'o', rationale: 'r', test_ref: 't' }];
+  const findings = checkRuntimeOverrideCorrespondence([], overrides);
+  assert(findings.length === 0, 'checkRuntimeOverrideCorrespondence：override 缺 id → C5 不誤報（欄位完整性由 I15 負責）');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// C5 IO：buildC5Report——缺 registry 靜默略過、temp fake repo 正負向、真實 repo 須零 finding
+// ══════════════════════════════════════════════════════════════════════════
+
+function makeC5FakeRepo({ overrides, docText }) {
+  const dir = mkdtempSync(join(tmpdir(), 'compat-lint-c5-'));
+  const registry = { facets: {}, overrides };
+  writeFiles(dir, {
+    'plugins/loops-workflow/references/capability-registry.json': JSON.stringify(registry, null, 2),
+    'plugins/loops-workflow/references/doc.md': docText,
+  });
+  return dir;
+}
+
+// 缺 registry（假 repo 沒有 capability-registry.json）→ 靜默回傳空 findings，不報錯
+{
+  const dir = mkdtempSync(join(tmpdir(), 'compat-lint-c5-empty-'));
+  try {
+    const { findings } = buildC5Report(dir);
+    assert(Array.isArray(findings) && findings.length === 0, 'buildC5Report：registry 缺檔 → 靜默略過，0 筆 finding（不是報錯）');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// 正向：散文的 scoped span id 與 registry override id 對得上 → 0 筆 finding
+{
+  const dir = makeC5FakeRepo({
+    overrides: [{ id: 'demo-override', owner: 'o', rationale: 'r', test_ref: 't' }],
+    docText: '前文\n<!-- runtime: codex id=demo-override -->\n平台專屬敘述。\n<!-- /runtime -->\n後文',
+  });
+  try {
+    const { findings } = buildC5Report(dir);
+    assert(findings.length === 0, `buildC5Report [正向]：span/override id 對得上 → 0 筆 finding（實際：${JSON.stringify(findings)}）`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// 負向 fixture①：overrides[] 清空 → 散文裡的 scoped span 變孤兒 → C5 須紅
+{
+  const dir = makeC5FakeRepo({
+    overrides: [],
+    docText: '<!-- runtime: codex id=demo-override -->\n平台專屬敘述。\n<!-- /runtime -->',
+  });
+  try {
+    const { findings } = buildC5Report(dir);
+    assert(
+      findings.length === 1 && findings[0].check === 'C5' && findings[0].detail.includes('孤兒'),
+      `buildC5Report [負向①-overrides清空]：overrides 為空、散文仍有 scoped span → 1 筆孤兒 finding（實際：${JSON.stringify(findings)}）`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// 負向 fixture②：散文裡放一個沒有對應 override 的 scoped span（id 對不上既有 override）→ C5 須紅
+{
+  const dir = makeC5FakeRepo({
+    overrides: [{ id: 'some-other-override', owner: 'o', rationale: 'r', test_ref: 't' }],
+    docText: '<!-- runtime: codex id=no-such-override -->\n平台專屬敘述。\n<!-- /runtime -->',
+  });
+  try {
+    const { findings } = buildC5Report(dir);
+    assert(
+      findings.some((f) => f.check === 'C5' && f.detail.includes('no-such-override') && f.detail.includes('孤兒'))
+        && findings.some((f) => f.check === 'C5' && f.detail.includes('some-other-override') && f.detail.includes('懸空')),
+      `buildC5Report [負向②-span無對應override]：span 的 id 找不到對應 override（孤兒）且該 override 本身也懸空（實際：${JSON.stringify(findings)}）`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// 負向 fixture③：overrides 有一筆，但散文完全找不到使用 → 懸空 → C5 須紅
+{
+  const dir = makeC5FakeRepo({
+    overrides: [{ id: 'never-used', owner: 'o', rationale: 'r', test_ref: 't' }],
+    docText: '這份文件完全沒有任何 runtime scoped span。',
+  });
+  try {
+    const { findings } = buildC5Report(dir);
+    assert(
+      findings.length === 1 && findings[0].check === 'C5' && findings[0].detail.includes('never-used') && findings[0].detail.includes('懸空'),
+      `buildC5Report [負向③-懸空override]：registry 有 override 但散文無使用處 → 1 筆懸空 finding（實際：${JSON.stringify(findings)}）`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// 真實 repo 資料：C5 對帳必須零 finding（interaction-adapter.md 的 codex-request-user-input-shape
+// 是本次 T30 補的第一個真實 scoped override 使用，見 plan T30 §2）
+{
+  const { findings } = buildC5Report(REPO_ROOT);
+  assert(findings.length === 0, `buildC5Report [真實資料]：canonical 散文 ↔ capability-registry.json overrides[] 對帳零 finding（實際：${JSON.stringify(findings)}）`);
+}
+{
+  const report = buildReport(REPO_ROOT, {});
+  const c5Findings = report.findings.filter((f) => f.check === 'C5');
+  assert(c5Findings.length === 0, `buildReport [真實資料整合]：篩 check==='C5' 之後為 0 筆（實際：${JSON.stringify(c5Findings)}）`);
 }
 
 // ══════════════════════════════════════════════════════════════════════════

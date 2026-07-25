@@ -56,6 +56,12 @@
 // 的，C4 抓不到「生成器本身寫錯」這種洞，只能抓「生成後被手動改動、與 registry 脫鉤」。
 // 真正有鑑別力的只有 **4 支手寫 agent**：referee、test-author、impl-author、eval-judge——
 // 只有這 4 支的 model/effort 是人工填寫，才可能獨立於 registry 漂移，C4 的紅燈價值集中在這裡。
+//
+// T30 補上 C5（runtime scoped override 雙向對帳，見下方 C5 區塊註解）：對帳 canonical 散文裡
+// `<!-- runtime: claude|codex id=<slug> -->` scoped span 與 capability-registry.json
+// `overrides[]` 是否互相對得上（無孤兒 span、無懸空 override）；overrides 欄位本身的完整性
+// （owner/rationale/test_ref/scope 非空且存在）已由 check-registry-shape.mjs 的 I15 驗過，
+// C5 不重複實作。
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -170,13 +176,18 @@ export function findAdapterProjectionRanges(text) {
   return findMarkerRanges(text, 'adapter-projection');
 }
 
-/** 豁免③的區段：`<!-- runtime: claude|codex -->` … `<!-- /runtime -->`（記下是哪個 runtime）。 */
+/**
+ * 豁免③的區段：`<!-- runtime: claude|codex [id=<slug>] -->` … `<!-- /runtime -->`（記下是哪個
+ * runtime，以及選填的 `id`）。`id` 屬性是 C5（見下方 C5 區塊）用來對應 registry `overrides[]`
+ * 的 key——C3 豁免判定本身不看 id，這裡只是同一個 marker 順手多抽一個欄位，不必另開一條正則
+ * （reuse-check：兩個檢查共用同一個掃描結果，比各自掃一次成本低）。
+ */
 export function findRuntimeScopeRanges(text) {
-  const re = /<!--\s*runtime:\s*(claude|codex)\s*-->([\s\S]*?)<!--\s*\/runtime\s*-->/g;
+  const re = /<!--\s*runtime:\s*(claude|codex)(?:\s+id=([\w.-]+))?\s*-->([\s\S]*?)<!--\s*\/runtime\s*-->/g;
   const ranges = [];
   let m = re.exec(text);
   while (m !== null) {
-    ranges.push({ start: m.index, end: m.index + m[0].length, runtime: m[1] });
+    ranges.push({ start: m.index, end: m.index + m[0].length, runtime: m[1], id: m[2] ?? null });
     if (m[0].length === 0) re.lastIndex += 1;
     m = re.exec(text);
   }
@@ -323,7 +334,7 @@ export function formatSummary(result) {
 
   const lines = [];
   if (findings.length === 0) {
-    lines.push(`✓ compat-lint（C2+C3+C4）：${filesScanned} 檔全綠，無 finding。`);
+    lines.push(`✓ compat-lint（C2+C3+C4+C5）：${filesScanned} 檔全綠，無 finding。`);
   } else {
     lines.push(...findings.map((f) => `✗ [${f.check}] ${f.severity} ${f.file} — ${f.detail}`));
   }
@@ -579,6 +590,118 @@ export function buildC4Report(root) {
   };
 }
 
+// ── C5：runtime scoped override 雙向對帳（本次 T30 新增，純函式，無 IO，測試直接 import）──
+
+// C5 契約（本次 T30 新增，落點對齊既有 C2/C4 分工註解的形狀）：
+//   issue 明文要求「平台專屬規則若真的存在，用有明確 scope 的 override（`runtime: claude` /
+//   `runtime: codex`），而不是複製整份規則或 skill」，且驗收條件要求「平台專屬行為以 scoped
+//   override 表達，且有 owner、理由與測試」。C5 驗的就是這個機制本身有沒有被誠實使用：
+//   ①canonical 散文裡每一段帶 id 的 `<!-- runtime: … id=<slug> -->` scoped span，registry
+//     的 `overrides[]` 都要有對應 id 的一筆（找不到 → 孤兒 span）；沒帶 id 的 scoped span
+//     本身就無法對應任何 override，視同孤兒（見下方 checkRuntimeOverrideCorrespondence）。
+//   ②registry 每一筆 `overrides[]`（有 id 的）都要在散文裡找得到至少一處同 id 的使用
+//     （找不到 → 懸空 override，只在資料層宣告、canonical 散文從未真的引用它）。
+//   ③owner／rationale／test_ref／scope 是否非空、test_ref／scope 指向的檔案是否存在——這條線
+//     已由 check-registry-shape.mjs 的 I15（checkOverrides）驗過（overrides-non-empty /
+//     overrides-fields / overrides-test-ref-exists / overrides-scope-exists 四個 check id），
+//     C5 不重複實作，避免同一件事兩個入口——C5 專注在①②這條「散文 ↔ registry」的跨檔關係，
+//     I15 專注在 registry 自身的欄位完整性，兩者互補、由各自 CLI（compat-lint.mjs／
+//     check-registry-shape.mjs）分別負責，同一份 registry 兩者都要跑過。
+//   掃描面：與 C3 相同的五個 scope（skills/references/plugin-docs/repo-root/root-docs），
+//   理由是 runtime scoped override 本來就是 canonical 散文的豁免機制，只該出現在 C3 掃的
+//   那五個文字面；不掃 agents/**（生成物，同 C3 排除邏輯）。
+
+/**
+ * C5 對帳核心：spans（跨檔掃到的 runtime scoped span 清單，見 buildC5Report）×
+ * overrides（registry.overrides[]）→ findings。
+ * spans 缺 id、或 id 在 overrides 找不到對應筆 → 孤兒（span 側報）；
+ * overrides 有 id 但沒有任何 span 用過 → 懸空（registry 側報）。
+ */
+export function checkRuntimeOverrideCorrespondence(spans, overrides) {
+  const overrideIds = new Set(
+    (Array.isArray(overrides) ? overrides : []).map((ov) => ov?.id).filter(Boolean),
+  );
+  const usedIds = new Set();
+  const findings = [];
+
+  for (const span of Array.isArray(spans) ? spans : []) {
+    if (!span.id) {
+      findings.push({
+        check: 'C5',
+        severity: 'P1',
+        file: span.file,
+        line: span.line,
+        detail: `runtime scoped span 缺少 id 屬性（寫法應為 <!-- runtime: ${span.runtime} id=<slug> -->），無法對應 registry overrides[]（孤兒）`,
+      });
+      continue;
+    }
+    if (!overrideIds.has(span.id)) {
+      findings.push({
+        check: 'C5',
+        severity: 'P1',
+        file: span.file,
+        line: span.line,
+        detail: `runtime scoped span 的 id="${span.id}" 在 registry overrides[] 找不到對應筆（孤兒）`,
+      });
+      continue;
+    }
+    usedIds.add(span.id);
+  }
+
+  for (const ov of Array.isArray(overrides) ? overrides : []) {
+    if (!ov?.id) continue; // 無 id 的 override 屬欄位缺失，由 check-registry-shape.mjs 的 I15 負責攔
+    if (!usedIds.has(ov.id)) {
+      findings.push({
+        check: 'C5',
+        severity: 'P1',
+        file: CAPABILITY_REGISTRY_REL,
+        detail: `override "${ov.id}" 在 canonical 散文找不到任何 <!-- runtime: ... id=${ov.id} --> 使用處（懸空）`,
+      });
+    }
+  }
+
+  return findings;
+}
+
+/**
+ * C5 的 IO 邊界：掃 C3 同五個 scope 的散文找 runtime scoped span（含 id），讀 registry 的
+ * overrides[]，跑 checkRuntimeOverrideCorrespondence。registry 不存在 → 靜默回傳空 findings
+ * （理由同 buildC2Report／buildC4Report：對該 root 不適用不該讓整體報告失敗）。
+ */
+export function buildC5Report(root) {
+  const registryAbs = join(root, ...CAPABILITY_REGISTRY_REL.split('/'));
+  if (!existsSync(registryAbs)) return { findings: [] };
+
+  let registryRaw;
+  try {
+    registryRaw = readFileSync(registryAbs, 'utf8');
+  } catch (e) {
+    return { findings: [{ check: 'C5', severity: 'P1', file: CAPABILITY_REGISTRY_REL, detail: `讀取失敗：${e.message}` }] };
+  }
+
+  const parsedRegistry = parseRegistryJson(registryRaw);
+  if (parsedRegistry.error) {
+    return { findings: [{ check: 'C5', severity: 'P1', file: CAPABILITY_REGISTRY_REL, detail: parsedRegistry.error }] };
+  }
+
+  const relFiles = [...new Set(SCOPE_IDS.flatMap((scopeId) => listScopeFiles(root, scopeId)))];
+  const spans = [];
+  for (const rel of relFiles) {
+    let text;
+    try {
+      text = readFileSync(join(root, ...rel.split('/')), 'utf8');
+    } catch {
+      continue;
+    }
+    const lineOffsets = buildLineIndex(text);
+    for (const range of findRuntimeScopeRanges(text)) {
+      spans.push({ file: rel, line: lineOf(lineOffsets, range.start), runtime: range.runtime, id: range.id });
+    }
+  }
+
+  return { findings: checkRuntimeOverrideCorrespondence(spans, parsedRegistry.registry?.overrides) };
+}
+
 // ── IO 邊界：依 scope 掃檔 + CLI main ────────────────────────────────────────
 
 function toRelPosix(root, absPath) {
@@ -673,9 +796,11 @@ export function buildReport(root, opts = {}) {
     notes.push(...result.notes);
   }
 
-  // C2／C4 對帳與 scope 篩選無關（不是 markdown 面掃描），一律跑、findings 併入同一份報告。
+  // C2／C4／C5 對帳與 scope 篩選無關（不是本次呼叫指定的單一 scope 掃描），一律跑全域資料源、
+  // findings 併入同一份報告（C5 內部另外自行掃五個 scope，見 buildC5Report 註解）。
   findings.push(...buildC2Report(root).findings);
   findings.push(...buildC4Report(root).findings);
+  findings.push(...buildC5Report(root).findings);
 
   return {
     ok: findings.length === 0,

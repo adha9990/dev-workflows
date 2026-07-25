@@ -39,6 +39,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 
 import { flagEnabled } from './hook-flags.mjs';
 import { readReadsForSession } from './read-accumulator.mjs';
+import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
 
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
 
@@ -305,15 +306,9 @@ function readStdin() {
 }
 
 function denyWith(reason) {
-  console.log(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: 'deny',
-        permissionDecisionReason: reason,
-      },
-    }),
-  );
+  // 「擋不擋、理由是什麼」留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+  const decision = emitDecision({ kind: 'deny', reason }, ACTIVE_HARNESS, 'PreToolUse');
+  if (decision !== null) console.log(decision);
 }
 
 function main() {

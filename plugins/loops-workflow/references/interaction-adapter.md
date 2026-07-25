@@ -40,3 +40,9 @@ canonical 決策點在執行時要落到某個平台的實際互動能力。映�
 - 新寫或改一個決策點段落時，先套第 1 節四要素，**不要**先想「這平台工具叫什麼」再倒著寫。
 - 需要具體舉平台工具名（教學 / debug 說明）才寫，且必須包進 `<!-- adapter-projection -->` … `<!-- /adapter-projection -->`；`compat-lint.mjs` 對 `references/` 掃描層會抓未包 marker 的平台專屬互動工具名與廠商 model ID（清單見 `compat-lint.mjs` 本身，此處不重複列舉以免自己又踩線）。
 - 安全停等級的決策點，任何投影分支都不得省略「等答案」這一步——這是跨平台不變的底線，不是投影層可調整的細節。
+
+## 5. 已知平台差異（scoped override）
+
+<!-- runtime: codex id=codex-request-user-input-shape -->
+Codex 的 `request_user_input` 決策通道形狀——exec 非互動模式下能否穩定 surface question 事件——尚未經真機校驗（見 `capability-registry.json` `structured_question.codex`，`status=not_measured`／`measurability=no_stable_interface`）。在校驗完成前，規則文字一律假設該路徑不可靠，走本檔 §2 第 3 階單一 blocking question fallback，不得假設它已可用。
+<!-- /runtime -->

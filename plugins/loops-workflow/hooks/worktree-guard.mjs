@@ -25,6 +25,7 @@ import { pathToFileURL } from 'node:url';
 
 import { flagEnabled } from './hook-flags.mjs';
 import { normalize } from './hook-input-normalize.mjs';
+import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
 
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
 
@@ -148,15 +149,9 @@ function main() {
 
   if (!findLoopRoot(cwd, slug)) return; // slug 不是已建 loop → 放行（一般 branch 不管）
 
-  console.log(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: 'deny',
-        permissionDecisionReason: denyReason(slug),
-      },
-    }),
-  );
+  // 「擋不擋、理由是什麼」留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+  const decision = emitDecision({ kind: 'deny', reason: denyReason(slug) }, ACTIVE_HARNESS, 'PreToolUse');
+  if (decision !== null) console.log(decision);
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

@@ -52,6 +52,7 @@ import { flagEnabled } from './hook-flags.mjs';
 import { resolveLoopsRoot } from './cost-tracker.mjs';
 // tmp+rename 原子覆寫的單一真相源（本檔是原寫法出處，抽出後家族其餘覆寫型寫檔重用同一份，見 #183 T14）。
 import { writeFileAtomic } from './atomic-write.mjs';
+import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
 
 const GATE_TIMEOUT_MS = 300000; // 完工品質閘上限 5 分鐘，逾時視為 spawn 失敗 → fail-open 放行
 const LEDGER_REASON_CAP_CHARS = 10000; // 已跑閘紅時的失敗清單摘要上限，過長截斷（避免注入無界成長）
@@ -280,8 +281,10 @@ function deleteState(filePath) {
 }
 
 function emitBlock(reason) {
-  // Stop hook 以 stdout JSON 傳達 block（process exit code 仍為 0）。
-  console.log(JSON.stringify({ decision: 'block', reason: String(reason) }));
+  // Stop hook 以 stdout 傳達 block（process exit code 仍為 0）。
+  // 「擋不擋、理由是什麼」留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+  const decision = emitDecision({ kind: 'block', reason: String(reason) }, ACTIVE_HARNESS, 'Stop');
+  if (decision !== null) console.log(decision);
 }
 
 /** 已跑閘紅：把 quality-gate 的失敗清單攤成人讀 reason（含 code / message），供 agent 修正後再收攤。 */
@@ -302,18 +305,20 @@ function handleLedgerBlock(filePath, state, gateResult) {
   emitBlock(buildLedgerBlockReason(gateResult));
 }
 
+/** test 閘 not-run 時注入回 context 的弱帳本說明（明標未經測試背書，內容不隨 harness 改變）。 */
+const DEGRADED_COMPLETION_CONTEXT =
+  '[loops-workflow] 弱帳本：本迴圈完工，但 test 閘為 not-run（未實際跑過測試）。' +
+  '已放行收攤，惟此完工未經測試背書——請留意這不是強帳本綠燈。';
+
 /** test 閘 not-run 的弱帳本：明標「弱帳本」注入回 context（不 block），仍收攤刪 state。 */
 function handleDegradedCompletion(filePath) {
-  console.log(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'Stop',
-        additionalContext:
-          '[loops-workflow] 弱帳本：本迴圈完工，但 test 閘為 not-run（未實際跑過測試）。' +
-          '已放行收攤，惟此完工未經測試背書——請留意這不是強帳本綠燈。',
-      },
-    }),
+  // 注入什麼內容留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+  const decision = emitDecision(
+    { kind: 'context', context: DEGRADED_COMPLETION_CONTEXT },
+    ACTIVE_HARNESS,
+    'Stop',
   );
+  if (decision !== null) console.log(decision);
   deleteState(filePath);
 }
 
