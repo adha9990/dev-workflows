@@ -15,7 +15,7 @@
 | queue / 背景 job / 長流程 / 非同步處理 | `processing-reliability-reviewer` | retry / cancel / idempotency / 部分失敗 / 去重排序 |
 | **bug fix**（issue 標 bug / 標題含 fix·修·regression） | `root-cause-reviewer` | 症狀 vs 病根 / 因果鏈 / 同類入口 / 回歸測試撤 fix 必紅 |
 | **docs / README / 對外契約 / CLI / setup / migration / config 改動，或 PR body 聲稱免改文件** | `docs-devex-reviewer` | 既有文件是否變誤導 / PR body 驗證證據品質 |
-| **【專案宣告條件】專案宣告多人 / 併發 / 協作使用**（見下〈專案宣告條件〉）**＋改動觸及共享 / 持久化狀態、授權、或並發變更 path** | `multi-user-concurrency-reviewer` | lost update / 跨帳號授權隔離 / 交易競態 / oplog 排序衝突 / 冪等 / read-your-writes |
+| **【專案宣告條件】專案宣告多人 / 併發 / 協作使用**（見下〈專案宣告條件〉）**＋改動觸及共享 / 持久化狀態、授權、並發變更 path、或前端樂觀狀態層（樂觀更新 / 回滾 / 快照對帳）** | `multi-user-concurrency-reviewer` | 伺服器 / DB 層（lost update / 跨帳號授權隔離 / 交易競態 / oplog 排序 / 冪等 / read-your-writes）＋前端樂觀層（樂觀視窗歸屬 / 回滾語意 / 變動歸因 / 本地預測 vs 伺服器真相 / 失敗路徑對稱性） |
 
 > **「先前 comment 是否處理」不另設 reviewer** —— 那由 iterate 蒐齊回饋（`pr-feedback-sources.md`：總評 / inline / reviewThreads）+ 修完強制再 verify 結構性覆蓋。
 
@@ -32,7 +32,7 @@ coordinator（主線）看 build 的 Change Summaries + 改動檔案清單：碰
 
   | 專案宣告 | 額外觸發 reviewer | 加派時機 |
   |---|---|---|
-  | 多人 / 併發 / 協作使用 | `multi-user-concurrency-reviewer` | 且本次改動觸及**共享 / 持久化狀態、授權、或會被多使用者並發走到的變更 path**（純前端樣式 / 純文件 / 單機 CLI 等不觸及並發狀態的改動不派，避免噪音） |
+  | 多人 / 併發 / 協作使用 | `multi-user-concurrency-reviewer` | 且本次改動觸及**共享 / 持久化狀態、授權、會被多使用者並發走到的變更 path、或前端樂觀狀態層（樂觀更新 / 回滾 / 快照對帳）**（純前端**樣式** / 純文件 / 單機 CLI 等不觸及並發或樂觀狀態的改動不派，避免噪音——注意「純樣式」才排除，動到樂觀更新 / 回滾 / 對帳的前端邏輯要派） |
 
 - **要新增專案宣告條件**：在目標專案的 `AGENTS.md` 明文宣告（建議放獨立小節，方便後續文檔維護），再在本表補一列 + 對應 reviewer/reference。**條件的「開關」在專案、判準在 plugin。**
 
