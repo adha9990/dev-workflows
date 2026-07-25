@@ -242,10 +242,12 @@ export function deepSyncCheck(pairs, threshold = DEEP_SYNC_THRESHOLD) {
   return findings;
 }
 
-// 只認「裸露」的 references/X.md 形狀（X 不含路徑分隔字元），字面 glob（references/*.md）
-// 因含 `*` 天然不落入 [\w.-]+ 而不匹配；skill-local 形狀（skills/x/references/y.md）由呼叫端
-// 依referrer 是否落在 skills/ 底下判斷是否略過，這裡只單純抓檔名。
-const REFERENCE_MENTION_RE = /references\/([\w.-]+\.md)/g;
+// 認 references/ 之後的**相對路徑**（可含子目錄段，如 references/shared/quality/x.md）——
+// reference 樹已巢狀化，只認單層檔名會讓子目錄下的引用完全掃不到（靜默漏檢，不是誤報）。
+// 字面 glob（references/*.md）因含 `*` 天然不落入 [\w./-]+ 而不匹配；skill-local 形狀
+// （skills/x/references/y.md）由呼叫端依 referrer 是否落在 skills/ 底下判斷是否略過，
+// 這裡只單純抓 references/ 之後那段相對路徑。
+const REFERENCE_MENTION_RE = /references\/([\w.-]+(?:\/[\w.-]+)*\.md)/g;
 
 function extractReferenceMentions(content) {
   const filenames = new Set();
@@ -272,8 +274,21 @@ function pluginRootOf(file, pluginRoots) {
   return pluginRoots.find((root) => file.startsWith(`${root}/`)) ?? null;
 }
 
+// references/ 樹底下**任意深度**的 .md 都算 plugin reference（不限直屬層）——reference 已巢狀
+// 分類，只認直屬層會讓子目錄裡的 reference 完全脫離 orphan-ref 視野。
+// 例外：GENERATED_REFERENCE_SUBDIRS 底下的檔是 generator 從真相源整批產出、由 generator 掃目錄
+// 消費（不靠散文逐字提檔名），對它們問「有沒有 referrer 提到檔名」問錯了問題——這批本來就不在
+// orphan-ref 視野內（compat-lint 的 EXCLUDED_PATH_PREFIXES、lint-mutation 的探針落點也都同樣
+// 排除它），這裡只是把既有共識寫明，不是放寬。broken-ref 不受影響：指向它們的引用仍會被解析。
+const GENERATED_REFERENCE_SUBDIRS = new Set(['reviewers']);
+
+function isGeneratedReferenceFile(file) {
+  return file.split('/').some((segment) => GENERATED_REFERENCE_SUBDIRS.has(segment));
+}
+
 function isPluginReferenceFile(file, pluginRoots) {
-  return pluginRoots.some((root) => new RegExp(`^${escapeRegExp(root)}/references/[^/]+\\.md$`).test(file));
+  if (!file.endsWith('.md') || isGeneratedReferenceFile(file)) return false;
+  return pluginRoots.some((root) => file.startsWith(`${root}/references/`));
 }
 
 function escapeRegExp(s) {
@@ -876,12 +891,10 @@ function countDirs(path) {
   }
 }
 
+// 遞迴計數（沿用 listFilesRecursive 的排除規則）：reference 樹已巢狀分類，非遞迴數法會把
+// 子目錄裡的檔案全部漏掉，讓 count-drift 對著一個偏低的「實際值」對帳而永遠不紅。
 function countFiles(path, ext) {
-  try {
-    return readdirSync(path, { withFileTypes: true }).filter((e) => e.isFile() && e.name.endsWith(ext)).length;
-  } catch {
-    return 0;
-  }
+  return listFilesRecursive(path).filter((f) => f.endsWith(ext)).length;
 }
 
 /** 對每個 plugin 目錄實際數出 reference/skill/hook 數，加總（多 plugin 情境下合計）。 */
@@ -904,12 +917,15 @@ function computeActualCounts(root) {
 // 值得盯字數）。>500 命中在 buildReport 降級成 informational notes（不擋線）——真正超標的
 // scaffold-fullstack 目前確實破格（1189 字元），但這是「該被看見、逐步瘦身」的既有債，不該讓
 // lint 本身把既有 repo 判紅；notes 讓每次跑都看得到警示，同時不阻擋其餘檢查通過。
+// agents/ 樹底下**任意深度**的 .md 都是 agent（agent 已依角色分巢狀子目錄）；只認直屬層會讓
+// 子目錄裡的 agent 從 footprint／duplicate／deep-sync 三個檢查同時消失，且是靜默消失。
+const AGENT_FILE_RE = /^plugins\/[^/]+\/agents\/(?:[^/]+\/)*[^/]+\.md$/;
+const SKILL_FILE_RE = /^plugins\/[^/]+\/skills\/[^/]+\/SKILL\.md$/;
+
 function buildFootprintItems(fullMap) {
   const items = [];
   for (const [file, content] of Object.entries(fullMap)) {
-    const isAgent = /^plugins\/[^/]+\/agents\/[^/]+\.md$/.test(file);
-    const isSkill = /^plugins\/[^/]+\/skills\/[^/]+\/SKILL\.md$/.test(file);
-    if (!isAgent && !isSkill) continue;
+    if (!AGENT_FILE_RE.test(file) && !SKILL_FILE_RE.test(file)) continue;
     items.push({ file, description: parseDescription(content).description });
   }
   return items;
@@ -917,7 +933,7 @@ function buildFootprintItems(fullMap) {
 
 function buildAgentsList(fullMap) {
   return Object.entries(fullMap)
-    .filter(([file]) => /^plugins\/[^/]+\/agents\/[^/]+\.md$/.test(file))
+    .filter(([file]) => AGENT_FILE_RE.test(file))
     .map(([file, content]) => ({ file, body: stripFrontmatter(content) }));
 }
 

@@ -369,7 +369,7 @@ function makeFakeRepo() {
     'plugins/loops-workflow/skills/foo/fixtures/should-be-skipped.md': '呼叫 AskUserQuestion。',
     'plugins/loops-workflow/skills/scaffold-fullstack/assets/should-be-skipped2.md': '呼叫 AskUserQuestion。',
     'plugins/loops-workflow/references/top-level.md': '派給 opus。',
-    'plugins/loops-workflow/references/nested/should-not-scan.md': '派給 opus。',
+    'plugins/loops-workflow/references/nested/should-scan.md': '派給 opus。',
     'plugins/loops-workflow/references/reviewer-shared.md': '派給 opus。',
     'plugins/loops-workflow/docs/topic/nested.md': '讀取 PreToolUse。',
     'docs/spec/nested.md': '讀取 PreToolUse。',
@@ -392,13 +392,19 @@ function makeFakeRepo() {
   }
 }
 
-// IO-2：references scope 只掃頂層 .md，nested/ 與 reviewer-shared.md 都不算
+// IO-2：references scope 遞迴掃全樹 .md，reviewer-shared.md 仍精確排除
+// 【行為變更】原本這條鎖的是「references 不遞迴進 nested/」。reference 樹改為巢狀分類後，
+// 非遞迴會讓子目錄裡的 reference 整批脫離 C3/C5 掃描面、且是「掃描面塌陷但仍回報全綠」的
+// 靜默失效（lint-mutation 的 compat-lint-files-scanned 探針就是為這個而設）。當初設非遞迴的
+// 唯一理由是避開生成物 references/reviewers/**，而那批已由 EXCLUDED_PATH_PREFIXES 精確排除，
+// 「不遞迴」這道粗篩已無存在理由 —— 故本條改鎖相反方向：巢狀 .md 必須掃得到。
+// 排除規則（reviewer-shared.md 精確排除、reviewers/ 前綴排除）不變，嚴格度沒有放寬。
 {
   const dir = makeFakeRepo();
   try {
     const files = listScopeFiles(dir, 'references');
     assert(files.includes('plugins/loops-workflow/references/top-level.md'), 'listScopeFiles [IO-2]：references 掃到頂層 .md');
-    assert(!files.some((f) => f.includes('references/nested/')), 'listScopeFiles [IO-2]：references 不遞迴進 nested/（頂層才算）');
+    assert(files.includes('plugins/loops-workflow/references/nested/should-scan.md'), 'listScopeFiles [IO-2]：references 遞迴掃到巢狀 .md');
     assert(!files.includes('plugins/loops-workflow/references/reviewer-shared.md'), 'listScopeFiles [IO-2]：reviewer-shared.md 精確排除');
   } finally {
     rmSync(dir, { recursive: true, force: true });

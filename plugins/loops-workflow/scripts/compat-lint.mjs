@@ -76,10 +76,12 @@ import { parseRegistryJson } from './check-registry-shape.mjs';
 
 const SCOPE_IDS = ['skills', 'references', 'plugin-docs', 'repo-root', 'root-docs'];
 
-// scope → 掃描基準目錄 + 是否遞迴（references 頂層 .md 才算，其餘遞迴）。
+// scope → 掃描基準目錄（五個 scope 一律遞迴）。references 曾刻意設非遞迴以避開生成物
+// references/reviewers/**，但那批已由 EXCLUDED_PATH_PREFIXES 精確排除；改遞迴後 reference 樹
+// 巢狀分類的子目錄才進得了 C3/C5 掃描面，否則搬檔即靜默失效（掃描面塌陷但仍回報全綠）。
 const SCOPE_DIR_DEFS = {
   skills: { baseDir: 'plugins/loops-workflow/skills', recursive: true },
-  references: { baseDir: 'plugins/loops-workflow/references', recursive: false },
+  references: { baseDir: 'plugins/loops-workflow/references', recursive: true },
   'plugin-docs': { baseDir: 'plugins/loops-workflow/docs', recursive: true },
   'repo-root': { baseDir: 'docs', recursive: true },
 };
@@ -515,10 +517,12 @@ export function parseGapsArrayJson(content) {
  * ②model：registry.agent_tiers[name] 展開 model_tier[tier].claude.model 是否等於 frontmatter
  *   model:（目前唯一沒人驗的洞，見檔頭）。
  * agentNames / effortByAgent / modelByAgent 由呼叫端注入（IO 已在邊界讀完，這裡純比對）。
+ * fileByAgent 選填：agent 名 → repo-relative 路徑（agents/ 樹巢狀化後，檔案不一定在直屬層）；
+ * 沒給就退回直屬層慣例路徑，維持既有呼叫端與測試不變。
  * 任一邊缺值（tier 未知、model_tier 未填 claude.model、frontmatter 缺欄位）→ 略過該筆，不誤報
  * ——鍵集合本身的缺失已由 check-registry-shape.mjs 的 I8 回報，C4 不重複那個噪音。
  */
-export function checkAgentTierEffortModelReconciliation(registry, { agentNames, effortByAgent, modelByAgent } = {}) {
+export function checkAgentTierEffortModelReconciliation(registry, { agentNames, effortByAgent, modelByAgent, fileByAgent } = {}) {
   const names = Array.isArray(agentNames) ? agentNames : [];
   const agentTiers = registry?.agent_tiers ?? {};
   const agentEffort = registry?.agent_effort ?? {};
@@ -529,14 +533,15 @@ export function checkAgentTierEffortModelReconciliation(registry, { agentNames, 
     const tier = agentTiers[name];
     if (tier == null) continue; // 鍵集合缺失已由 check-registry-shape.mjs 的 I8 回報
 
+    const file = fileByAgent?.[name] ?? `${AGENTS_DIR_REL}/${name}.md`;
     const registryEffort = agentEffort[name];
     const actualEffort = effortByAgent?.[name];
     if (registryEffort != null && actualEffort != null && registryEffort !== actualEffort) {
       findings.push({
         check: 'C4',
         severity: 'P1',
-        file: `${AGENTS_DIR_REL}/${name}.md`,
-        detail: `agent "${name}" 的 registry agent_effort="${registryEffort}"，與 agents/${name}.md frontmatter 的 effort="${actualEffort}" 不符`,
+        file,
+        detail: `agent "${name}" 的 registry agent_effort="${registryEffort}"，與 ${file} frontmatter 的 effort="${actualEffort}" 不符`,
       });
     }
 
@@ -546,8 +551,8 @@ export function checkAgentTierEffortModelReconciliation(registry, { agentNames, 
       findings.push({
         check: 'C4',
         severity: 'P1',
-        file: `${AGENTS_DIR_REL}/${name}.md`,
-        detail: `agent "${name}" 的 agent_tiers="${tier}" 展開 model_tier.claude.model="${expectedModel}"，與 agents/${name}.md frontmatter 的 model="${actualModel}" 不符`,
+        file,
+        detail: `agent "${name}" 的 agent_tiers="${tier}" 展開 model_tier.claude.model="${expectedModel}"，與 ${file} frontmatter 的 model="${actualModel}" 不符`,
       });
     }
   }
@@ -566,10 +571,11 @@ export function buildC4Report(root) {
   if (!existsSync(registryAbs) || !existsSync(agentsDirAbs)) return { findings: [] };
 
   let registryRaw;
-  let agentFileNames;
+  let agentRelFiles;
   try {
     registryRaw = readFileSync(registryAbs, 'utf8');
-    agentFileNames = readdirSync(agentsDirAbs).filter((f) => f.endsWith('.md'));
+    // 遞迴：agents/ 已依角色分巢狀子目錄，非遞迴 readdirSync 會讓子目錄裡的 agent 靜默脫離 C4 對帳。
+    agentRelFiles = listFilesRecursive(root, agentsDirAbs, true);
   } catch (e) {
     return { findings: [{ check: 'C4', severity: 'P1', file: CAPABILITY_REGISTRY_REL, detail: `讀取失敗：${e.message}` }] };
   }
@@ -579,22 +585,27 @@ export function buildC4Report(root) {
     return { findings: [{ check: 'C4', severity: 'P1', file: CAPABILITY_REGISTRY_REL, detail: parsedRegistry.error }] };
   }
 
-  const agentNames = agentFileNames.map((f) => f.replace(/\.md$/, ''));
+  // agent 名＝檔名去 .md（與 registry 的扁平鍵一致，不含目錄段）；fileByAgent 保留真實路徑供 finding 指路。
+  const agentNames = [];
+  const fileByAgent = {};
   const effortByAgent = {};
   const modelByAgent = {};
-  for (const name of agentNames) {
+  for (const rel of agentRelFiles) {
+    const name = rel.slice(rel.lastIndexOf('/') + 1).replace(/\.md$/, '');
     let content;
     try {
-      content = readFileSync(join(agentsDirAbs, `${name}.md`), 'utf8');
+      content = readFileSync(join(root, ...rel.split('/')), 'utf8');
     } catch {
       continue;
     }
+    agentNames.push(name);
+    fileByAgent[name] = rel;
     effortByAgent[name] = content.match(EFFORT_FRONTMATTER_RE)?.[1] ?? null;
     modelByAgent[name] = content.match(MODEL_FRONTMATTER_RE)?.[1] ?? null;
   }
 
   return {
-    findings: checkAgentTierEffortModelReconciliation(parsedRegistry.registry, { agentNames, effortByAgent, modelByAgent }),
+    findings: checkAgentTierEffortModelReconciliation(parsedRegistry.registry, { agentNames, fileByAgent, effortByAgent, modelByAgent }),
   };
 }
 
