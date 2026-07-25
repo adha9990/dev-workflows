@@ -8,3 +8,9 @@ plugins/loops-workflow/references/personas/reviewer-shared.md text eol=lf
 plugins/loops-workflow/references/personas/*-reviewer.md text eol=lf
 plugins/loops-workflow/references/personas/finding-validator.md text eol=lf
 plugins/loops-workflow/scripts/gen-reviewers.mjs text eol=lf
+
+# #172：loop-memory 的 characterization fixture 是四條真實 loop.md 的**逐字快照**，且
+# test-loop-memory.mjs 的 T0-README-SELFCHECK 會逐列比對 README 表格宣告的 bytes／sha256 與磁碟實況。
+# 不釘 eol=lf 的話，Windows（autocrlf=true）checkout 會把 LF 換成 CRLF → 檔案大小與雜湊全變 →
+# 一份完全正確的快照在別的平台上會紅。
+plugins/loops-workflow/scripts/fixtures/loop-memory/real-loops/*.md text eol=lf

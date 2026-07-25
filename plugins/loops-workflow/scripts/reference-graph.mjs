@@ -55,7 +55,11 @@ export const BASELINE_REL = 'plugins/loops-workflow/references/reference-graph-b
 
 // references/ 之後任意深度的相對路徑，收尾 .md；字元集刻意含 `*`，好讓 glob 字面也被抓進來
 // **並分類成 glob**（不抓就無從證明它被看過、也無從說明它為何不進比對）。
-const REFERENCE_LITERAL_RE = /references\/[A-Za-z0-9_*.-]+(?:\/[A-Za-z0-9_*.-]+)*\.md/g;
+// 左界 `(?<![\w-])`：與 skill-lint.mjs 的 REFERENCE_MENTION_RE、check-legacy-paths.mjs 的
+// LEGACY_FLAT_RE 同一條界（三處字元集不同故未共用同一個常數，語意必須一致）——這個路徑段前面緊接
+// 識別字元或連字號時，那是某個**以該字結尾的目錄名**（實測踩到一個 branch slug
+// `…-skills-agents-references/loop.md` 被當成引用），不是一處 reference 引用。
+const REFERENCE_LITERAL_RE = /(?<![\w-])references\/[A-Za-z0-9_*.-]+(?:\/[A-Za-z0-9_*.-]+)*\.md/g;
 // 遮罩 token 刻意不以 .md 收尾，避免遮罩後的內容再次被本規則（或 skill-lint 的 broken-ref）認成引用。
 const MASK_TOKEN = 'references/<masked>';
 
@@ -291,12 +295,24 @@ export function gitPort(root) {
   };
 }
 
-/** 產出基準快照物件。baseline_commit ＝ 產出當下的 HEAD sha（拿不到 → 丟例外，不寫出無主快照）。 */
-export function buildSnapshot(root, { git = gitPort(root) } = {}) {
+/** 快照錨點的預設 ref：與主幹的分歧點。見 buildSnapshot 的說明。 */
+export const DEFAULT_ANCHOR_REF = 'master';
+
+/**
+ * 產出基準快照物件。`baseline_commit` ＝ **與主幹的分歧點** sha（取不到就退回 HEAD；兩者都取不到
+ * 才丟例外，不寫出無主快照）。
+ *
+ * 為什麼不是 HEAD：本 repo 用 **squash merge**——feature 分支的 commit 合併後會被換成一顆全新的
+ * commit，原本的 sha 從此不在主幹歷史裡。快照若釘在那顆 sha，之後每次 `--compare` 算出來的
+ * merge-base 都不等於它 → 判 `baseline-commit-mismatch`、**這道閘從此永久紅著**（實測：#171 的
+ * 快照釘在 `4289aa5`，squash 之後 merge-base 變成 `5816655`，master 上就已經是紅的）。
+ * 分歧點那顆 commit 本來就落在主幹歷史上，squash merge 不會動到它，所以錨在它才穩定。
+ */
+export function buildSnapshot(root, { git = gitPort(root), anchorRef = DEFAULT_ANCHOR_REF } = {}) {
   const { entries, findings } = scanTree(root);
-  const baselineCommit = git.headSha();
+  const baselineCommit = git.mergeBase(anchorRef) ?? git.headSha();
   if (!baselineCommit) {
-    throw new Error('reference-graph：取不到 HEAD sha，無法產出帶 commit 標記的基準快照');
+    throw new Error('reference-graph：取不到分歧點與 HEAD sha，無法產出帶 commit 標記的基準快照');
   }
   return {
     snapshot: {
@@ -477,7 +493,8 @@ function parseArgs(argv) {
 }
 
 function emitBaseline(opts) {
-  const { snapshot, findings } = buildSnapshot(opts.root);
+  // `--base-ref` 在 emit 模式代表「錨點 ref」（分歧點要對哪一條主幹算），與 compare 模式共用同一個旗標。
+  const { snapshot, findings } = buildSnapshot(opts.root, { anchorRef: opts.baseRef ?? DEFAULT_ANCHOR_REF });
   const outPath = opts.out ?? join(opts.root, BASELINE_REL);
   writeFileSync(outPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
   const byClass = countByClass(snapshot.entries);
