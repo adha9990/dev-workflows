@@ -62,6 +62,10 @@
 // `overrides[]` 是否互相對得上（無孤兒 span、無懸空 override）；overrides 欄位本身的完整性
 // （owner/rationale/test_ref/scope 非空且存在）已由 check-registry-shape.mjs 的 I15 驗過，
 // C5 不重複實作。
+//
+// T25 補上 C6（hooks-codex.json 投影漂移檢查，見下方 C6 區塊註解）：對帳 hooks/hooks.json（Claude
+// 側正本）＋ registry facets.hook_events.platforms.codex.projection_mapping（單一真相源）算出的
+// 期望投影，與磁碟上 hooks/hooks-codex.json 是否結構相等；不相等（含手改任一欄位）→ 紅並指出漂移。
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -85,6 +89,10 @@ const ROOT_DOCS_FILES = ['AGENTS.md', 'README.md'];
 // C2 對帳的兩份資料源（repo-relative posix，與 check-registry-shape.mjs 的 REGISTRY_REL 同源）。
 const CAPABILITY_REGISTRY_REL = 'plugins/loops-workflow/references/capability-registry.json';
 const GAPS_JSON_REL = 'plugins/loops-workflow/evals/baseline/codex/gaps.json';
+
+// C6 對帳的兩份資料源：hooks/hooks.json（Claude 側正本）與 hooks/hooks-codex.json（generated 投影）。
+const HOOKS_JSON_REL = 'plugins/loops-workflow/hooks/hooks.json';
+const HOOKS_CODEX_JSON_REL = 'plugins/loops-workflow/hooks/hooks-codex.json';
 
 // C4 對帳的資料源：agents/*.md（與 check-registry-shape.mjs 的 AGENTS_DIR_REL 同源）。
 const AGENTS_DIR_REL = 'plugins/loops-workflow/agents';
@@ -334,7 +342,7 @@ export function formatSummary(result) {
 
   const lines = [];
   if (findings.length === 0) {
-    lines.push(`✓ compat-lint（C2+C3+C4+C5）：${filesScanned} 檔全綠，無 finding。`);
+    lines.push(`✓ compat-lint（C2+C3+C4+C5+C6）：${filesScanned} 檔全綠，無 finding。`);
   } else {
     lines.push(...findings.map((f) => `✗ [${f.check}] ${f.severity} ${f.file} — ${f.detail}`));
   }
@@ -702,6 +710,143 @@ export function buildC5Report(root) {
   return { findings: checkRuntimeOverrideCorrespondence(spans, parsedRegistry.registry?.overrides) };
 }
 
+// ── C6：hooks-codex.json 投影漂移檢查（本次 T25 新增，純函式，無 IO，測試直接 import）────────
+
+// C6 契約（本次 T25 新增，落點對齊既有 C2/C4/C5 分工註解的形狀）：
+//   #183 §5 x183_action 要求「hook normalization layer：產 hooks-codex.json 投影（事件/matcher/
+//   payload/env），統一交既有 guard/recorder」。C6 驗的是這份投影檔沒有跟正本脫鉤：
+//   ①事件集合：hooks-codex.json 的頂層事件 key 須與 hooks.json 逐一對應（見 projectHooksToCodex，
+//     目前規則是 1:1 直接沿用，官方文件未載事件改名）。
+//   ②matcher：依 registry projection_mapping.matcher_tool_alias 表（單一真相源，見
+//     capability-registry.json 的 hook_events facet）把工具名 pipe-list 投影成 Codex 側等價
+//     matcher；非工具名 pipe-list（含正則特殊字元的 matcher，例如 pr-owner-guard 的
+//     update_pull_request pattern）不轉換、原樣保留。
+//   ③command／hooks 陣列（payload 層）：與正本逐字相同——command 字面（含 ${CLAUDE_PLUGIN_ROOT}）
+//     不改寫，官方文件載 Codex 相容此環境變數（env 層）。
+//   ④_meta 誠實標記：generated===true、warning、verification_status 三個非空欄位缺一不可，
+//     防止「拿掉誠實標記」這種手改被誤判為綠燈。
+//   判定方式是「重新算一次期望投影、與磁碟版本結構相等比對」（見 checkHooksCodexProjectionDrift），
+//   不是各自維護一份規則字串比對——這樣手改 hooks-codex.json 任一欄位都會被抓到，不會退化成
+//   「檔案存在即綠」。
+
+/**
+ * 依 registry 宣告的 matcher_tool_alias 表，把單一 matcher 字串投影成 Codex 側等價值。
+ * 只對「純工具名 pipe-list」（例如 "Write|Edit|MultiEdit"，全由 \w 與 | 組成）做別名替換並去重；
+ * 含正則特殊字元（例如 ".*(update_pull_request|request_copilot_review).*"）視為非工具名 matcher，
+ * 原樣保留——這條規則本身就是 C6 的對帳依據，不是憑空判斷。
+ */
+export function aliasMatcherTokens(matcher, aliasMap) {
+  if (typeof matcher !== 'string' || matcher.length === 0) return matcher;
+  if (!/^\w+(\|\w+)*$/.test(matcher)) return matcher; // 非純工具名 pipe-list，原樣保留
+  const map = aliasMap ?? {};
+  const tokens = matcher.split('|').map((t) => map[t] ?? t);
+  return [...new Set(tokens)].join('|'); // 去重：多個 token 別名成同一目標時（如 Edit/Write→apply_patch）避免重複
+}
+
+/** 兩個任意 JSON 值的結構性深比對（鍵順序不敏感），供 C6 判定投影是否漂移。 */
+export function deepEqualJson(a, b) {
+  if (a === b) return true;
+  if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((v, i) => deepEqualJson(v, b[i]));
+  }
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every((k) => Object.prototype.hasOwnProperty.call(b, k) && deepEqualJson(a[k], b[k]));
+}
+
+/**
+ * C6 投影核心：hooks.json 的 `hooks` 物件 → Codex 側等價 `hooks` 物件。純函式，mappingRules 取自
+ * registry facets.hook_events.platforms.codex.projection_mapping（單一真相源，不在此函式內寫死
+ * 別名表——見檔頭 C6 契約①②）。
+ */
+export function projectHooksToCodex(hooksJson, mappingRules) {
+  const aliasMap = mappingRules?.matcher_tool_alias ?? {};
+  const sourceHooks = hooksJson?.hooks ?? {};
+  const projected = {};
+  for (const [eventName, blocks] of Object.entries(sourceHooks)) {
+    projected[eventName] = (Array.isArray(blocks) ? blocks : []).map((block) => {
+      const out = { ...block };
+      if (typeof out.matcher === 'string') out.matcher = aliasMatcherTokens(out.matcher, aliasMap);
+      return out;
+    });
+  }
+  return projected;
+}
+
+/**
+ * C6 對帳：actual（hooks-codex.json 解析後全文，含 _meta）與 expectedHooks（projectHooksToCodex
+ * 算出的 hooks 物件）→ findings。兩線：①actual.hooks 與 expectedHooks 結構相等（drift 核心判定，
+ * 見檔頭契約①②③）；②_meta 三個必要誠實標記欄位非空（見檔頭契約④）。
+ */
+export function checkHooksCodexProjectionDrift(actual, expectedHooks) {
+  const findings = [];
+  if (!deepEqualJson(actual?.hooks, expectedHooks)) {
+    findings.push({
+      check: 'C6',
+      severity: 'P1',
+      file: HOOKS_CODEX_JSON_REL,
+      detail: 'hooks-codex.json 的 hooks 事件／matcher／command 結構與 hooks.json + registry projection_mapping 推導出的投影不一致（drift）；請勿手改此檔，改正本或 registry 再重生。',
+    });
+  }
+  const meta = actual?._meta ?? {};
+  if (meta.generated !== true || !meta.warning || !meta.verification_status) {
+    findings.push({
+      check: 'C6',
+      severity: 'P1',
+      file: HOOKS_CODEX_JSON_REL,
+      detail: 'hooks-codex.json 缺少或損壞 _meta 誠實標記（須含 generated===true、warning、verification_status 三個非空欄位）',
+    });
+  }
+  return findings;
+}
+
+/**
+ * C6 的 IO 邊界：讀 hooks.json + hooks-codex.json + capability-registry.json，跑
+ * checkHooksCodexProjectionDrift。任一資料源不存在 → 靜默回傳空 findings，理由同 buildC2Report。
+ */
+export function buildC6Report(root) {
+  const hooksAbs = join(root, ...HOOKS_JSON_REL.split('/'));
+  const hooksCodexAbs = join(root, ...HOOKS_CODEX_JSON_REL.split('/'));
+  const registryAbs = join(root, ...CAPABILITY_REGISTRY_REL.split('/'));
+  if (!existsSync(hooksAbs) || !existsSync(hooksCodexAbs) || !existsSync(registryAbs)) return { findings: [] };
+
+  let hooksRaw;
+  let hooksCodexRaw;
+  let registryRaw;
+  try {
+    hooksRaw = readFileSync(hooksAbs, 'utf8');
+    hooksCodexRaw = readFileSync(hooksCodexAbs, 'utf8');
+    registryRaw = readFileSync(registryAbs, 'utf8');
+  } catch (e) {
+    return { findings: [{ check: 'C6', severity: 'P1', file: HOOKS_CODEX_JSON_REL, detail: `讀取失敗：${e.message}` }] };
+  }
+
+  let hooksJson;
+  let hooksCodexJson;
+  try {
+    hooksJson = JSON.parse(hooksRaw);
+  } catch (e) {
+    return { findings: [{ check: 'C6', severity: 'P1', file: HOOKS_JSON_REL, detail: `hooks.json 解析失敗：${e.message}` }] };
+  }
+  try {
+    hooksCodexJson = JSON.parse(hooksCodexRaw);
+  } catch (e) {
+    return { findings: [{ check: 'C6', severity: 'P1', file: HOOKS_CODEX_JSON_REL, detail: `hooks-codex.json 解析失敗：${e.message}` }] };
+  }
+
+  const parsedRegistry = parseRegistryJson(registryRaw);
+  if (parsedRegistry.error) {
+    return { findings: [{ check: 'C6', severity: 'P1', file: CAPABILITY_REGISTRY_REL, detail: parsedRegistry.error }] };
+  }
+
+  const mappingRules = parsedRegistry.registry?.facets?.hook_events?.platforms?.codex?.projection_mapping ?? null;
+  const expectedHooks = projectHooksToCodex(hooksJson, mappingRules);
+  return { findings: checkHooksCodexProjectionDrift(hooksCodexJson, expectedHooks) };
+}
+
 // ── IO 邊界：依 scope 掃檔 + CLI main ────────────────────────────────────────
 
 function toRelPosix(root, absPath) {
@@ -801,6 +946,7 @@ export function buildReport(root, opts = {}) {
   findings.push(...buildC2Report(root).findings);
   findings.push(...buildC4Report(root).findings);
   findings.push(...buildC5Report(root).findings);
+  findings.push(...buildC6Report(root).findings);
 
   return {
     ok: findings.length === 0,

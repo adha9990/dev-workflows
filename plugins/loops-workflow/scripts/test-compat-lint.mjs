@@ -57,6 +57,11 @@ import {
   buildC4Report,
   checkRuntimeOverrideCorrespondence,
   buildC5Report,
+  aliasMatcherTokens,
+  deepEqualJson,
+  projectHooksToCodex,
+  checkHooksCodexProjectionDrift,
+  buildC6Report,
 } from './compat-lint.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -974,6 +979,146 @@ function makeC5FakeRepo({ overrides, docText }) {
   const report = buildReport(REPO_ROOT, {});
   const c5Findings = report.findings.filter((f) => f.check === 'C5');
   assert(c5Findings.length === 0, `buildReport [真實資料整合]：篩 check==='C5' 之後為 0 筆（實際：${JSON.stringify(c5Findings)}）`);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// C6：aliasMatcherTokens / deepEqualJson / projectHooksToCodex / checkHooksCodexProjectionDrift
+// （純函式）——hooks-codex.json 投影漂移檢查（#183 T25）
+// ══════════════════════════════════════════════════════════════════════════
+
+{
+  assert(aliasMatcherTokens('Write|Edit|MultiEdit', { Edit: 'apply_patch', Write: 'apply_patch' }) === 'apply_patch|MultiEdit',
+    'aliasMatcherTokens：Write/Edit 別名成 apply_patch 並去重，MultiEdit 無別名原樣保留 [C6-1a]');
+  assert(aliasMatcherTokens('Edit|Write', { Edit: 'apply_patch', Write: 'apply_patch' }) === 'apply_patch',
+    'aliasMatcherTokens：兩個 token 皆別名成同一目標 → 去重成單一 token [C6-1b]');
+  assert(aliasMatcherTokens('Bash|PowerShell', { Edit: 'apply_patch', Write: 'apply_patch' }) === 'Bash|PowerShell',
+    'aliasMatcherTokens：不在別名表的 token 原樣保留 [C6-1c]');
+  const regexMatcher = '.*(update_pull_request|request_copilot_review).*';
+  assert(aliasMatcherTokens(regexMatcher, { Edit: 'apply_patch' }) === regexMatcher,
+    'aliasMatcherTokens：含正則特殊字元的 matcher 視為非工具名 pipe-list，原樣保留 [C6-1d]');
+}
+{
+  assert(deepEqualJson({ a: 1, b: [1, 2] }, { b: [1, 2], a: 1 }) === true, 'deepEqualJson：鍵順序不敏感的結構相等 → true [C6-2a]');
+  assert(deepEqualJson({ a: 1 }, { a: 2 }) === false, 'deepEqualJson：值不同 → false [C6-2b]');
+  assert(deepEqualJson({ a: [1, 2] }, { a: [1, 2, 3] }) === false, 'deepEqualJson：陣列長度不同 → false [C6-2c]');
+}
+{
+  const hooksJson = {
+    hooks: {
+      SessionStart: [{ hooks: [{ type: 'command', command: 'node a.mjs' }] }],
+      PreToolUse: [{ matcher: 'Write|Edit|MultiEdit', hooks: [{ type: 'command', command: 'node b.mjs' }] }],
+    },
+  };
+  const mappingRules = { matcher_tool_alias: { Edit: 'apply_patch', Write: 'apply_patch' } };
+  const projected = projectHooksToCodex(hooksJson, mappingRules);
+  assert(
+    projected.PreToolUse[0].matcher === 'apply_patch|MultiEdit' && projected.SessionStart[0].hooks[0].command === 'node a.mjs',
+    `projectHooksToCodex：matcher 依別名表投影、無 matcher 的區塊與 command 原樣保留（實際：${JSON.stringify(projected)}）[C6-3a]`,
+  );
+}
+// 正向：actual 與 expectedHooks 結構相等、_meta 三欄位齊全 → 0 筆 finding
+{
+  const expectedHooks = { SessionStart: [{ hooks: [{ type: 'command', command: 'x' }] }] };
+  const actual = { _meta: { generated: true, warning: 'w', verification_status: 'v' }, hooks: expectedHooks };
+  const findings = checkHooksCodexProjectionDrift(actual, expectedHooks);
+  assert(findings.length === 0, `checkHooksCodexProjectionDrift [C6 正向]：結構相等且 _meta 齊全 → 0 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+// 負向①：hooks 結構被手改（matcher 不同）→ 1 筆 finding
+{
+  const expectedHooks = { PreToolUse: [{ matcher: 'apply_patch', hooks: [] }] };
+  const actual = { _meta: { generated: true, warning: 'w', verification_status: 'v' }, hooks: { PreToolUse: [{ matcher: 'Edit', hooks: [] }] } };
+  const findings = checkHooksCodexProjectionDrift(actual, expectedHooks);
+  assert(findings.length === 1 && findings[0].check === 'C6' && findings[0].detail.includes('drift'),
+    `checkHooksCodexProjectionDrift [C6 負向①-hooks漂移]：matcher 被手改 → 1 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+// 負向②：_meta 誠實標記被拿掉（generated 缺失）→ 1 筆 finding
+{
+  const expectedHooks = { SessionStart: [] };
+  const actual = { _meta: { warning: 'w', verification_status: 'v' }, hooks: expectedHooks };
+  const findings = checkHooksCodexProjectionDrift(actual, expectedHooks);
+  assert(findings.length === 1 && findings[0].check === 'C6' && findings[0].detail.includes('_meta'),
+    `checkHooksCodexProjectionDrift [C6 負向②-meta缺失]：generated 欄位被拿掉 → 1 筆 finding（實際：${JSON.stringify(findings)}）`);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// C6 IO：buildC6Report——缺檔靜默略過、temp fake repo 正負向、真實 repo 須零 finding
+// ══════════════════════════════════════════════════════════════════════════
+
+function makeC6FakeRepo({ hooksJson, hooksCodexJson, registry }) {
+  const dir = mkdtempSync(join(tmpdir(), 'compat-lint-c6-'));
+  writeFiles(dir, {
+    'plugins/loops-workflow/hooks/hooks.json': JSON.stringify(hooksJson, null, 2),
+    'plugins/loops-workflow/hooks/hooks-codex.json': JSON.stringify(hooksCodexJson, null, 2),
+    'plugins/loops-workflow/references/capability-registry.json': JSON.stringify(registry, null, 2),
+  });
+  return dir;
+}
+
+const C6_HOOKS_JSON = {
+  hooks: {
+    PreToolUse: [{ matcher: 'Write|Edit', hooks: [{ type: 'command', command: 'node guard.mjs' }] }],
+  },
+};
+const C6_REGISTRY = {
+  facets: {
+    hook_events: {
+      gaps_refs: [],
+      rationale_if_no_gaps_ref: 'C6 fixture 用途，不對帳真實 gaps',
+      platforms: { codex: { status: 'not_measured', measurability: 'needs_auth', projection_mapping: { matcher_tool_alias: { Edit: 'apply_patch', Write: 'apply_patch' } } } },
+    },
+  },
+};
+const C6_META = { generated: true, warning: 'w', verification_status: 'v' };
+function c6ExpectedProjection() {
+  return { PreToolUse: [{ matcher: 'apply_patch', hooks: [{ type: 'command', command: 'node guard.mjs' }] }] };
+}
+
+// 缺檔（假 repo 沒有 hooks-codex.json）→ 靜默回傳空 findings，不報錯
+{
+  const dir = mkdtempSync(join(tmpdir(), 'compat-lint-c6-empty-'));
+  try {
+    const { findings } = buildC6Report(dir);
+    assert(Array.isArray(findings) && findings.length === 0, 'buildC6Report：資料源缺檔 → 靜默略過，0 筆 finding（不是報錯）');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// 正向：投影檔與正本+registry 推導結果一致 → 0 筆 finding
+{
+  const dir = makeC6FakeRepo({ hooksJson: C6_HOOKS_JSON, hooksCodexJson: { _meta: C6_META, hooks: c6ExpectedProjection() }, registry: C6_REGISTRY });
+  try {
+    const { findings } = buildC6Report(dir);
+    assert(findings.length === 0, `buildC6Report [正向]：投影與推導結果一致 → 0 筆 finding（實際：${JSON.stringify(findings)}）`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// 負向：手改投影檔的 matcher 欄位 → C6 須紅
+{
+  const tampered = { _meta: C6_META, hooks: { PreToolUse: [{ matcher: 'apply_patch|SomethingElse', hooks: [{ type: 'command', command: 'node guard.mjs' }] }] } };
+  const dir = makeC6FakeRepo({ hooksJson: C6_HOOKS_JSON, hooksCodexJson: tampered, registry: C6_REGISTRY });
+  try {
+    const { findings } = buildC6Report(dir);
+    assert(
+      findings.length === 1 && findings[0].check === 'C6' && findings[0].detail.includes('drift'),
+      `buildC6Report [負向-手改matcher]：投影檔 matcher 被手改 → 1 筆 C6 finding（實際：${JSON.stringify(findings)}）`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// 真實 repo 資料：C6 對帳必須零 finding
+{
+  const { findings } = buildC6Report(REPO_ROOT);
+  assert(findings.length === 0, `buildC6Report [真實資料]：hooks-codex.json ↔ hooks.json+registry 投影對帳零 finding（實際：${JSON.stringify(findings)}）`);
+}
+{
+  const report = buildReport(REPO_ROOT, {});
+  const c6Findings = report.findings.filter((f) => f.check === 'C6');
+  assert(c6Findings.length === 0, `buildReport [真實資料整合]：篩 check==='C6' 之後為 0 筆（實際：${JSON.stringify(c6Findings)}）`);
 }
 
 // ══════════════════════════════════════════════════════════════════════════

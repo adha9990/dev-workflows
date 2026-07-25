@@ -83,7 +83,14 @@
           "measurability": "needs_auth",
           "interface": "hooks/hooks.json 慣例自動發現 + /hooks review/trust；trusted_hash 存於 config.toml [hooks.state]",
           "fallback": "改用輪詢 transcript 檔取代 hook 事件",
-          "repro": "CODEX_HOME=<已認證隔離 home> 首次對已安裝 plugin 跑 session → /hooks review/trust → 查該 CODEX_HOME 的 config.toml [hooks.state] 是否新增本 plugin hooks.json 條目"
+          "repro": "CODEX_HOME=<已認證隔離 home> 首次對已安裝 plugin 跑 session → /hooks review/trust → 查該 CODEX_HOME 的 config.toml [hooks.state] 是否新增本 plugin hooks.json 條目",
+          "projection_mapping": {
+            "description": "hooks/hooks-codex.json（generated 投影）的事件／matcher 對帳規則，由 compat-lint.mjs 的 C6 檢查與 gen-hooks-codex.mjs 生成器共用，單一真相源在此。",
+            "event_names": "與 hooks/hooks.json 的事件 key（SessionStart/Stop/PreToolUse/PostToolUse…）1:1 對應，官方文件未載事件改名，故不轉換。",
+            "matcher_tool_alias": { "Edit": "apply_patch", "Write": "apply_patch" },
+            "matcher_tool_alias_note": "僅 Edit/Write 有官方文件記載的 apply_patch 別名；MultiEdit/Read/PowerShell 無官方別名記載（見 codex.guard.shell_apply_patch），投影時原樣直通、不臆測別名。純正則 matcher（含 . ( ) 等字元，例如 pr-owner-guard 的 update_pull_request pattern）不視為工具名 pipe-list，原樣保留。",
+            "command_passthrough": "command 字面（含 ${CLAUDE_PLUGIN_ROOT} 呼叫）原樣保留，不改寫——官方文件載 Codex 相容 CLAUDE_PLUGIN_ROOT/PLUGIN_ROOT 兩種環境變數。"
+          }
         }
       }
     },
