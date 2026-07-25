@@ -219,12 +219,95 @@ function testC3bHookDecisionUnaffectedByWriteFailure() {
   }
 }
 
+// ── C4：rename 有界重試（#183）——注入假 rename 模擬 Windows 暫時性鎖競爭錯誤（EPERM/EACCES/
+//    EBUSY），驗證重試「有界」且「只對暫時性錯誤重試」──────────────────────────────────────────
+function makeTransientErr(code) {
+  const err = new Error(`${code} simulated Windows lock contention`);
+  err.code = code;
+  return err;
+}
+
+function testC4RetrySucceedsWithinBound() {
+  const dir = freshDir('c4-ok');
+  const target = join(dir, 'target.json');
+  try {
+    let calls = 0;
+    const rename = () => {
+      calls++;
+      if (calls <= 2) throw makeTransientErr('EBUSY'); // 前 2 次失敗，第 3 次成功
+    };
+    let threw = null;
+    try {
+      writeFileAtomic(target, JSON.stringify({ ok: true }), 'utf8', { rename });
+    } catch (err) {
+      threw = err;
+    }
+    assert(threw === null, `C4：前 N 次暫時性錯誤、第 N+1 次成功時最終不往上拋（實得 ${threw?.message}）[C4]`);
+    assert(calls === 3, `C4：確實重試了（呼叫 rename 3 次才成功，實得 ${calls} 次）[C4]`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function testC4RetryBoundedThenThrows() {
+  const dir = freshDir('c4-exhaust');
+  const target = join(dir, 'target.json');
+  try {
+    let calls = 0;
+    const rename = () => {
+      calls++;
+      throw makeTransientErr('EPERM'); // 永遠失敗——驗證重試不是無限的
+    };
+    let threw = null;
+    try {
+      writeFileAtomic(target, JSON.stringify({ ok: true }), 'utf8', { rename });
+    } catch (err) {
+      threw = err;
+    }
+    assert(threw !== null && threw.code === 'EPERM',
+      `C4：暫時性錯誤持續發生、超過重試上限仍失敗時會往上拋（實得 ${threw?.message}）[C4]`);
+    assert(calls > 1 && calls <= 10, `C4：重試有界（不是只試一次、也不是無限重試，實得呼叫 ${calls} 次）[C4]`);
+
+    const leftoverTmp = readdirSync(dir).filter((f) => f.endsWith('.tmp'));
+    assert(leftoverTmp.length === 0, `C4：重試耗盡拋出後目錄無 .tmp 殘檔（實得 ${leftoverTmp.length} 個）[C4]`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function testC4NonTransientErrorNotRetried() {
+  const dir = freshDir('c4-nonretry');
+  const target = join(dir, 'target.json');
+  try {
+    let calls = 0;
+    const rename = () => {
+      calls++;
+      const err = new Error('EISDIR: illegal operation on a directory');
+      err.code = 'EISDIR'; // 結構性失敗（如目標是既存目錄）——非暫時性鎖競爭，不該重試
+      throw err;
+    };
+    let threw = null;
+    try {
+      writeFileAtomic(target, JSON.stringify({ ok: true }), 'utf8', { rename });
+    } catch (err) {
+      threw = err;
+    }
+    assert(threw !== null && threw.code === 'EISDIR', `C4：非暫時性錯誤仍照舊往上拋（實得 ${threw?.message}）[C4]`);
+    assert(calls === 1, `C4：非暫時性錯誤不重試、rename 只呼叫 1 次就直接拋出（實得 ${calls} 次）[C4]`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 // ── 執行 ──────────────────────────────────────────────────────────────────────
 await testC1aPrimitiveConcurrency();
 await testC1bEditAccumulatorConcurrency();
 testC2CleansTmpOnRenameFailure();
 testC3aCleanupFailureDoesNotMaskOriginalError();
 testC3bHookDecisionUnaffectedByWriteFailure();
+testC4RetrySucceedsWithinBound();
+testC4RetryBoundedThenThrows();
+testC4NonTransientErrorNotRetried();
 
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
 process.exit(failed.length > 0 ? 1 : 0);
