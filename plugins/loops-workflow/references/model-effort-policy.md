@@ -9,43 +9,47 @@
 
 ## Phase 1：靜態分層（agent frontmatter）
 
-各 agent 依角色在 frontmatter 靜態設 model + effort。下表逐一對照（本檔為分層真相源，須與各 `agents/*.md` frontmatter 一致）：
+各 agent 依角色在 frontmatter 靜態設 model + effort。下表由 `references/capability-registry.json`（`agent_tiers` / `agent_effort` / `model_tier`）機械生成、與各 `agents/*.md` frontmatter 對帳一致（`gen-reviewers.mjs --check` 驗證，不得手改，見表格區塊內註解）：
 
-| agent | model | effort | tier（角色） |
+<!-- BEGIN:generated-tier-table -->
+<!-- 本區塊由 `gen-reviewers.mjs` 從 `capability-registry.json` 生成，請勿手改；要改請改 registry 再跑 `--write`。 -->
+
+| agent | model | effort | tier |
 |---|---|---|---|
-| `referee` | `opus` | `high` | 罕見高判斷 |
-| `security-reviewer-deep` | `opus` | `high` | 高風險深審變體（Phase 2 派） |
-| `architecture-reviewer-deep` | `opus` | `high` | 高風險深審變體（Phase 2 派） |
-| `code-quality-reviewer-deep` | `opus` | `high` | 高風險深審變體（Phase 2 派） |
-| `finding-validator-deep` | `opus` | `high` | 高風險深審變體（Phase 2 派） |
-| `product-contract-reviewer` | `sonnet` | `medium` | 6 核心 reviewer |
-| `architecture-reviewer` | `sonnet` | `medium` | 6 核心 reviewer |
-| `security-reviewer` | `sonnet` | `medium` | 6 核心 reviewer |
-| `performance-reviewer` | `sonnet` | `medium` | 6 核心 reviewer |
-| `code-quality-reviewer` | `sonnet` | `medium` | 6 核心 reviewer |
-| `tests-reviewer` | `sonnet` | `medium` | 6 核心 reviewer |
-| `accessibility-reviewer` | `sonnet` | `medium` | 10 條件式 reviewer |
-| `ci-cd-reviewer` | `sonnet` | `medium` | 10 條件式 reviewer |
-| `docs-devex-reviewer` | `sonnet` | `medium` | 10 條件式 reviewer |
-| `frontend-ui-reviewer` | `sonnet` | `medium` | 10 條件式 reviewer |
-| `migration-reviewer` | `sonnet` | `medium` | 10 條件式 reviewer |
-| `observability-reviewer` | `sonnet` | `medium` | 10 條件式 reviewer |
-| `processing-reliability-reviewer` | `sonnet` | `medium` | 10 條件式 reviewer |
-| `root-cause-reviewer` | `sonnet` | `medium` | 10 條件式 reviewer |
-| `web-performance-reviewer` | `sonnet` | `medium` | 10 條件式 reviewer |
-| `multi-user-concurrency-reviewer` | `sonnet` | `medium` | 10 條件式 reviewer |
-| `test-author` | `sonnet` | `medium` | 一般實作 |
-| `impl-author` | `sonnet` | `medium` | 一般實作 |
-| `finding-validator` | `sonnet` | `medium` | 窄任務 |
-| `eval-judge` | `sonnet` | `low` | 窄任務 |
+| `referee` | `opus` | `high` | `referee` |
+| `architecture-reviewer-deep` | `opus` | `high` | `referee` |
+| `code-quality-reviewer-deep` | `opus` | `high` | `referee` |
+| `security-reviewer-deep` | `opus` | `high` | `referee` |
+| `finding-validator-deep` | `opus` | `high` | `referee` |
+| `accessibility-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `architecture-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `ci-cd-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `code-quality-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `docs-devex-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `frontend-ui-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `migration-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `multi-user-concurrency-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `observability-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `performance-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `processing-reliability-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `product-contract-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `root-cause-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `security-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `tests-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `web-performance-reviewer` | `sonnet` | `medium` | `broad-review` |
+| `test-author` | `sonnet` | `medium` | `implementation` |
+| `impl-author` | `sonnet` | `medium` | `implementation` |
+| `finding-validator` | `sonnet` | `medium` | `fast-readonly` |
+| `eval-judge` | `sonnet` | `low` | `fast-readonly` |
+<!-- END:generated-tier-table -->
 
-> 分層依據：`sonnet`·`medium` 為廣度審查 / 一般實作的預設；純評分的窄任務（`eval-judge`）降 `sonnet`·`low`，但守門判斷責任重的 `finding-validator` 留 `sonnet`·`medium`；罕見高判斷（`referee`）用 `opus`·`high`。四個 `-deep` 變體 frontmatter 靜態即 `opus`·`high`，但平常不派、僅 Phase 2 高風險改派時才出。
+> 分層依據：`broad-review`／`implementation` tier 對應 `sonnet`·`medium`，為廣度審查 / 一般實作的預設；`fast-readonly` tier 的純評分窄任務（`eval-judge`）降 `sonnet`·`low`，但守門判斷責任重的 `finding-validator` 留 `sonnet`·`medium`；`referee` tier（罕見高判斷）用 `opus`·`high`。四個 `-deep` 變體同屬 `referee` tier，frontmatter 靜態即 `opus`·`high`，但平常不派、僅 Phase 2 高風險改派時才出。
 
 ## Phase 2：動態覆寫 model（派工時，只 model）
-- **verify**：步驟 1 判**高風險**時——審查軸 `security` / `architecture` / `code-quality`(correctness) 改派其 **`-deep` 變體**（`security-reviewer-deep` / `architecture-reviewer-deep` / `code-quality-reviewer-deep`，frontmatter `opus`·`high`；因 effort 無法 per-dispatch，高 effort 只能靠變體）；步驟 3 的 `finding-validator`（驗證者、非審查軸）同樣改派 `finding-validator-deep`；其餘軸維持 base + `model: opus` per-dispatch 覆寫。瑣碎 / 一般維持 sonnet。
-- **build**：impl-author 遇 **L / XL 尺寸、跨子系統、或新架構接縫**的任務（見 `task-template.md` 尺寸階梯；XL 照理應在 plan 拆掉、此為兜底）時該次以 `model: opus` 派出；一般 sonnet。referee 已由 frontmatter opus。
+- **verify**：步驟 1 判**高風險**時——審查軸 `security` / `architecture` / `code-quality`(correctness) 改派其 **`referee` tier 的 `-deep` 變體**（`security-reviewer-deep` / `architecture-reviewer-deep` / `code-quality-reviewer-deep`；因 effort 無法 per-dispatch，高 effort 只能靠變體）；步驟 3 的 `finding-validator`（驗證者、非審查軸）同樣改派 `finding-validator-deep`（同為 `referee` tier）；其餘軸維持 base（`broad-review` tier）+ per-dispatch 覆寫至 `referee` tier 的 model。瑣碎 / 一般維持 `broad-review` tier 的 model。
+- **build**：impl-author 遇 **L / XL 尺寸、跨子系統、或新架構接縫**的任務（見 `task-template.md` 尺寸階梯；XL 照理應在 plan 拆掉、此為兜底）時該次以 `referee` tier 的 model 派出；一般維持 `implementation` tier 的 model。referee agent 本身已由 frontmatter 固定 `referee` tier。
 - **effort 不覆寫**（無 per-dispatch）。
 
 ## 維護
-改 tier：同步改本表與對應 agent 的 `model:`/`effort:` frontmatter。正本（本檔）是分層真相源。
+改 tier：改 `references/capability-registry.json`（`agent_tiers` / `agent_effort`）→ 跑 `node scripts/gen-reviewers.mjs --write` 同步重生 `agents/*.md` frontmatter 與本檔表格區塊。正本是 registry，本檔表格是衍生產物、不再手改。
 -deep 變體（security / architecture / code-quality / finding-validator）body 逐字複製 base，base 改審查 / 判定行為時須同步。

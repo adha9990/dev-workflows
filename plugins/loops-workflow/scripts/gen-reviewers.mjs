@@ -15,9 +15,15 @@
 //   referee tier → opus·high）+ deep-note 注入衍生 —— 導入後 deep 對 base 的漂移結構性歸零。
 //
 // 用法：
-//   node gen-reviewers.mjs --write   重生 21 檔落 agents/（輸出純 LF、恰一個結尾換行）。
+//   node gen-reviewers.mjs --write   重生 21 檔落 agents/ ＋ references/model-effort-policy.md 的
+//                                    分層表區塊（輸出純 LF、恰一個結尾換行）。
 //   node gen-reviewers.mjs --check   在記憶體重生、與磁碟現況比對（EOL 正規化）；有漂移印出
 //                                    「哪個檔、漂在哪塊」並以 exit 1 退出（供 CI drift-check）。
+//
+// model-effort-policy.md 的 25 列分層表（T20）：真相源同上（3），由 `<!-- BEGIN:generated-tier-table -->`/
+// `<!-- END:generated-tier-table -->` marker 框定；marker 外的敘述文字維持人工維護、生成器不動。
+// tier 欄位直接印 registry 的 tier id（referee/broad-review/implementation/fast-readonly），
+// 不再維護額外的人工分類文字，消除該欄位另一條漂移源。
 //
 // EOL：現行 agent 檔在 Windows checkout 是 CRLF、Linux 是 LF（autocrlf）。生成器一律吐 LF；
 //   `--check` 比對前兩邊 `\r\n`→`\n` 正規化，故 Windows/CI 皆為可靠 oracle（git diff 會被
@@ -39,6 +45,10 @@ const AGENTS_DIR = join(PLUGIN_DIR, 'agents');
 const SHARED_FILE = join(PLUGIN_DIR, 'references', 'reviewer-shared.md');
 const TEMPLATES_DIR = join(PLUGIN_DIR, 'references', 'reviewers');
 const REGISTRY_FILE = join(PLUGIN_DIR, 'references', 'capability-registry.json');
+const POLICY_FILE = join(PLUGIN_DIR, 'references', 'model-effort-policy.md');
+
+const POLICY_TABLE_BEGIN = '<!-- BEGIN:generated-tier-table -->';
+const POLICY_TABLE_END = '<!-- END:generated-tier-table -->';
 
 // 4 個 deep 檔的衍生設定（值皆無 backtick，可安全內嵌）。model/effort 不在此設——
 // 一律由 capability-registry.json 查（見 resolveModelEffort），這裡的 description 字面提到
@@ -146,6 +156,43 @@ export function assembleDeep(deepName, cfg, baseTemplate, blocks, model, effort)
   return substitute(injected, blocks);
 }
 
+/**
+ * 由 registry 的 agent_tiers / model_tier / agent_effort 組出 model-effort-policy.md 的 25 列表格
+ * （含表頭）。列序沿用 agent_tiers 的鍵序（registry 為唯一真相源，不另維護人工排序 / 分類文字）。
+ * tier 欄位直接印 tier id（referee/broad-review/implementation/fast-readonly），
+ * 不再另維護一份人讀分類（如「6 核心 reviewer」）——那份文字無資料源可對帳，是漂移源本身。
+ */
+export function buildTierTable(registry) {
+  const header = ['| agent | model | effort | tier |', '|---|---|---|---|'];
+  const rows = Object.keys(registry?.agent_tiers ?? {}).map((name) => {
+    const { model, effort } = resolveModelEffort(registry, name);
+    const tier = registry.agent_tiers[name];
+    return `| \`${name}\` | \`${model}\` | \`${effort}\` | \`${tier}\` |`;
+  });
+  return [...header, ...rows].join('\n');
+}
+
+/** 表格外包上 marker + 生成標示註解，得到可直接嵌回 model-effort-policy.md 的完整區塊。 */
+export function buildPolicyBlock(registry) {
+  return [
+    POLICY_TABLE_BEGIN,
+    '<!-- 本區塊由 `gen-reviewers.mjs` 從 `capability-registry.json` 生成，請勿手改；要改請改 registry 再跑 `--write`。 -->',
+    '',
+    buildTierTable(registry),
+    POLICY_TABLE_END,
+  ].join('\n');
+}
+
+/** 把 policyText 中 marker 框住的舊區塊換成 newBlock（含 marker 本身）；marker 外文字不動。 */
+export function applyPolicyBlock(policyText, newBlock) {
+  const start = policyText.indexOf(POLICY_TABLE_BEGIN);
+  const end = policyText.indexOf(POLICY_TABLE_END);
+  if (start === -1 || end === -1) {
+    throw new Error(`applyPolicyBlock：找不到 marker 區塊（${POLICY_TABLE_BEGIN} / ${POLICY_TABLE_END}）`);
+  }
+  return policyText.slice(0, start) + newBlock + policyText.slice(end + POLICY_TABLE_END.length);
+}
+
 const normalizeEol = s => s.replace(/\r\n/g, '\n');
 
 /**
@@ -177,7 +224,8 @@ function loadSources() {
     if (f.endsWith('.md')) templates[f.slice(0, -3)] = readFileSync(join(TEMPLATES_DIR, f), 'utf8').replace(/\r\n/g, '\n');
   }
   const registry = JSON.parse(readFileSync(REGISTRY_FILE, 'utf8'));
-  return { blocks, templates, registry };
+  const policyText = readFileSync(POLICY_FILE, 'utf8');
+  return { blocks, templates, registry, policyText };
 }
 
 /** 組出全部 21 檔內容 → { name: content(LF, 一個結尾換行) }。model/effort 皆查 registry。 */
@@ -207,10 +255,14 @@ function main() {
   const sources = loadSources();
   const assembled = assembleAll(sources);
   const names = Object.keys(assembled).sort();
+  const expectedPolicyText = applyPolicyBlock(sources.policyText, buildPolicyBlock(sources.registry));
 
   if (mode === 'write') {
     for (const name of names) writeFileSync(join(AGENTS_DIR, name + '.md'), ensureTrailingLf(assembled[name]));
-    console.log(`gen-reviewers：重生 ${names.length} 檔（LF）→ agents/`);
+    if (normalizeEol(sources.policyText) !== normalizeEol(expectedPolicyText)) {
+      writeFileSync(POLICY_FILE, expectedPolicyText);
+    }
+    console.log(`gen-reviewers：重生 ${names.length} 檔（LF）→ agents/ ＋ model-effort-policy.md 分層表區塊`);
     return;
   }
 
@@ -226,11 +278,12 @@ function main() {
       drifted.push({ name, diff: d });
     }
   }
-  if (drifted.length === 0) {
-    console.log(`gen-reviewers --check：${names.length} 檔全部與真相源一致，無漂移。`);
+  const policyDrifted = normalizeEol(sources.policyText) !== normalizeEol(expectedPolicyText);
+  if (drifted.length === 0 && !policyDrifted) {
+    console.log(`gen-reviewers --check：${names.length} 檔 + model-effort-policy.md 分層表區塊全部與真相源一致，無漂移。`);
     return;
   }
-  console.error(`gen-reviewers --check：偵測到 ${drifted.length} 個漂移檔（手改了 agents/ 而非改真相源）：`);
+  console.error(`gen-reviewers --check：偵測到 ${drifted.length + (policyDrifted ? 1 : 0)} 個漂移檔（手改了生成產物而非改真相源）：`);
   for (const d of drifted) {
     if (d.reason) { console.error(`  ✗ ${d.name}.md —— ${d.reason}`); continue; }
     const where = d.diff.block ? `共用塊 [${d.diff.block}]` : '每檔獨有內容區';
@@ -238,7 +291,13 @@ function main() {
     console.error(`      真相源應為: ${JSON.stringify(d.diff.expected)}`);
     console.error(`      磁碟現況為: ${JSON.stringify(d.diff.actual)}`);
   }
-  console.error('修法：改真相源（references/reviewer-shared.md 或 references/reviewers/<name>.md）後跑 `node scripts/gen-reviewers.mjs --write`；勿手改 agents/*.md。');
+  if (policyDrifted) {
+    const d = firstDiff(expectedPolicyText, sources.policyText, {});
+    console.error(`  ✗ model-effort-policy.md：第 ${d?.line ?? '?'} 行起漂移（落在 generated-tier-table 區塊）`);
+    console.error(`      真相源應為: ${JSON.stringify(d?.expected)}`);
+    console.error(`      磁碟現況為: ${JSON.stringify(d?.actual)}`);
+  }
+  console.error('修法：改真相源（references/reviewer-shared.md、references/reviewers/<name>.md 或 references/capability-registry.json）後跑 `node scripts/gen-reviewers.mjs --write`；勿手改 agents/*.md 或 model-effort-policy.md 的 generated-tier-table 區塊。');
   process.exit(1);
 }
 

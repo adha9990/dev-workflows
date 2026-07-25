@@ -69,7 +69,7 @@ export function resolveTemplate(value, roles) {
 }
 
 /**
- * 建 9 支 hook 共用的 sandbox。SANDBOX_ROOT 固定名（非 pid 隨機）——自我癒合寫法：先探測（rmSync
+ * 建本檔涵蓋之受測 hook 們共用的 sandbox。SANDBOX_ROOT 固定名（非 pid 隨機）——自我癒合寫法：先探測（rmSync
  * force 對不存在的路徑是 no-op）→ 收斂（重建）→ 再做事，允許前次 crash 殘留仍能正常跑。回傳
  * { root, roles }：root 給 spawnSync 的真實 process cwd 用（必須是一個真的存在的目錄，即使 hook
  * 本身讀的是 payload.cwd 這個邏輯欄位、不是真實 OS cwd）；roles 給 resolveTemplate 用。
