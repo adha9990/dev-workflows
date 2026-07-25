@@ -33,6 +33,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 ```
 ├─ 完全乾淨的空專案（無原始碼 / 空目錄）─────────▶ 先 scaffold 建骨架（§1.4）→ 再依下面清晰度分流
+├─ 要改**工作流程規則本身**（「以後都要…」「把這條加進 plugin」）▶ `agents-md-maintainer`（先分析重複/覆蓋/衝突 → 五層歸屬 → enforcement 決策 → proposal issue → define）
 ├─ issue 號 / 「做這個 issue」（意圖明確）────────▶ 從 goal 開始（跳過 clarify）
 ├─ PR 號 / 「reviewer / 修正回饋」（意圖明確）────▶ 從 iterate 開始（跳過 clarify）
 ├─ 模糊想法 / 含糊一句話 / 不確定要落地還是研究 ─▶ 從 `clarify` 開始（一次一問釐清 + 確認 → 再判方向：define→goal / explore / iterate）
@@ -40,6 +41,8 @@ description: Routes a one-line work request to the right loops-workflow stage an
 ├─ 想做功能、但不知怎麼做最好 ────────────────────▶ `define` 功能 issue（標「實作待研究」）→ goal → explore 研究怎麼做 → plan
 └─ 想先探索一塊空間再決定要做什麼 ────────────────▶ explore 研究 → 產出經 `define` 開功能 issue（**不建獨立「研究 issue」**）
 ```
+
+> **policy-change intent 優先於清晰度判定**：請求的對象是「工作流程規則本身」而不是某個功能時（典型句式：「以後都要 X」「把 X 這條規則加進 plugin」「規則改成 Y」「以後不准 Z」），一律路由到 `agents-md-maintainer`——它會先查這條是不是已經有了、會不會跟既有規則打架，再決定由哪一級執行。**只有使用者在陳述偏好、沒要求落成規則時才不路由**（先確認）。
 
 > 順序：**先看專案乾不乾淨**（沒架構先 scaffold），**再判意圖清晰度** —— 明確（issue#/PR#/具體到能動工）直進 goal/iterate；**模糊（一句話想法、範圍不清、不確定落地還是研究）先進 `clarify` 釐清再分流**。dispatch 自己不做訪談確認，那是 clarify 的事。
 
