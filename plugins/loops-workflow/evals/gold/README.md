@@ -1,6 +1,6 @@
 # 金標集（gold corpus）— explanation-quality
 
-eval-judge 校準用的金標集。dimension = `explanation-quality`（rubric 見 `references/eval-judge-rubric.md`，scale 1–5、threshold=4 才 pass）。
+eval-judge 校準用的金標集。dimension = `explanation-quality`（rubric 見 `references/personas/eval-judge-rubric.md`，scale 1–5、threshold=4 才 pass）。
 
 ## ⚠️ Metric-Honesty（最重要，先讀）
 

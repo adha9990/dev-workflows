@@ -1,6 +1,6 @@
 # loops-workflow docs
 
-教學與說明文件（怎麼運作 / 怎麼用）。決策紀錄 / 迭代過程不放這裡（見 `references/docs-policy.md`）。
+教學與說明文件（怎麼運作 / 怎麼用）。決策紀錄 / 迭代過程不放這裡（見 `references/shared/docs/docs-policy.md`）。
 
 > **命令介面**：使用者唯一的 slash 入口是 **`/loops-workflow:dispatch`** —— 判類型、分流到對的起點階段；輸入既有 loop 的 slug 則自動 resume。**其餘 skill（階段與側用）全標 `user-invocable: false`、不出現在 `/` 選單**，由 dispatch／各階段內部驅動（explain＝完整迴圈完工一律自動產三份 deliverable 之一、scaffold-fullstack＝dispatch 路由），或自然語言請求。查進度直接讀 `.loops/<slug>/PROGRESS.md`。
 

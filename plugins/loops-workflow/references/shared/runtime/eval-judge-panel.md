@@ -5,7 +5,7 @@
 ## 流程（主迴圈照做）
 對一份要評的 artifact（PR body / explain 包 / commit 訊息…）：
 
-1. **同回合派 N 個異質 judge**（建議 N=2–3、**不同模型家族**）：每個都派 `agents/eval-judge.md`，prompt 給 rubric 絕對路徑（`references/eval-judge-rubric.md`）+ artifact + 契約。**複用 verify 反偏誤**：
+1. **同回合派 N 個異質 judge**（建議 N=2–3、**不同模型家族**）：每個都派 `agents/eval-judge.md`，prompt 給 rubric 絕對路徑（`references/personas/eval-judge-rubric.md`）+ artifact + 契約。**複用 verify 反偏誤**：
    - **不告知「作者已過 / 已驗證」**（防 sycophancy）；
    - 每個 judge **fresh context**（防 self-enhancement）；
    - **異質模型**（PoLL：異質小 judge 投票 > 單一大 judge、抗 position/verbosity/self-enhancement、便宜 ~7×）。
@@ -16,7 +16,7 @@
 3. **跑膠水算共識**（cwd＝repo 根，路徑與 `eval-harness.md` 一致）：
    ```bash
    node plugins/loops-workflow/scripts/eval-panel.mjs run \
-     --rubric plugins/loops-workflow/references/eval-judge-rubric.md \
+     --rubric plugins/loops-workflow/references/personas/eval-judge-rubric.md \
      --verdicts <verdicts.jsonl> --case-id <artifact-id> \
      [--gold plugins/loops-workflow/evals/gold/explanation-quality.json] [--judge-file .loops/.metrics/judge-results.jsonl]
    ```

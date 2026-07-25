@@ -28,7 +28,7 @@ flowchart LR
 
 1. **hook 輸入正規化**——`plugins/loops-workflow/hooks/hook-input-normalize.mjs`。把兩個平台送進 hook 的工具呼叫 payload（檔案編輯、shell 指令）判成同一組正規化欄位（是哪個 harness、實際檔案路徑、指令 token 化結果），既有 guard 一律讀正規化後的欄位，不再各自寫 ad hoc 判定。純函式葉節點：不碰環境變數、不做 IO、不 import 任何 guard，供 guard 反向 import。
 2. **hook 決策輸出投影**——`plugins/loops-workflow/hooks/hook-decision-emit.mjs`。把「同一個決策（拒絕／注入上下文／擋停／純文字／不動作）在不同平台下該吐出什麼字串」收斂到單一 `emitDecision(output, harness, hookEvent)` 入口，避免各輸出點各自散抄信封格式、彼此漂移。
-3. **互動層契約**——`plugins/loops-workflow/references/interaction-adapter.md`。定義「需要人決定」的決策點用平台無關的四要素描述（觸發理由／選項清單／推薦標記／決策點等級），再依「能力等級」（結構化提問 → 其他互動機制 → 單一 blocking question fallback）映射到平台實際能力，不寫死某平台一定走哪一階。
+3. **互動層契約**——`plugins/loops-workflow/references/shared/delivery/interaction-adapter.md`。定義「需要人決定」的決策點用平台無關的四要素描述（觸發理由／選項清單／推薦標記／決策點等級），再依「能力等級」（結構化提問 → 其他互動機制 → 單一 blocking question fallback）映射到平台實際能力，不寫死某平台一定走哪一階。
 4. **tier→model 生成期投影**——`plugins/loops-workflow/references/capability-registry.json` 的 `agent_tiers` / `model_tier` / `agent_effort` 三張表。子代理只宣告自己屬於哪個能力層級（例如「需要深度審查」），實際映射到哪個平台的哪個模型，由這三張表在**生成期**（agent 檔案／hooks 投影檔重生時）展開，不在執行期臨時判斷。
 
 ## 參考｜能力清單（capability-registry.json）怎麼讀

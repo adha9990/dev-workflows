@@ -31,7 +31,7 @@
 
 ## 三、重構時引入設計模式（目錄見 `design-patterns.md`）
 
-某種異味**反覆出現**、且某個模式正好對症時，引入模式消除它（例：條件分支選演算法 → Strategy；流程骨架重複 → Template Method）。**完整模式目錄、各自對症時機與反面（pattern 上癮 / 過度設計）見 `references/design-patterns.md`** —— 紀律一致：**對症才用、不為套而套**。
+某種異味**反覆出現**、且某個模式正好對症時，引入模式消除它（例：條件分支選演算法 → Strategy；流程骨架重複 → Template Method）。**完整模式目錄、各自對症時機與反面（pattern 上癮 / 過度設計）見 `references/shared/quality/design-patterns.md`** —— 紀律一致：**對症才用、不為套而套**。
 
 ## 紅旗
 

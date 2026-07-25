@@ -40,4 +40,4 @@
 
 > 設計取捨：auto 不是「放生亂跑」，是「把確認 gate 收斂成一次（計畫拍板）+ 保留所有危險煞車」。預設關閉，使用者明確要才開。
 
-> 要把 auto 接到排程 / 連續跑（環境的 `/loop`·`/schedule`），見 `references/automations.md`。
+> 要把 auto 接到排程 / 連續跑（環境的 `/loop`·`/schedule`），見 `references/shared/runtime/automations.md`。

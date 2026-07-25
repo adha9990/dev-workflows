@@ -10,7 +10,7 @@ effort: medium
 
 ## 審查範圍
 
-**探索 code 的方法**：周邊既有 code 用 codebase-memory-mcp（依本 prompt 提供的 `references/code-retrieval.md`：graph 查穩定碼、省 token）；**正在審的改動檔（diff）一律讀實檔、不信 stale graph**（worktree / 未提交 / changed_files 三類）。
+**探索 code 的方法**：周邊既有 code 用 codebase-memory-mcp（依本 prompt 提供的 `references/shared/runtime/code-retrieval.md`：graph 查穩定碼、省 token）；**正在審的改動檔（diff）一律讀實檔、不信 stale graph**（worktree / 未提交 / changed_files 三類）。
 
 - **Core Web Vitals**（good 門檻：**LCP ≤ 2.5s / INP ≤ 200ms / CLS ≤ 0.1**，超過 = 退化）：有無傷 LCP（大圖 / 阻塞資源）、CLS（無尺寸的圖 / 晚插入內容）、INP（重 handler / 主執行緒阻塞）的改動。
 - **效能預算**：初始 JS < 200KB（gz）、API p95 < 200ms、Lighthouse ≥ 90 —— 超出就標「超預算」（沒實量標 `not measured`，不憑感覺）。

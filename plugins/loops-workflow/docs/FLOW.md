@@ -39,7 +39,7 @@ flowchart LR
 
 ## 命令介面（誰是入口）
 
-使用者**唯一的 slash 入口是 `/loops-workflow:dispatch`**。所有其他 skill——階段（goal / define / explore / clarify / plan / build / verify / iterate）與側用（`explain`、`scaffold-fullstack`）——都標 **`user-invocable: false`**、**不出現在 `/` 選單**，由 dispatch（及階段彼此）用 Skill tool **內部驅動**：explain＝完整迴圈完工由 iterate 一律自動產（三份 deliverable 之一）、scaffold-fullstack＝dispatch 對乾淨空專案路由；兩者也可自然語言請 Claude 執行（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 `references/docs-policy.md` 直接編輯）。接續中途 loop＝`dispatch <slug>`（自動偵測 resume）；查進度＝直接讀 `.loops/<slug>/PROGRESS.md`（恆開 hook 自動重生）。
+使用者**唯一的 slash 入口是 `/loops-workflow:dispatch`**。所有其他 skill——階段（goal / define / explore / clarify / plan / build / verify / iterate）與側用（`explain`、`scaffold-fullstack`）——都標 **`user-invocable: false`**、**不出現在 `/` 選單**，由 dispatch（及階段彼此）用 Skill tool **內部驅動**：explain＝完整迴圈完工由 iterate 一律自動產（三份 deliverable 之一）、scaffold-fullstack＝dispatch 對乾淨空專案路由；兩者也可自然語言請 Claude 執行（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 `references/shared/docs/docs-policy.md` 直接編輯）。接續中途 loop＝`dispatch <slug>`（自動偵測 resume）；查進度＝直接讀 `.loops/<slug>/PROGRESS.md`（恆開 hook 自動重生）。
 
 ---
 
@@ -197,7 +197,7 @@ flowchart LR
 |---|---|
 | **skill** | `verify`（1）｜**agent** **依風險 0～6 核心（步驟 1 風險梯）+ 0～10 條件式（含專案宣告觸發的 multi-user）+ N 個 finding-validator**（同一回合並行） |
 | **處理什麼** | 合併前把關：多個獨立視角各審一軸，再二輪驗證 findings |
-| **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`、狀態值只引用工具實際回傳）· **作者已留痕的決定不算 finding**（見 references/finding-author-decision-rule.md）· **獨立安全網非第一道品質關**（標準已在 build shift-left 套用，verify 複查 + 抓盲點） |
+| **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`、狀態值只引用工具實際回傳）· **作者已留痕的決定不算 finding**（見 references/personas/finding-author-decision-rule.md）· **獨立安全網非第一道品質關**（標準已在 build shift-left 套用，verify 複查 + 抓盲點） |
 
 ```mermaid
 flowchart TD
@@ -217,7 +217,7 @@ flowchart TD
 
 > **5 步**（詳見 `skills/verify/SKILL.md`）：**①選軸**——「fan-out」＝同一回合一次派出多審查員各審一軸並行；依風險定核心軸（0~6）：瑣碎 0 / 小孤立 3 / 一般·高風險 6（高風險一律滿、不准縮）；再依領域加派 10 個條件式（碰到才加；其中 multi-user-concurrency 由**專案在 AGENTS.md 宣告多人使用**觸發、非改動領域觸發）。非 code 實質文件→product-contract + docs-devex（不入 code 級梯）。**②並行審**——同一回合派出、各一軸、反偏見（只給 artifact+契約）、跑真 app。**③驗 findings**——coordinator 去重 + finding-validator 四問二輪。**④acceptance 閘（所有級通用）**——issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足（有證據）/ 明確 descoped（留痕）才放行；任一條 partial 當完成在**任何級**都擋回 iterate；確證「根本做錯」（做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞）就**整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）、不逐條修**。**⑤判 Ready/退回**——P0–P3+Confidence+Route，出 P0 才停下問你、否則直接進 iterate。
 
-> **reviewer code 探索**：各 reviewer 收到改動檔清單 + graph project id（若已索引）。改動檔（diff）一律直接 `Read`（審查對象、graph 對此最不可信）；「誰呼叫這個函式 / 它依賴誰 / 落在哪層」→ 用 codebase-memory-mcp 查穩定周邊（見 `references/code-retrieval.md`）。
+> **reviewer code 探索**：各 reviewer 收到改動檔清單 + graph project id（若已索引）。改動檔（diff）一律直接 `Read`（審查對象、graph 對此最不可信）；「誰呼叫這個函式 / 它依賴誰 / 落在哪層」→ 用 codebase-memory-mcp 查穩定周邊（見 `references/shared/runtime/code-retrieval.md`）。
 
 ---
 
@@ -252,7 +252,7 @@ flowchart TD
 |---|---|---|
 | **記憶體** | `.loops/<slug>/`：`loop.md`（儀表板 + Journal）+ `0N-*.md`（各階段精煉產出） | Memory |
 | **隔離工作樹** | 會動 code 的迴圈在 `git worktree`（`<issue#>-<slug>` 同名 branch） | Worktrees |
-| **子代理** | build 紅綠 3 + verify 0～6 核心（步驟 1 風險梯）+ 10 條件式 + validator；各依角色靜態選 model/effort tier（見 `references/model-effort-policy.md`），高風險時 verify/build 派工才動態拉 `referee` tier 的 model | Subagents |
+| **子代理** | build 紅綠 3 + verify 0～6 核心（步驟 1 風險梯）+ 10 條件式 + validator；各依角色靜態選 model/effort tier（見 `references/shared/runtime/model-effort-policy.md`），高風險時 verify/build 派工才動態拉 `referee` tier 的 model | Subagents |
 | **技能** | 11 個 skill（SKILL.md 統一骨架） | Skills |
 | **連接器** | `gh`（GitHub issue/PR）、MCP 工具、`/run`·`/verify`·`/code-review` 環境能力 | Plugins & Connectors |
 | **自動化** | `LOOPS_AUTO=1` 自動連跑、`/loop`·`/schedule`（Claude Code 內建排程）、progress（Stop hook 自動產 PROGRESS.md） | Automations |

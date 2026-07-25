@@ -27,7 +27,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 ### 0. 先判 resume（輸入是既有 loop 的 slug 就不分類）
 
-判類型**之前**，先確定性檢查輸入是不是要接續既有迴圈：算 `LOOPS_ROOT`（`git worktree list --porcelain | sed -n 's/^worktree //p' | head -1`），**若 `$LOOPS_ROOT/.loops/<輸入>/loop.md` 存在**（輸入完全比對目錄名、不做模糊匹配；slug 格式同 §2＝英數字＋連字號，含空格／斜線／`..` 的輸入不可能是 slug、直接進判類型）→ **跳過整個決策樹**，直接走 resume 協定（讀 Journal 重建狀態 → 回報停在哪個階段/gate → 問是否續跑，見 `references/journaling.md`）。這是「接續中途 loop」的唯一入口：`dispatch <slug>`。不存在才進下面的判類型。
+判類型**之前**，先確定性檢查輸入是不是要接續既有迴圈：算 `LOOPS_ROOT`（`git worktree list --porcelain | sed -n 's/^worktree //p' | head -1`），**若 `$LOOPS_ROOT/.loops/<輸入>/loop.md` 存在**（輸入完全比對目錄名、不做模糊匹配；slug 格式同 §2＝英數字＋連字號，含空格／斜線／`..` 的輸入不可能是 slug、直接進判類型）→ **跳過整個決策樹**，直接走 resume 協定（讀 Journal 重建狀態 → 回報停在哪個階段/gate → 問是否續跑，見 `references/shared/runtime/journaling.md`）。這是「接續中途 loop」的唯一入口：`dispatch <slug>`。不存在才進下面的判類型。
 
 ### 1. 判類型（決策樹：先看乾淨度，再判意圖清晰度）
 
@@ -45,13 +45,13 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 顯式語法可跳過判斷：`dispatch <type> <ref>`，例如 `dispatch issue #5`、`dispatch explore "command pattern 怎麼設計"`、`dispatch iterate PR#12`；接續既有 loop 用 `dispatch <slug>`（步驟 0 自動偵測）。
 
-**推進模式**：預設只在決策點停（routine 轉場不問）。**opt-in 自動連跑＝環境變數 `LOOPS_AUTO=1`**（與 `LOOPS_STOP_GATE` 等 opt-in flag 同慣例、手動設定）：dispatch 建 loop.md 前跑一次 `echo "${LOOPS_AUTO:-}"`（Bash）檢查，輸出 `1` → 本 run 推進模式＝auto（核准計畫一次後連決策也用推薦自動帶過，危險 / 失敗 / P0 / 規格模糊仍硬停，見 `references/auto-mode.md`）；否則 closed。推進模式照舊寫進 loop.md。
+**推進模式**：預設只在決策點停（routine 轉場不問）。**opt-in 自動連跑＝環境變數 `LOOPS_AUTO=1`**（與 `LOOPS_STOP_GATE` 等 opt-in flag 同慣例、手動設定）：dispatch 建 loop.md 前跑一次 `echo "${LOOPS_AUTO:-}"`（Bash）檢查，輸出 `1` → 本 run 推進模式＝auto（核准計畫一次後連決策也用推薦自動帶過，危險 / 失敗 / P0 / 規格模糊仍硬停，見 `references/shared/runtime/auto-mode.md`）；否則 closed。推進模式照舊寫進 loop.md。
 
 ### 1.4 完全乾淨的空專案 → 先 scaffold 骨架，再 define
 
 判類型前**先看目標專案是不是「完全乾淨」**：空目錄 / 沒有原始碼 / 沒有 `package.json` / 沒有 git 歷史（`git log --oneline -1` 無 commit、目錄無 `src`·`package.json`）。是的話沒有架構承載 define 出來的 issue、也沒有 code 可改 —— **先把骨架立起來**：
 
-- **確認（一定停 —— scaffold 是大動作、且技術棧是定死的）**：**開一個決策點**問要不要建骨架（給選項並標推薦；決策點的表述形狀與各平台互動能力的映射見 `references/interaction-adapter.md`）。loops-workflow **內建的 `scaffold-fullstack`** skill 出的是 **Fastify + React 19 + TanStack + Kysely/SQLite + Vitest** 的分層全端 TS 專案。
+- **確認（一定停 —— scaffold 是大動作、且技術棧是定死的）**：**開一個決策點**問要不要建骨架（給選項並標推薦；決策點的表述形狀與各平台互動能力的映射見 `references/shared/delivery/interaction-adapter.md`）。loops-workflow **內建的 `scaffold-fullstack`** skill 出的是 **Fastify + React 19 + TanStack + Kysely/SQLite + Vitest** 的分層全端 TS 專案。
   - 要、且這個棧合用 → 交 `scaffold-fullstack`（它自己會問目錄 / 名稱、跑模板、`pnpm install` + `typecheck/lint/test` 驗收）。
   - 要、但要別的棧（FastAPI / Next.js / 純前端…）→ `scaffold-fullstack` 不適用，請使用者自行建好骨架再回來，dispatch 不硬塞。
   - 只想先把問題定義清楚 → 跳過，直接走 §1.5 define。
@@ -70,9 +70,9 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 ### 2. 建 / 認領 loop.md
 
-slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-delete-permanent`）、無 issue 號的設計 / 研究用 `<kebab 描述>`（英文 / 數字 / 連字號）。**不加 `fix/`/`feat/` 等 type 前綴** —— 這個 slug 同時是 loop 目錄、worktree、branch 的名字。建立 `.loops/<slug>/loop.md`（**留在 loop 根**；各階段過程檔進 `stages/`、完工 deliverable 進 `deliverables/`，完整佈局見 `references/journaling.md`〈資料夾佈局〉），寫入：
+slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-delete-permanent`）、無 issue 號的設計 / 研究用 `<kebab 描述>`（英文 / 數字 / 連字號）。**不加 `fix/`/`feat/` 等 type 前綴** —— 這個 slug 同時是 loop 目錄、worktree、branch 的名字。建立 `.loops/<slug>/loop.md`（**留在 loop 根**；各階段過程檔進 `stages/`、完工 deliverable 進 `deliverables/`，完整佈局見 `references/shared/runtime/journaling.md`〈資料夾佈局〉），寫入：
 - **類型**（issue / design / fix）
-- **operation 性質**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`）—— 依 issue 內容判定（非自動偵測程式），決定 **build 紅燈第一步**（見 `references/operation-first-move.md`）；與**類型正交**（類型決起點 stage、operation 決紅燈起手式）。**拿不準向嚴用 `new-feature`**（標準 TDD）並在 Journal 註明。**loop.md 的建立者寫 operation**：dispatch 建 loop.md 時寫（含 `issue# → 從 goal 起`，dispatch §2 一律先建 loop.md 才進 goal）；無 issue 工作經 `define` 建 loop.md 時由 define 寫（見 define §7）。**goal 兜底**：任何成因導致 loop.md 無此欄（含 goal 被單獨呼叫、未經 dispatch）→ goal step 1 讀到就補（見 `goal` skill）。
+- **operation 性質**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`）—— 依 issue 內容判定（非自動偵測程式），決定 **build 紅燈第一步**（見 `references/stages/operation-first-move.md`）；與**類型正交**（類型決起點 stage、operation 決紅燈起手式）。**拿不準向嚴用 `new-feature`**（標準 TDD）並在 Journal 註明。**loop.md 的建立者寫 operation**：dispatch 建 loop.md 時寫（含 `issue# → 從 goal 起`，dispatch §2 一律先建 loop.md 才進 goal）；無 issue 工作經 `define` 建 loop.md 時由 define 寫（見 define §7）。**goal 兜底**：任何成因導致 loop.md 無此欄（含 goal 被單獨呼叫、未經 dispatch）→ goal step 1 讀到就補（見 `goal` skill）。
 - **起點階段** + **當前階段**（當前階段初始＝起點階段，每進一個階段就更新；供 progress / hook 顯示）
 - **session**（讀 harness 提供的 session 識別碼填；progress / hook 靠它**只顯示「本 session」正在跑的 loop**，不被別 session / 歷史 loop 干擾。識別碼從哪拿是平台細節，見下方投影）
   <!-- adapter-projection -->
@@ -80,11 +80,11 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
   <!-- /adapter-projection -->
 - **推進模式**（closed / auto，預設 closed）
 - **停止條件雛形**（goal 階段會精煉）
-- **Journal（append-only 事件日誌）**（空，每階段 append 一筆，見 `references/journaling.md`）
+- **Journal（append-only 事件日誌）**（空，每階段 append 一筆，見 `references/shared/runtime/journaling.md`）
 
 **Worktree（會動 code 的迴圈才開）**：①**何時開**：type 是 issue / fix → loop 啟動時開；純設計 / 研究免開（走到 build 再開）。②**怎麼開**：harness 若有「開 / 進入 worktree」的原生能力就用它，沒有就 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`（branch / worktree 名 = slug、不加 type 前綴）；fix 型把該 PR branch checkout 進 worktree。③**`.loops/<slug>/` 一律建在主 repo**（`$LOOPS_ROOT` 絕對路徑），不進 worktree。完整規範、落點錨定公式與理由見 `AGENTS.md` 規則 9（loops-path-guard／worktree-guard 已機械化）。
 
-**Resume**：若 `.loops/<slug>/loop.md` 已存在 → 不覆蓋，走 resume 協定（讀 Journal 重建狀態 → 回報「停在哪個階段 / 哪個 gate、已完成 E1–En」→ 問使用者是否續跑，見 `references/journaling.md`）。
+**Resume**：若 `.loops/<slug>/loop.md` 已存在 → 不覆蓋，走 resume 協定（讀 Journal 重建狀態 → 回報「停在哪個階段 / 哪個 gate、已完成 E1–En」→ 問使用者是否續跑，見 `references/shared/runtime/journaling.md`）。
 
 ### 3. 進起點階段（routine 轉場不問）
 

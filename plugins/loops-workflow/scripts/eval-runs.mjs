@@ -5,7 +5,7 @@
 //   `{taskId, pass, runIndex}` 到 runs.jsonl。recipe 每 task 重生 N 候選（覆寫 workspace）後各跑一次 record，
 //   再用既有 `eval-passk.mjs` 算真 pass@1 + pass^k。
 //
-// 混合：**候選重生（覆寫 workspace）留上層 recipe**（`references/eval-live-candidate.md`、本 script 不重生、不 spawn workflow）；
+// 混合：**候選重生（覆寫 workspace）留上層 recipe**（`references/shared/runtime/eval-live-candidate.md`、本 script 不重生、不 spawn workflow）；
 //   本 script 只 spawn eval-oracle 收一行 run（仿 eval-metrics spawn eval-oracle）。
 //
 // infra 錯 vs 候選 fail 分清：oracle 取不到結果 / task 不在報告 → exit 3（不偽裝成 pass:false）；

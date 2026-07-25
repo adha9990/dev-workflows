@@ -15,7 +15,7 @@
 //   referee tier → opus·high）+ deep-note 注入衍生 —— 導入後 deep 對 base 的漂移結構性歸零。
 //
 // 用法：
-//   node gen-reviewers.mjs --write   重生 21 檔落 agents/ ＋ references/model-effort-policy.md 的
+//   node gen-reviewers.mjs --write   重生 21 檔落 agents/ ＋ references/shared/runtime/model-effort-policy.md 的
 //                                    分層表區塊（輸出純 LF、恰一個結尾換行）。
 //   node gen-reviewers.mjs --check   在記憶體重生、與磁碟現況比對（EOL 正規化）；有漂移印出
 //                                    「哪個檔、漂在哪塊」並以 exit 1 退出（供 CI drift-check）。
@@ -52,7 +52,7 @@ const POLICY_FILE = join(PLUGIN_DIR, 'references', 'shared', 'runtime', 'model-e
 const COMPONENT_REGISTRY_FILE = join(PLUGIN_DIR, 'references', 'component-registry.json');
 // base 模板與手寫 persona 散文同層（references/personas/）；模板檔名恰好等於它生成的 agent 名
 // （<*>-reviewer.md 或 finding-validator.md），據此框出真相源，避免把散文誤當模板生成一支 agent。
-const TEMPLATE_FILE_RE = /^([\w-]+-reviewer|finding-validator)\.md$/;
+export const TEMPLATE_FILE_RE = /^([\w-]+-reviewer|finding-validator)\.md$/;
 
 const POLICY_TABLE_BEGIN = '<!-- BEGIN:generated-tier-table -->';
 const POLICY_TABLE_END = '<!-- END:generated-tier-table -->';

@@ -645,7 +645,7 @@ try {
 
 // fixture 建構 helper —— 皆內嵌字串、抄真實 hook-flags.mjs／settings.md／journaling.md 的形狀
 // （headers 含括號後綴、決策表帶 "> " blockquote 前綴，比照 hooks/hook-flags.mjs、docs/settings.md、
-// references/journaling.md 原檔）。
+// references/shared/runtime/journaling.md 原檔）。
 function makeHookFlagsContent({ flags, totalClaim, defaultOnClaim, optInClaim }) {
   const onFlags = flags.filter((f) => f.defaultOn);
   const offFlags = flags.filter((f) => !f.defaultOn);
@@ -1067,8 +1067,8 @@ function baselineJournalingContent() {
     `flagSyncCheck：漏列 finding 內容含「未出現」字樣（實際：${JSON.stringify(f)}）[128-10]`,
   );
   assert(
-    !!f && f.file === 'references/journaling.md',
-    `flagSyncCheck：漏列 finding 的 file 欄位指向 references/journaling.md（實際：${JSON.stringify(f)}）[128-10]`,
+    !!f && f.file === 'references/shared/runtime/journaling.md',
+    `flagSyncCheck：漏列 finding 的 file 欄位指向 references/shared/runtime/journaling.md（實際：${JSON.stringify(f)}）[128-10]`,
   );
 }
 
@@ -1097,8 +1097,8 @@ function baselineJournalingContent() {
     `flagSyncCheck：分類反轉 finding 內容含「不一致」字樣（實際：${JSON.stringify(f)}）[128-11]`,
   );
   assert(
-    !!f && f.file === 'references/journaling.md',
-    `flagSyncCheck：分類反轉 finding 的 file 欄位指向 references/journaling.md（實際：${JSON.stringify(f)}）[128-11]`,
+    !!f && f.file === 'references/shared/runtime/journaling.md',
+    `flagSyncCheck：分類反轉 finding 的 file 欄位指向 references/shared/runtime/journaling.md（實際：${JSON.stringify(f)}）[128-11]`,
   );
 }
 
@@ -1127,8 +1127,8 @@ function baselineJournalingContent() {
     `flagSyncCheck：LOOPS_GAMMA_GATE 同時漏於 settings 與 journaling → 恰 2 筆獨立 P1（實際：${JSON.stringify(gammaP1)}）[128-12]`,
   );
   assert(
-    gammaP1.some((x) => x.file === 'docs/settings.md') && gammaP1.some((x) => x.file === 'references/journaling.md'),
-    `flagSyncCheck：兩筆 P1 分別來自 docs/settings.md 與 references/journaling.md（兩檔各自獨立判定，非同一筆重複計）（實際：${JSON.stringify(gammaP1)}）[128-12]`,
+    gammaP1.some((x) => x.file === 'docs/settings.md') && gammaP1.some((x) => x.file === 'references/shared/runtime/journaling.md'),
+    `flagSyncCheck：兩筆 P1 分別來自 docs/settings.md 與 references/shared/runtime/journaling.md（兩檔各自獨立判定，非同一筆重複計）（實際：${JSON.stringify(gammaP1)}）[128-12]`,
   );
 }
 
@@ -1504,7 +1504,7 @@ function runCli(root, args = ['--json']) {
 }
 
 // IO-9（#128 真 repo 整合煙測，對映契約案例⑩）：flagSyncCheck/hooksWiringCheck 對
-// REAL_REPO_ROOT 的真實 hooks/hook-flags.mjs、docs/settings.md、references/journaling.md、
+// REAL_REPO_ROOT 的真實 hooks/hook-flags.mjs、docs/settings.md、references/shared/runtime/journaling.md、
 // hooks/hooks.json 直接跑，斷言零 P1；並動態 import buildReport 對 REAL_REPO_ROOT 跑一次
 // （比照上面既有 IO-8 模式）確認不崩、若其彙總結果已含 flag-sync/hooks-wiring 項目也零 P1。
 // 實作前紅：本檔開頭第 11 節動態 import 的 flagSyncCheck/hooksWiringCheck 為 undefined，
@@ -1519,7 +1519,7 @@ function runCli(root, args = ['--json']) {
     const fullMap = walk(REAL_REPO_ROOT);
     const hookFlagsContent = fullMap[`${PLUGIN_PREFIX}hooks/hook-flags.mjs`];
     const settingsContent = fullMap[`${PLUGIN_PREFIX}docs/settings.md`];
-    const journalingContent = fullMap[`${PLUGIN_PREFIX}references/journaling.md`];
+    const journalingContent = fullMap[`${PLUGIN_PREFIX}references/shared/runtime/journaling.md`];
     assert(
       typeof hookFlagsContent === 'string' && hookFlagsContent.length > 0,
       'IO-9：真 repo hooks/hook-flags.mjs 讀得到內容 [IO-9-pre]',
@@ -1530,7 +1530,7 @@ function runCli(root, args = ['--json']) {
     );
     assert(
       typeof journalingContent === 'string' && journalingContent.length > 0,
-      'IO-9：真 repo references/journaling.md 讀得到內容 [IO-9-pre]',
+      'IO-9：真 repo references/shared/runtime/journaling.md 讀得到內容 [IO-9-pre]',
     );
 
     const flagFindings = flagSyncCheck({ hookFlagsContent, settingsContent, journalingContent });
@@ -1585,7 +1585,7 @@ function runCli(root, args = ['--json']) {
     writeFiles(dir, {
       'plugins/loops-workflow/hooks/hook-flags.mjs': baselineHookFlagsContent(),
       'plugins/loops-workflow/docs/settings.md': baselineSettingsContent(),
-      'plugins/loops-workflow/references/journaling.md': baselineJournalingContent(),
+      'plugins/loops-workflow/references/shared/runtime/journaling.md': baselineJournalingContent(),
       // 刻意不寫 plugins/loops-workflow/hooks/hooks.json —— 模擬「讀不到」情境
     });
     const result = buildReport && buildReport(dir);

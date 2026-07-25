@@ -4,7 +4,7 @@
 // 把 #32 eval-judge + #33 eval-poll 的既有 export **組合**成：N 個 judge verdict → panel 共識（PoLL 投票）
 //   + 該 case 對金標的 agreement。零重造（只 import 組合）。
 //
-// 混合：**派 N judge 留上層**（`references/eval-judge-panel.md` recipe、主迴圈同回合派、本 script **不 spawn**）；
+// 混合：**派 N judge 留上層**（`references/shared/runtime/eval-judge-panel.md` recipe、主迴圈同回合派、本 script **不 spawn**）；
 //   本 script 只做組合的確定性部分。**跨 case 的 Cohen κ 校準＝既有 `eval-poll.mjs kappa`**（對累積的
 //   judge-results.jsonl 跑），不在此重造（單 case κ 會退化）。
 //

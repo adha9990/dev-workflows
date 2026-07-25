@@ -10,7 +10,7 @@ effort: medium
 
 ## 審查範圍
 
-**探索 code 的方法**：周邊既有 code 用 codebase-memory-mcp（依本 prompt 提供的 `references/code-retrieval.md`：graph 查穩定碼、省 token）；**正在審的改動檔（diff）一律讀實檔、不信 stale graph**（worktree / 未提交 / changed_files 三類）。
+**探索 code 的方法**：周邊既有 code 用 codebase-memory-mcp（依本 prompt 提供的 `references/shared/runtime/code-retrieval.md`：graph 查穩定碼、省 token）；**正在審的改動檔（diff）一律讀實檔、不信 stale graph**（worktree / 未提交 / changed_files 三類）。
 
 - **元件結構**：責任是否單一、props 介面是否清楚、有無不必要的巢狀。
 - **state 管理**：state 放對層級嗎、有無多餘 re-render 來源、衍生狀態是否重算。

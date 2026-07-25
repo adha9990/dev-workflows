@@ -249,7 +249,7 @@ export function formatSummary(result) {
  * 而且是「registry 有、現況空」的靜默塌陷（比照 compat-lint C4 的 listFilesRecursive）。
  * 回 { name: 絕對路徑 }，讓後續讀 frontmatter 不必再推路徑形狀。
  */
-function readAgentFiles(agentsDirAbs) {
+export function readAgentFiles(agentsDirAbs) {
   const out = {};
   let entries;
   try {

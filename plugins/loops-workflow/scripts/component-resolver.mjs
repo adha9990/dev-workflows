@@ -12,12 +12,17 @@
 //   R3 不做 fallback 猜測——候選路徑只來自 registry 宣告的 paths／target_path，不試同名檔、
 //      不掃目錄。全部候選都不存在 → 丟例外並列出試過的候選（猜錯比找不到更難查）。
 //
-// 分層：純解析（候選路徑推導）＋薄 IO（讀 registry、existsSync）。無 CLI ——本模組是被 import
-// 的函式庫，沒有「跑一次印東西」的用途。依賴：僅 node 內建。
+// 分層：純解析（候選路徑推導）＋薄 IO（讀 registry、existsSync）＋薄 CLI。依賴：僅 node 內建。
+//
+// CLI（#171 T9 新增）：`node component-resolver.mjs <id> [<id>…]` 逐行印出絕對路徑。
+// 為什麼本模組原本刻意不開 CLI、現在開：唯一的呼叫端本來只有 .mjs（直接 import 即可），
+// 但派 subagent 的 orchestrator 是 **markdown skill**，它沒有 import，只能跑一行指令——
+// 沒有 CLI 就等於逼它回頭自己拼相對路徑，正是本次重整要消滅的東西（見 AGENTS.md〈參考檔路徑解析〉）。
+// 解不到一律非零退出並把例外訊息印到 stderr（沿用 R1/R3：不靜默、不猜）。
 
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const REGISTRY_REL = 'plugins/loops-workflow/references/component-registry.json';
 
@@ -136,4 +141,25 @@ export function listByOwner(ownerClass, opts = {}) {
     throw new Error(`component-resolver：registry 內沒有 owner_class「${ownerClass}」（已知：${shown}）`);
   }
   return registry.components.filter((c) => c.owner_class === ownerClass);
+}
+
+// ── 薄 CLI：markdown orchestrator 取絕對路徑的唯一入口 ─────────────────────────
+
+function main(argv) {
+  if (argv.length === 0) {
+    console.error('用法：node component-resolver.mjs <component-id> [<component-id>…]（id 見 references/component-registry.json）');
+    process.exit(2);
+  }
+  try {
+    const resolved = resolveMany(argv);
+    for (const id of argv) console.log(resolved[id]);
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
+}
+
+const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invokedDirectly) {
+  main(process.argv.slice(2));
 }

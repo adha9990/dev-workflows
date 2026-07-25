@@ -29,8 +29,8 @@
 //   normalized_sha256 ＝ 目標檔「遮罩掉 references/… 字面之後」的內容雜湊 —— 有一批 reference
 //   自己內部也含字面引用，正確搬遷會改寫它們內部的引用；不遮罩的話這些條目在完全正確的搬遷下
 //   也會紅，而面對一整片紅，實作者只會去放寬檢查。
-//   --compare 在 baseline_commit ≠ merge-base 時拒絕比對（並印出兩個實際 sha），另檢查快照內容
-//   與該 commit 版本一致——兩者合起來擋「在搬檔後的樹上重產基準再跟自己比」的恆綠。
+//   --compare 在 baseline_commit ≠ merge-base 時拒絕比對（並印出兩個實際 sha），另檢查工作樹的
+//   快照與版控（HEAD）裡的同一份檔一致——兩者合起來擋「在搬檔後的樹上重產基準再跟自己比」的恆綠。
 //
 // 用法：
 //   node reference-graph.mjs [--root <dir>] [--json]            掃描並印出五類分布
@@ -335,8 +335,8 @@ function sameSnapshot(a, b) {
  * 快照 ⇄ 現況逐條比對。兩道前置閘先擋「自己跟自己比」的恆綠：
  *   1) baseline_commit ≠ merge-base → 拒絕比對（印出兩個實際 sha）。在搬檔後的樹上重產快照，
  *      它的 commit 會落在 merge-base 之後，這一閘就會擋下。
- *   2) 快照內容 ≠ baseline_commit 那個版本裡的同一份檔 → 拒絕比對。這一閘擋的是「未提交就地重產」
- *      （commit 標記還是舊的、內容卻已經是搬完後的）。快照在該 commit 尚未進版控時跳過本閘並記 note。
+ *   2) 快照內容 ≠ 版控裡（HEAD）的同一份檔 → 拒絕比對。這一閘擋的是「未提交就地重產」
+ *      （commit 標記還是舊的、內容卻已經是搬完後的）。快照尚未進版控時跳過本閘並記 note。
  * 過閘後只比 real 條目：缺鍵／多鍵／目標內容雜湊漂移各自成 P1，一律指名邏輯鍵。
  */
 export function compareToBaseline(baseline, current, { mergeBase, committedBaseline = null } = {}) {
@@ -362,7 +362,7 @@ export function compareToBaseline(baseline, current, { mergeBase, committedBasel
   if (committedBaseline == null) {
     notes.push({ check: 'baseline-not-committed', detail: `快照在 ${mergeBase} 尚未進版控，略過內容一致性閘（提交後這一閘才會生效）` });
   } else if (!sameSnapshot(committedBaseline, baseline)) {
-    findings.push({ check: 'baseline-tampered', severity: 'P1', detail: `拒絕比對：工作樹的快照與 ${mergeBase} 版本內容不符，疑似在搬檔後的樹上重產基準` });
+    findings.push({ check: 'baseline-tampered', severity: 'P1', detail: '拒絕比對：工作樹的快照與版控裡的同一份檔內容不符，疑似在搬檔後的樹上就地重產基準（未提交）' });
     return { ok: false, findings, notes, compared: 0 };
   }
 
@@ -427,7 +427,13 @@ export function buildReport(root, { mode = 'scan', baselinePath, baseRef = null,
   // 落在分支起點、跟基準產出時的樹不是同一棵）。整合時可用 --base-ref master 收緊成分歧點錨定。
   const mergeBase = git.mergeBase(baseRef ?? baseline.baseline_commit);
   const baselineRel = relative(resolve(root), resolve(absBaseline)).split('\\').join('/');
-  const committedText = mergeBase ? git.showFile(baseline.baseline_commit, baselineRel) : null;
+  // 內容一致性閘讀的是 **HEAD 版本**、不是 baseline_commit 版本：快照記的 baseline_commit 是
+  // 「被掃描的那棵樹」的 sha，而快照本身只能在那之後才進版控（一份檔不可能記載自己所在 commit
+  // 的 sha —— 那是雜湊自指），對 baseline_commit 取檔必然拿到 null、這一閘就永遠被略過。
+  // 改讀 HEAD 後，「工作樹就地重產、還沒提交」立刻現形（工作樹 ≠ HEAD 版本 → baseline-tampered）；
+  // 「重產後連 commit 一起做掉」則由第一閘負責——整合時以 `--base-ref master` 錨在分歧點，
+  // 重產出來的 baseline_commit 不會等於分歧點。兩閘合起來覆蓋原設計要擋的兩種恆綠。
+  const committedText = mergeBase ? git.showFile('HEAD', baselineRel) : null;
   const compared = compareToBaseline(baseline, entries, {
     mergeBase,
     committedBaseline: committedText ? JSON.parse(committedText) : null,

@@ -359,8 +359,8 @@ export function docPathTokens() {
   // 正規化——hook 本身用原生 path.join（Windows 上是反斜線），印出的字面文字就是反斜線；這裡若轉
   // 成 `/` 會跟真實 stdout 對不上，位元鎖會誤判成不吻合。
   return {
-    COMMENT_POLICY_PATH: join(HOOKS_DIR, '..', 'references', 'comment-policy.md'),
-    OUTBOUND_TEMPLATES_PATH: join(HOOKS_DIR, '..', 'references', 'outbound-templates.md'),
+    COMMENT_POLICY_PATH: join(HOOKS_DIR, '..', 'references', 'shared', 'delivery', 'comment-policy.md'),
+    OUTBOUND_TEMPLATES_PATH: join(HOOKS_DIR, '..', 'references', 'shared', 'delivery', 'outbound-templates.md'),
   };
 }
 

@@ -10,7 +10,7 @@ effort: medium
 
 ## 審查範圍
 
-**探索 code 的方法**：周邊既有 code 用 codebase-memory-mcp（依本 prompt 提供的 `references/code-retrieval.md`：graph 查穩定碼、省 token）；**正在審的改動檔（diff）一律讀實檔、不信 stale graph**（worktree / 未提交 / changed_files 三類）。
+**探索 code 的方法**：周邊既有 code 用 codebase-memory-mcp（依本 prompt 提供的 `references/shared/runtime/code-retrieval.md`：graph 查穩定碼、省 token）；**正在審的改動檔（diff）一律讀實檔、不信 stale graph**（worktree / 未提交 / changed_files 三類）。
 
 - **語意 HTML**：用對標籤（`button` / `nav` / `main`…）而非一堆 `div`。
 - **ARIA**：互動元件有對的 role / label / state；不濫用 ARIA 蓋過原生語意。

@@ -21,7 +21,7 @@
 //
 // 預設啟用（defaultOn）；env LOOPS_MERGE_GUARD='0'（字面 '0'）可關。
 // fail-open：payload 壞 / 缺 command / 判不出分支一律放行 exit 0，永不因 hook 故障卡住使用者。
-// 與使用者層既有的「gh pr merge 需人核可」提醒並存＝雙保險、不衝突（見 references/journaling.md
+// 與使用者層既有的「gh pr merge 需人核可」提醒並存＝雙保險、不衝突（見 references/shared/runtime/journaling.md
 // 本 hook 條目尾註）。
 //
 // 分層（仿同目錄 pr-gate.mjs / worktree-guard.mjs）：

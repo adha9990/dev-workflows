@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // outbound-comment-guard.mjs —— loops-workflow PreToolUse deny hook：把「對外訊息要先讀規範才能
-// 送」＋「對外訊息格式規則」（references/comment-policy.md、references/outbound-templates.md）從
+// 送」＋「對外訊息格式規則」（references/shared/delivery/comment-policy.md、references/shared/delivery/outbound-templates.md）從
 // 「只有載了 reference 才會遵守」變成「動作當下機械擋下」。攔 `gh pr/issue comment`、
 // `gh pr/issue create`、`gh pr/issue edit`（帶 body）、`gh api .../comments`（帶 body）這些對外
 // 發訊息的 shell 指令（Bash/PowerShell）。
@@ -256,7 +256,7 @@ const OUTBOUND_TEMPLATES_PATH = join(DELIVERY_REFERENCES_DIR, 'outbound-template
  * 章節摘要，附「先讀再送」引導與 code fence 提示。
  * comment → comment-policy.md（§7 驗收報告版型／§8 修正回覆版型）；
  * issue-create / pr-create / issue-edit / pr-edit → outbound-templates.md（樣板索引 + 通則摘要）。
- * 注意：comment 分支的 §7/§8 摘要文字需與 references/comment-policy.md 該兩節原文同步維護——
+ * 注意：comment 分支的 §7/§8 摘要文字需與 references/shared/delivery/comment-policy.md 該兩節原文同步維護——
  * §7 是逐點固定四小節（會發生什麼情境／為什麼是問題／建議怎麼修／建議補測試），§8 才是工程角度／
  * 客戶角度雙視角；兩者結構不同，摘要不能把 §7 也描述成雙視角格式。
  */

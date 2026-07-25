@@ -101,7 +101,7 @@ aggregate：`{ total, passed, failed, tasks: [...] }`；`failed > 0` → **exit 
 - ⚠️ **信任邊界（執行）**：跑語料庫＝以當前權限執行各 workspace 的 `scripts.test`（任意程式碼）。**只在信任來源的 corpus 上跑**，勿對外來/未審的 corpus 直接 eval。
 - ⚠️ **oracle 完整性（候選不可改 test）**：positive-presence 把 `passedTests` 當「該 test 真的通過」的證據，但那是跑**候選 workspace 自己的 test** 產生的。若候選能改 test 檔，它可塞一個必過的同名 test 偽造 `failToPass` titlePath → 假綠。**corpus 必須自擁/釘死 failToPass/passToPass 的 test 定義、候選只能改實作**（如 SWE-bench 在候選碼上套信任的 test patch）；否則 oracle 結果可被 game、不可當 ground truth。
 - 註：`task.workspace` containment 用詞法 `resolve` 比對（非 `realpath`）——對「信任 corpus 內一筆惡意 workspace 字串」的威脅模型足夠；symlink 逃逸需對信任 repo 有寫入權（已等同可執行 `scripts.test`），故 E1 不另做 realpath，為刻意取捨。
-- 與 `references/quality-gate-schema.md` 的 `Failure[]` / `passedTests` / `classifyGate` 對齊。
+- 與 `references/stages/quality-gate-schema.md` 的 `Failure[]` / `passedTests` / `classifyGate` 對齊。
 
 ## 跑
 
@@ -156,7 +156,7 @@ node plugins/loops-workflow/scripts/eval-metrics.mjs check [--metrics-file <path
 node plugins/loops-workflow/scripts/eval-metrics.mjs versions [--metrics-file <path>]
 ```
 
-> MVP 交付為 CLI；自動掛回歸檢查已由 **#35 的 `eval-gate` Stop hook**（`LOOPS_EVAL_GATE`——**#87 起預設開、僅字面 `'0'` 關**（現值以 `references/journaling.md` 決策表為準）、改檔回合自動跑 `check`、退化注入）落地；`eval-results.jsonl` 由 `appendEvalRow` 內建 rotation（上限 1000 行）防無界成長。
+> MVP 交付為 CLI；自動掛回歸檢查已由 **#35 的 `eval-gate` Stop hook**（`LOOPS_EVAL_GATE`——**#87 起預設開、僅字面 `'0'` 關**（現值以 `references/shared/runtime/journaling.md` 決策表為準）、改檔回合自動跑 `check`、退化注入）落地；`eval-results.jsonl` 由 `appendEvalRow` 內建 rotation（上限 1000 行）防無界成長。
 >
 > **多訊號 eval-gate（#49）**：同一個 Stop hook 另含兩條獨立訊號（**#87 起同樣預設開**），共用「改檔回合（edit-accumulator）」前置、各讀已持久化 artifact、注入合併進單一 `additionalContext`、皆永不擋路（缺輸入檔/壞輸出/spawn 失敗 → 該訊號不注入、exit 0）：
 > - **`LOOPS_EVAL_TAGS_GATE`** → 讀 `.loops/.metrics/eval-report.json`（per-task report，**由 `eval-metrics record` 持久化**：record 跑 oracle 時順手把 report 寫在 metrics 檔同目錄）→ `eval-tags by-tag` → 只注入**本次** `failed>0` 的 tag 類別（看哪類有 eval 失敗；讀 latest-overwrite 單份快照、非跨 run 頻率；全綠靜默）。
@@ -192,13 +192,13 @@ exit code：**ok exit 0**（多餘步仍 0）、**漏/禁止/順序 exit 1**、*
 
 ---
 
-# E4 — eval-judge（`eval-judge.mjs` + `agents/eval-judge.md` + `references/eval-judge-rubric.md`）
+# E4 — eval-judge（`eval-judge.mjs` + `agents/eval-judge.md` + `references/personas/eval-judge-rubric.md`）
 
 > E1–E3 都**零 judge**（oracle / 規則）。E4 補唯一缺口：**沒有可執行 ground truth 的維度**（解釋/溝通品質）。原則仍是 **oracle-first, judge-last**——能用測試轉綠 / exit 0 / 檔案存在判的**一律不用 judge**；judge 只評「人類讀者能不能看懂/據以驗證」這種無 ground truth 的東西。
 >
 > **混合架構**：`eval-judge.mjs` **不 spawn judge agent**（plugin script 無此能力）。LLM judge 的調用由**主迴圈 / Workflow** 在 eval/verify 流程**opt-in** 派 `agents/eval-judge.md`（像 verify 的 reviewer，複用反偏誤）；script 只做**離線可確定性測**的部分——驗 rubric、解析 judge verdict、門檻為準推導 pass、分軌、落檔。
 
-## rubric（`references/eval-judge-rubric.md`，G-Eval 式鎖死步驟）
+## rubric（`references/personas/eval-judge-rubric.md`，G-Eval 式鎖死步驟）
 扁平 YAML frontmatter（機讀，`eval-judge.mjs` 驗）：`dimension` / `scale_min` / `scale_max` / `threshold` / `schema`；body 的 `## Evaluation steps` ≥3 條編號步驟（**鎖死**、judge 逐步照走防分數漂移）。`validateRubric` 驗：dimension 非空 ＆ 整數 scaleMin<scaleMax ＆ scaleMin≤threshold≤scaleMax ＆ stepCount≥3。
 
 ## verdict 解析 + 驗證（純函式，永不擋路）
@@ -212,7 +212,7 @@ exit code：**ok exit 0**（多餘步仍 0）、**漏/禁止/順序 exit 1**、*
 ## 跑
 ```bash
 # 驗 rubric（config 不合法 exit 1、讀檔失敗 exit 3）
-node plugins/loops-workflow/scripts/eval-judge.mjs validate-rubric plugins/loops-workflow/references/eval-judge-rubric.md
+node plugins/loops-workflow/scripts/eval-judge.mjs validate-rubric plugins/loops-workflow/references/personas/eval-judge-rubric.md
 # 離線解析一份 judge 已產出的 verdict → 印 record + append judge-results.jsonl（advisory 永不擋路 exit 0）
 node plugins/loops-workflow/scripts/eval-judge.mjs parse --rubric <rubric.md> --output <judge-out.json|-> [--judge-file <path>] [--judge-id <id>] [--model <name>] [--case-id <id>]
 ```
@@ -246,7 +246,7 @@ node plugins/loops-workflow/scripts/eval-poll.mjs poll --records <judge-results.
 exit code：產出 0（advisory 永不擋路）/ 缺旗標·未知命令·**未知 `--score-method`** 2 / 讀檔失敗 3。輸出含 `loaded/skipped`（揭露跳過的壞行數）。**`poll` 需 record 帶 `caseId` 才有意義**——缺 caseId 的 record 會被併為單一 null 群、印 stderr 警示。panel fan-out（派 N judge、各帶 `--case-id` 落 record）由上層做；`eval-poll.mjs` 只聚合。
 
 ## 範圍邊界
-單票只交付**確定性聚合 + 金標 schema**。**真派 judge panel 的活流程＝Phase 3 已落地**（`references/eval-judge-panel.md` recipe + `eval-panel.mjs` 組合膠水：主迴圈派 N 異質 judge → verdicts → 共識 + 金標 agreement，累積後 `eval-poll kappa` 校準；膠水不 spawn、派 judge 留 recipe）。金標已由 **#50 養到 62 筆**（self-annotated baseline + κ=0.845 demo；**真人工金標**＝唯一待人類 operational 交接，見 `evals/gold/README.md`）。scenario 版本 tag + eval↔verify 銜接＝**E6（已落地，見下）**；live-candidate 真跑＝#36。
+單票只交付**確定性聚合 + 金標 schema**。**真派 judge panel 的活流程＝Phase 3 已落地**（`references/shared/runtime/eval-judge-panel.md` recipe + `eval-panel.mjs` 組合膠水：主迴圈派 N 異質 judge → verdicts → 共識 + 金標 agreement，累積後 `eval-poll kappa` 校準；膠水不 spawn、派 judge 留 recipe）。金標已由 **#50 養到 62 筆**（self-annotated baseline + κ=0.845 demo；**真人工金標**＝唯一待人類 operational 交接，見 `evals/gold/README.md`）。scenario 版本 tag + eval↔verify 銜接＝**E6（已落地，見下）**；live-candidate 真跑＝#36。
 
 ---
 
@@ -303,7 +303,7 @@ pass@1 看平均、pass^k 看**隨機性下連 k 次全綠的可靠度**：4/5 �
 
 ## 接線是上層協定（script 不 spawn）
 候選重生＝上層每 task 重跑 N 次（**獨立重生**才有意義，否則退化）→ 各跑 eval-oracle → 寫 `runs.jsonl`（`{taskId, pass, errored?, runIndex?}`）→ `eval-passk.mjs` 算。完整協定 + 成本/沙箱邊界見 `evals/live/README-protocol.md`。把 pass^k 接成 `eval-metrics` `passK` 真值＝上層協定（本票不改 buildEvalRow）。
-> **活流程已落地（Phase 3）**：`scripts/eval-runs.mjs record`＝spawn eval-oracle 評當前候選 → append 一行 run（exit 0 / 缺旗標·未知命令 2 / **oracle 取不到·task 不在語料·append 失敗 3**，infra 錯不偽裝成 fail run；errored 候選記 `pass:false/errored:true` 並出聲）；可跑 recipe（重生→覆寫 workspace→eval-runs record→eval-passk）見 `references/eval-live-candidate.md`。候選重生仍留上層、eval-runs 不重生不 spawn workflow。
+> **活流程已落地（Phase 3）**：`scripts/eval-runs.mjs record`＝spawn eval-oracle 評當前候選 → append 一行 run（exit 0 / 缺旗標·未知命令 2 / **oracle 取不到·task 不在語料·append 失敗 3**，infra 錯不偽裝成 fail run；errored 候選記 `pass:false/errored:true` 並出聲）；可跑 recipe（重生→覆寫 workspace→eval-runs record→eval-passk）見 `references/shared/runtime/eval-live-candidate.md`。候選重生仍留上層、eval-runs 不重生不 spawn workflow。
 
 ## 跑
 ```bash
@@ -312,20 +312,20 @@ node plugins/loops-workflow/scripts/eval-passk.mjs passk --runs <runs.jsonl> --k
 exit code：產出 0（含 k>total 的 task 標 null/reason、advisory 永不擋路）/ 缺 --runs·k 非正整數·未知命令 2 / 讀檔失敗 3。輸出含 `loaded/skipped`。
 
 ## ⚠️ 成本/沙箱邊界（見 protocol 文件）
-真跑很貴（task 數 × N 重生 × 多 agent）→ 建議小語料庫 + N=3–5、只在量可靠度時跑。跑候選＝執行任意碼 → 沿用 eval-oracle 信任邊界（只在信任語料庫跑）。**容器化沙箱＝#52 已落地雙層隔離**：`scripts/eval-sandbox.mjs`（第一層 `checkContainment` 詞法 + 第二層 `buildSandboxCommand`/`validateSandboxPolicy` 容器 policy/指令：`--network none`/`--read-only`+`--tmpfs`/`--memory`·`--pids-limit`·`--cpus`/`--cap-drop ALL`+`no-new-privileges`，CLI `check`/`plan` **建構+驗證、不執行容器**，runtime 由 `LOOPS_SANDBOX_RUNNER` 選、none fallback）。**⚠️ 真容器執行 + 真逃逸/越權測試需 CI container runtime**（script 只驗 policy 結構 + 詞法 containment，第二層執行屬 recipe/CI、見 `references/eval-live-candidate.md`）。pass^k 為估算（N 有限），標來源。
+真跑很貴（task 數 × N 重生 × 多 agent）→ 建議小語料庫 + N=3–5、只在量可靠度時跑。跑候選＝執行任意碼 → 沿用 eval-oracle 信任邊界（只在信任語料庫跑）。**容器化沙箱＝#52 已落地雙層隔離**：`scripts/eval-sandbox.mjs`（第一層 `checkContainment` 詞法 + 第二層 `buildSandboxCommand`/`validateSandboxPolicy` 容器 policy/指令：`--network none`/`--read-only`+`--tmpfs`/`--memory`·`--pids-limit`·`--cpus`/`--cap-drop ALL`+`no-new-privileges`，CLI `check`/`plan` **建構+驗證、不執行容器**，runtime 由 `LOOPS_SANDBOX_RUNNER` 選、none fallback）。**⚠️ 真容器執行 + 真逃逸/越權測試需 CI container runtime**（script 只驗 policy 結構 + 詞法 containment，第二層執行屬 recipe/CI、見 `references/shared/runtime/eval-live-candidate.md`）。pass^k 為估算（N 有限），標來源。
 
 ---
 
-# 活流程 — judge panel（`eval-panel.mjs` + `references/eval-judge-panel.md`，Phase 3）
+# 活流程 — judge panel（`eval-panel.mjs` + `references/shared/runtime/eval-judge-panel.md`，Phase 3）
 
-> 把 E4 eval-judge + E5 eval-poll 從 standalone 引擎接成**可跑的活流程**：主迴圈派 N 異質 judge 評一份 artifact → 組合膠水算共識。**派 N judge＝上層 recipe（主迴圈/Workflow）**；組合 N verdict→共識＝`eval-panel.mjs`（**不 spawn**）。完整 recipe（含反偏誤三點、verdicts.jsonl 形狀）見 `references/eval-judge-panel.md`。
+> 把 E4 eval-judge + E5 eval-poll 從 standalone 引擎接成**可跑的活流程**：主迴圈派 N 異質 judge 評一份 artifact → 組合膠水算共識。**派 N judge＝上層 recipe（主迴圈/Workflow）**；組合 N verdict→共識＝`eval-panel.mjs`（**不 spawn**）。完整 recipe（含反偏誤三點、verdicts.jsonl 形狀）見 `references/shared/runtime/eval-judge-panel.md`。
 
 ## 純函式組合（`eval-panel.mjs`）
 `runPanel(verdicts, {rubricMeta, caseId, gold, ts})`：對每個 verdict（`{judgeId, model, output}`，output＝raw 文字）跑 `parseVerdict→validateVerdict→buildJudgeRecord`（複用 E4）→ **只把 valid 的 record 投票**（棄權語意：壞 verdict 計入 panelSize/落檔但不投票）→ `aggregatePanel`（複用 E5）出共識 → `{consensus, validCount, panelSize, goldAgreement, records, calibrationNote}`。**跨 case Cohen κ 校準＝既有 `eval-poll kappa`**（累積 judge-results.jsonl 後跑，不在 panel 重造、避免單 case κ 退化）。
 
 ## 跑
 ```bash
-node plugins/loops-workflow/scripts/eval-panel.mjs run --rubric plugins/loops-workflow/references/eval-judge-rubric.md \
+node plugins/loops-workflow/scripts/eval-panel.mjs run --rubric plugins/loops-workflow/references/personas/eval-judge-rubric.md \
   --verdicts <verdicts.jsonl> --case-id <artifact-id> [--gold plugins/loops-workflow/evals/gold/explanation-quality.json] [--judge-file .loops/.metrics/judge-results.jsonl]
 ```
 exit code：產出 0（advisory；rubric 不合法只警示不擋、report 帶 `rubricValid`）/ 缺旗標·未知命令 2 / rubric·verdicts·gold 讀檔失敗 3。輸出含 `skipped/validCount`。

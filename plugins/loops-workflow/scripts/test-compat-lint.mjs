@@ -313,8 +313,8 @@ function loadFixture(name) {
 // 7. isExcludedPath / normalizeScopes
 // ══════════════════════════════════════════════════════════════════════════
 {
-  assert(isExcludedPath('plugins/loops-workflow/references/reviewers/foo-reviewer.md'), 'isExcludedPath：reviewers/** 排除 [7a]');
-  assert(isExcludedPath('plugins/loops-workflow/references/reviewer-shared.md'), 'isExcludedPath：reviewer-shared.md 精確排除 [7a]');
+  assert(isExcludedPath('plugins/loops-workflow/references/personas/foo-reviewer.md'), 'isExcludedPath：reviewers/** 排除 [7a]');
+  assert(isExcludedPath('plugins/loops-workflow/references/personas/reviewer-shared.md'), 'isExcludedPath：reviewer-shared.md 精確排除 [7a]');
   assert(isExcludedPath('plugins/loops-workflow/agents/impl-author.md'), 'isExcludedPath：agents/** 排除 [7a]');
   assert(isExcludedPath('plugins/loops-workflow/skills/scaffold-fullstack/assets/README.md'), 'isExcludedPath：scaffold-fullstack/assets/** 排除 [7a]');
   assert(isExcludedPath('plugins/loops-workflow/skills/plan/fixtures/foo.md'), 'isExcludedPath：任一路徑段為 fixtures → 排除 [7a]');
@@ -370,7 +370,7 @@ function makeFakeRepo() {
     'plugins/loops-workflow/skills/scaffold-fullstack/assets/should-be-skipped2.md': '呼叫 AskUserQuestion。',
     'plugins/loops-workflow/references/top-level.md': '派給 opus。',
     'plugins/loops-workflow/references/nested/should-scan.md': '派給 opus。',
-    'plugins/loops-workflow/references/reviewer-shared.md': '派給 opus。',
+    'plugins/loops-workflow/references/personas/reviewer-shared.md': '派給 opus。',
     'plugins/loops-workflow/docs/topic/nested.md': '讀取 PreToolUse。',
     'docs/spec/nested.md': '讀取 PreToolUse。',
     'AGENTS.md': '呼叫 TodoWrite。',
@@ -405,7 +405,7 @@ function makeFakeRepo() {
     const files = listScopeFiles(dir, 'references');
     assert(files.includes('plugins/loops-workflow/references/top-level.md'), 'listScopeFiles [IO-2]：references 掃到頂層 .md');
     assert(files.includes('plugins/loops-workflow/references/nested/should-scan.md'), 'listScopeFiles [IO-2]：references 遞迴掃到巢狀 .md');
-    assert(!files.includes('plugins/loops-workflow/references/reviewer-shared.md'), 'listScopeFiles [IO-2]：reviewer-shared.md 精確排除');
+    assert(!files.includes('plugins/loops-workflow/references/personas/reviewer-shared.md'), 'listScopeFiles [IO-2]：reviewer-shared.md 精確排除');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -771,7 +771,7 @@ function makeC4FakeRepo({ model = 'opus', effort = 'high' } = {}) {
   };
   writeFiles(dir, {
     'plugins/loops-workflow/references/capability-registry.json': JSON.stringify(registry, null, 2),
-    'plugins/loops-workflow/agents/referee.md': `---\nname: referee\nmodel: ${model}\neffort: ${effort}\n---\n\n本文。`,
+    'plugins/loops-workflow/agents/verify/validation/referee.md': `---\nname: referee\nmodel: ${model}\neffort: ${effort}\n---\n\n本文。`,
   });
   return dir;
 }

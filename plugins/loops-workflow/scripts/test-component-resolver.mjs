@@ -11,6 +11,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 import { resolveComponent, resolveMany, listByOwner, loadRegistry } from './component-resolver.mjs';
 
@@ -150,6 +151,23 @@ testCase('L1', 'listByOwner 回該類全部元件；未知 owner_class 丟例外
 
   const r = throwsWith(() => listByOwner('sharedruntime', { root: REPO_ROOT }), 'sharedruntime');
   assert(r.threw && r.matched, `拼錯的 owner_class 要丟例外並指名（實際：${r.message}）`);
+});
+
+testCase('CLI1', 'CLI 逐行印出絕對路徑；壞 id 非零退出並指名（markdown orchestrator 的取路徑入口）', () => {
+  const script = join(HERE, 'component-resolver.mjs');
+  const ok = spawnSync(process.execPath, [script, 'ref-clean-code', 'ref-minimalism-ladder'], { encoding: 'utf8' });
+  const lines = ok.stdout.trim().split('\n');
+  assert(ok.status === 0, `合法 id → exit 0（實際：${ok.status}，stderr：${ok.stderr}）`);
+  assert(lines.length === 2 && lines.every((l) => isAbsolute(l)), `每個 id 印一行絕對路徑（實際：${JSON.stringify(lines)}）`);
+  assert(lines[0].replace(/\\/g, '/').endsWith('references/shared/quality/clean-code.md'), `路徑要指向 registry 現況落點（實際：${lines[0]}）`);
+
+  const bad = spawnSync(process.execPath, [script, 'bogus-id'], { encoding: 'utf8' });
+  assert(bad.status === 1, `壞 id → 非零退出（實際：${bad.status}）`);
+  assert(bad.stderr.includes('bogus-id'), `壞 id 的錯誤訊息要指名該 id（實際：${bad.stderr.trim()}）`);
+  assert(bad.stdout.trim() === '', `壞 id 不得印出任何路徑（實際：${JSON.stringify(bad.stdout)}）`);
+
+  const noArgs = spawnSync(process.execPath, [script], { encoding: 'utf8' });
+  assert(noArgs.status === 2, `沒帶 id → exit 2 並印用法（實際：${noArgs.status}）`);
 });
 
 // ══════════════════════════════════════════════════════════════════════════

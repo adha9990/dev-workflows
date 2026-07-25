@@ -32,7 +32,7 @@
 | 欄位 | 規則 |
 |------|------|
 | `id` | 唯一、非空（如 `T1`） |
-| `title` | 非空、不含 " and "（命中＝該再拆，見 `references/task-template.md`） |
+| `title` | 非空、不含 " and "（命中＝該再拆，見 `references/stages/task-template.md`） |
 | `acceptance` | 非空陣列，**≤ 3 條**（超過＝該再拆） |
 | `verification` | **非空、可執行的指令**（不是「測一下」） |
 | `deps` | 陣列，每個值都要對應到存在的 `id`；**不可成環** |

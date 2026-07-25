@@ -1,5 +1,5 @@
 {
-  "description": "loops-workflow hooks：SessionStart/progress 恆跑；其餘逐 flag 拍板——真相源 hooks/hook-flags.mjs、決策表 references/journaling.md；除 deny 類與 loop-driver opt-in 外不擋路。",
+  "description": "loops-workflow hooks：SessionStart/progress 恆跑；其餘逐 flag 拍板——真相源 hooks/hook-flags.mjs、決策表 references/shared/runtime/journaling.md；除 deny 類與 loop-driver opt-in 外不擋路。",
   "hooks": {
     "SessionStart": [
       {

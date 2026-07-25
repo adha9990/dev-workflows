@@ -1,6 +1,6 @@
 # auto 推進模式（opt-in Open Loop）（負向 fixture：已移除安全停硬煞車段落與對照表）
 
-> 這是 `references/auto-mode.md` 的節錄變體，唯一差異：拿掉「這些情況一定停（auto 的硬煞車）」
+> 這是 `references/shared/runtime/auto-mode.md` 的節錄變體，唯一差異：拿掉「這些情況一定停（auto 的硬煞車）」
 > 整段、以及對照表的「安全停點」列，用來驗證 test-safe-stop-assertion.mjs 在規則消失時必須變紅。
 
 ## 怎麼開

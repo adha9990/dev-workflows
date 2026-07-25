@@ -41,7 +41,7 @@ design / walkthrough / merge-review 三軸常常從不同角度撞到**同一個
 
 ### (c) 硬規則：作者已留痕的決定不算 finding
 
-規則一句版：一條 finding 若只是牴觸了作者已留痕的決定（alignment comment / `stages/02-plan.md` / PR body 寫明的拍板），就不是有效 finding——除非它同時是獨立的正確性 / 安全 / 資料缺陷。完整判準（含 durability 取捨不自動免審、三類回報、派工提示）見 `references/finding-author-decision-rule.md`——同段規則單源、此處不複寫。
+規則一句版：一條 finding 若只是牴觸了作者已留痕的決定（alignment comment / `stages/02-plan.md` / PR body 寫明的拍板），就不是有效 finding——除非它同時是獨立的正確性 / 安全 / 資料缺陷。完整判準（含 durability 取捨不自動免審、三類回報、派工提示）見 `references/personas/finding-author-decision-rule.md`——同段規則單源、此處不複寫。
 
 ## 怎麼跑（送審前自檢流程）
 
@@ -55,7 +55,7 @@ design / walkthrough / merge-review 三軸常常從不同角度撞到**同一個
 ### 步驟
 
 1. **備自檢 packet**（之後塞進每個 reviewer 的 prompt）：issue 重點（目標 / 範圍 / 驗收 / 非目標）、作者自述意圖（branch 模式改讀 alignment comment / `stages/02-plan.md` / commit log）、diff 摘要與檔案清單、最近的 `AGENTS.md` 規則，以及 **作者已拍板決策清單**（從 alignment comment / `stages/02-plan.md` / PR body 整理出的定案與已知取捨 —— 這份就是 (c) 規則的比對基準）。
-2. **跑 merge-review**：跑一輪 `verify`（核心 reviewer〔依步驟 1 風險梯右尺寸化〕+ 條件式 + finding-validator）。把 `references/finding-author-decision-rule.md` 的原文加進每個 reviewer 的 prompt。
+2. **跑 merge-review**：跑一輪 `verify`（核心 reviewer〔依步驟 1 風險梯右尺寸化〕+ 條件式 + finding-validator）。把 `references/personas/finding-author-decision-rule.md` 的原文加進每個 reviewer 的 prompt。
 3. **跑 design + walkthrough + ownership**：跑一次 `explain`，拿三段理解包。
 4. **收斂**：先套 (c) 過濾（把誤把作者定案當問題的 finding 整條剔除）→ 再做 (b) 跨關去重 → 出 (a) 單一判定。
 

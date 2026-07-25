@@ -13,7 +13,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 
 > **值一定要用引號包成字串**（`"1"` 不是 `1`）——上表除 `LOOPS_AUTO` 外的參數由 hook 程式碼（`hook-flags.mjs`）強制只認字面字串 `'0'`/`'1'`；布林 `true`/`false` 會變成字串 `"true"`/`"false"` 被當「怪值」落回預設，看起來像「設了沒生效」。`LOOPS_AUTO` 主要是 skill 層慣例（agent 讀指令判斷），但另被 loop-driver hook 程式碼直讀（同樣僅認字面 `'1'`）——語意相同但保證強度不同，一律照本檔寫法設字串最保險。（`LOOPS_EXPLAIN` 已淘汰、無作用，見下表。）
 
-> 本檔管「**怎麼用**」；每個參數**為什麼是這個預設**（決策理由與完整行為細節）＝`references/journaling.md` 的 flag 決策表與逐條說明，兩邊互為索引。
+> 本檔管「**怎麼用**」；每個參數**為什麼是這個預設**（決策理由與完整行為細節）＝`references/shared/runtime/journaling.md` 的 flag 決策表與逐條說明，兩邊互為索引。
 
 ## 預設開（想關才需要設，值填 `"0"`）
 
@@ -41,10 +41,10 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 
 | 參數 | 幫你做什麼 | 想開 | ⚠ SECURITY |
 |---|---|---|---|
-| `LOOPS_AUTO` | 自動連跑：核准計畫一次後，決策點用推薦選項自動帶過（危險／失敗仍硬停） | `"LOOPS_AUTO": "1"` | —（詳 `references/auto-mode.md`；注意它也會讓 loop-driver 覆蓋 closed 模式） |
+| `LOOPS_AUTO` | 自動連跑：核准計畫一次後，決策點用推薦選項自動帶過（危險／失敗仍硬停） | `"LOOPS_AUTO": "1"` | —（詳 `references/shared/runtime/auto-mode.md`；注意它也會讓 loop-driver 覆蓋 closed 模式） |
 | `LOOPS_EXPLAIN` | **已淘汰（無作用）**——explain 現為完整迴圈完工**一律產**的三份 deliverable 之一（`deliverables/explain.md`），不再由旗標 gate（見 `skills/iterate` §6）。此列僅為向後相容保留、設不設都不影響 | —（不需設） | — |
-| `LOOPS_STOP_GATE` | 改檔回合自動跑 lint/type 檢查、紅燈才提醒 | `"LOOPS_STOP_GATE": "1"` | 啟用＝授權「在每個改檔回合自動執行 `.loops/gate.config.json` 內定義的 `lint`/`type` 命令」（以及偵測到的 lint/test 工具）。這些命令來自 repo、等同自動執行 repo 控制的 code。**請只在你信任的 repo 開此 flag。**——全文見 `references/journaling.md` |
-| `LOOPS_LOOP_DRIVER` | build 階段機械續跑（任務外置 state.json、Stop 自動接下一個任務） | `"LOOPS_LOOP_DRIVER": "1"` | 啟用＝授權「build 完工判定時自動執行 `.loops/gate.config.json` 定義（或自動偵測）的 test/lint/type 命令」——執行面比 stop-gate（僅 type,lint）更寬（含 test）；且 block reason 會把 state.json 的任務文字注入 context（已消毒＋框定，防護是降低而非消除）。**請只在你信任的 repo 開此 flag。**——全文見 `references/journaling.md` |
+| `LOOPS_STOP_GATE` | 改檔回合自動跑 lint/type 檢查、紅燈才提醒 | `"LOOPS_STOP_GATE": "1"` | 啟用＝授權「在每個改檔回合自動執行 `.loops/gate.config.json` 內定義的 `lint`/`type` 命令」（以及偵測到的 lint/test 工具）。這些命令來自 repo、等同自動執行 repo 控制的 code。**請只在你信任的 repo 開此 flag。**——全文見 `references/shared/runtime/journaling.md` |
+| `LOOPS_LOOP_DRIVER` | build 階段機械續跑（任務外置 state.json、Stop 自動接下一個任務） | `"LOOPS_LOOP_DRIVER": "1"` | 啟用＝授權「build 完工判定時自動執行 `.loops/gate.config.json` 定義（或自動偵測）的 test/lint/type 命令」——執行面比 stop-gate（僅 type,lint）更寬（含 test）；且 block reason 會把 state.json 的任務文字注入 context（已消毒＋框定，防護是降低而非消除）。**請只在你信任的 repo 開此 flag。**——全文見 `references/shared/runtime/journaling.md` |
 | `LOOPS_COMPACT_HINT` | context 快滿時提醒你可以 `/compact` | `"LOOPS_COMPACT_HINT": "1"` | — |
 
 ## 怎麼自己驗證有沒有生效
@@ -55,7 +55,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 
 ## 進階／內部（一般使用者不用管）
 
-- `LOOPS_SANDBOX_RUNNER`（`docker`/`podman`/`none`）：eval sandbox 用哪個容器執行器——跑 eval harness 的人才需要，詳 `references/eval-harness.md`。
+- `LOOPS_SANDBOX_RUNNER`（`docker`/`podman`/`none`）：eval sandbox 用哪個容器執行器——跑 eval harness 的人才需要，詳 `references/shared/runtime/eval-harness.md`。
 - `LOOPS_LOOP_DRIVER_GATE_SCRIPT`：loop-driver 測試注入用的內部參數，不要在正常使用設定。
 - `LOOPS_PR_CONFLICT_STUB`：pr-gate 閘⑤ 測試注入用的內部參數——有值時把它當「`gh pr view` 會印的原始 JSON」餵給 mergeability 判定（跳過真 gh spawn），供 `test-pr-gate.mjs` 黑箱測試用，不要在正常使用設定。
 - 你可能在文檔看到的 `LOOPS_ROOT`：那是「主 repo 根目錄」的**代稱**（文檔與錯誤訊息用語），不是環境變數；session 識別碼環境變數由平台自動帶入、不用手設（<!-- adapter-projection -->Claude Code 上為 `CLAUDE_CODE_SESSION_ID`<!-- /adapter-projection -->）。

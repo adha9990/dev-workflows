@@ -12,7 +12,7 @@ Read, Grep, Glob, WebFetch, WebSearch, mcp__codebase-memory-mcp__search_graph, m
 <!-- END:TOOLS_WEB -->
 
 <!-- BEGIN:CODE_RETRIEVAL -->
-**探索 code 的方法**：周邊既有 code 用 codebase-memory-mcp（依本 prompt 提供的 `references/code-retrieval.md`：graph 查穩定碼、省 token）；**正在審的改動檔（diff）一律讀實檔、不信 stale graph**（worktree / 未提交 / changed_files 三類）。
+**探索 code 的方法**：周邊既有 code 用 codebase-memory-mcp（依本 prompt 提供的 `references/shared/runtime/code-retrieval.md`：graph 查穩定碼、省 token）；**正在審的改動檔（diff）一律讀實檔、不信 stale graph**（worktree / 未提交 / changed_files 三類）。
 <!-- END:CODE_RETRIEVAL -->
 
 <!-- BEGIN:OUTPUT_HEAD_SCALE -->
