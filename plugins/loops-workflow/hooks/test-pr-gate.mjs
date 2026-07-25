@@ -849,6 +849,20 @@ try {
   const MK_TWO_ONE_LINE = '# verify\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 --> <!-- loops-verify verdict=not-ready p0=1 p1=0 round=2 -->\n';
   const LOOP_CLOSED = '# Loop\n- 推進模式：closed\n';
   const LOOP_AUTO = '# Loop\n- 推進模式：auto（LOOPS_AUTO 未設、task 授權）\n';
+  const LOOP_AUTO_CAP = '# Loop\n- 推進模式：Auto（大寫）\n'; // verify P3-1：大小寫不敏感
+  // verify P2：未閉合 fence（少一個結尾 ```）—— stripCode 成對去 fence 會漏、讓示範 ready marker 存活
+  // 被選在 allow 方向；fence-robust 逐行掃把未閉合 fence 後到 EOF 全丟 → 真 not-ready 存活 → deny。
+  const MK_FENCE_UNBALANCED = '# verify\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\n\n格式範例：\n```text\n<!-- loops-verify verdict=ready p0=0 p1=0 round=9 -->\n';
+  // verify P2：跨行 inline span 若用舊 stripCode 會把真 marker 一起吞掉 → null → allow；逐行去 span
+  // （不跨行）→ 真 marker 存活 → deny。
+  const MK_INLINE_STRADDLE = '# verify\n這是 `code 開始\n<!-- loops-verify verdict=not-ready p0=0 p1=1 round=1 -->\ncode 結束` 收尾\n';
+  // verify 修正輪（Finding 1）：**未閉合 fence 在真 marker 之前**——只靠 stripped 視圖會把真 marker 藏進
+  // fence 內漏讀 → 誤放行；raw 視圖擋住（真 marker 一定在 raw）。
+  const MK_FENCE_WRAP = '# verify\n```text\n貼上的一段 code（忘了閉合）\n<!-- loops-verify verdict=not-ready p0=2 p1=0 round=1 -->\n';
+  // verify 修正輪（Finding 1，最現實）：一個**閉合且 CommonMark 合法**的 ```text 區塊、內含一行 ~~~，
+  // 之後才是真 marker——``` 開→~~~ 關→``` 開＝奇數 toggle，stripped 視圖把真 marker 當 fence 內漏讀；
+  // raw 視圖擋住。無任何 markdown 錯誤。
+  const MK_TILDE_MIX = '# verify\n```text\n範例輸出\n~~~ 分隔線 ~~~\n更多輸出\n```\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=2 -->\n';
 
   const mkG6 = (name, slug, verify, opts = {}) => {
     const root = join(SANDBOX, name);
@@ -905,6 +919,17 @@ try {
     '[B17] comment：verify not-ready → 閘⑥ 不套 comment → allow（作用範圍 = create + ready）');
   assert(isDeny(runHook({ command: 'gh pr create', cwd: mkG6('g6-indep', 'block-indep', MK_NOT_READY), env: { LOOPS_PR_GATE: '0' } })),
     '[B18] create：LOOPS_PR_GATE=0 關①②③、閘⑥ 獨立 flag 仍 defaultOn → not-ready 仍 deny（互不牽連）');
+  // verify 修正輪 GUARD：
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-unbal', 'block-unbal', MK_FENCE_UNBALANCED) })),
+    '[B19] create：**未閉合** fence 內的示範 ready marker（少結尾 ```）→ fence-robust 掃丟到 EOF → 真 not-ready 存活 → 仍 deny（verify P2）');
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-straddle', 'block-straddle', MK_INLINE_STRADDLE) })),
+    '[B20] create：跨行 inline backtick 夾住真 marker → 逐行去 span（不跨行）真 marker 存活 → deny（verify P2 inline 變體）');
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-capauto', 'block-capauto', MK_NOT_READY, { waiver: '豁免', loopMd: LOOP_AUTO_CAP }) })),
+    '[B21] create：not-ready + waiver + loop.md 推進模式：Auto（大寫）→ 大小寫不敏感偵測 auto → 仍 deny（verify P3-1）');
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-wrap', 'block-wrap', MK_FENCE_WRAP) })),
+    '[B22] create：**未閉合 fence 在真 marker 之前**（危險排序）→ raw 視圖擋住真 not-ready → deny（Finding 1：不把真 marker 藏掉誤放行）');
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-tilde', 'block-tilde', MK_TILDE_MIX) })),
+    '[B23] create：合法閉合 ```區塊內含 ~~~ 行（奇數 toggle）+ 之後真 not-ready → raw 視圖擋住 → deny（Finding 1 最現實案例，無 markdown 錯誤）');
 
   // ── BN 純函式直測（動態 import，仿 N/Q 系列）──────────────────────────────────────
   {
@@ -939,6 +964,27 @@ try {
     writeFileSync(join(wroot2, '.loops', 'w2', 'blocking-waiver.md'), '');
     assert(safe(m?.waiverExists, wroot2, 'w2') === false, '[BN17] waiverExists：空 waiver（0 bytes）→ false');
     assert(safe(m?.waiverExists, wroot2, 'nope') === false, '[BN18] waiverExists：不存在 → false');
+    // verify 修正輪 GUARD（純函式層）：
+    const pu = safe(m?.parseLatestVerifyVerdict, '判定 Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\n```text\n<!-- loops-verify verdict=ready p0=0 p1=0 round=9 -->\n');
+    assert(pu && pu.verdict === 'not-ready' && pu.round === 1, '[BN19] parse 對**未閉合** fence 穩健：示範 ready marker 在未閉合 fence 內 → 不被選、取真 not-ready（verify P2）');
+    const ps = safe(m?.stripCodeForMarker, 'a\n```\n<!-- x -->\n```\nb `inline` c');
+    assert(typeof ps === 'string' && !ps.includes('<!-- x -->') && !ps.includes('inline'), '[BN20] stripCodeForMarker：去成對 fence 內容 + 同行 inline span');
+    assert(safe(m?.stripCodeForMarker, 42) === '', '[BN20b] stripCodeForMarker：非字串 → ""');
+    assert(safe(m?.isAutoMode, {}, '- 推進模式：Auto（大寫）') === true, '[BN21] isAutoMode：loop.md 推進模式：Auto（大寫）→ true（大小寫不敏感，verify P3-1）');
+    assert(safe(m?.isAutoMode, {}, '- 推進模式：CLOSED') === false, '[BN22] isAutoMode：推進模式：CLOSED → false（大小寫不敏感不誤中）');
+    // verify 修正輪（Finding 1）— verifyReportBlocks / extractLatestMarker 純函式層：
+    assert(safe(m?.extractLatestMarker, '```\nx\n<!-- loops-verify verdict=not-ready p0=2 p1=0 round=1 -->')?.verdict === 'not-ready',
+      '[BN23] extractLatestMarker（raw、不去 fence）：未閉合 fence 內的真 marker 仍讀得到（藏不掉）');
+    assert(safe(m?.verifyReportBlocks, '```\nx\n<!-- loops-verify verdict=not-ready p0=2 p1=0 round=1 -->') === true,
+      '[BN24] verifyReportBlocks：未閉合 fence 在真 not-ready 前（stripped 漏讀）→ raw 視圖擋住 → true（Finding 1）');
+    assert(safe(m?.verifyReportBlocks, MK_TILDE_MIX) === true,
+      '[BN25] verifyReportBlocks：```區塊含 ~~~（奇數 toggle）+ 之後真 not-ready → true（Finding 1 最現實）');
+    assert(safe(m?.verifyReportBlocks, '判定 Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\n```text\n<!-- loops-verify verdict=ready p0=0 p1=0 round=9 -->\n```') === true,
+      '[BN26] verifyReportBlocks：真 not-ready + fenced 示範 ready（原 P2）→ stripped 視圖擋住 → true');
+    assert(safe(m?.verifyReportBlocks, 'x\n<!-- loops-verify verdict=not-ready p0=0 p1=1 round=1 -->\ny\n<!-- loops-verify verdict=ready p0=0 p1=0 round=2 -->') === false,
+      '[BN27] verifyReportBlocks：多輪最後一輪 ready（無 fence）→ false（不因歷史 not-ready 誤擋、無 false-deny）');
+    assert(safe(m?.verifyReportBlocks, '完全沒有 marker') === false, '[BN28] verifyReportBlocks：無 marker → false（fail-open，S9）');
+    assert(safe(m?.verifyReportBlocks, 42) === false, '[BN28b] verifyReportBlocks：非字串 → false');
   }
 } finally {
   rmSync(SANDBOX, { recursive: true, force: true });

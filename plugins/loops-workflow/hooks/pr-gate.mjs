@@ -19,11 +19,13 @@
 //     從當前分支推斷 PR），`mergeable === 'CONFLICTING'` 或 `mergeStateStatus === 'DIRTY'` → deny，
 //     要求先解衝突再送。**指令帶顯式 PR 號 / branch / url**（如 `gh pr comment 123`）時**跳過本閘**
 //     ——那針對的未必是當前分支的 PR，查當前分支 mergeability 會誤擋。
-//   ⑥ 收圈硬條件＝P0/P1 清零（#188，create + ready）：讀 `stages/04-verify.md` 末尾的機械 marker
-//     `<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`（取最後一個、stripCode 去
-//     fence、CRLF 安全），最近一輪仍有未修 P0/P1（verdict=not-ready 或 p0/p1>0）→ deny，除非**知情
-//     豁免**：非 auto 模式且 `.loops/<slug>/blocking-waiver.md` 非空 → 放行；**auto 模式一律不認 waiver**
-//     （防用豁免繞過、對齊 auto 硬煞車 #4）。marker 缺 / 無法解析 / 讀檔失敗 → fail-open 放行。
+//   ⑥ 收圈硬條件＝P0/P1 清零（#188，create + ready）：讀 `stages/04-verify.md` 的機械 marker
+//     `<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`。判定 fail-safe：**raw 與
+//     fence-robust stripped 兩視圖各取最後一個 marker、任一 blocking 即擋**（stripped 擋「fenced 示範
+//     ready marker 蓋掉真 not-ready」；raw 擋「報告裡 fence 把真 marker 藏進 fence 內、stripped 漏讀」——
+//     真 marker 一定在 raw、藏不掉）。最近一輪仍有未修 P0/P1（verdict=not-ready 或 p0/p1>0）→ deny，除非
+//     **知情豁免**：非 auto 且 `.loops/<slug>/blocking-waiver.md` 非空 → 放行；**auto 一律不認 waiver**
+//     （防用豁免繞過、對齊 auto 硬煞車 #4）。兩視圖皆無 marker / 讀檔失敗 → fail-open 放行。
 //
 // 非 loop 分支／非受管 gh pr 指令／任何判不出的情況（含 detached HEAD）一律放行——這是提醒型
 // 守衛，不能因為自己判斷不出來就卡住人。
@@ -223,19 +225,39 @@ export function hasExplicitPrTarget(cmd, kind) {
 }
 
 /**
- * 閘⑥（#188）：解析 verify 報告（`stages/04-verify.md`）末尾的機械可讀 marker，回傳
- * `{ verdict, p0, p1, round }` 或 null（無 marker / 非字串）。契約（見 issue #188 plan §1）：
- *   `<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`
- * 其中 p0/p1 = 判定當下**仍未修（blocking）的** P0/P1 條數（Ready ⟹ p0=0 p1=0）。
- * 解析紀律：①先 `stripCode` 去 code span/fence——報告裡示範用的 fenced marker 不被誤選（只留真
- * marker，與閘③ 對 Closes 先 stripCode 同思路）；②`matchAll` global、取**最後一個**（多輪 append
- * 時最近一輪 wins；`round` 僅供人讀 / debug，不用於選取）；③無行錨（`[^>]*?` 不跨 `-->`），CRLF 安全。
- * verdict 值原樣回傳字串（呼叫端用**嚴格全等**比對，絕不 `includes`——`not-ready` 內含 `ready`）。
+ * 閘⑥：把 marker 掃描前該濾掉的 code 濾掉——**對「未閉合 fence」穩健**（不用 `stripCode`，它只成對去
+ * fence/span，未閉合就漏，讓 fenced 示範 marker 存活、被選在 allow 方向〔#188 verify P2〕）。逐行掃：
+ *   ①遇到 fence 邊界行（`` ``` `` / `~~~` 起頭）toggle「在 fence 內」並丟掉該行——**未閉合的開 fence
+ *     會把其後全部行當 fence 內丟到 EOF**（正是要的：示範 marker 藏在未閉合 fence 後也被丟）；
+ *   ②非 fence 內的行，去掉**同一行內**成對的 inline code span（`` `[^`\n]*` ``，不跨行——避免像
+ *     `stripCode` 那樣一顆跨行 span 把真 marker 一起吞掉、又造成 allow 方向漏放）。
+ * 真 marker 由 verify 寫成獨立 HTML 註解行（無反引號、不在 fence 內），一律存活。
  */
-export function parseLatestVerifyVerdict(text) {
+export function stripCodeForMarker(text) {
+  if (typeof text !== 'string') return '';
+  const lines = text.split(/\r?\n/);
+  let inFence = false;
+  const kept = [];
+  for (const line of lines) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence; // fence 邊界行本身丟掉、切換狀態（未閉合 → 其後到 EOF 皆算 fence 內）
+      continue;
+    }
+    if (inFence) continue;
+    kept.push(line.replace(/`[^`\n]*`/g, ' ')); // 同行成對 inline span 去掉（不跨行）
+  }
+  return kept.join('\n');
+}
+
+/**
+ * 閘⑥：從**已預處理**的文字取最後一個機械 marker，回傳 `{ verdict, p0, p1, round }` 或 null。
+ * 契約：`<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`；`matchAll` global、
+ * 取**最後一個**（多輪 append 最近一輪 wins；`round` 僅供人讀、不用於選取）；無行錨（`[^>]*?` 不跨
+ * `-->`）CRLF 安全。verdict 原樣回字串（呼叫端**嚴格全等**比對，絕不 `includes`——`not-ready` 內含 `ready`）。
+ */
+export function extractLatestMarker(text) {
   if (typeof text !== 'string') return null;
-  const stripped = stripCode(text);
-  const ms = [...stripped.matchAll(/<!--\s*loops-verify\s+([^>]*?)\s*-->/g)];
+  const ms = [...text.matchAll(/<!--\s*loops-verify\s+([^>]*?)\s*-->/g)];
   if (ms.length === 0) return null;
   const body = ms[ms.length - 1][1];
   const field = (k) => {
@@ -247,6 +269,33 @@ export function parseLatestVerifyVerdict(text) {
     return Number.isNaN(n) ? undefined : n;
   };
   return { verdict: field('verdict'), p0: num(field('p0')), p1: num(field('p1')), round: num(field('round')) };
+}
+
+/**
+ * 閘⑥（#188）：verify 報告（`stages/04-verify.md`）**fence-robust 視圖**的最後一個 marker——先
+ * `stripCodeForMarker` 去 code（報告裡示範用的 fenced marker 不被誤選）再取最後一個。p0/p1 = 判定
+ * 當下仍未修（blocking）的 P0/P1 條數（Ready ⟹ p0=0 p1=0）。**注意**：收圈判定用 `verifyReportBlocks`
+ * （raw 與 stripped 兩視圖聯合、fail-safe），不是單看本函式——本函式仍匯出供純函式測試。
+ */
+export function parseLatestVerifyVerdict(text) {
+  if (typeof text !== 'string') return null;
+  return extractLatestMarker(stripCodeForMarker(text));
+}
+
+/**
+ * 閘⑥收圈判定（fail-safe 向 deny，#188 verify 修正輪）：report 是否代表「仍有未修 P0/P1」。
+ * **raw 視圖與 stripped 視圖的最後 marker，任一 blocking 即 blocking**：
+ *   - stripped 視圖擋「fenced 示範 ready marker 蓋掉真 not-ready」（原 P2）；
+ *   - raw 視圖擋「報告裡的 fence（貼的 code/diff、`` ``` `` 與 `~~~` 混用、未閉合 fence）把真 marker
+ *     藏進 fence 內 → stripped 視圖漏讀 → 誤放行」（P2 的修正引入、又被 re-verify 抓到的反向漏洞）——
+ *     真 marker 一定在 raw 裡、藏不掉。
+ * 無 marker（兩視圖皆 null）→ false（fail-open 放行，S9：舊報告 / verify 沒吐 marker）。realistic 報告
+ * 無示範 marker，raw-last 即真 marker；stripped 只多擋不現實的「貼了示範 marker」情形。代價＝罕見
+ * fail-safe 誤擋（報告有未閉合 fence 這種缺陷時），安全方向、有逃生口 `LOOPS_PR_BLOCKING_GATE=0`。
+ */
+export function verifyReportBlocks(text) {
+  if (typeof text !== 'string') return false;
+  return hasBlockingFindings(parseLatestVerifyVerdict(text)) || hasBlockingFindings(extractLatestMarker(text));
 }
 
 /**
@@ -276,8 +325,10 @@ export function hasBlockingFindings(parsed) {
  */
 export function isAutoMode(env, loopMdText) {
   if (env && env.LOOPS_AUTO === '1') return true;
+  // 大小寫不敏感（`i`）：對齊 sibling `hasClosesLine` 的 case-insensitive 慣例，`推進模式：Auto`/`AUTO`
+  // 也判到（值位置錨定；env 才是防竄改的權威訊號，見 doc-comment 誠實範圍）。
   return typeof loopMdText === 'string'
-    && /^[-*\s]*\*{0,2}推進模式\*{0,2}\s*[：:]\s*auto\b/m.test(loopMdText);
+    && /^[-*\s]*\*{0,2}推進模式\*{0,2}\s*[：:]\s*auto\b/mi.test(loopMdText);
 }
 
 function buildVerifyDenyReason(slug) {
@@ -430,13 +481,12 @@ export function realRunReceiptExists(loopRoot, slug) {
 }
 
 /**
- * 閘⑥：讀 `stages/04-verify.md` → 解析最後一個 verify marker（`parseLatestVerifyVerdict`）。
+ * 閘⑥：讀 `stages/04-verify.md` 原始文字（收圈判定由 `verifyReportBlocks` 用 raw+stripped 兩視圖做）。
  * 讀檔失敗 / 檔不存在 → null（fail-open 放行，同 `realRunReceiptExists` 的 try/catch 精神）。
  */
-export function readVerifyVerdict(loopRoot, slug) {
+export function readVerifyText(loopRoot, slug) {
   try {
-    const text = readFileSync(join(loopRoot, '.loops', slug, 'stages', '04-verify.md'), 'utf8');
-    return parseLatestVerifyVerdict(text);
+    return readFileSync(join(loopRoot, '.loops', slug, 'stages', '04-verify.md'), 'utf8');
   } catch {
     return null;
   }
@@ -583,11 +633,14 @@ function main() {
   // 比截圖 receipt 更根本；仍在唯一 spawn gh 的閘⑤ 之前（純讀檔、廉價）。blocking 時：auto 一律 deny
   // （waiver 不認、防繞過）；非 auto 則有非空 waiver 才放行（知情豁免）。
   if (runBlocking) {
-    const verdict = readVerifyVerdict(loopRoot, slug);
-    if (hasBlockingFindings(verdict)) {
+    const verifyText = readVerifyText(loopRoot, slug);
+    if (verifyReportBlocks(verifyText)) {
       const auto = isAutoMode(process.env, readLoopMdText(loopRoot, slug));
       if (auto || !waiverExists(loopRoot, slug)) {
-        denyWith(buildBlockingDenyReason(slug, verdict, auto));
+        // deny 訊息挑「真正 blocking 的那個 marker」的計數顯示（stripped 優先，退 raw）。
+        const strM = parseLatestVerifyVerdict(verifyText);
+        const parsed = hasBlockingFindings(strM) ? strM : extractLatestMarker(verifyText);
+        denyWith(buildBlockingDenyReason(slug, parsed, auto));
         return;
       }
     }
