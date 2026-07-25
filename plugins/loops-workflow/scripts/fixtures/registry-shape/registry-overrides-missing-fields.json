@@ -5,7 +5,7 @@
     {
       "id": "codex-hook-concurrency-serialize",
       "runtime": "codex",
-      "scope": "plugins/loops-workflow/agents/referee.md",
+      "scope": "plugins/loops-workflow/agents/verify/validation/referee.md",
       "owner": "",
       "rationale": "",
       "test_ref": "plugins/loops-workflow/scripts/test-codex-plugin-lint.mjs"

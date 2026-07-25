@@ -389,8 +389,12 @@ function hasWildcard(pattern) {
   return GLOB_WILDCARD_RE.test(pattern);
 }
 
-/** outer 是否涵蓋 inner：以字面前綴 + 字面尾綴近似 glob 覆蓋（不做完整 glob 展開）。 */
-function globCovers(outer, inner) {
+/**
+ * outer 是否涵蓋 inner：以字面前綴 + 字面尾綴近似 glob 覆蓋（不做完整 glob 展開）。
+ * export 給 test-registry-coverage 的逐檔枚舉地板用——覆蓋判定只留這一份實作，
+ * 測試端另寫一套近似比對，兩邊對「什麼叫涵蓋」的認定遲早會分岔。
+ */
+export function globCovers(outer, inner) {
   if (outer === inner) return true;
   if (!hasWildcard(outer)) return false;
   if (!inner.startsWith(literalPrefix(outer))) return false;

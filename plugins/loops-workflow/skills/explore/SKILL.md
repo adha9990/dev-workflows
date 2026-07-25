@@ -34,15 +34,15 @@ description: Researches how to build something before it gets planned, and lays 
 
 ### 0. 先摸架構（文檔優先）
 
-動手探索前先建立架構認知：**文檔優先** —— 讀 `CLAUDE.md` / `AGENTS.md`（最高優先）、`README` / `docs/` / ADR；文檔已說明架構就以文檔為準，只在文檔有缺口才爬 code。**文檔有缺口且 repo 已索引 `codebase-memory-mcp` → 用 `get_architecture`（package / 分層 / Leiden cluster 全貌）快速補**，比逐檔爬快。輸出 2–4 行 project context 寫進 `stages/01-explore.md` 開頭。詳見 `references/onboarding.md`。
+動手探索前先建立架構認知：**文檔優先** —— 讀 `CLAUDE.md` / `AGENTS.md`（最高優先）、`README` / `docs/` / ADR；文檔已說明架構就以文檔為準，只在文檔有缺口才爬 code。**文檔有缺口且 repo 已索引 `codebase-memory-mcp` → 用 `get_architecture`（package / 分層 / Leiden cluster 全貌）快速補**，比逐檔爬快。輸出 2–4 行 project context 寫進 `stages/01-explore.md` 開頭。詳見 `references/shared/docs/onboarding.md`。
 
-**辨識 bounded context / 既有 domain model**：摸架構時先確認這次改動落在哪個領域脈絡、有沒有既有的 domain model 可重用（reuse 優先，見 `references/reuse-check.md`）；跨 BC 邊界要標出來。右尺寸：瑣碎改動跳過。產出的領域名詞交給 plan 的 §3 glossary。
+**辨識 bounded context / 既有 domain model**：摸架構時先確認這次改動落在哪個領域脈絡、有沒有既有的 domain model 可重用（reuse 優先，見 `references/shared/quality/reuse-check.md`）；跨 BC 邊界要標出來。右尺寸：瑣碎改動跳過。產出的領域名詞交給 plan 的 §3 glossary。
 
 ### 1. 先掃內部（重用優先）
 
 找：既有可重用的實作 / 模式 / 類似功能。**兩條路，優先用 graph、不行才派 agent**：
 
-**內部檢索一律依 `references/code-retrieval.md`**（單一正本）：repo 已索引 ready → 用 codebase-memory-mcp 查穩定周邊（`search_graph`/`trace_path`/`get_code_snippet`/`search_code`/`get_architecture`）；**worktree / 未提交 / `detect_changes` 的 changed_files 一律讀實檔、不信 stale graph**；**未索引 → 依 `code-retrieval.md` §Fallback 預設先 `index_repository` 再查**（mcp 不可用 / 退 grep 例外才派內建 `Explore` agent 或 raw Grep）。讀檔與命令輸出的瘦身（大檔 offset/limit 範圍讀、gh/git 篩欄、改動檔重讀）依 `references/context-diet.md`。
+**內部檢索一律依 `references/shared/runtime/code-retrieval.md`**（單一正本）：repo 已索引 ready → 用 codebase-memory-mcp 查穩定周邊（`search_graph`/`trace_path`/`get_code_snippet`/`search_code`/`get_architecture`）；**worktree / 未提交 / `detect_changes` 的 changed_files 一律讀實檔、不信 stale graph**；**未索引 → 依 `code-retrieval.md` §Fallback 預設先 `index_repository` 再查**（mcp 不可用 / 退 grep 例外才派內建 `Explore` agent 或 raw Grep）。讀檔與命令輸出的瘦身（大檔 offset/limit 範圍讀、gh/git 篩欄、改動檔重讀）依 `references/shared/runtime/context-diet.md`。
 
 兩條路都一樣：**出入口稍異不等於要另造** —— 預設擴充或參數化既有方法。回精煉 digest 給主線（不是整檔貼回）。
 
@@ -88,18 +88,18 @@ description: Researches how to build something before it gets planned, and lays 
 
 主線收成**比較矩陣**（候選 × 維度 + 分數 + 證據 / CITE，沒實測標 `not measured`、規模相關的**標明在多大資料量下測的**）→ 寫進 `stages/01-explore.md` → 推薦 + **點明哪個維度是決定因素**。**單一明顯方法、無真競爭** → 跳過評估直接推薦（省成本）。
 
-> 上面是「**評估已知候選**」；若候選本身要先生出來（解法空間寬、沒有現成方向），用 **opt-in Fleet** 派多 agent 各從不同角度發想方案再評（見 `references/fleet.md`）。
+> 上面是「**評估已知候選**」；若候選本身要先生出來（解法空間寬、沒有現成方向），用 **opt-in Fleet** 派多 agent 各從不同角度發想方案再評（見 `references/shared/runtime/fleet.md`）。
 
 ### 5. 攤開比較 + 推薦（依模式收斂）
 
-共通：**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」；有搜外部就內外並排、附 CITE。停在 gate 時**一律開一個決策點給選項**（每個列優缺、恰一個標推薦 + 一句理由；表述形狀與各平台互動能力的映射見 `references/interaction-adapter.md`），不要用純文字要使用者打字。
+共通：**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」；有搜外部就內外並排、附 CITE。停在 gate 時**一律開一個決策點給選項**（每個列優缺、恰一個標推薦 + 一句理由；表述形狀與各平台互動能力的映射見 `references/shared/delivery/interaction-adapter.md`），不要用純文字要使用者打字。
 
 **收斂式 → `explore → plan`**：把候選方案 + 第 4.5 步比較矩陣整理進 `stages/01-explore.md`（各自優缺點、適配度、CITE；內部已足夠則列內部結論 + 一句「為什麼不必外部」）。收斂時除維度分數，再看使用者價值（解痛點 painkiller / nice-to-have vitamin）+「**這方向賭什麼成立、什麼會讓它垮**」。給一個推薦 + 理由（**點明決定因素**；決定因素不得是「代價最小」——見 §4.5 鐵則 3）。gate 開一個決策點，把**候選方法**做成選項給使用者選 → 進 `plan`。
 
 **發散式 → `explore → define`**：把設計空間整理進 `stages/01-explore.md` —— 每個開放問題列「選項 + 傾向（待拍板）+ 相依」，收束成一份 **issue backlog 清單**（不收斂成單一方法）。
 
 - **析相依、分兩層標記**：把 backlog 依相依切成 **基礎層**（彼此相依、要先序列建的**薄地基**，如資料模型 / 共用 port / schema）與 **獨立層**（基礎好之後彼此獨立、可多 session / 多 agent **平行**的票）。**優先薄基礎 → 寬平行** —— 別開出一長串前後相依的 issue 鏈（相依鏈會讓「多 session 並行加速」破功）。
-- gate 開一個決策點確認 **backlog 範圍 + 基礎/獨立分層 + MVP 起點**（不是選一個方法；表述形狀與各平台互動能力的映射見 `references/interaction-adapter.md`）→ 核可後進 `define`（**backlog 模式**：逐條從研究結論直接開 issue、依分層設相依與優先，跳過單題 one-question intake —— 研究已做完，重訪談是冗餘）。
+- gate 開一個決策點確認 **backlog 範圍 + 基礎/獨立分層 + MVP 起點**（不是選一個方法；表述形狀與各平台互動能力的映射見 `references/shared/delivery/interaction-adapter.md`）→ 核可後進 `define`（**backlog 模式**：逐條從研究結論直接開 issue、依分層設相依與優先，跳過單題 one-question intake —— 研究已做完，重訪談是冗餘）。
 
 ## Common Rationalizations
 
@@ -134,5 +134,5 @@ description: Researches how to build something before it gets planned, and lays 
 - [ ] 推薦的決定因素是長期正確性 / 風險消除；「便宜但留債」候選已明標債、未被預設標推薦（§4.5 鐵則 3）。
 - [ ] 框架 API 來源已 CITE，查不到的標 UNVERIFIED。
 - [ ] deep-research（若用）有先經同意。
-- [ ] 內部掃描**優先用 `codebase-memory-mcp`**（repo 已索引時）；**剛改 / worktree / 未提交**的 code 已用 `detect_changes` + 直接 `Read` 驗證、未採信 stale graph；未索引 / 工具不可用則 fallback 派 `Explore` agent（見 `references/code-retrieval.md`）。讀檔／輸出瘦身守 `references/context-diet.md`。
+- [ ] 內部掃描**優先用 `codebase-memory-mcp`**（repo 已索引時）；**剛改 / worktree / 未提交**的 code 已用 `detect_changes` + 直接 `Read` 驗證、未採信 stale graph；未索引 / 工具不可用則 fallback 派 `Explore` agent（見 `references/shared/runtime/code-retrieval.md`）。讀檔／輸出瘦身守 `references/shared/runtime/context-diet.md`。
 - [ ] 已停在對應 gate：**收斂式** `explore → plan`（選方法）／**發散式** `explore → define`（確認 backlog 範圍 + 優先序）。

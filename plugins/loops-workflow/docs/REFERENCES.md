@@ -1,6 +1,6 @@
 # references 目錄（幫你找到「該讀哪份規範」）
 
-> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。這頁把 **57 份 reference 依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」。
+> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。`references/` 樹全體共 **74 份 reference**：其中 57 份主題文件在這頁**依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」；另 17 份是 `reviewers/` 底下的 reviewer 人設模板（由 `gen-reviewers.mjs` 從 `reviewer-shared.md` 生成，不逐份列在下面 6 類裡）。
 >
 > 想看**流程全貌**（每階段怎麼跑）→ [`FLOW.md`](FLOW.md)；想看**可設定的參數** → [`settings.md`](settings.md)；這份是「規範字典」。（技術註：subagent 讀不到相對路徑，orchestrator 會把絕對路徑塞進 prompt——見 `AGENTS.md`〈參考檔路徑解析〉。）
 

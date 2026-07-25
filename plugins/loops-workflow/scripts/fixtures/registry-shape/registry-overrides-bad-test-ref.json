@@ -5,7 +5,7 @@
     {
       "id": "codex-hook-concurrency-serialize",
       "runtime": "codex",
-      "scope": "plugins/loops-workflow/agents/referee.md",
+      "scope": "plugins/loops-workflow/agents/verify/validation/referee.md",
       "owner": "team-dual-harness",
       "rationale": "codex 無原生 hook 併發保護，改用檔案鎖序列化",
       "test_ref": "plugins/loops-workflow/scripts/test-does-not-exist.mjs"

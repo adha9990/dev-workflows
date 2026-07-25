@@ -25,13 +25,17 @@ import {
   assembleAll,
   firstDiff,
   DEEP,
+  TEMPLATE_FILE_RE,
 } from './gen-reviewers.mjs';
+import { resolveComponent } from './component-resolver.mjs'; // 重用：agent id → 巢狀落點，不在測試裡另推目錄
 
 const SCRIPTS_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_DIR = dirname(SCRIPTS_DIR);
-const AGENTS_DIR = join(PLUGIN_DIR, 'agents');
-const SHARED_FILE = join(PLUGIN_DIR, 'references', 'reviewer-shared.md');
-const TEMPLATES_DIR = join(PLUGIN_DIR, 'references', 'reviewers');
+// base 模板與 reviewer-shared.md 同住 references/personas/；模板以生成器的 TEMPLATE_FILE_RE 框出，
+// 不用「.md 全收」——同層還有手寫 persona 散文，全收會把散文當模板。
+const PERSONAS_DIR = join(PLUGIN_DIR, 'references', 'personas');
+const SHARED_FILE = join(PERSONAS_DIR, 'reviewer-shared.md');
+const TEMPLATES_DIR = PERSONAS_DIR;
 const REGISTRY_FILE = join(PLUGIN_DIR, 'references', 'capability-registry.json');
 
 let passed = 0;
@@ -141,7 +145,7 @@ const lf = s => s.replace(/\r\n/g, '\n');
   const blocks = parseSharedBlocks(lf(readFileSync(SHARED_FILE, 'utf8')));
   const templates = {};
   for (const f of readdirSync(TEMPLATES_DIR)) {
-    if (f.endsWith('.md')) templates[f.slice(0, -3)] = lf(readFileSync(join(TEMPLATES_DIR, f), 'utf8'));
+    if (TEMPLATE_FILE_RE.test(f)) templates[f.slice(0, -3)] = lf(readFileSync(join(TEMPLATES_DIR, f), 'utf8'));
   }
   const registry = JSON.parse(readFileSync(REGISTRY_FILE, 'utf8'));
   const assembled = assembleAll({ blocks, templates, registry });
@@ -149,7 +153,7 @@ const lf = s => s.replace(/\r\n/g, '\n');
   assert(names.length === 21, `round-trip：組出 21 檔（實際 ${names.length}）`);
   let ok = 0;
   for (const name of names) {
-    const disk = lf(readFileSync(join(AGENTS_DIR, name + '.md'), 'utf8'));
+    const disk = lf(readFileSync(resolveComponent(`${name}-agent`), 'utf8'));
     const gen = assembled[name].endsWith('\n') ? assembled[name] : assembled[name] + '\n';
     if (disk === gen) ok += 1;
     else {

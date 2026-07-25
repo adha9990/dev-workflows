@@ -57,7 +57,7 @@ description: Turns any new work that has no GitHub issue yet into a structured, 
 ### 3. Judgment framing（下筆前釐清三件事）
 
 - **問題定義**：誰 / 什麼受影響、今天的限制、造成什麼可觀察的傷害 / 摩擦 / 卡住的流程。
-- **成功準則**：要「算解決」需哪些變成真，再翻成 pass/fail 驗收。驗收標準用 **Given-When-Then 場景**寫（見 `references/bdd-scenarios.md`），每條給 ID（`S1`、`S2`…）；**右尺寸**：瑣碎 / bug-fix 從簡（bug-fix 一條重現場景即可），高風險才寫完整場景集。這些場景之後是 test-author 的輸入、verify acceptance 閘的核對項。
+- **成功準則**：要「算解決」需哪些變成真，再翻成 pass/fail 驗收。驗收標準用 **Given-When-Then 場景**寫（見 `references/stages/bdd-scenarios.md`），每條給 ID（`S1`、`S2`…）；**右尺寸**：瑣碎 / bug-fix 從簡（bug-fix 一條重現場景即可），高風險才寫完整場景集。這些場景之後是 test-author 的輸入、verify acceptance 閘的核對項。
 - **替代方案**（方向不明顯、或會動到架構 / API / 資料 / 權限 / 相容 / UX / 拆票時才要）：選的方向 + 至少一個合理替代 + 為何不選 + 哪些要人類拍板。
 
 ### 4. Template-first（target template 就是輸出契約）
@@ -78,7 +78,7 @@ description: Turns any new work that has no GitHub issue yet into a structured, 
 
 ### 7. 建 issue → 交 goal
 
-**開 issue 前先跟使用者確認清楚**——下筆前所有 blocking 產品決策必須已逐項跟使用者確認（非自行轉假設，見 Operating Contract step 6 與「路線定案 ≠ 全部定案」）。草稿（依選定 template）寫**暫存 tmp 檔**給使用者逐字校稿（依 `references/comment-policy.md`）→ 草稿與決策**兩者都確認後**才 `gh issue create --title "<繁中標題>" --body-file <tmp> --assignee @me` → 拿到新 issue#、**送出後刪 tmp** → 進 `goal`。slug 用 `<新 issue#>-<kebab>`、loop.md 類型 = issue、**並依 issue 性質寫入 `operation` 欄**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`，見 `references/operation-first-move.md`；拿不準向嚴 `new-feature`）——因 define 是無 issue 工作建 loop.md 的入口（非 dispatch），operation 由 define 寫；漏寫時 goal 會兜底補。
+**開 issue 前先跟使用者確認清楚**——下筆前所有 blocking 產品決策必須已逐項跟使用者確認（非自行轉假設，見 Operating Contract step 6 與「路線定案 ≠ 全部定案」）。草稿（依選定 template）寫**暫存 tmp 檔**給使用者逐字校稿（依 `references/shared/delivery/comment-policy.md`）→ 草稿與決策**兩者都確認後**才 `gh issue create --title "<繁中標題>" --body-file <tmp> --assignee @me` → 拿到新 issue#、**送出後刪 tmp** → 進 `goal`。slug 用 `<新 issue#>-<kebab>`、loop.md 類型 = issue、**並依 issue 性質寫入 `operation` 欄**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`，見 `references/stages/operation-first-move.md`；拿不準向嚴 `new-feature`）——因 define 是無 issue 工作建 loop.md 的入口（非 dispatch），operation 由 define 寫；漏寫時 goal 會兜底補。
 intake 已釐清 + 結構化，**goal 多半能直接從這張 issue 抽出六欄 DoD、不必重複訪談**。
 
 ## Input hygiene（把寫作指示濾掉）

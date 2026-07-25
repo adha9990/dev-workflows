@@ -51,7 +51,7 @@
       },
       "triggers": ["建立或更新 PR", "抓取 review 意見"],
       "outputs": ["PR 編號與 URL", "review 意見清單"],
-      "docs": ["plugins/loops-workflow/references/pr-spec.md"]
+      "docs": ["plugins/loops-workflow/references/shared/delivery/pr-spec.md"]
     },
     {
       "id": "forge-web-api",
@@ -68,7 +68,7 @@
       },
       "triggers": ["指令列路徑不可用時的替代路徑"],
       "outputs": ["PR 編號與 URL"],
-      "docs": ["plugins/loops-workflow/references/pr-feedback-sources.md"]
+      "docs": ["plugins/loops-workflow/references/shared/delivery/pr-feedback-sources.md"]
     },
     {
       "id": "code-graph-index",
@@ -85,7 +85,7 @@
       },
       "triggers": ["探索既有實作的呼叫鏈與架構", "驗證階段需要追依賴方向"],
       "outputs": ["符號定義與引用位置", "依賴方向摘要"],
-      "docs": ["plugins/loops-workflow/references/code-retrieval.md"]
+      "docs": ["plugins/loops-workflow/references/shared/runtime/code-retrieval.md"]
     },
     {
       "id": "text-search-fallback",
@@ -102,7 +102,7 @@
       },
       "triggers": ["符號圖索引不可用", "只需定位少數符號、不需追呼叫鏈"],
       "outputs": ["命中檔案與行號"],
-      "docs": ["plugins/loops-workflow/references/code-retrieval.md"]
+      "docs": ["plugins/loops-workflow/references/shared/runtime/code-retrieval.md"]
     },
     {
       "id": "container-sandbox",
@@ -119,7 +119,7 @@
       },
       "triggers": ["要真跑候選解答並量測", "評測需要與主機檔案系統隔離"],
       "outputs": ["候選執行結果", "隔離政策驗證結論"],
-      "docs": ["plugins/loops-workflow/references/eval-live-candidate.md"]
+      "docs": ["plugins/loops-workflow/references/shared/runtime/eval-live-candidate.md"]
     },
     {
       "id": "prompt-eval-runner",

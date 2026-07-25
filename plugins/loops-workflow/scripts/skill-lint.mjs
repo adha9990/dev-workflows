@@ -31,7 +31,9 @@ const DEAD_COMMAND_TOKENS = [
   'loops-workflow:loop',
 ];
 // 已知的「佔位符」token：文件裡用來示意任意檔名，非真實可解析路徑，broken-ref 不誤報。
-const REFERENCE_PLACEHOLDER_FILENAMES = new Set(['xxx.md']);
+// export 供 reference-graph.mjs 的 placeholder 分類共用同一份清單（#171 T3）——佔位符的定義
+// 只該有一處，兩邊各抄一份遲早分叉。
+export const REFERENCE_PLACEHOLDER_FILENAMES = new Set(['xxx.md']);
 const EXCLUDED_DIR_NAMES = new Set(['.loops', '.claude', '.git', 'evals']);
 const PLUGIN_SUBDIRS = ['skills', 'agents', 'docs', 'references', 'hooks', 'scripts'];
 
@@ -242,10 +244,12 @@ export function deepSyncCheck(pairs, threshold = DEEP_SYNC_THRESHOLD) {
   return findings;
 }
 
-// 只認「裸露」的 references/X.md 形狀（X 不含路徑分隔字元），字面 glob（references/*.md）
-// 因含 `*` 天然不落入 [\w.-]+ 而不匹配；skill-local 形狀（skills/x/references/y.md）由呼叫端
-// 依referrer 是否落在 skills/ 底下判斷是否略過，這裡只單純抓檔名。
-const REFERENCE_MENTION_RE = /references\/([\w.-]+\.md)/g;
+// 認 references/ 之後的**相對路徑**（可含子目錄段，如 references/shared/quality/x.md）——
+// reference 樹已巢狀化，只認單層檔名會讓子目錄下的引用完全掃不到（靜默漏檢，不是誤報）。
+// 字面 glob（references/*.md）因含 `*` 天然不落入 [\w./-]+ 而不匹配；skill-local 形狀
+// （skills/x/references/y.md）由呼叫端依 referrer 是否落在 skills/ 底下判斷是否略過，
+// 這裡只單純抓 references/ 之後那段相對路徑。
+const REFERENCE_MENTION_RE = /references\/([\w.-]+(?:\/[\w.-]+)*\.md)/g;
 
 function extractReferenceMentions(content) {
   const filenames = new Set();
@@ -272,8 +276,26 @@ function pluginRootOf(file, pluginRoots) {
   return pluginRoots.find((root) => file.startsWith(`${root}/`)) ?? null;
 }
 
+// references/ 樹底下**任意深度**的 .md 都算 plugin reference（不限直屬層）——reference 已巢狀
+// 分類，只認直屬層會讓子目錄裡的 reference 完全脫離 orphan-ref 視野。
+// 例外：reviewer base 模板是 generator 從真相源整批產出、由 generator 掃目錄消費（不靠散文逐字
+// 提檔名），對它們問「有沒有 referrer 提到檔名」問錯了問題——這批本來就不在 orphan-ref 視野內
+// （compat-lint 的 isGeneratedPersonaTemplate、lint-mutation 的探針落點也都同樣排除它），這裡只是
+// 把既有共識寫明，不是放寬。broken-ref 不受影響：指向它們的引用仍會被解析。
+// 模板已與手寫 persona 散文同層（references/personas/），故改以檔名形狀框定：模板檔名恰好等於
+// 它生成的 agent 名（<*>-reviewer.md／finding-validator.md），手寫散文一律不是這個形狀。
+const GENERATED_REFERENCE_DIR_SEGMENT = 'personas';
+const GENERATED_REFERENCE_FILE_RE = /^([\w-]+-reviewer|finding-validator)\.md$/;
+
+function isGeneratedReferenceFile(file) {
+  const segments = file.split('/');
+  if (segments[segments.length - 2] !== GENERATED_REFERENCE_DIR_SEGMENT) return false;
+  return GENERATED_REFERENCE_FILE_RE.test(segments[segments.length - 1]);
+}
+
 function isPluginReferenceFile(file, pluginRoots) {
-  return pluginRoots.some((root) => new RegExp(`^${escapeRegExp(root)}/references/[^/]+\\.md$`).test(file));
+  if (!file.endsWith('.md') || isGeneratedReferenceFile(file)) return false;
+  return pluginRoots.some((root) => file.startsWith(`${root}/references/`));
 }
 
 function escapeRegExp(s) {
@@ -412,6 +434,10 @@ export function deadCommandCheck(map) {
 }
 
 // ── #128：flag 分類三方同步（hook-flags.mjs⇄settings.md⇄journaling.md）＋ hooks.json 掛載對帳 ──
+
+// journaling.md 在 plugin 內的相對落點（reference 樹已依主題巢狀分類）。同時是讀取鍵與 finding
+// 的 file 欄位——finding 指的路徑要真的能打開，讀者才找得到要修哪一檔。
+const JOURNALING_REL = 'references/shared/runtime/journaling.md';
 
 // 「N 個 flag」不錨定收尾括號——真實 hook-flags.mjs 的引號是「「11 個 flag 各自屬於 defaultOn
 // 還是 optIn」與「怎麼判斷開關」...」，收尾 」 在 optIn 之後，不是緊跟在 flag 後面；只認「數字＋
@@ -622,14 +648,14 @@ export function flagSyncCheck({ hookFlagsContent, settingsContent, journalingCon
       findings.push({
         check: 'flag-sync',
         severity: 'P1',
-        file: 'references/journaling.md',
+        file: JOURNALING_REL,
         detail: `${flag.name} 未出現在 flag 決策表`,
       });
     } else if (journalingCls !== expectedCls) {
       findings.push({
         check: 'flag-sync',
         severity: 'P1',
-        file: 'references/journaling.md',
+        file: JOURNALING_REL,
         detail: `${flag.name} 決策表分類（${journalingCls}）與 hook-flags.mjs（${expectedCls}）不一致`,
       });
     }
@@ -642,7 +668,7 @@ export function flagSyncCheck({ hookFlagsContent, settingsContent, journalingCon
     if (knownNames.has(name) || FLAG_NAME_ALLOWLIST.has(name)) continue;
     const sources = [];
     if (settingsNames.has(name)) sources.push('docs/settings.md');
-    if (journalingNames.has(name)) sources.push('references/journaling.md');
+    if (journalingNames.has(name)) sources.push(JOURNALING_REL);
     findings.push({
       check: 'flag-sync',
       severity: 'P2',
@@ -815,7 +841,9 @@ export function walk(root) {
 // skill-lint 自身與 test-skill-lint 不參與 deadCommand/countLint 掃描（自身原始碼裡含大量
 // 「舊指令 token」「錯誤計數」字面示例，掃自己會把測試 fixture 誤判成真違規）；
 // 全部 hooks/與 scripts/底下的 test-*.mjs 同理（fixture 字面常故意放故障字串）。
-function isExcludedFromLintScan(relPath) {
+// export 供 reference-graph.mjs 判 fixture 類引用共用同一條界線（#171 T3）：本函式已經是本 repo
+// 對「這個檔裡的字面是合成的、不是真引用」的既有共識，重整掃描不該另立一套自己的名單。
+export function isExcludedFromLintScan(relPath) {
   const base = basename(relPath);
   if (base === 'skill-lint.mjs' || base === 'test-skill-lint.mjs') return true;
   const underHooksOrScripts = relPath.includes('/hooks/') || relPath.includes('/scripts/');
@@ -876,12 +904,10 @@ function countDirs(path) {
   }
 }
 
+// 遞迴計數（沿用 listFilesRecursive 的排除規則）：reference 樹已巢狀分類，非遞迴數法會把
+// 子目錄裡的檔案全部漏掉，讓 count-drift 對著一個偏低的「實際值」對帳而永遠不紅。
 function countFiles(path, ext) {
-  try {
-    return readdirSync(path, { withFileTypes: true }).filter((e) => e.isFile() && e.name.endsWith(ext)).length;
-  } catch {
-    return 0;
-  }
+  return listFilesRecursive(path).filter((f) => f.endsWith(ext)).length;
 }
 
 /** 對每個 plugin 目錄實際數出 reference/skill/hook 數，加總（多 plugin 情境下合計）。 */
@@ -904,12 +930,15 @@ function computeActualCounts(root) {
 // 值得盯字數）。>500 命中在 buildReport 降級成 informational notes（不擋線）——真正超標的
 // scaffold-fullstack 目前確實破格（1189 字元），但這是「該被看見、逐步瘦身」的既有債，不該讓
 // lint 本身把既有 repo 判紅；notes 讓每次跑都看得到警示，同時不阻擋其餘檢查通過。
+// agents/ 樹底下**任意深度**的 .md 都是 agent（agent 已依角色分巢狀子目錄）；只認直屬層會讓
+// 子目錄裡的 agent 從 footprint／duplicate／deep-sync 三個檢查同時消失，且是靜默消失。
+const AGENT_FILE_RE = /^plugins\/[^/]+\/agents\/(?:[^/]+\/)*[^/]+\.md$/;
+const SKILL_FILE_RE = /^plugins\/[^/]+\/skills\/[^/]+\/SKILL\.md$/;
+
 function buildFootprintItems(fullMap) {
   const items = [];
   for (const [file, content] of Object.entries(fullMap)) {
-    const isAgent = /^plugins\/[^/]+\/agents\/[^/]+\.md$/.test(file);
-    const isSkill = /^plugins\/[^/]+\/skills\/[^/]+\/SKILL\.md$/.test(file);
-    if (!isAgent && !isSkill) continue;
+    if (!AGENT_FILE_RE.test(file) && !SKILL_FILE_RE.test(file)) continue;
     items.push({ file, description: parseDescription(content).description });
   }
   return items;
@@ -917,7 +946,7 @@ function buildFootprintItems(fullMap) {
 
 function buildAgentsList(fullMap) {
   return Object.entries(fullMap)
-    .filter(([file]) => /^plugins\/[^/]+\/agents\/[^/]+\.md$/.test(file))
+    .filter(([file]) => AGENT_FILE_RE.test(file))
     .map(([file, content]) => ({ file, body: stripFrontmatter(content) }));
 }
 
@@ -952,7 +981,7 @@ function buildFlagAndWiringResults(fullMap, root) {
     const flagFindings = flagSyncCheck({
       hookFlagsContent: fullMap[hookFlagsKey],
       settingsContent: fullMap[`${pluginRel}/docs/settings.md`],
-      journalingContent: fullMap[`${pluginRel}/references/journaling.md`],
+      journalingContent: fullMap[`${pluginRel}/${JOURNALING_REL}`],
     });
     for (const f of flagFindings) (f.severity === 'P1' ? findings : notes).push(f);
 

@@ -17,7 +17,7 @@
 | # | 步驟 | status | 證據 |
 |---|---|---|---|
 | 1 | dispatch 分類並建立/resume loop | pass | 真實 live-capture／real-pr 樣本：`plugins/loops-workflow/evals/baseline/corpus/route-slug-resume.json`（既有 slug 走 resume）、`route-no-issue-define.json`、`route-pr-review-verify.json`、`route-rule-change-maintainer.json`（皆為對照 dispatch 分類公式的真實重播，經 `node plugins/loops-workflow/scripts/baseline-corpus.mjs` 判過）；入口單一性契約：`plugins/loops-workflow/scripts/test-canonical-contracts.mjs`（A 段，23 條斷言全綠）。 |
-| 2 | 真正決策點出現結構化選項 | pass | 真實歷史高風險情境：`plugins/loops-workflow/evals/baseline/corpus/high-risk-182-safe-stop.json`（real-loop provenance，記錄了一次真實撞到安全停、停下讓人決定的事件，並驗證停下後有老實走完後續全部階段，非跳關）；互動層契約 `plugins/loops-workflow/references/interaction-adapter.md` §3 對應到本平台的結構化提問能力。 |
+| 2 | 真正決策點出現結構化選項 | pass | 真實歷史高風險情境：`plugins/loops-workflow/evals/baseline/corpus/high-risk-182-safe-stop.json`（real-loop provenance，記錄了一次真實撞到安全停、停下讓人決定的事件，並驗證停下後有老實走完後續全部階段，非跳關）；互動層契約 `plugins/loops-workflow/references/shared/delivery/interaction-adapter.md` §3 對應到本平台的結構化提問能力。 |
 | 3 | guard 能阻擋錯誤落點 | pass | `plugins/loops-workflow/hooks/test-worktree-guard.mjs`（49 條斷言全綠，真實 deny 判定：對已建 loop 分支的主 checkout 建立動作）＋ `plugins/loops-workflow/hooks/test-path-guard.mjs`（63 條斷言全綠，真實 deny 判定：寫入路徑落在受管目錄）。 |
 | 4 | file edit guard 能看見平台實際 edit payload | pass | `plugins/loops-workflow/hooks/test-config-protection.mjs`（10 條斷言全綠，C1/C2 為本平台真實 `tool_input.file_path` 形狀 payload 的 deny/allow 判定，真 spawn 被測 hook）；真實歷史 bug-fix 樣本：`plugins/loops-workflow/evals/baseline/corpus/quality-bug-130-guard-matcher.json`。 |
 | 5 | subagent persona 可被平台載入或由 adapter 正確派出 | pass | `plugins/loops-workflow/scripts/test-gen-reviewers.mjs`（round-trip golden：由真相源組出全部子代理人設檔，逐檔與 `agents/` 目錄現況位元相同，防漂移）；`agents/*.md` 由本平台原生載入，不需額外派工機制。 |

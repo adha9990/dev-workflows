@@ -8,7 +8,7 @@
 // 不能拿來當這條規則的證據（在 master 上本來就綠、零工作量就能打勾，等於沒驗到）。
 //
 // 本檔驗三件事（對應任務描述 1/2/3）：
-//   1. canonical 規則文字（AGENTS.md + references/auto-mode.md）裡確實有「安全停不得被
+//   1. canonical 規則文字（AGENTS.md + references/shared/runtime/auto-mode.md）裡確實有「安全停不得被
 //      auto 略過」這條——用結構化斷言（標頭存在、清單項數、表格欄位語意）驗語意要素，
 //      不是只 grep 一個詞。
 //   2. corpus 的 high-risk-182-safe-stop 案例，其 trajectory oracle 能區分「停了、之後老實
@@ -193,10 +193,10 @@ export function checkSafeStopProse({ agentsMd, autoMode }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// 1. 正向：真實 AGENTS.md + references/auto-mode.md → 全綠（0 findings）
+// 1. 正向：真實 AGENTS.md + references/shared/runtime/auto-mode.md → 全綠（0 findings）
 // ══════════════════════════════════════════════════════════════════════════
 const REAL_AGENTS_MD = readFileSync(join(REPO_ROOT, 'AGENTS.md'), 'utf8');
-const REAL_AUTO_MODE_MD = readFileSync(join(REPO_ROOT, 'plugins', 'loops-workflow', 'references', 'auto-mode.md'), 'utf8');
+const REAL_AUTO_MODE_MD = readFileSync(join(REPO_ROOT, 'plugins', 'loops-workflow', 'references', 'shared', 'runtime', 'auto-mode.md'), 'utf8');
 
 {
   const result = checkSafeStopProse({ agentsMd: REAL_AGENTS_MD, autoMode: REAL_AUTO_MODE_MD });

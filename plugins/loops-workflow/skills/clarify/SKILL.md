@@ -26,9 +26,9 @@ description: Turns a vague or ambiguous one-liner into a clear, confirmed unders
 ## Process
 
 ### 1. 一次一問收斂理解
-- 一則訊息只問一個問題，**開一個決策點**給 2–4 選項並標推薦（內容準則依 `references/comment-policy.md`；決策點的表述形狀與各平台互動能力的映射見 `references/interaction-adapter.md`）。
+- 一則訊息只問一個問題，**開一個決策點**給 2–4 選項並標推薦（內容準則依 `references/shared/delivery/comment-policy.md`；決策點的表述形狀與各平台互動能力的映射見 `references/shared/delivery/interaction-adapter.md`）。
 - 每問內部記 **HYPOTHESIS + CONFIDENCE**（0–100），優先打最低信心、最影響方向的點。
-- **should-want 偵測**：見 `references/goal-restate-schema.md`（表演式「應該／好的工程會」作答 → 追問一次真意圖）。
+- **should-want 偵測**：見 `references/stages/goal-restate-schema.md`（表演式「應該／好的工程會」作答 → 追問一次真意圖）。
 - **能從素材推得的不要問**；只問會改變方向的 blocking 點。
 
 ### 2. Restate 理解 + 一次確認

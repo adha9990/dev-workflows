@@ -4,8 +4,8 @@
 // `## 輸出` 骨架 / Metric-Honesty 收尾）。
 //
 // 真相源：
-//   1) references/reviewer-shared.md —— 共用塊字典（`<!-- BEGIN:key -->`/`<!-- END:key -->` 逐字框定）。
-//   2) references/reviewers/<name>.md —— 17 個 base 模板（frontmatter + 身分行 + 每檔獨有審查軸，
+//   1) references/personas/reviewer-shared.md —— 共用塊字典（`<!-- BEGIN:key -->`/`<!-- END:key -->` 逐字框定）。
+//   2) references/personas/<agent 名>.md —— 17 個 base 模板（frontmatter + 身分行 + 每檔獨有審查軸，
 //      共用塊處填 `{{SLOT}}` token）。**不含 model:/effort:**——這兩行完全由 (3) 注入，模板本身
 //      沒有可漂移的字面留在磁碟上。
 //   3) references/capability-registry.json —— model/effort 真相源：`agent_tiers[name]` 查 tier，
@@ -15,7 +15,7 @@
 //   referee tier → opus·high）+ deep-note 注入衍生 —— 導入後 deep 對 base 的漂移結構性歸零。
 //
 // 用法：
-//   node gen-reviewers.mjs --write   重生 21 檔落 agents/ ＋ references/model-effort-policy.md 的
+//   node gen-reviewers.mjs --write   重生 21 檔落 agents/ ＋ references/shared/runtime/model-effort-policy.md 的
 //                                    分層表區塊（輸出純 LF、恰一個結尾換行）。
 //   node gen-reviewers.mjs --check   在記憶體重生、與磁碟現況比對（EOL 正規化）；有漂移印出
 //                                    「哪個檔、漂在哪塊」並以 exit 1 退出（供 CI drift-check）。
@@ -41,11 +41,18 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const SCRIPTS_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_DIR = dirname(SCRIPTS_DIR);
-const AGENTS_DIR = join(PLUGIN_DIR, 'agents');
-const SHARED_FILE = join(PLUGIN_DIR, 'references', 'reviewer-shared.md');
-const TEMPLATES_DIR = join(PLUGIN_DIR, 'references', 'reviewers');
+const REPO_ROOT = dirname(dirname(PLUGIN_DIR));
+const PERSONAS_DIR = join(PLUGIN_DIR, 'references', 'personas');
+const SHARED_FILE = join(PERSONAS_DIR, 'reviewer-shared.md');
+const TEMPLATES_DIR = PERSONAS_DIR;
 const REGISTRY_FILE = join(PLUGIN_DIR, 'references', 'capability-registry.json');
-const POLICY_FILE = join(PLUGIN_DIR, 'references', 'model-effort-policy.md');
+const POLICY_FILE = join(PLUGIN_DIR, 'references', 'shared', 'runtime', 'model-effort-policy.md');
+// agent 落點：agents/ 已依角色分巢狀子目錄，輸出路徑不再是「agents/<name>.md」這個可推算的形狀，
+// 一律查 component-registry.json 的 target_path（#171 定的單一真相源），生成器不自行推目錄。
+const COMPONENT_REGISTRY_FILE = join(PLUGIN_DIR, 'references', 'component-registry.json');
+// base 模板與手寫 persona 散文同層（references/personas/）；模板檔名恰好等於它生成的 agent 名
+// （<*>-reviewer.md 或 finding-validator.md），據此框出真相源，避免把散文誤當模板生成一支 agent。
+export const TEMPLATE_FILE_RE = /^([\w-]+-reviewer|finding-validator)\.md$/;
 
 const POLICY_TABLE_BEGIN = '<!-- BEGIN:generated-tier-table -->';
 const POLICY_TABLE_END = '<!-- END:generated-tier-table -->';
@@ -224,11 +231,32 @@ export function firstDiff(expected, actual, blocks) {
 
 // ── B) IO 薄邊界 ─────────────────────────────────────────────────────────────
 
+/**
+ * agent 名 → 該 agent 檔的絕對輸出路徑（查 component-registry 的 target_path）。
+ * registry 沒登記某支生成 agent → 丟例外並指名：靜默退回 agents/<name>.md 會在巢狀樹裡憑空
+ * 生出第二份平鋪檔（雙路徑），正是本次重整要消滅的東西。
+ */
+function agentPathsByName() {
+  const registry = JSON.parse(readFileSync(COMPONENT_REGISTRY_FILE, 'utf8'));
+  const out = {};
+  for (const c of registry.components ?? []) {
+    if (c.kind !== 'agent' || typeof c.target_path !== 'string') continue;
+    out[c.target_path.slice(c.target_path.lastIndexOf('/') + 1, -3)] = join(REPO_ROOT, ...c.target_path.split('/'));
+  }
+  return out;
+}
+
+function agentFileOf(agentPaths, name) {
+  const file = agentPaths[name];
+  if (!file) throw new Error(`gen-reviewers：component-registry.json 沒有登記 agent「${name}」的 target_path，無從決定輸出落點`);
+  return file;
+}
+
 function loadSources() {
   const blocks = parseSharedBlocks(readFileSync(SHARED_FILE, 'utf8').replace(/\r\n/g, '\n'));
   const templates = {};
   for (const f of readdirSync(TEMPLATES_DIR)) {
-    if (f.endsWith('.md')) templates[f.slice(0, -3)] = readFileSync(join(TEMPLATES_DIR, f), 'utf8').replace(/\r\n/g, '\n');
+    if (TEMPLATE_FILE_RE.test(f)) templates[f.slice(0, -3)] = readFileSync(join(TEMPLATES_DIR, f), 'utf8').replace(/\r\n/g, '\n');
   }
   const registry = JSON.parse(readFileSync(REGISTRY_FILE, 'utf8'));
   const policyText = readFileSync(POLICY_FILE, 'utf8');
@@ -262,10 +290,11 @@ function main() {
   const sources = loadSources();
   const assembled = assembleAll(sources);
   const names = Object.keys(assembled).sort();
+  const agentPaths = agentPathsByName();
   const expectedPolicyText = applyPolicyBlock(sources.policyText, buildPolicyBlock(sources.registry));
 
   if (mode === 'write') {
-    for (const name of names) writeFileSync(join(AGENTS_DIR, name + '.md'), ensureTrailingLf(assembled[name]));
+    for (const name of names) writeFileSync(agentFileOf(agentPaths, name), ensureTrailingLf(assembled[name]));
     if (normalizeEol(sources.policyText) !== normalizeEol(expectedPolicyText)) {
       writeFileSync(POLICY_FILE, expectedPolicyText);
     }
@@ -277,7 +306,8 @@ function main() {
   const drifted = [];
   for (const name of names) {
     let disk;
-    try { disk = readFileSync(join(AGENTS_DIR, name + '.md'), 'utf8'); }
+    const file = agentFileOf(agentPaths, name);
+    try { disk = readFileSync(file, 'utf8'); }
     catch { drifted.push({ name, reason: 'agents/ 缺此檔（真相源有、磁碟無）' }); continue; }
     const expected = ensureTrailingLf(assembled[name]);
     if (normalizeEol(disk) !== normalizeEol(expected)) {
@@ -304,7 +334,7 @@ function main() {
     console.error(`      真相源應為: ${JSON.stringify(d?.expected)}`);
     console.error(`      磁碟現況為: ${JSON.stringify(d?.actual)}`);
   }
-  console.error('修法：改真相源（references/reviewer-shared.md、references/reviewers/<name>.md 或 references/capability-registry.json）後跑 `node scripts/gen-reviewers.mjs --write`；勿手改 agents/*.md 或 model-effort-policy.md 的 generated-tier-table 區塊。');
+  console.error('修法：改真相源（references/personas/reviewer-shared.md、references/personas/<agent 名>.md 或 references/capability-registry.json）後跑 `node scripts/gen-reviewers.mjs --write`；勿手改 agents/*.md 或 model-effort-policy.md 的 generated-tier-table 區塊。');
   process.exit(1);
 }
 

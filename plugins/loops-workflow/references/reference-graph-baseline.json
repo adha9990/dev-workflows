@@ -1,0 +1,2715 @@
+{
+  "schema_version": "1",
+  "baseline_commit": "4289aa5d9fd427d1aadddf892de99c2392209375",
+  "entries": [
+    {
+      "referrer_component_id": "accessibility-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": null,
+      "ordinal": 1,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": null,
+      "ordinal": 2,
+      "class": "placeholder",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": null,
+      "ordinal": 3,
+      "class": "placeholder",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-bdd-scenarios",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-clean-architecture",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "d554d6dcb4f72048965246667e96122753b28dd9bba819b404217a6109cbde2d"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-clean-architecture",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "d554d6dcb4f72048965246667e96122753b28dd9bba819b404217a6109cbde2d"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-clean-code",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "977e397d05ed43934dcb9d736aa43c7a3fdeed75d76ad8950ec2d98705325a83"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-code-simplification",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "afaaa7ba7e4074468d0d3015d9fd5a0ded162b1b4cc8a1e4a10d841061fb0dc7"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-design-patterns",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ed84b7fdd8071dec631793307dd50439c72ece7874936c1e4903061339651075"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-docs-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "601cb4914909b478751cf89a43e34b64e6a6f934c559c44410272606b5c1f7d7"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-fleet",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b124cf936eb5e2eb0556cdafa7ea64c4369ff9e350eb0275ab2c8caef29dbd81"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 3,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-journaling",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-journaling",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-model-effort-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ca857314259785ff47342120d21d3872fb62072536888f77ba76b5f282b4ac4c"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-operation-first-move",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "2f47bc2ff53c03bc9588e2616f14c76dc5b11a2c31d4782e70f926a5683f5262"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-refactoring",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "357bcaeb92e815fb037106760bf20403996cbf1e6b942b9798162f18a228e8c0"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-reuse-check",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f126fb329dc3924ddd48f2ce214445fcfdfcf19bf4fc8fc8dc0eefeaac89e975"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-reuse-check",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "f126fb329dc3924ddd48f2ce214445fcfdfcf19bf4fc8fc8dc0eefeaac89e975"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-security-checklist",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "27b41336f7d34129d8b2cbf00259490a42628647c7a5f060b11989a05bf34a31"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-test-rubric",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "eb896b8250f4fe67c13715cc6947414cf2243fc3f12519ed52b5607a10810046"
+    },
+    {
+      "referrer_component_id": "architecture-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "architecture-reviewer-deep-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-bdd-scenarios",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-change-summaries",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "d79897b7c7837938d91880f2e43aec07ae6a4485bb0706f76177ee30e4df7c16"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-clean-architecture",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "d554d6dcb4f72048965246667e96122753b28dd9bba819b404217a6109cbde2d"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-clean-code",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "977e397d05ed43934dcb9d736aa43c7a3fdeed75d76ad8950ec2d98705325a83"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-code-simplification",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "afaaa7ba7e4074468d0d3015d9fd5a0ded162b1b4cc8a1e4a10d841061fb0dc7"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-commit-spec",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "21b4c7aeab524524981af29c8174c75f9d2a9dfbdb40a691d177de37601b2bb8"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-context-diet",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ca8d91729ff2a0997ef9c22c2c79a990799f56cee8a072d0c7c94b1d7e5a1d1f"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-context-diet",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "ca8d91729ff2a0997ef9c22c2c79a990799f56cee8a072d0c7c94b1d7e5a1d1f"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-context-diet",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "ca8d91729ff2a0997ef9c22c2c79a990799f56cee8a072d0c7c94b1d7e5a1d1f"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-context-diet",
+      "ordinal": 3,
+      "class": "real",
+      "normalized_sha256": "ca8d91729ff2a0997ef9c22c2c79a990799f56cee8a072d0c7c94b1d7e5a1d1f"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-docs-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "601cb4914909b478751cf89a43e34b64e6a6f934c559c44410272606b5c1f7d7"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-journaling",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-model-effort-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ca857314259785ff47342120d21d3872fb62072536888f77ba76b5f282b4ac4c"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-operation-first-move",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "2f47bc2ff53c03bc9588e2616f14c76dc5b11a2c31d4782e70f926a5683f5262"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-quality-gate-schema",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "784931c17b508ceaacab73cbe956b6701e4b42ff8028c5d6b0992dd3d8dc0236"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-refactoring",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "357bcaeb92e815fb037106760bf20403996cbf1e6b942b9798162f18a228e8c0"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-reuse-check",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f126fb329dc3924ddd48f2ce214445fcfdfcf19bf4fc8fc8dc0eefeaac89e975"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-security-checklist",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "27b41336f7d34129d8b2cbf00259490a42628647c7a5f060b11989a05bf34a31"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-task-template",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "1d18bf85daebe5d2fa0e8a9e757c3ec1231537c5c61659cc0baacbada52516ee"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-test-rubric",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "eb896b8250f4fe67c13715cc6947414cf2243fc3f12519ed52b5607a10810046"
+    },
+    {
+      "referrer_component_id": "canonical-contracts-tests",
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "ci-cd-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "clarify-skill",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "clarify-skill",
+      "target_component_id": "ref-goal-restate-schema",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "2f53f7ca6e7f6077b01c1349e3a5803584c4c078e4f19b6a41162142be4f26b1"
+    },
+    {
+      "referrer_component_id": "clarify-skill",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "code-quality-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "code-quality-reviewer-deep-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "codex-plugin-lint-tests",
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "codex-plugin-lint-tests",
+      "target_component_id": null,
+      "ordinal": 1,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "codex-plugin-lint-tests",
+      "target_component_id": null,
+      "ordinal": 2,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "codex-plugin-lint-tests",
+      "target_component_id": null,
+      "ordinal": 3,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "compat-lint",
+      "target_component_id": "ref-reviewer-shared",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "52f5cd21cc201854cfa6e54866546eebe4a8300524ed2cca5766e48fa024695c"
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": null,
+      "ordinal": 1,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": null,
+      "ordinal": 2,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": null,
+      "ordinal": 3,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": null,
+      "ordinal": 4,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": null,
+      "ordinal": 5,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": null,
+      "ordinal": 6,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": null,
+      "ordinal": 7,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": null,
+      "ordinal": 8,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": null,
+      "ordinal": 9,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": null,
+      "ordinal": 10,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": "ref-reviewer-shared",
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": "52f5cd21cc201854cfa6e54866546eebe4a8300524ed2cca5766e48fa024695c"
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": "ref-reviewer-shared",
+      "ordinal": 1,
+      "class": "fixture",
+      "normalized_sha256": "52f5cd21cc201854cfa6e54866546eebe4a8300524ed2cca5766e48fa024695c"
+    },
+    {
+      "referrer_component_id": "compat-lint-tests",
+      "target_component_id": "ref-reviewer-shared",
+      "ordinal": 2,
+      "class": "fixture",
+      "normalized_sha256": "52f5cd21cc201854cfa6e54866546eebe4a8300524ed2cca5766e48fa024695c"
+    },
+    {
+      "referrer_component_id": "define-skill",
+      "target_component_id": "ref-bdd-scenarios",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+    },
+    {
+      "referrer_component_id": "define-skill",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "define-skill",
+      "target_component_id": "ref-operation-first-move",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "2f47bc2ff53c03bc9588e2616f14c76dc5b11a2c31d4782e70f926a5683f5262"
+    },
+    {
+      "referrer_component_id": "dispatch-skill",
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": "dispatch-skill",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "dispatch-skill",
+      "target_component_id": "ref-journaling",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "dispatch-skill",
+      "target_component_id": "ref-journaling",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "dispatch-skill",
+      "target_component_id": "ref-journaling",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "dispatch-skill",
+      "target_component_id": "ref-journaling",
+      "ordinal": 3,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "dispatch-skill",
+      "target_component_id": "ref-operation-first-move",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "2f47bc2ff53c03bc9588e2616f14c76dc5b11a2c31d4782e70f926a5683f5262"
+    },
+    {
+      "referrer_component_id": "docs-devex-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "eval-harness",
+      "target_component_id": "ref-eval-judge-panel",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a943ca23f73fae03e3feb03709d160a5ce6dae130f6028aadf72be9b7299379c"
+    },
+    {
+      "referrer_component_id": "eval-harness",
+      "target_component_id": "ref-eval-live-candidate",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "7016ddd395e15f1994b20a969b4451126f58035bc8cf2c2dfa3180925a7cbd2f"
+    },
+    {
+      "referrer_component_id": "eval-judge-agent",
+      "target_component_id": "ref-eval-judge-rubric",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "7a16f5819fbc79eb080e31fba8b6310e95abf8b0e038480c9397d9f373a864ae"
+    },
+    {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-context-diet",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ca8d91729ff2a0997ef9c22c2c79a990799f56cee8a072d0c7c94b1d7e5a1d1f"
+    },
+    {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-context-diet",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "ca8d91729ff2a0997ef9c22c2c79a990799f56cee8a072d0c7c94b1d7e5a1d1f"
+    },
+    {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-fleet",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b124cf936eb5e2eb0556cdafa7ea64c4369ff9e350eb0275ab2c8caef29dbd81"
+    },
+    {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-onboarding",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "5cad2ef16a4d3f49fd9858aee99d585f91b58f1b60a2c08b09a4fb43764b9e1b"
+    },
+    {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-reuse-check",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f126fb329dc3924ddd48f2ce214445fcfdfcf19bf4fc8fc8dc0eefeaac89e975"
+    },
+    {
+      "referrer_component_id": "finding-validator-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "finding-validator-deep-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "frontend-ui-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "goal-skill",
+      "target_component_id": "ref-bdd-scenarios",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+    },
+    {
+      "referrer_component_id": "goal-skill",
+      "target_component_id": "ref-goal-restate-schema",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "2f53f7ca6e7f6077b01c1349e3a5803584c4c078e4f19b6a41162142be4f26b1"
+    },
+    {
+      "referrer_component_id": "goal-skill",
+      "target_component_id": "ref-goal-restate-schema",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "2f53f7ca6e7f6077b01c1349e3a5803584c4c078e4f19b6a41162142be4f26b1"
+    },
+    {
+      "referrer_component_id": "goal-skill",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "goal-skill",
+      "target_component_id": "ref-operation-first-move",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "2f47bc2ff53c03bc9588e2616f14c76dc5b11a2c31d4782e70f926a5683f5262"
+    },
+    {
+      "referrer_component_id": "goal-skill",
+      "target_component_id": "ref-project-conventions",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "960bed36bb80a9def5f6d3bcd3570bad67f83455f76623e90152d0ce0a941b0b"
+    },
+    {
+      "referrer_component_id": "goal-skill",
+      "target_component_id": "ref-project-conventions",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "960bed36bb80a9def5f6d3bcd3570bad67f83455f76623e90152d0ce0a941b0b"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-acceptance-review",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "bd2448848ec772f723b4b9779f62cb268af135d7822d0defdec2ec552b48d3ac"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-context-diet",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ca8d91729ff2a0997ef9c22c2c79a990799f56cee8a072d0c7c94b1d7e5a1d1f"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-cross-model-review",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "76d3bc8e2567d980e5347321a8c6be274c1229ae4f0156b675e691ad6b2d5475"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-docs-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "601cb4914909b478751cf89a43e34b64e6a6f934c559c44410272606b5c1f7d7"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-docs-policy",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "601cb4914909b478751cf89a43e34b64e6a6f934c559c44410272606b5c1f7d7"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-journaling",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-journaling",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-journaling",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-pr-feedback-sources",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "c9360ed874ec44b71230783b25b29b58d22dde3e22ef21818526d66a48b3dba8"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-pr-spec",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "877310ea8d79c3565c2b836368821efa741e79535d54af619163348ca446aea0"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-pr-spec",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "877310ea8d79c3565c2b836368821efa741e79535d54af619163348ca446aea0"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-pr-spec",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "877310ea8d79c3565c2b836368821efa741e79535d54af619163348ca446aea0"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-pr-spec",
+      "ordinal": 3,
+      "class": "real",
+      "normalized_sha256": "877310ea8d79c3565c2b836368821efa741e79535d54af619163348ca446aea0"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-pr-spec",
+      "ordinal": 4,
+      "class": "real",
+      "normalized_sha256": "877310ea8d79c3565c2b836368821efa741e79535d54af619163348ca446aea0"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-pr-spec",
+      "ordinal": 5,
+      "class": "real",
+      "normalized_sha256": "877310ea8d79c3565c2b836368821efa741e79535d54af619163348ca446aea0"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-pr-spec",
+      "ordinal": 6,
+      "class": "real",
+      "normalized_sha256": "877310ea8d79c3565c2b836368821efa741e79535d54af619163348ca446aea0"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-pr-spec",
+      "ordinal": 7,
+      "class": "real",
+      "normalized_sha256": "877310ea8d79c3565c2b836368821efa741e79535d54af619163348ca446aea0"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-pr-spec",
+      "ordinal": 8,
+      "class": "real",
+      "normalized_sha256": "877310ea8d79c3565c2b836368821efa741e79535d54af619163348ca446aea0"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-pr-spec",
+      "ordinal": 9,
+      "class": "real",
+      "normalized_sha256": "877310ea8d79c3565c2b836368821efa741e79535d54af619163348ca446aea0"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-reviewer-severity",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "8458d0b0ea027bad7909e90c395511ea832a94395ead16f35ac55ce254857bdf"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-test-rubric",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "eb896b8250f4fe67c13715cc6947414cf2243fc3f12519ed52b5607a10810046"
+    },
+    {
+      "referrer_component_id": "merge-guard",
+      "target_component_id": "ref-journaling",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "migration-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "multi-user-concurrency-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "multi-user-concurrency-reviewer-agent",
+      "target_component_id": "ref-multi-user-review",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "210adcbe3a520edd1551bba671eeb89c34bc4ad69b3d99ef671951fe7fcff139"
+    },
+    {
+      "referrer_component_id": "multi-user-concurrency-reviewer-agent",
+      "target_component_id": "ref-optional-reviewers",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "36ab7824ddf3b8746590e8e7938dee57b050b40d2862f41f33179d17dfd272e5"
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 1,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 2,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 3,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 4,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 5,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 6,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 7,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 8,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 9,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 10,
+      "class": "placeholder",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 11,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 12,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 13,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 14,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 15,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 16,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 17,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 18,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 19,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 20,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 21,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 22,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 23,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 24,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 25,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 26,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 27,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 28,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 29,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 30,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 31,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 32,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 33,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 34,
+      "class": "placeholder",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 35,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 36,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 37,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 38,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 39,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 40,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 41,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 42,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 43,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 44,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 45,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 46,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 47,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 48,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 49,
+      "class": "placeholder",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 50,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 51,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 52,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 53,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 54,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 55,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 56,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 57,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 58,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 59,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 60,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 61,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 62,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 63,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 64,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 65,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 66,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 67,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 68,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 69,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 70,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 71,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 72,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 73,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 74,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 75,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": null,
+      "ordinal": 76,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 1,
+      "class": "fixture",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": "ref-clean-code",
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": "977e397d05ed43934dcb9d736aa43c7a3fdeed75d76ad8950ec2d98705325a83"
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": "ref-clean-code",
+      "ordinal": 1,
+      "class": "fixture",
+      "normalized_sha256": "977e397d05ed43934dcb9d736aa43c7a3fdeed75d76ad8950ec2d98705325a83"
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": "ref-clean-code",
+      "ordinal": 2,
+      "class": "fixture",
+      "normalized_sha256": "977e397d05ed43934dcb9d736aa43c7a3fdeed75d76ad8950ec2d98705325a83"
+    },
+    {
+      "referrer_component_id": null,
+      "target_component_id": "ref-clean-code",
+      "ordinal": 3,
+      "class": "fixture",
+      "normalized_sha256": "977e397d05ed43934dcb9d736aa43c7a3fdeed75d76ad8950ec2d98705325a83"
+    },
+    {
+      "referrer_component_id": "observability-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "outbound-comment-guard",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "outbound-comment-guard",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "outbound-comment-guard",
+      "target_component_id": "ref-outbound-templates",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "1921434132f120e0c92992bf097a13e823c7f11547778d506dd92c07ef0f2d4c"
+    },
+    {
+      "referrer_component_id": "performance-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "skill-local",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": null,
+      "ordinal": 1,
+      "class": "skill-local",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-adr-template",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "9fd2475f4f890612bac41a223fc7a5e08de9c30b35055218cacd5774762810a5"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-clean-architecture",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "d554d6dcb4f72048965246667e96122753b28dd9bba819b404217a6109cbde2d"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 3,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 4,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-contract-spec",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "6e95071cd1c78b67d4d5e5782cf28e27f3df457f890632fe2589a24013b9dd1e"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-design-patterns",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ed84b7fdd8071dec631793307dd50439c72ece7874936c1e4903061339651075"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-design-plan-schema",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b7f333cb0bc3471108f3c1e65809d07f489a8a909914775195c6ed651efb5e6d"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-design-plan-schema",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "b7f333cb0bc3471108f3c1e65809d07f489a8a909914775195c6ed651efb5e6d"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-fleet",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b124cf936eb5e2eb0556cdafa7ea64c4369ff9e350eb0275ab2c8caef29dbd81"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-machine-plan-schema",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "2b8af04058a6ece0ce18b6a0f866cceda415b1e5d8bbc933f0d8dd8302e4a4f5"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-pr-spec",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "877310ea8d79c3565c2b836368821efa741e79535d54af619163348ca446aea0"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-project-conventions",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "960bed36bb80a9def5f6d3bcd3570bad67f83455f76623e90152d0ce0a941b0b"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-reuse-check",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f126fb329dc3924ddd48f2ce214445fcfdfcf19bf4fc8fc8dc0eefeaac89e975"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-task-template",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "1d18bf85daebe5d2fa0e8a9e757c3ec1231537c5c61659cc0baacbada52516ee"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-test-rubric",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "eb896b8250f4fe67c13715cc6947414cf2243fc3f12519ed52b5607a10810046"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "placeholder",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-docs-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "601cb4914909b478751cf89a43e34b64e6a6f934c559c44410272606b5c1f7d7"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-docs-policy",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "601cb4914909b478751cf89a43e34b64e6a6f934c559c44410272606b5c1f7d7"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-eval-harness",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "3296da61fdbed1ca4fef45d0243fb288ee7189003b08d5ac245d1fd1dbd4ecd4"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-finding-author-decision-rule",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "6ad6293e738c0c9e6ef3a4d46dd81e8cd2afc28ec2f491cedcddcfa5c7cd043f"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-journaling",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-journaling",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-journaling",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-model-effort-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ca857314259785ff47342120d21d3872fb62072536888f77ba76b5f282b4ac4c"
+    },
+    {
+      "referrer_component_id": "processing-reliability-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "product-contract-reviewer-agent",
+      "target_component_id": "ref-bdd-scenarios",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+    },
+    {
+      "referrer_component_id": "product-contract-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "ref-auto-mode",
+      "target_component_id": "ref-automations",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "dd6094ef5c46f21a03b519ef60d12e1624cd29e6082ff5086617853cef4e5c6f"
+    },
+    {
+      "referrer_component_id": "ref-eval-harness",
+      "target_component_id": "ref-eval-judge-panel",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a943ca23f73fae03e3feb03709d160a5ce6dae130f6028aadf72be9b7299379c"
+    },
+    {
+      "referrer_component_id": "ref-eval-harness",
+      "target_component_id": "ref-eval-judge-panel",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "a943ca23f73fae03e3feb03709d160a5ce6dae130f6028aadf72be9b7299379c"
+    },
+    {
+      "referrer_component_id": "ref-eval-harness",
+      "target_component_id": "ref-eval-judge-panel",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "a943ca23f73fae03e3feb03709d160a5ce6dae130f6028aadf72be9b7299379c"
+    },
+    {
+      "referrer_component_id": "ref-eval-harness",
+      "target_component_id": "ref-eval-judge-rubric",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "7a16f5819fbc79eb080e31fba8b6310e95abf8b0e038480c9397d9f373a864ae"
+    },
+    {
+      "referrer_component_id": "ref-eval-harness",
+      "target_component_id": "ref-eval-judge-rubric",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "7a16f5819fbc79eb080e31fba8b6310e95abf8b0e038480c9397d9f373a864ae"
+    },
+    {
+      "referrer_component_id": "ref-eval-harness",
+      "target_component_id": "ref-eval-judge-rubric",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "7a16f5819fbc79eb080e31fba8b6310e95abf8b0e038480c9397d9f373a864ae"
+    },
+    {
+      "referrer_component_id": "ref-eval-harness",
+      "target_component_id": "ref-eval-judge-rubric",
+      "ordinal": 3,
+      "class": "real",
+      "normalized_sha256": "7a16f5819fbc79eb080e31fba8b6310e95abf8b0e038480c9397d9f373a864ae"
+    },
+    {
+      "referrer_component_id": "ref-eval-harness",
+      "target_component_id": "ref-eval-live-candidate",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "7016ddd395e15f1994b20a969b4451126f58035bc8cf2c2dfa3180925a7cbd2f"
+    },
+    {
+      "referrer_component_id": "ref-eval-harness",
+      "target_component_id": "ref-eval-live-candidate",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "7016ddd395e15f1994b20a969b4451126f58035bc8cf2c2dfa3180925a7cbd2f"
+    },
+    {
+      "referrer_component_id": "ref-eval-harness",
+      "target_component_id": "ref-journaling",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "ref-eval-harness",
+      "target_component_id": "ref-quality-gate-schema",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "784931c17b508ceaacab73cbe956b6701e4b42ff8028c5d6b0992dd3d8dc0236"
+    },
+    {
+      "referrer_component_id": "ref-eval-judge-panel",
+      "target_component_id": "ref-eval-judge-rubric",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "7a16f5819fbc79eb080e31fba8b6310e95abf8b0e038480c9397d9f373a864ae"
+    },
+    {
+      "referrer_component_id": "ref-eval-judge-panel",
+      "target_component_id": "ref-eval-judge-rubric",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "7a16f5819fbc79eb080e31fba8b6310e95abf8b0e038480c9397d9f373a864ae"
+    },
+    {
+      "referrer_component_id": "ref-finding-validation",
+      "target_component_id": "ref-finding-author-decision-rule",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "6ad6293e738c0c9e6ef3a4d46dd81e8cd2afc28ec2f491cedcddcfa5c7cd043f"
+    },
+    {
+      "referrer_component_id": "ref-journaling",
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": "ref-journaling",
+      "target_component_id": "ref-machine-plan-schema",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "2b8af04058a6ece0ce18b6a0f866cceda415b1e5d8bbc933f0d8dd8302e4a4f5"
+    },
+    {
+      "referrer_component_id": "ref-machine-plan-schema",
+      "target_component_id": "ref-task-template",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "1d18bf85daebe5d2fa0e8a9e757c3ec1231537c5c61659cc0baacbada52516ee"
+    },
+    {
+      "referrer_component_id": "ref-persona-multi-user-concurrency-reviewer",
+      "target_component_id": "ref-multi-user-review",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "210adcbe3a520edd1551bba671eeb89c34bc4ad69b3d99ef671951fe7fcff139"
+    },
+    {
+      "referrer_component_id": "ref-persona-multi-user-concurrency-reviewer",
+      "target_component_id": "ref-optional-reviewers",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "36ab7824ddf3b8746590e8e7938dee57b050b40d2862f41f33179d17dfd272e5"
+    },
+    {
+      "referrer_component_id": "ref-persona-product-contract-reviewer",
+      "target_component_id": "ref-bdd-scenarios",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+    },
+    {
+      "referrer_component_id": "ref-pr-spec",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "ref-preflight",
+      "target_component_id": "ref-finding-author-decision-rule",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "6ad6293e738c0c9e6ef3a4d46dd81e8cd2afc28ec2f491cedcddcfa5c7cd043f"
+    },
+    {
+      "referrer_component_id": "ref-preflight",
+      "target_component_id": "ref-finding-author-decision-rule",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "6ad6293e738c0c9e6ef3a4d46dd81e8cd2afc28ec2f491cedcddcfa5c7cd043f"
+    },
+    {
+      "referrer_component_id": "ref-refactoring",
+      "target_component_id": "ref-design-patterns",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ed84b7fdd8071dec631793307dd50439c72ece7874936c1e4903061339651075"
+    },
+    {
+      "referrer_component_id": "ref-reviewer-shared",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "registry-compiler-tests",
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "registry-coverage-tests",
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "registry-coverage-tests",
+      "target_component_id": null,
+      "ordinal": 1,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "registry-shape-tests",
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "repo-docs",
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": "repo-docs",
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": "repo-docs",
+      "target_component_id": "ref-eval-harness",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "3296da61fdbed1ca4fef45d0243fb288ee7189003b08d5ac245d1fd1dbd4ecd4"
+    },
+    {
+      "referrer_component_id": "repo-docs",
+      "target_component_id": "ref-fleet",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b124cf936eb5e2eb0556cdafa7ea64c4369ff9e350eb0275ab2c8caef29dbd81"
+    },
+    {
+      "referrer_component_id": "repo-docs",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "repo-docs",
+      "target_component_id": "ref-journaling",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "repo-docs",
+      "target_component_id": "ref-journaling",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "repo-docs",
+      "target_component_id": "ref-machine-plan-schema",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "2b8af04058a6ece0ce18b6a0f866cceda415b1e5d8bbc933f0d8dd8302e4a4f5"
+    },
+    {
+      "referrer_component_id": "reviewer-generator",
+      "target_component_id": "ref-model-effort-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ca857314259785ff47342120d21d3872fb62072536888f77ba76b5f282b4ac4c"
+    },
+    {
+      "referrer_component_id": "reviewer-generator",
+      "target_component_id": "ref-reviewer-shared",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "52f5cd21cc201854cfa6e54866546eebe4a8300524ed2cca5766e48fa024695c"
+    },
+    {
+      "referrer_component_id": "reviewer-generator",
+      "target_component_id": "ref-reviewer-shared",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "52f5cd21cc201854cfa6e54866546eebe4a8300524ed2cca5766e48fa024695c"
+    },
+    {
+      "referrer_component_id": "root-cause-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "safe-stop-tests",
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": "safe-stop-tests",
+      "target_component_id": "ref-auto-mode",
+      "ordinal": 1,
+      "class": "fixture",
+      "normalized_sha256": "d09cceb92fdfd18d0de9af60f9d1dde839b2092c55578937cfe4a9d18fc8ffb2"
+    },
+    {
+      "referrer_component_id": "scaffold-fullstack-skill",
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "skill-local",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "scaffold-fullstack-skill",
+      "target_component_id": null,
+      "ordinal": 1,
+      "class": "skill-local",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "scaffold-fullstack-skill",
+      "target_component_id": "ref-context-diet",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ca8d91729ff2a0997ef9c22c2c79a990799f56cee8a072d0c7c94b1d7e5a1d1f"
+    },
+    {
+      "referrer_component_id": "security-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "security-reviewer-deep-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "skill-lint",
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint",
+      "target_component_id": null,
+      "ordinal": 1,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint",
+      "target_component_id": null,
+      "ordinal": 2,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint",
+      "target_component_id": null,
+      "ordinal": 3,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint",
+      "target_component_id": null,
+      "ordinal": 4,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint",
+      "target_component_id": null,
+      "ordinal": 5,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint",
+      "target_component_id": "ref-journaling",
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 1,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 2,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 3,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 4,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 5,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 6,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 7,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 8,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 9,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 10,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 11,
+      "class": "glob",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 12,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 13,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 14,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 15,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 16,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 17,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 18,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 19,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 20,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 21,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": null,
+      "ordinal": 22,
+      "class": "fixture",
+      "normalized_sha256": null
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": "ref-journaling",
+      "ordinal": 0,
+      "class": "fixture",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": "ref-journaling",
+      "ordinal": 1,
+      "class": "fixture",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": "ref-journaling",
+      "ordinal": 2,
+      "class": "fixture",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": "ref-journaling",
+      "ordinal": 3,
+      "class": "fixture",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": "ref-journaling",
+      "ordinal": 4,
+      "class": "fixture",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": "ref-journaling",
+      "ordinal": 5,
+      "class": "fixture",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": "ref-journaling",
+      "ordinal": 6,
+      "class": "fixture",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": "ref-journaling",
+      "ordinal": 7,
+      "class": "fixture",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": "ref-journaling",
+      "ordinal": 8,
+      "class": "fixture",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": "ref-journaling",
+      "ordinal": 9,
+      "class": "fixture",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "skill-lint-tests",
+      "target_component_id": "ref-journaling",
+      "ordinal": 10,
+      "class": "fixture",
+      "normalized_sha256": "0540d3245279df6ff61c11204b405d9b070afc78efab842509224da12ce3df6a"
+    },
+    {
+      "referrer_component_id": "test-author-agent",
+      "target_component_id": "ref-bdd-scenarios",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+    },
+    {
+      "referrer_component_id": "tests-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-acceptance-review",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "bd2448848ec772f723b4b9779f62cb268af135d7822d0defdec2ec552b48d3ac"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-acceptance-review",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "bd2448848ec772f723b4b9779f62cb268af135d7822d0defdec2ec552b48d3ac"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-bdd-scenarios",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-comment-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a47ee703b2090c71f3a218e3baf1192b6fce001deef48bb8b654cfe485921f17"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-context-diet",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ca8d91729ff2a0997ef9c22c2c79a990799f56cee8a072d0c7c94b1d7e5a1d1f"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-context-diet",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "ca8d91729ff2a0997ef9c22c2c79a990799f56cee8a072d0c7c94b1d7e5a1d1f"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-docs-devex-review",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "56923d0b307c88763bd2ebd861eaa8b05c8830598f5b4169c1af52c27bff6e3c"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-finding-validation",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "d16c320e0e690ff0493a7cfad9e8b79928f827400a96051fc72c303219dba12b"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-interaction-adapter",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "f8fdf64764fe55f47a2b891e6d406acf99d0aee124b059afba6f1767e7a04ffe"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-model-effort-policy",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ca857314259785ff47342120d21d3872fb62072536888f77ba76b5f282b4ac4c"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-multi-user-review",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "210adcbe3a520edd1551bba671eeb89c34bc4ad69b3d99ef671951fe7fcff139"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-optional-reviewers",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "36ab7824ddf3b8746590e8e7938dee57b050b40d2862f41f33179d17dfd272e5"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-optional-reviewers",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "36ab7824ddf3b8746590e8e7938dee57b050b40d2862f41f33179d17dfd272e5"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-optional-reviewers",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "36ab7824ddf3b8746590e8e7938dee57b050b40d2862f41f33179d17dfd272e5"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-preflight",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "7dc131a9495ef974e76c8a05f1f15f380140c23850575994defab116cee06b7e"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-project-conventions",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "960bed36bb80a9def5f6d3bcd3570bad67f83455f76623e90152d0ce0a941b0b"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-project-conventions",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "960bed36bb80a9def5f6d3bcd3570bad67f83455f76623e90152d0ce0a941b0b"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-project-conventions",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "960bed36bb80a9def5f6d3bcd3570bad67f83455f76623e90152d0ce0a941b0b"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-reviewer-severity",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "8458d0b0ea027bad7909e90c395511ea832a94395ead16f35ac55ce254857bdf"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-ui-interaction-review",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "664ad6326ec17eae90dbdda00dd6075b3318a99e32a64629577eaaa8ccf27906"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-verify-triage",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "3ef57ecfdbabd917716cbb9e37f1d7a09e898fc03cafdf19968b3f86c439e11f"
+    },
+    {
+      "referrer_component_id": "web-performance-reviewer-agent",
+      "target_component_id": "ref-code-retrieval",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    }
+  ]
+}

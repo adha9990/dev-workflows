@@ -43,7 +43,7 @@
 | 空資料夾建全端 TS 骨架 | `dispatch` 偵測到乾淨專案、確認後自動走內建 scaffold |
 | 工程師理解包 | 完整迴圈完工**一律產** `deliverables/explain.md`（三份 deliverable 之一）；其他情境用自然語言請 Claude 跑 `explain` skill |
 | 維護 repo 的 `AGENTS.md` | iterate 完工命中維護時機由主線依 docs-policy 直接編輯；或自然語言請求 |
-| 自動連跑（auto） | 環境變數 `LOOPS_AUTO=1`（見 `references/auto-mode.md`） |
+| 自動連跑（auto） | 環境變數 `LOOPS_AUTO=1`（見 `references/shared/runtime/auto-mode.md`） |
 
 ## 內部怎麼跑（下面 7 個階段你不用打、dispatch 自動驅動）
 
@@ -58,7 +58,7 @@ dispatch → goal → explore → plan → build → verify → iterate
                                                         └──▶ 完工（交 PR / 收尾）
 ```
 
-> **只在真正該你選的決策點才停**（結構化提問，見 `plugins/loops-workflow/references/interaction-adapter.md`）：explore 選做法 / plan 拍板 / iterate 完工或回環 / 真正的 scope 取捨 / 內容型交付的載體 / 安全停（分類模糊·危險操作·P0·規格不清）。**其餘 routine 轉場直接往下**，產出寫進 `.loops/`。**修完一定再過一輪 verify**（不是「測試綠」就算完）。需要時設 `LOOPS_AUTO=1` 開 opt-in 自動連跑。
+> **只在真正該你選的決策點才停**（結構化提問，見 `plugins/loops-workflow/references/shared/delivery/interaction-adapter.md`）：explore 選做法 / plan 拍板 / iterate 完工或回環 / 真正的 scope 取捨 / 內容型交付的載體 / 安全停（分類模糊·危險操作·P0·規格不清）。**其餘 routine 轉場直接往下**，產出寫進 `.loops/`。**修完一定再過一輪 verify**（不是「測試綠」就算完）。需要時設 `LOOPS_AUTO=1` 開 opt-in 自動連跑。
 
 ### 每個階段在做什麼
 
@@ -90,10 +90,10 @@ dispatch → goal → explore → plan → build → verify → iterate
 
 | 能力 | 入口 |
 |---|---|
-| 自動連跑（核准一次、危險才停） | 環境變數 `LOOPS_AUTO=1`，見 `references/auto-mode.md` |
-| 競賽 / 投票式編隊（N 方案→評審） | plan / explore 說「用 Fleet」，見 `references/fleet.md` |
-| 跨 session 接續 | `/loops-workflow:dispatch <slug>`（自動偵測既有 loop.md），見 `references/journaling.md` |
-| 機器可驗證計畫 + eval | 計畫塊 `scripts/validate-plan.mjs`（見 `references/machine-plan-schema.md`）/ dispatch 場景評測 `scripts/run-eval.mjs`（見 `references/eval-harness.md`） |
+| 自動連跑（核准一次、危險才停） | 環境變數 `LOOPS_AUTO=1`，見 `references/shared/runtime/auto-mode.md` |
+| 競賽 / 投票式編隊（N 方案→評審） | plan / explore 說「用 Fleet」，見 `references/shared/runtime/fleet.md` |
+| 跨 session 接續 | `/loops-workflow:dispatch <slug>`（自動偵測既有 loop.md），見 `references/shared/runtime/journaling.md` |
+| 機器可驗證計畫 + eval | 計畫塊 `scripts/validate-plan.mjs`（見 `references/stages/machine-plan-schema.md`）/ dispatch 場景評測 `scripts/run-eval.mjs`（見 `references/shared/runtime/eval-harness.md`） |
 | 全部開關總覽 | `docs/settings.md` —— settings.json `env` 可設的全部 `LOOPS_*` 參數一頁看完 |
 | 工程師理解包 | 完整迴圈完工一律產 `deliverables/explain.md`（三份 deliverable 之一）；其他情境自然語言請 Claude 跑 `explain` skill（唯讀側用） |
 | code 工作隔離 | 會動 code 的迴圈（issue / fix）在 **git worktree**（自帶 branch）裡做，不擾動主 checkout；用環境提供的 worktree 進入能力，或 `.claude/worktrees/<issue#>-<slug>`（例 `137-trash-delete-permanent`，**不加 `fix/` 前綴**） |
@@ -111,7 +111,7 @@ plugins/loops-workflow/
 │                 + finding-validator + 條件式領域 reviewer + 高風險 -deep 變體 + eval-judge
 │                 —— 全量與計數見 docs/FLOW.md 規模表
 ├── hooks/        SessionStart：浮出 active .loops/ 迴圈；Stop：progress-render 重生 PROGRESS.md（恆跑）
-│                 + 把關/觀測（預設值逐 flag 拍板——見 references/journaling.md 決策表；安全把關預設開、SECURITY 類 opt-in）
+│                 + 把關/觀測（預設值逐 flag 拍板——見 references/shared/runtime/journaling.md 決策表；安全把關預設開、SECURITY 類 opt-in）
 ├── scripts/      validate-plan / run-eval / loops-scan / progress 等 17 支（含 eval-* 家族 / skill-lint / loops-quality-gate，全量見目錄）
 ├── docs/         FLOW（完整流程圖）/ settings（可設參數總覽）/ REFERENCES（規範目錄）—— 索引見 docs/README.md
 └── references/   共用規範 + 模板（全量與分類見 docs/REFERENCES.md）

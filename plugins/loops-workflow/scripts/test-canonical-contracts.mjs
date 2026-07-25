@@ -3,13 +3,15 @@
 // 自帶極簡 harness（`let passed=0; const failed=[]`），不引測試框架、不做 IO 以外的黑箱 spawn
 // （本檔全是純函式 + 檔案讀取，用法：node scripts/test-canonical-contracts.mjs，全綠→exit 0）。
 //
-// 兩組契約：
+// 三組契約：
 //   A. public entrypoint 清單有單一來源：`skills/` 實際目錄 ⇄ 每個 SKILL.md frontmatter 的 `name`
 //      ⇄ `user-invocable` 旗標圈出的「唯一對外入口」（dispatch）三者要對得起來。
 //   B. `.loops/<slug>/loop.md` 的 state／Journal 格式有平台無關的 schema 契約——`.loops/` 進
 //      .gitignore、CI 沒有真實實例可驗，改用版控內 fixture（scripts/fixtures/canonical-state/）
 //      驗必要欄位＋格式規則，並對 evals/baseline/fixtures/ 既有真實樣本的 Journal 區段也跑同一套
 //      規則（防「自己寫 schema 自己過」）。
+//   C. 可見性有三方對帳：component-registry.json 的 `user_invocable` ⇄ 各元件 frontmatter ⇄ 兩平台
+//      manifest（.claude-plugin／.codex-plugin）宣告的入口根，三邊必須一致，只有入口類為 true。
 //
 // 與 codex-plugin-lint.mjs 的分工（reuse-check：先讀過該檔，不重複實作）：codex-plugin-lint.mjs
 // 已驗證 .codex-plugin/plugin.json 與 .claude-plugin/plugin.json 的 name/version/skills 欄位是否
@@ -23,12 +25,17 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseDescription } from './skill-lint.mjs'; // 重用：SKILL.md frontmatter 解析（name/userInvocable），不重抄
+import { loadRegistry, resolveComponent } from './component-resolver.mjs'; // 重用：registry 載入與 id→絕對路徑，不重抄
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, '..', '..', '..');
-const SKILLS_DIR = join(REPO_ROOT, 'plugins', 'loops-workflow', 'skills');
-const BASELINE_FIXTURES_DIR = join(REPO_ROOT, 'plugins', 'loops-workflow', 'evals', 'baseline', 'fixtures');
+const PLUGIN_DIR = join(REPO_ROOT, 'plugins', 'loops-workflow');
+const SKILLS_DIR = join(PLUGIN_DIR, 'skills');
+const BASELINE_FIXTURES_DIR = join(PLUGIN_DIR, 'evals', 'baseline', 'fixtures');
 const CANONICAL_STATE_DIR = join(HERE, 'fixtures', 'canonical-state');
+const PLUGIN_REL_PREFIX = 'plugins/loops-workflow/';
+const CLAUDE_MANIFEST = join(PLUGIN_DIR, '.claude-plugin', 'plugin.json');
+const CODEX_MANIFEST = join(PLUGIN_DIR, '.codex-plugin', 'plugin.json');
 
 let passed = 0;
 const failed = [];
@@ -249,7 +256,154 @@ function lineCountCheck(text, limit = MAX_LINES) {
   }
 }
 
+// ============================================================================
+// C) 可見性三方對帳：component-registry 的 user_invocable ⇄ 各元件 frontmatter ⇄ 兩平台 manifest
+//
+// A 組只看 skills/ 樹自己說了什麼，看不出「registry 宣告的可見性」與「manifest 對外曝光的入口根」
+// 有沒有跟著漂。目錄重整（#171）會同時動 registry 的 target_path 與元件實體位置，三邊各自為政就會
+// 出現「registry 說某支非入口 skill 是入口 / agent 被標成使用者可直接叫」這種只在執行期才炸的漂移。
+// 三邊各是獨立來源，任兩邊對上、第三邊沒對上都要紅，且必須指名是哪個元件、差在哪一邊。
+// ============================================================================
+
+const ENTRY_COMPONENT_ID = 'dispatch-skill';
+// Claude 平台的 manifest 不寫 skills 欄位（以 plugin 根底下的 skills/ 目錄慣例自動探）；Codex 平台
+// 必須明寫（見 codex-plugin-lint.mjs 的 REQUIRED_SKILLS_VALUE）。兩者指的必須是同一個入口根——不同
+// 就代表兩平台曝光的入口集合不同，是「同一份 skill 樹、兩種可見性」的漂移。
+const SKILLS_ROOT_CONVENTION = './skills/';
+
+/** manifest 宣告（或依平台慣例隱含）的入口根，正規化成 plugin 相對的 `skills/` 形。 */
+function manifestSkillsRoot(manifest) {
+  const declared = typeof manifest?.skills === 'string' && manifest.skills !== '' ? manifest.skills : SKILLS_ROOT_CONVENTION;
+  return declared.replace(/^\.\//, '').replace(/\/?$/, '/');
+}
+
+/**
+ * 元件 frontmatter 表達的「使用者可直接呼叫」：
+ *   - skill：沿用 A 組不變式——`user-invocable: false` 是顯式退出，沒寫就是對外入口。
+ *   - agent：subagent 由 skill 派工，必須顯式寫 `user-invocable: true` 才算入口（沒寫＝不是）。
+ * 其餘 kind（reference／script／hook／doc／eval）沒有 frontmatter 可宣告可見性，不在本函式範圍。
+ */
+function frontmatterUserInvocable(kind, parsed) {
+  if (kind === 'skill') return parsed.userInvocable !== false;
+  return parsed.userInvocable === true;
+}
+
+/**
+ * 三方對帳（純函式：吃三邊快照、回 findings，不做 IO——負向 fixture 才能餵改過的 registry 副本）。
+ * findings 一律帶 component id 與差異描述，讓紅燈直接指名元件而非只說「有東西不一致」。
+ */
+function visibilityReconciliationCheck({ components, frontmatterById, manifestRoots }) {
+  const findings = [];
+
+  const roots = new Set(manifestRoots.map((m) => m.root));
+  if (roots.size !== 1) {
+    findings.push({
+      check: 'manifest-entry-root',
+      component: null,
+      detail: `兩平台 manifest 宣告的入口根不一致：${manifestRoots.map((m) => `${m.platform}="${m.root}"`).join('、')}`,
+    });
+  }
+  const entryRoot = manifestRoots[0]?.root;
+
+  for (const component of components) {
+    const { id, kind, user_invocable: declared, target_path: targetPath } = component;
+
+    if (typeof declared !== 'boolean') {
+      findings.push({ check: 'registry-visibility-type', component: id, detail: `user_invocable 不是布林（實際：${JSON.stringify(declared)}）` });
+      continue;
+    }
+
+    const parsed = frontmatterById.get(id);
+    if (parsed) {
+      const fromFrontmatter = frontmatterUserInvocable(kind, parsed);
+      if (fromFrontmatter !== declared) {
+        findings.push({
+          check: 'registry-vs-frontmatter',
+          component: id,
+          detail: `registry user_invocable=${declared}，但 frontmatter 表達的是 ${fromFrontmatter}`,
+        });
+      }
+    }
+
+    if (!declared) continue;
+
+    // 入口類的定義：manifest 對外曝光的入口根底下的 skill。agent／reference／script 等一律不是入口。
+    if (kind !== 'skill') {
+      findings.push({ check: 'non-entry-kind-invocable', component: id, detail: `kind="${kind}" 不是入口類，卻標了 user_invocable=true` });
+      continue;
+    }
+    const pluginRel = typeof targetPath === 'string' ? targetPath.replace(PLUGIN_REL_PREFIX, '') : '';
+    if (entryRoot && !pluginRel.startsWith(entryRoot)) {
+      findings.push({
+        check: 'entry-outside-manifest-root',
+        component: id,
+        detail: `user_invocable=true，但 target_path="${targetPath}" 不在 manifest 宣告的入口根 "${entryRoot}" 底下`,
+      });
+    }
+  }
+
+  const entries = components.filter((c) => c.user_invocable === true).map((c) => c.id);
+  if (entries.length !== 1) {
+    findings.push({ check: 'single-entry-component', component: null, detail: `user_invocable=true 的元件應恰好 1 個（實際：${JSON.stringify(entries)}）` });
+  }
+  return findings;
+}
+
+/** 讀得到 frontmatter 的元件（skill 讀 target_path/SKILL.md，agent 用 resolver 解單一檔）→ Map<id, parsed>。 */
+function readComponentFrontmatter(components, root) {
+  const byId = new Map();
+  for (const component of components) {
+    if (component.kind !== 'skill' && component.kind !== 'agent') continue;
+    const path = component.kind === 'skill'
+      ? join(root, component.target_path, 'SKILL.md')
+      : resolveComponent(component.id, { root });
+    byId.set(component.id, parseDescription(readFileSync(path, 'utf8')));
+  }
+  return byId;
+}
+
+{
+  const { components } = loadRegistry(REPO_ROOT);
+  const manifestRoots = [
+    { platform: 'claude', root: manifestSkillsRoot(JSON.parse(readFileSync(CLAUDE_MANIFEST, 'utf8'))) },
+    { platform: 'codex', root: manifestSkillsRoot(JSON.parse(readFileSync(CODEX_MANIFEST, 'utf8'))) },
+  ];
+  const frontmatterById = readComponentFrontmatter(components, REPO_ROOT);
+
+  assert(frontmatterById.size >= 30, `[C0] registry 內有 frontmatter 可對帳的 skill/agent 元件 >=30 個（實際：${frontmatterById.size}）`);
+
+  const findings = visibilityReconciliationCheck({ components, frontmatterById, manifestRoots });
+  assert(findings.length === 0,
+    `[C1] registry user_invocable ⇄ 元件 frontmatter ⇄ 兩平台 manifest 三方一致（${components.length} 個元件全過；違規：${JSON.stringify(findings)}）`);
+
+  const entries = components.filter((c) => c.user_invocable === true).map((c) => c.id);
+  assert(entries.length === 1 && entries[0] === ENTRY_COMPONENT_ID,
+    `[C2] registry 內唯一入口元件是 "${ENTRY_COMPONENT_ID}"（實際：${JSON.stringify(entries)}）`);
+
+  // C3 負向 fixture：把某支非入口 skill 的 registry 值改成 true（只改記憶體副本，不動版控內 registry）
+  // → 必須紅，且指名該元件。
+  const tamperedId = 'goal-skill';
+  const tampered = components.map((c) => (c.id === tamperedId ? { ...c, user_invocable: true } : c));
+  const tamperedFindings = visibilityReconciliationCheck({ components: tampered, frontmatterById, manifestRoots });
+  assert(tamperedFindings.some((f) => f.component === tamperedId && f.check === 'registry-vs-frontmatter'),
+    `[C3-1] 負向：非入口 skill「${tamperedId}」registry 值被改成 true → 指名該元件報 registry-vs-frontmatter（實際：${JSON.stringify(tamperedFindings)}）`);
+  assert(tamperedFindings.some((f) => f.check === 'single-entry-component'),
+    '[C3-2] 負向：入口數變成 2 → 同時報 single-entry-component');
+
+  // C4 負向：agent 被標成 user_invocable=true（非入口類）／兩平台 manifest 入口根不一致。
+  const agentSample = components.find((c) => c.kind === 'agent');
+  const agentTampered = components.map((c) => (c.id === agentSample.id ? { ...c, user_invocable: true } : c));
+  const agentFindings = visibilityReconciliationCheck({ components: agentTampered, frontmatterById, manifestRoots });
+  assert(agentFindings.some((f) => f.component === agentSample.id && f.check === 'non-entry-kind-invocable'),
+    `[C4-1] 負向：agent「${agentSample.id}」被標 user_invocable=true → 報 non-entry-kind-invocable`);
+
+  const splitRoots = [{ platform: 'claude', root: 'skills/' }, { platform: 'codex', root: 'codex-skills/' }];
+  const rootFindings = visibilityReconciliationCheck({ components, frontmatterById, manifestRoots: splitRoots });
+  assert(rootFindings.some((f) => f.check === 'manifest-entry-root'),
+    '[C4-2] 負向：兩平台 manifest 宣告不同入口根 → 報 manifest-entry-root（兩平台可見性漂移）');
+}
+
 const total = passed + failed.length;
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
-console.log(`(共 ${total} 條斷言：A=入口清單單一來源／B=loop.md canonical state schema，含對既有真實樣本反自我印證)`);
+console.log(`(共 ${total} 條斷言：A=入口清單單一來源／B=loop.md canonical state schema／C=可見性三方對帳，含對既有真實樣本反自我印證)`);
 process.exit(failed.length > 0 ? 1 : 0);

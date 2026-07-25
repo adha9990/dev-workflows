@@ -27,6 +27,7 @@ import {
   checkOverrides,
   checkRegistry,
   formatSummary,
+  readAgentFiles,
 } from './check-registry-shape.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -68,23 +69,21 @@ const EXPECTED_FACETS = [
 // ══════════════════════════════════════════════════════════════════════════
 // 真實 repo agents/ 目錄的實況（用來對真實資料跑 I8 漂移偵測，S8/S9）
 // ══════════════════════════════════════════════════════════════════════════
-function readActualAgentNames() {
-  return readdirSync(AGENTS_DIR)
-    .filter((f) => f.endsWith('.md'))
-    .map((f) => basename(f, '.md'));
-}
+// agents/ 已依角色分巢狀子目錄：沿用生產碼的遞迴走訪（readAgentFiles），平鋪 readdir 會讓
+// 子目錄裡的 agent 整批消失，S8/S9 前置退化成「現況 0 支」而不是真的對帳。
+const ACTUAL_AGENT_FILES = readAgentFiles(AGENTS_DIR);
 
 function readActualAgentEffort() {
   const map = {};
-  for (const name of readActualAgentNames()) {
-    const content = readFileSync(join(AGENTS_DIR, `${name}.md`), 'utf8');
+  for (const [name, abs] of Object.entries(ACTUAL_AGENT_FILES)) {
+    const content = readFileSync(abs, 'utf8');
     const m = content.match(/^effort:\s*(\S+)\s*$/m);
     map[name] = m ? m[1] : null;
   }
   return map;
 }
 
-const ACTUAL_AGENT_NAMES = readActualAgentNames();
+const ACTUAL_AGENT_NAMES = Object.keys(ACTUAL_AGENT_FILES);
 const ACTUAL_AGENT_EFFORT = readActualAgentEffort();
 
 // ══════════════════════════════════════════════════════════════════════════
