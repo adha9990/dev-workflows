@@ -69,6 +69,10 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 
 解法空間寬、單一方案難取捨時，可 opt-in **Fleet**：派 N 個 agent 各從不同角度（MVP-first / risk-first / user-first）出方案 → judge panel 評分 → 綜合最高分 + 嫁接次高的好點子（見 `references/shared/runtime/fleet.md`）。預設不開，使用者說「這題用 Fleet 出幾個方案評審」才啟動。
 
+### 5.9 Unknowns gate（拍板前）
+
+拍板前確認**四象限 Unknowns Register 沒有未解決的 blocking 項**（影響 scope／UX／data／security／architecture／acceptance 任一面向者為 blocking）。還有就回去解——必要時走 `skills/decision-interview` 補訪談或做 blind-spot pass；**帶著未解決的 blocking unknown 進 build 是違規**（`AGENTS.md` 規則 17，policy `unknowns-before-build` 為 tier-2 機械閘）。
+
 ### 6. 送出計畫 + 拍板 gate
 
 **在 plan 階段就把計畫草稿送出**（不是等 loop 結束）：issue-driven → 依 **`skills/plan/references/plan-comment-template.md`（本 skill 目錄下；完整版：系統全貌 + 套件清單含版本 + ADR + 機制圖 + 施工圖 + 契約 + out-of-scope）** 寫暫存 tmp 草稿校稿後 post 成 issue 對齊 comment（留 audit trail，**post 後刪 tmp**；更新既有 comment 用 `gh api --method PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<tmp>`）；非 issue → 呈現給使用者。**這則 comment 是 living as-built 摘要**，build 偏離時回來同步更新（含已 post 的版本）。

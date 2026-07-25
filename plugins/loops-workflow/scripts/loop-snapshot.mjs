@@ -20,6 +20,7 @@ import { pathToFileURL } from 'node:url';
 
 import { readEvents } from './loop-ledger.mjs';
 import { projectEvents, selectBlocking } from './loop-graph.mjs';
+import { summarize as summarizeUnknowns, renderRegister } from './unknowns-register.mjs';
 import { writeFileAtomic } from '../hooks/atomic-write.mjs';
 
 /** 快照裡保留的「最近事件」筆數上限——這就是「不再無界」的那個界。 */
@@ -48,6 +49,7 @@ export function describeEvent(ev) {
     case 'commit': return `commit ${String(p.sha ?? '').slice(0, 8)} ${p.subject ?? ''}`;
     case 'pr': return `PR #${p.number ?? ''}${p.merged ? ' 已合併' : ''} ${p.title ?? ''}`.trim();
     case 'toolrun': return `${p.tool ?? '工具'} → ${p.outcome ?? ''}`;
+    case 'unknown': return p.blindSpotPass ? `blind-spot pass：${p.blindSpotPass}` : `unknown ${p.id ?? ''}[${p.kind ?? ''}] ${p.statement ?? ''}${p.status ? `（${p.status}）` : ''}`;
     case 'note': return String(p.text ?? '');
     default: return String((ev && ev.type) ?? '');
   }
@@ -79,7 +81,7 @@ export function summarize(state) {
   if (state.loop.done) return `完工${state.loop.outcome ? `：${state.loop.outcome}` : ''}`;
   const bits = [`階段 ${state.currentStage ?? '未進入'}`];
   if (state.round) bits.push(`回環 #${state.round}`);
-  if (blocking.count) bits.push(`仍有 ${blocking.findings.length} 條 P0/P1、${blocking.gates.length} 道閘未過、${blocking.decisions.length} 個未決決策`);
+  if (blocking.count) bits.push(`仍有 ${blocking.findings.length} 條 P0/P1、${blocking.gates.length} 道閘未過、${blocking.decisions.length} 個未決決策、${(blocking.unknowns ?? []).length} 條未解決 unknown`);
   else bits.push('無 blocking');
   return bits.join('　');
 }
@@ -128,6 +130,7 @@ export function renderLoopMd(state, events, { warnings = [] } = {}) {
     for (const f of blocking.findings) lines.push(`- finding \`${f.id}\` **${f.severity}**：${f.title}`);
     for (const g of blocking.gates) lines.push(`- 閘 \`${g.gate}\` = ${g.status}${g.detail ? `（${g.detail}）` : ''}`);
     for (const d of blocking.decisions) lines.push(`- 未決決策 \`${d.id}\`：${d.question}`);
+    for (const u of blocking.unknowns ?? []) lines.push(`- 未解決的 blocking unknown \`${u.id}\`（owner ${u.owner ?? '?'}，影響 ${(u.affects ?? []).join('、')}）：${u.statement ?? ''}`);
     lines.push('');
   }
 
@@ -135,6 +138,12 @@ export function renderLoopMd(state, events, { warnings = [] } = {}) {
     lines.push('## 未完成任務', '');
     for (const t of openTasks) lines.push(`- [ ] \`${t.id}\` ${t.title}${t.dependsOn.length ? `（依賴 ${t.dependsOn.join('、')}）` : ''}`);
     lines.push('');
+  }
+
+  // #174：四象限 Unknowns Register —— 只在這條 loop 真的有 unknown 或做過 blind-spot pass 時才渲染，
+  // 免得每條 loop 的快照都多一塊空表（小任務不加 ceremony）。
+  if ((state.unknowns ?? []).length || (state.blindSpotPasses ?? []).length) {
+    lines.push(renderRegister(summarizeUnknowns(state.unknowns ?? [], { blindSpotPasses: state.blindSpotPasses ?? [] })));
   }
 
   lines.push(`## 最近事件（最多 ${RECENT_EVENT_LIMIT} 筆，非完整 Journal）`, '');

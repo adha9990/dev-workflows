@@ -45,23 +45,24 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "policy-registry",
-        "skill-lint",
-        "compat-lint",
-        "registry-coverage-tests",
         "build-skill",
         "clarify-skill",
+        "compat-lint",
+        "decision-interview-skill",
         "define-skill",
         "dispatch-skill",
         "explain-skill",
         "explore-skill",
         "goal-skill",
+        "impl-author-agent",
         "iterate-skill",
         "plan-skill",
+        "policy-registry",
+        "registry-coverage-tests",
         "scaffold-fullstack-skill",
-        "verify-skill",
-        "impl-author-agent",
-        "test-author-agent"
+        "skill-lint",
+        "test-author-agent",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -881,6 +882,32 @@
           "AGENTS.md",
           "plugins/loops-workflow/references/shared/runtime/journaling.md",
           "plugins/loops-workflow/docs/settings.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "decision-interview-skill",
+      "kind": "skill",
+      "paths": [
+        "plugins/loops-workflow/skills/decision-interview/**"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": "support",
+      "target_path": "plugins/loops-workflow/skills/decision-interview",
+      "user_invocable": false,
+      "dependencies": [
+        "agents-constitution",
+        "ref-comment-policy",
+        "ref-interaction-adapter"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "AGENTS.md"
         ],
         "integrations": []
       }
@@ -1706,7 +1733,8 @@
         "loop-migrate",
         "loop-migrate-tests",
         "loop-snapshot",
-        "loop-snapshot-tests"
+        "loop-snapshot-tests",
+        "unknowns-register-tests"
       ],
       "required_checks": {
         "hooks": [],
@@ -1761,7 +1789,9 @@
         "loop-snapshot",
         "loop-snapshot-tests",
         "policy-runtime",
-        "policy-runtime-tests"
+        "policy-runtime-tests",
+        "unknowns-register",
+        "unknowns-register-tests"
       ],
       "required_checks": {
         "hooks": [],
@@ -1908,14 +1938,16 @@
       "target_path": "plugins/loops-workflow/scripts/loop-snapshot.mjs",
       "user_invocable": false,
       "dependencies": [
-        "loop-ledger",
+        "hook-shared-runtime",
         "loop-graph",
-        "hook-shared-runtime"
+        "loop-ledger",
+        "unknowns-register"
       ],
       "consumers": [
         "context-pack",
         "loop-migrate",
-        "loop-snapshot-tests"
+        "loop-snapshot-tests",
+        "unknowns-register-tests"
       ],
       "required_checks": {
         "hooks": [],
@@ -2534,7 +2566,8 @@
         "loop-migrate-tests",
         "loop-snapshot-tests",
         "progress-render",
-        "progress-tests"
+        "progress-tests",
+        "unknowns-register-tests"
       ],
       "required_checks": {
         "hooks": [],
@@ -3019,12 +3052,13 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "clarify-skill",
+        "compat-lint",
+        "decision-interview-skill",
         "define-skill",
         "iterate-skill",
         "plan-skill",
+        "skill-lint",
         "verify-skill"
       ],
       "required_checks": {
@@ -3533,15 +3567,16 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
         "clarify-skill",
+        "compat-lint",
+        "decision-interview-skill",
         "dispatch-skill",
         "explore-skill",
         "goal-skill",
         "iterate-skill",
         "plan-skill",
+        "skill-lint",
         "verify-skill"
       ],
       "required_checks": {
@@ -5399,6 +5434,57 @@
         "compat-lint",
         "check-registry-shape"
       ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "unknowns-register",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/unknowns-register.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/unknowns-register.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "loop-ledger"
+      ],
+      "consumers": [
+        "loop-snapshot",
+        "unknowns-register-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "unknowns-register-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-unknowns-register.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-unknowns-register.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "unknowns-register",
+        "loop-ledger",
+        "loop-graph",
+        "loop-snapshot",
+        "progress-cli"
+      ],
+      "consumers": [],
       "required_checks": {
         "hooks": [],
         "evals": [],
