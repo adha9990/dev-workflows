@@ -61,6 +61,7 @@
         "policy-registry",
         "registry-coverage-tests",
         "scaffold-fullstack-skill",
+        "setup-skill",
         "skill-lint",
         "test-author-agent",
         "verify-skill"
@@ -1648,7 +1649,9 @@
       "dependencies": [],
       "consumers": [
         "registry-compiler",
-        "registry-coverage-tests"
+        "registry-coverage-tests",
+        "setup-plan",
+        "setup-plan-tests"
       ],
       "required_checks": {
         "hooks": [],
@@ -3655,6 +3658,7 @@
         "goal-skill",
         "iterate-skill",
         "plan-skill",
+        "setup-skill",
         "skill-lint",
         "verify-skill"
       ],
@@ -5229,6 +5233,105 @@
         "evals": [],
         "docs": [
           "plugins/loops-workflow/references/shared/runtime/journaling.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "setup-catalog",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/setup-catalog.json"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/references/setup-catalog.json",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "setup-plan",
+        "setup-plan-tests",
+        "setup-skill"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "setup-plan",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/setup-plan.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/setup-plan.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "setup-catalog",
+        "integration-registry"
+      ],
+      "consumers": [
+        "setup-plan-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "setup-plan-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-setup-plan.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-setup-plan.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "setup-plan",
+        "setup-catalog",
+        "integration-registry"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "setup-skill",
+      "kind": "skill",
+      "paths": [
+        "plugins/loops-workflow/skills/setup/**"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "entrypoint",
+      "target_path": "plugins/loops-workflow/skills/setup",
+      "user_invocable": true,
+      "dependencies": [
+        "agents-constitution",
+        "ref-interaction-adapter",
+        "setup-catalog"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "AGENTS.md"
         ],
         "integrations": []
       }
