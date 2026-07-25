@@ -16,7 +16,7 @@
 | judge 對人工金標的 κ 校準＋多 judge 投票 | `eval-poll.mjs` | E5 |
 | live-candidate 真 pass^k（多 run 全過才算穩） | `eval-passk.mjs` | E7 |
 | 沙箱檢查／執行計畫（容器隔離跑 candidate） | `eval-sandbox.mjs` | E7（protocol 見 `evals/live/README-protocol.md`） |
-| 真實任務語料的雙 harness（claude-code／codex）現況 baseline：三軌 corpus runner／trace 抽取／不可變 report | `baseline-corpus.mjs` / `baseline-trace.mjs` / `baseline-report.mjs` | 各檔檔頭註解＋`evals/baseline/promptfoo-adapter.md` 映射範例 |
+| 真實任務語料的雙 harness（<!-- adapter-projection -->`claude-code`／`codex`<!-- /adapter-projection -->）現況 baseline：三軌 corpus runner／trace 抽取／不可變 report | `baseline-corpus.mjs` / `baseline-trace.mjs` / `baseline-report.mjs` | 各檔檔頭註解＋`evals/baseline/promptfoo-adapter.md` 映射範例 |
 
 ## scenario 檔格式（JSON）
 
@@ -33,7 +33,7 @@
 }
 ```
 
-每個 scenario：`name` / `input`（餵給階段的輸入）/ `expect`（可觀察的預期結果）。至少 **3 個 scenario + 1 個 baseline**（baseline = 對照組，沒有它無法判斷「對的原因」）。committed 範例：`evals/gate-recommendation/scenarios.json`（AskUserQuestion 推薦準則的「治標 vs 治本」勾檢——留債 / 行為回歸選項是否被誤標推薦，判準見 `AGENTS.md` 規則 10）。
+每個 scenario：`name` / `input`（餵給階段的輸入）/ `expect`（可觀察的預期結果）。至少 **3 個 scenario + 1 個 baseline**（baseline = 對照組，沒有它無法判斷「對的原因」）。committed 範例：`evals/gate-recommendation/scenarios.json`（決策點推薦準則的「治標 vs 治本」勾檢——留債 / 行為回歸選項是否被誤標推薦，判準見 `AGENTS.md` 規則 10）。
 
 ## 跑
 
@@ -234,7 +234,7 @@ exit code：`validate-rubric` valid 0 / invalid 1 / 讀檔失敗 3；`parse` 產
 - `pairJudgeVsGold(records, gold)`：依 caseId 配 `gold[].id`（gold 帶 boolean `goldPass`）→ pass label pairs 餵 cohenKappa；無配對 → `unmatched`。
 
 ## 金標集（`evals/gold/<dimension>.json`）
-陣列，每筆 `{id, dimension, artifactRef, goldPass:boolean, goldScore, note, provenance}`（`id` 對 judge record 的 `caseId`、是唯一連結鍵；`artifactRef`＝指向被評 artifact 的機讀欄；`provenance`＝`synthetic-anchor`/`self-annotated-baseline`/`human`，標金標來源）。**#50 已養到 62 筆**（6 抽象錨 + 56 真實 commit 訊息 artifact，附 `artifacts/explanation-quality.json` 文字快照）→ 曾以獨立盲標軌跑 `eval-poll kappa` 得 **κ=0.845（strong）**（demo 軌屬一次性材料、#95 清理，歷史細節見 `evals/gold/README.md`）。**⚠️ 但這是 `self-annotated-baseline`（LLM 套 rubric 標）非獨立人工金標**：κ 量的是 **inter-agent 一致性**（gold-annotator vs 3 段獨立盲標 judge-fleet，皆同 opus 模型家族、不同 agent context）、**非 judge-vs-人類校準**——證明 pipeline 端到端可跑 + rubric 在獨立盲標 agent pass 間應用一致（同模型家族、**非**跨不同模型），**不證明 judge 對齊人類**。真人工金標（`provenance:human`）＝唯一待人類步驟、operational 交接（見 `evals/gold/README.md`）。**Metric-Honesty**：κ 是**估算**、標來源，非確定性權威；judge-estimate 軌不污染 oracle 回歸曲線。
+陣列，每筆 `{id, dimension, artifactRef, goldPass:boolean, goldScore, note, provenance}`（`id` 對 judge record 的 `caseId`、是唯一連結鍵；`artifactRef`＝指向被評 artifact 的機讀欄；`provenance`＝`synthetic-anchor`/`self-annotated-baseline`/`human`，標金標來源）。**#50 已養到 62 筆**（6 抽象錨 + 56 真實 commit 訊息 artifact，附 `artifacts/explanation-quality.json` 文字快照）→ 曾以獨立盲標軌跑 `eval-poll kappa` 得 **κ=0.845（strong）**（demo 軌屬一次性材料、#95 清理，歷史細節見 `evals/gold/README.md`）。**⚠️ 但這是 `self-annotated-baseline`（LLM 套 rubric 標）非獨立人工金標**：κ 量的是 **inter-agent 一致性**（gold-annotator vs 3 段獨立盲標 judge-fleet，皆同 `referee` capability tier 的 model 家族、不同 agent context）、**非 judge-vs-人類校準**——證明 pipeline 端到端可跑 + rubric 在獨立盲標 agent pass 間應用一致（同模型家族、**非**跨不同模型），**不證明 judge 對齊人類**。真人工金標（`provenance:human`）＝唯一待人類步驟、operational 交接（見 `evals/gold/README.md`）。**Metric-Honesty**：κ 是**估算**、標來源，非確定性權威；judge-estimate 軌不污染 oracle 回歸曲線。
 
 ## 跑
 ```bash

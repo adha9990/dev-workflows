@@ -385,6 +385,68 @@ const stdoutOf = (res) => (typeof res.stdout === 'string' ? res.stdout : '');
   assert(stdoutOf(res).trim() === '', '[B11] stdout 空（opt-out 放行）');
 }
 
+// =============================================================================
+// C) Codex apply_patch 形狀（#183 T9：接上 hook-input-normalize.mjs 正規化層）
+// =============================================================================
+
+const CODEX_PATCH_DENY = [
+  '*** Begin Patch',
+  '*** Add File: src/ok-file.js',
+  '+irrelevant content',
+  '*** Update File: C:/x/.claude/worktrees/a/.loops/b/loop.md',
+  '@@',
+  '-old',
+  '+new',
+  '*** End Patch',
+].join('\n');
+
+const CODEX_PATCH_ALLOW = [
+  '*** Begin Patch',
+  '*** Add File: src/ok-file.js',
+  '+irrelevant content',
+  '*** Update File: src/other-file.js',
+  '@@',
+  '-old',
+  '+new',
+  '*** End Patch',
+].join('\n');
+
+// ── C1：Codex apply_patch 多檔 diff、違規檔非首檔（第二檔）→ 仍 deny（逐檔判定）───
+{
+  const res = runHook({
+    rawInput: JSON.stringify({ tool_input: { command: CODEX_PATCH_DENY }, cwd: 'C:/ignored' }),
+    env: { LOOPS_PATH_CONTAINMENT: undefined },
+  });
+  assert(res.error == null, '[C1] spawn 無 error（Codex apply_patch 形狀）');
+  assert(res.status === 0, '[C1] exit 0');
+  const parsed = (() => { try { return JSON.parse(stdoutOf(res).trim()); } catch { return null; } })();
+  assert(
+    parsed?.hookSpecificOutput?.permissionDecision === 'deny',
+    '[C1] apply_patch 多檔 diff、違規檔為第二個（非首檔）→ 仍 deny（逐檔判定，非只查首檔）',
+  );
+}
+
+// ── C2：反向——Codex apply_patch 多檔 diff、皆非違規路徑 → 放行（stdout 空）────────
+{
+  const res = runHook({
+    rawInput: JSON.stringify({ tool_input: { command: CODEX_PATCH_ALLOW }, cwd: 'C:/ignored' }),
+  });
+  assert(res.status === 0, '[C2] exit 0');
+  assert(stdoutOf(res).trim() === '', '[C2] apply_patch 多檔 diff、皆非違規路徑 → 放行（stdout 空）');
+}
+
+// ── C3：結構殘缺（harness 判不出來）→ degraded 訊息可見（stderr），但仍放行（fail-open）──
+{
+  const res = runHook({
+    rawInput: JSON.stringify({ tool_input: {}, cwd: 'C:/ignored' }),
+  });
+  assert(res.status === 0, '[C3] exit 0（結構殘缺仍放行）');
+  assert(stdoutOf(res).trim() === '', '[C3] stdout 空（degraded 不改變放行判定）');
+  const stderr = typeof res.stderr === 'string' ? res.stderr : '';
+  assert(stderr.includes('[loops-path-guard]') && /[\u4e00-\u9fff]/.test(stderr),
+    '[C3] stderr 含人可讀的繁中 degraded 說明（結構殘缺可見，不影響放行）');
+}
+
 // ── 摘要 + exit code ─────────────────────────────────────────────────────────
 console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.length} failed`);
 process.exit(failed.length > 0 ? 1 : 0);

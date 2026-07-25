@@ -19,7 +19,7 @@
 //      import 時不執行。
 // 依賴：僅 node 內建（fs / os / path / url / child_process / process），零外部套件。
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -28,6 +28,10 @@ import { spawnSync } from 'node:child_process';
 // state 讀 / 清、安全檔名規則都走 edit-accumulator 的單一真相源 IO（本檔不再自存一份 readStateRaw）。
 import { readEditsForSession, clearEditsState, sanitizeSessionId } from './edit-accumulator.mjs';
 import { flagEnabled } from './hook-flags.mjs';
+import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
+// tmp+rename 原子覆寫（#183 T14）：發現性提示 state 檔雖是低風險 per-session 節流檔，仍統一走
+// atomic-write，不留一支例外裸 writeFileSync。
+import { writeFileAtomic } from './atomic-write.mjs';
 
 const GATE_TIMEOUT_MS = 300000; // 跑閘上限 5 分鐘，逾時視為 spawn 失敗 → no-op（不擋）
 const MAX_INJECTION_CHARS = 10000; // 注入回 context 的摘要上限，過長截斷
@@ -90,8 +94,10 @@ function maybeShowDiscoveryHint(sessionId, hasConfig) {
   const alreadyHinted = hasAlreadyHinted(stateFile);
   if (!shouldShowDiscoveryHint({ flagOn: false, hasConfig, alreadyHinted })) return;
 
-  writeFileSync(stateFile, JSON.stringify({ hinted: true }));
-  console.log(DISCOVERY_HINT);
+  writeFileAtomic(stateFile, JSON.stringify({ hinted: true }));
+  // 提示什麼內容留在本檔；呈現形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+  const decision = emitDecision({ kind: 'text', text: DISCOVERY_HINT }, ACTIVE_HARNESS, 'Stop');
+  if (decision !== null) console.log(decision);
 }
 
 /**
@@ -134,14 +140,9 @@ function main() {
 
   const injection = buildGateInjection(res.stdout, res.status === 0);
   if (injection !== null) {
-    console.log(
-      JSON.stringify({
-        hookSpecificOutput: {
-          hookEventName: 'Stop',
-          additionalContext: injection,
-        },
-      }),
-    );
+    // 注入什麼內容留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+    const decision = emitDecision({ kind: 'context', context: injection }, ACTIVE_HARNESS, 'Stop');
+    if (decision !== null) console.log(decision);
   }
 
   // 無論綠紅，gate 跑完即清空 accumulator（下趟重新累積，避免舊編輯一直觸發重跑）。

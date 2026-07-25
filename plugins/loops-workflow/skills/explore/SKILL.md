@@ -92,14 +92,14 @@ description: Researches how to build something before it gets planned, and lays 
 
 ### 5. 攤開比較 + 推薦（依模式收斂）
 
-共通：**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」；有搜外部就內外並排、附 CITE。停在 gate 時**一律用 `AskUserQuestion` 給選項**（每個標推薦 + 一句理由），不要用純文字要使用者打字。
+共通：**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」；有搜外部就內外並排、附 CITE。停在 gate 時**一律開一個決策點給選項**（每個列優缺、恰一個標推薦 + 一句理由；表述形狀與各平台互動能力的映射見 `references/interaction-adapter.md`），不要用純文字要使用者打字。
 
-**收斂式 → `explore → plan`**：把候選方案 + 第 4.5 步比較矩陣整理進 `stages/01-explore.md`（各自優缺點、適配度、CITE；內部已足夠則列內部結論 + 一句「為什麼不必外部」）。收斂時除維度分數，再看使用者價值（解痛點 painkiller / nice-to-have vitamin）+「**這方向賭什麼成立、什麼會讓它垮**」。給一個推薦 + 理由（**點明決定因素**；決定因素不得是「代價最小」——見 §4.5 鐵則 3）。gate 用 `AskUserQuestion` 把**候選方法**做成選項給使用者選 → 進 `plan`。
+**收斂式 → `explore → plan`**：把候選方案 + 第 4.5 步比較矩陣整理進 `stages/01-explore.md`（各自優缺點、適配度、CITE；內部已足夠則列內部結論 + 一句「為什麼不必外部」）。收斂時除維度分數，再看使用者價值（解痛點 painkiller / nice-to-have vitamin）+「**這方向賭什麼成立、什麼會讓它垮**」。給一個推薦 + 理由（**點明決定因素**；決定因素不得是「代價最小」——見 §4.5 鐵則 3）。gate 開一個決策點，把**候選方法**做成選項給使用者選 → 進 `plan`。
 
 **發散式 → `explore → define`**：把設計空間整理進 `stages/01-explore.md` —— 每個開放問題列「選項 + 傾向（待拍板）+ 相依」，收束成一份 **issue backlog 清單**（不收斂成單一方法）。
 
 - **析相依、分兩層標記**：把 backlog 依相依切成 **基礎層**（彼此相依、要先序列建的**薄地基**，如資料模型 / 共用 port / schema）與 **獨立層**（基礎好之後彼此獨立、可多 session / 多 agent **平行**的票）。**優先薄基礎 → 寬平行** —— 別開出一長串前後相依的 issue 鏈（相依鏈會讓「多 session 並行加速」破功）。
-- gate 用 `AskUserQuestion` 確認 **backlog 範圍 + 基礎/獨立分層 + MVP 起點**（不是選一個方法）→ 核可後進 `define`（**backlog 模式**：逐條從研究結論直接開 issue、依分層設相依與優先，跳過單題 one-question intake —— 研究已做完，重訪談是冗餘）。
+- gate 開一個決策點確認 **backlog 範圍 + 基礎/獨立分層 + MVP 起點**（不是選一個方法；表述形狀與各平台互動能力的映射見 `references/interaction-adapter.md`）→ 核可後進 `define`（**backlog 模式**：逐條從研究結論直接開 issue、依分層設相依與優先，跳過單題 one-question intake —— 研究已做完，重訪談是冗餘）。
 
 ## Common Rationalizations
 

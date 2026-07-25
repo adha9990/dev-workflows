@@ -41,6 +41,17 @@ export function getRates(model) {
   return RATE_TABLE.sonnet;
 }
 
+// 與 getRates 的關鍵字判斷刻意保持一致、但獨立成另一個函式：getRates 是「查表工具」（對外契約
+// 已被測試釘死，無法辨識時一律回 sonnet 供任意呼叫端取值），isKnownModel 才是「這筆錢能不能信」
+// 的守門判斷——只有這裡的結果會影響 costs.jsonl 是否誠實降級（Metric-Honesty，憲章規則 5）。
+const KNOWN_MODEL_KEYWORDS = ['haiku', 'opus', 'sonnet'];
+
+/** model 名稱是否命中已知費率表關鍵字（haiku/opus/sonnet）；命中才可信任 estimateCostUsd 的金額。 */
+export function isKnownModel(model) {
+  const name = String(model).toLowerCase();
+  return KNOWN_MODEL_KEYWORDS.some((k) => name.includes(k));
+}
+
 /**
  * P2 落點錨定：把 cwd 解析成「主 repo 根」——若 cwd 落在某個 worktree
  * （路徑含 `.claude/worktrees/<slug>/`），回傳該片段之前的主 checkout 根；否則原樣回傳。
@@ -194,13 +205,23 @@ export function estimateCostUsd(usage, model) {
   return total / RATES_PER_MILLION;
 }
 
+// 未知 model 的金額一律歸零（不套用 sonnet 等預設費率頂替）——真正 measured 與否只看
+// isKnownModel(model)，未知時連 stage / subagent 段的 cost_usd 也一併誠實歸零。
+function costForModel(usage, model) {
+  return isKnownModel(model) ? estimateCostUsd(usage, model) : 0;
+}
+
 /**
  * 組裝寫入 costs.jsonl 的一列（camelCase usage → snake_case 欄位、estimate/schema 常數）。
  * 所有數字欄一律 ≥ 0（負值 / NaN → 0），確保下游統計不被髒值污染。
+ * Metric-Honesty（憲章規則 5）：model 命中不了已知費率表 → cost_usd 誠實歸零、附
+ * cost_status:"not_measured" + 繁中 cost_note；token 數等實測欄位不受影響、照常記錄。
+ * 已知 model 的欄位 / 數值完全不變（cost_status / cost_note 只在降級時才出現，向後相容）。
  */
 export function buildCostRow({ sessionId, usage, model, costUsd, ts, byStage, subagents }) {
   const u = usage ?? {};
   const hasSub = Array.isArray(subagents) && subagents.length > 0;
+  const modelKnown = isKnownModel(model);
   const row = {
     ts,
     session_id: sessionId,
@@ -209,31 +230,41 @@ export function buildCostRow({ sessionId, usage, model, costUsd, ts, byStage, su
     output_tokens: safeNonNeg(u.outputTokens),
     cache_creation_input_tokens: safeNonNeg(u.cacheWriteTokens),
     cache_read_input_tokens: safeNonNeg(u.cacheReadTokens),
-    cost_usd: safeNonNeg(costUsd),
+    cost_usd: modelKnown ? safeNonNeg(costUsd) : 0,
     estimate: true,
     // schema 2 = 主線 by_stage；schema 3 = 額外含子代理歸戶（subagents 聚合 + by_stage[].subagent）。
     // 未給 subagents → 維持 schema 2，向後相容既有消費者（新欄皆可忽略）。
     schema: hasSub ? 3 : 2,
   };
+  if (!modelKnown) {
+    row.cost_status = 'not_measured';
+    row.cost_note = `model「${model}」不在已知費率表（haiku/sonnet/opus）內，cost_usd 已誠實歸零、` +
+      '非真實金額；token 用量為實測值，不受影響、照常記錄。';
+  }
   // by_stage（可選）：逐 loop-stage 拆解——camelCase bucket → snake_case 欄位 + 各段自帶 cost_usd。
   // 這裡的 token / cost 一律為「主線」部分（子代理另掛在 .subagent，見下）。
   let stageRows = null;
   if (Array.isArray(byStage)) {
-    stageRows = byStage.map((b) => ({
-      stage: String(b?.stage ?? 'unknown'),
-      turns: safeNonNeg(b?.turns),
-      input_tokens: safeNonNeg(b?.inputTokens),
-      output_tokens: safeNonNeg(b?.outputTokens),
-      cache_creation_input_tokens: safeNonNeg(b?.cacheWriteTokens),
-      cache_read_input_tokens: safeNonNeg(b?.cacheReadTokens),
-      cost_usd: safeNonNeg(estimateCostUsd(b ?? {}, b?.model)),
-    }));
+    stageRows = byStage.map((b) => {
+      const stageKnown = isKnownModel(b?.model);
+      const seg = {
+        stage: String(b?.stage ?? 'unknown'),
+        turns: safeNonNeg(b?.turns),
+        input_tokens: safeNonNeg(b?.inputTokens),
+        output_tokens: safeNonNeg(b?.outputTokens),
+        cache_creation_input_tokens: safeNonNeg(b?.cacheWriteTokens),
+        cache_read_input_tokens: safeNonNeg(b?.cacheReadTokens),
+        cost_usd: safeNonNeg(costForModel(b ?? {}, b?.model)),
+      };
+      if (!stageKnown) seg.cost_status = 'not_measured';
+      return seg;
+    });
   }
 
   // P1 子代理歸戶：subagents = [{ stage, inputTokens, outputTokens, cacheWriteTokens, cacheReadTokens, model }]。
   // 聚合成 row.subagents（總），併 row.total_cost_usd（主線+子代理），並把各 stage 的子代理掛到 by_stage[].subagent。
   if (hasSub) {
-    const agg = { in: 0, out: 0, cw: 0, cr: 0, cost: 0 };
+    const agg = { in: 0, out: 0, cw: 0, cr: 0, cost: 0, unknown: 0 };
     const perStage = new Map(); // stage → { agents, in, out, cw, cr, cost }
     for (const s of subagents) {
       const su = {
@@ -242,7 +273,8 @@ export function buildCostRow({ sessionId, usage, model, costUsd, ts, byStage, su
         cacheWriteTokens: safeNum(s?.cacheWriteTokens),
         cacheReadTokens: safeNum(s?.cacheReadTokens),
       };
-      const c = estimateCostUsd(su, s?.model);
+      const c = costForModel(su, s?.model); // 未知 model 的子代理 → 0（不套預設費率頂替）
+      if (!isKnownModel(s?.model)) agg.unknown += 1;
       agg.in += su.inputTokens; agg.out += su.outputTokens; agg.cw += su.cacheWriteTokens; agg.cr += su.cacheReadTokens; agg.cost += c;
       const st = String(s?.stage ?? 'other-subagent');
       let e = perStage.get(st);
@@ -257,6 +289,7 @@ export function buildCostRow({ sessionId, usage, model, costUsd, ts, byStage, su
       cache_read_input_tokens: safeNonNeg(agg.cr),
       cost_usd: safeNonNeg(agg.cost),
     };
+    if (agg.unknown > 0) row.subagents.cost_status = 'not_measured'; // 至少一個子代理 model 未知 → 聚合金額非全額真實
     row.total_cost_usd = safeNonNeg(row.cost_usd + agg.cost);
 
     const subObj = (e) => ({

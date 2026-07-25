@@ -43,7 +43,9 @@
 //      deny 理由組字函式。
 //   2) IO 薄邊界：main()（讀 stdin、印 deny）——import 時不執行。
 // 依賴：node 內建 fs（readFileSync 讀 stdin）＋ url（pathToFileURL 判 invokedDirectly）；不需
-// child_process。+ 同目錄 hook-flags（flagEnabled）、pr-gate
+// child_process。+ 同目錄 hook-flags（flagEnabled）、hook-input-normalize（tokenizeShellLike——
+// 尊重引號切詞的唯一正本，#183 T5 收斂，原本三支 guard 各存一份同寫法複本；normalize——MCP
+// tool_name 判定改吃其 toolName 欄，#183 T10，單一真相源接線、非行為變更）、pr-gate
 // （stripQuotedValues / isPrReadyCommand / isPrCreateCommand / prSubcommandAtSegmentStart，#164
 // plan：pr-gate.mjs 僅加一個 export、零行為變更）——子指令詞剝殼判定不重抄 pr-gate.mjs 已寫好、
 // 已測過的邏輯。
@@ -65,7 +67,9 @@ import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 import { flagEnabled } from './hook-flags.mjs';
+import { tokenizeShellLike, normalize } from './hook-input-normalize.mjs';
 import { stripQuotedValues, isPrReadyCommand, isPrCreateCommand, prSubcommandAtSegmentStart } from './pr-gate.mjs';
+import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
 
 // ── 純函式層（無 IO）──────────────────────────────────────────────────────────────
 
@@ -88,21 +92,6 @@ function isPrEditCommand(cmd) {
 function isEditAddReviewerCommand(cmd) {
   if (!isPrEditCommand(cmd)) return false;
   return /--add-reviewer[=\s]/.test(stripQuotedValues(cmd));
-}
-
-/**
- * 把指令尊重引號切成 token（單/雙引號包住的整段回傳去引號後的值＋是否為引號 token），仿
- * pr-gate.mjs 的 hasExplicitPrTarget／merge-guard.mjs 的 tokenizeShellLike 同一寫法——只做字面
- * 「切詞＋去引號」，足夠應付 `-r` 短旗標的 token 化判定。
- */
-function tokenizeShellLike(cmd) {
-  const tokens = [];
-  const re = /'([^']*)'|"([^"]*)"|(\S+)/g;
-  let m;
-  while ((m = re.exec(cmd)) !== null) {
-    tokens.push({ value: m[1] ?? m[2] ?? m[3], quoted: m[1] !== undefined || m[2] !== undefined });
-  }
-  return tokens;
 }
 
 /**
@@ -237,15 +226,9 @@ function readStdin() {
 }
 
 function denyWith(reason) {
-  console.log(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: 'deny',
-        permissionDecisionReason: reason,
-      },
-    }),
-  );
+  // 「擋不擋、理由是什麼」留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+  const decision = emitDecision({ kind: 'deny', reason }, ACTIVE_HARNESS, 'PreToolUse');
+  if (decision !== null) console.log(decision);
 }
 
 /**
@@ -273,7 +256,9 @@ function main() {
     return;
   }
 
-  const toolName = payload?.tool_name;
+  // toolName 走 normalize() 的單一真相源（#183 T10）：兩 harness 的 tool_name 欄位形狀目前一致，
+  // 這裡接線是為了收斂到同一個判定入口，不是修行為——normalize().toolName 就是 payload?.tool_name。
+  const { toolName } = normalize(payload, process.env);
   const kind = classifyMcpCall(toolName, toolInput);
   if (kind) denyWith(buildDenyReason(kind));
 }

@@ -51,7 +51,7 @@ description: Routes a one-line work request to the right loops-workflow stage an
 
 判類型前**先看目標專案是不是「完全乾淨」**：空目錄 / 沒有原始碼 / 沒有 `package.json` / 沒有 git 歷史（`git log --oneline -1` 無 commit、目錄無 `src`·`package.json`）。是的話沒有架構承載 define 出來的 issue、也沒有 code 可改 —— **先把骨架立起來**：
 
-- **確認（一定停 —— scaffold 是大動作、且技術棧是定死的）**：用 `AskUserQuestion` 問要不要建骨架。loops-workflow **內建的 `scaffold-fullstack`** skill 出的是 **Fastify + React 19 + TanStack + Kysely/SQLite + Vitest** 的分層全端 TS 專案。
+- **確認（一定停 —— scaffold 是大動作、且技術棧是定死的）**：**開一個決策點**問要不要建骨架（給選項並標推薦；決策點的表述形狀與各平台互動能力的映射見 `references/interaction-adapter.md`）。loops-workflow **內建的 `scaffold-fullstack`** skill 出的是 **Fastify + React 19 + TanStack + Kysely/SQLite + Vitest** 的分層全端 TS 專案。
   - 要、且這個棧合用 → 交 `scaffold-fullstack`（它自己會問目錄 / 名稱、跑模板、`pnpm install` + `typecheck/lint/test` 驗收）。
   - 要、但要別的棧（FastAPI / Next.js / 純前端…）→ `scaffold-fullstack` 不適用，請使用者自行建好骨架再回來，dispatch 不硬塞。
   - 只想先把問題定義清楚 → 跳過，直接走 §1.5 define。
@@ -74,18 +74,21 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 - **類型**（issue / design / fix）
 - **operation 性質**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`）—— 依 issue 內容判定（非自動偵測程式），決定 **build 紅燈第一步**（見 `references/operation-first-move.md`）；與**類型正交**（類型決起點 stage、operation 決紅燈起手式）。**拿不準向嚴用 `new-feature`**（標準 TDD）並在 Journal 註明。**loop.md 的建立者寫 operation**：dispatch 建 loop.md 時寫（含 `issue# → 從 goal 起`，dispatch §2 一律先建 loop.md 才進 goal）；無 issue 工作經 `define` 建 loop.md 時由 define 寫（見 define §7）。**goal 兜底**：任何成因導致 loop.md 無此欄（含 goal 被單獨呼叫、未經 dispatch）→ goal step 1 讀到就補（見 `goal` skill）。
 - **起點階段** + **當前階段**（當前階段初始＝起點階段，每進一個階段就更新；供 progress / hook 顯示）
-- **session**（用 Bash 讀 `$CLAUDE_CODE_SESSION_ID` 填；progress / hook 靠它**只顯示「本 session」正在跑的 loop**，不被別 session / 歷史 loop 干擾）
+- **session**（讀 harness 提供的 session 識別碼填；progress / hook 靠它**只顯示「本 session」正在跑的 loop**，不被別 session / 歷史 loop 干擾。識別碼從哪拿是平台細節，見下方投影）
+  <!-- adapter-projection -->
+  - Claude Code：session 識別碼放在環境變數 `CLAUDE_CODE_SESSION_ID`，用 Bash 讀（`echo "$CLAUDE_CODE_SESSION_ID"`）。
+  <!-- /adapter-projection -->
 - **推進模式**（closed / auto，預設 closed）
 - **停止條件雛形**（goal 階段會精煉）
 - **Journal（append-only 事件日誌）**（空，每階段 append 一筆，見 `references/journaling.md`）
 
-**Worktree（會動 code 的迴圈才開）**：①**何時開**：type 是 issue / fix → loop 啟動時開；純設計 / 研究免開（走到 build 再開）。②**怎麼開**：`EnterWorktree`，或 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`（branch / worktree 名 = slug、不加 type 前綴）；fix 型把該 PR branch checkout 進 worktree。③**`.loops/<slug>/` 一律建在主 repo**（`$LOOPS_ROOT` 絕對路徑），不進 worktree。完整規範、落點錨定公式與理由見 `AGENTS.md` 規則 9（loops-path-guard／worktree-guard 已機械化）。
+**Worktree（會動 code 的迴圈才開）**：①**何時開**：type 是 issue / fix → loop 啟動時開；純設計 / 研究免開（走到 build 再開）。②**怎麼開**：harness 若有「開 / 進入 worktree」的原生能力就用它，沒有就 `git worktree add .claude/worktrees/<slug> -b <slug> <base>`（branch / worktree 名 = slug、不加 type 前綴）；fix 型把該 PR branch checkout 進 worktree。③**`.loops/<slug>/` 一律建在主 repo**（`$LOOPS_ROOT` 絕對路徑），不進 worktree。完整規範、落點錨定公式與理由見 `AGENTS.md` 規則 9（loops-path-guard／worktree-guard 已機械化）。
 
 **Resume**：若 `.loops/<slug>/loop.md` 已存在 → 不覆蓋，走 resume 協定（讀 Journal 重建狀態 → 回報「停在哪個階段 / 哪個 gate、已完成 E1–En」→ 問使用者是否續跑，見 `references/journaling.md`）。
 
 ### 3. 進起點階段（routine 轉場不問）
 
-宣告判定結果 + 起點 + loop.md 路徑，然後**直接進起點階段開始做** —— **不問「要不要進 goal / iterate」**（routine 轉場不問）。**意圖模糊**的請求 → 路由給 `clarify`（讓它釐清，不是在 dispatch 停下問一句）；只有**連分類都衝突 / 多重**（連是 code 任務還是別的都分不出）時才停下用 `AskUserQuestion` 問。
+宣告判定結果 + 起點 + loop.md 路徑，然後**直接進起點階段開始做** —— **不問「要不要進 goal / iterate」**（routine 轉場不問）。**意圖模糊**的請求 → 路由給 `clarify`（讓它釐清，不是在 dispatch 停下問一句）；只有**連分類都衝突 / 多重**（連是 code 任務還是別的都分不出）時才停下**開一個決策點**問。
 
 ## Common Rationalizations
 
@@ -106,7 +109,7 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 
 - [ ] 分流結果正確（類型 ↔ 起點階段對得上決策樹）。
 - [ ] **意圖明確**（issue#/PR#）跳過 clarify 直進 goal/iterate；**模糊想法**先進 `clarify` 釐清再分流（dispatch 自己沒做訪談 / 複述確認）。
-- [ ] 目標若是**完全乾淨的空專案**，已先用 `AskUserQuestion` 確認 + scaffold 骨架（或使用者選跳過 / 要別的棧）才進 clarify / define / explore；既有 / 半成品專案不 scaffold。
+- [ ] 目標若是**完全乾淨的空專案**，已先**開決策點**確認 + scaffold 骨架（或使用者選跳過 / 要別的棧）才進 clarify / define / explore；既有 / 半成品專案不 scaffold。
 - [ ] **所有無 issue 的工作都先經 `define` 用 repo template 建 issue**——不 ad-hoc `gh issue create`、不無票直接 plan/build/explore（規則 12）。**研究不另開 issue**：是功能 issue 的 `explore` 階段、或先研究再 define 開功能 issue。
 - [ ] `.loops/<slug>/loop.md` 已建立（或既有的已認領），含類型 / 起點 / 停止條件雛形，**且落在主 repo 根 `$LOOPS_ROOT/.loops/`（絕對路徑錨定、不在任何 `.claude/worktrees/*/` 內）**。
-- [ ] 已進起點階段開始做（分類模糊時才停下用 `AskUserQuestion` 問），沒有用純文字問「要不要進 X」。
+- [ ] 已進起點階段開始做（分類模糊時才停下**開決策點**問），沒有用純文字問「要不要進 X」。

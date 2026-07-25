@@ -36,7 +36,7 @@
 | 3 | **verify 驗收報告 comment** | `verify` 合併安全結論對外 | **`comment-policy.md §7`**（方向總評 → 按維度分組 → 每點四小節：情境/為何問題/怎麼修/補測試 → 結尾 CI 提醒）|
 | 4 | **iterate 修正回覆 comment** | `iterate` 修完 PR 回饋 / verify 缺口 | **`comment-policy.md §8`**（每點雙視角：工程角度 根因/怎麼修/怎麼驗 + 客戶角度 修正前→後；不 @reviewer；結尾據實驗證行）|
 | 5 | **PR body** | `iterate` 完整迴圈收尾 | **`pr-spec.md`**（as-built 提煉；含 `Closes #<issue>` 關閉關鍵字）|
-| 6 | **AskUserQuestion**（端給使用者的問題）| 各階段決策點 | **`comment-policy.md §4`**（每選項列優缺 + 必標 `(Recommended)` + 一句理由；重大且選非推薦項要主動提異見）|
+| 6 | **決策點提問**（端給使用者的問題，平台映射見 `interaction-adapter.md`）| 各階段決策點 | **`comment-policy.md §4`**（每選項列優缺 + 必標 `(Recommended)` + 一句理由；重大且選非推薦項要主動提異見）|
 | 7 | **研究／提案 EDD comment** | `explore`/`clarify` 研究報告的決策摘要、design 型 loop 的工程提案交付、`iterate` 回應審查的提案修訂版（vN）| **`edd-comment-template.md`**（📐 EDD header + blockquote 定位〔引研究來源＋「審核同意前不進入實作」聲明〕+ 固定區塊：研究摘要含證據紀律 / 推薦方案含 mermaid / 領域清單表 / 取捨分析含留債明標 / 架構方向含組裝 vs 照抄誠實聲明 / 入口一致性 / 風險與限制含可否證假設 / 拆票表含相依 / 驗收標準對照；與 §7/§8 文體分界見該檔）|
 
 ## 先辨文體，再選樣板

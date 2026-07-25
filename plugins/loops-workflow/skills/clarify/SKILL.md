@@ -26,13 +26,13 @@ description: Turns a vague or ambiguous one-liner into a clear, confirmed unders
 ## Process
 
 ### 1. 一次一問收斂理解
-- 一則訊息只問一個問題，用 `AskUserQuestion` 給 2–4 選項並標推薦（依 `references/comment-policy.md`）。
+- 一則訊息只問一個問題，**開一個決策點**給 2–4 選項並標推薦（內容準則依 `references/comment-policy.md`；決策點的表述形狀與各平台互動能力的映射見 `references/interaction-adapter.md`）。
 - 每問內部記 **HYPOTHESIS + CONFIDENCE**（0–100），優先打最低信心、最影響方向的點。
 - **should-want 偵測**：見 `references/goal-restate-schema.md`（表演式「應該／好的工程會」作答 → 追問一次真意圖）。
 - **能從素材推得的不要問**；只問會改變方向的 blocking 點。
 
 ### 2. Restate 理解 + 一次確認
-把收斂後的理解 restate 成這幾項：**問題（誰 / 什麼受影響、今天的痛）· 為何現在 · 大致範圍 · 明確不做 · 我的關鍵假設**。用 `AskUserQuestion` 做**一次**確認（對齊 ／ 要調整 + 說明）。**單次整份對齊、不是逐項再審一輪** —— 對了就往下。
+把收斂後的理解 restate 成這幾項：**問題（誰 / 什麼受影響、今天的痛）· 為何現在 · 大致範圍 · 明確不做 · 我的關鍵假設**。**開一個決策點**做**一次**確認（對齊 ／ 要調整 + 說明）。**單次整份對齊、不是逐項再審一輪** —— 對了就往下。
 
 ### 3. 判方向 + 交棒（routine 不問）
 依釐清結果決定方向，寫進 `00-clarify.md`（含確認後的理解 + 選定方向），然後直接進下一階段：

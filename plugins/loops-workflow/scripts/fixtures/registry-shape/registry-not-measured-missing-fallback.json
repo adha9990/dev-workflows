@@ -1,0 +1,32 @@
+{
+  "schema_version": "1",
+  "facets": {
+    "plugin_root": {
+      "description": "plugin 根目錄辨識與載入",
+      "gaps_refs": [],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "transcript_metrics": {
+      "description": "transcript 指標統計",
+      "gaps_refs": [],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": {
+          "status": "not_measured",
+          "measurability": "needs_auth",
+          "interface": "cli",
+          "fallback": "",
+          "repro": "跑 scripts/probe-transcript-metrics.mjs 並人工抽樣核對輸出"
+        }
+      }
+    }
+  },
+  "overrides": [],
+  "deferred": [],
+  "model_tier": {},
+  "agent_tiers": {},
+  "agent_effort": {}
+}

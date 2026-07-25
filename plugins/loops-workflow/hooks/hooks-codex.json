@@ -1,0 +1,125 @@
+{
+  "_meta": {
+    "generated": true,
+    "generator": "plugins/loops-workflow/scripts/gen-hooks-codex.mjs --write（真相源：hooks/hooks.json + references/capability-registry.json#facets.hook_events.platforms.codex.projection_mapping）",
+    "warning": "此檔為 generated 投影，請勿手改；要改請改 hooks/hooks.json 正本或 registry 的 projection_mapping 再重生（node plugins/loops-workflow/scripts/gen-hooks-codex.mjs --write）。compat-lint.mjs 的 C6 檢查會對此檔做漂移比對，手改會紅。",
+    "verification_status": "形狀依官方文件（learn.chatgpt.com/docs/hooks）與 evals/baseline/codex/gaps.json 的 codex.hooks.trigger_trust／codex.guard.shell_apply_patch 兩筆推導投影，尚未經真機校驗（兩筆 gaps 皆列 blocker=authenticated Codex session）。matcher 別名僅涵蓋官方文件明載的 Edit/Write→apply_patch；MultiEdit/Read/PowerShell 無官方別名記載，原樣保留、視同未驗證直通。"
+  },
+  "description": "loops-workflow hooks 的 Codex 側等價投影（由 hooks/hooks.json 逐事件／matcher 投影而成，事件集合與正本 1:1 對應；matcher 依 registry projection_mapping 的 matcher_tool_alias 表投影）；其餘規則同正本：SessionStart/progress 恆跑，其餘逐 flag 拍板，除 deny 類與 loop-driver opt-in 外不擋路。",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/cost-tracker.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/eval-gate.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/stop-gate.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/progress-render.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/loop-driver.mjs\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/edit-accumulator.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/read-accumulator.mjs\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/suggest-compact.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "apply_patch|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/config-protection.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/loops-path-guard.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/outbound-comment-guard.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/worktree-guard.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pr-gate.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/merge-guard.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pr-owner-guard.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": ".*(update_pull_request|request_copilot_review).*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pr-owner-guard.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

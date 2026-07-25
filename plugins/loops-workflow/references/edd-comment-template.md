@@ -10,7 +10,7 @@
 - design 型 loop 的**工程提案**交付。
 - `iterate` 回應審查意見的**提案修訂版**（vN）。
 
-**觸發方式**：本型不是任何階段的無條件步驟——研究／提案 loop 的**交付載體**（要不要 post 成 issue comment、還是只留本地結論）是 `goal` 階段就該用 `AskUserQuestion` 確認的 blocking 決策，不當假設推；確認「要發」，發文時才套本版型（與全型相同，經 `comment-policy.md` → `outbound-templates.md` 委派路徑找到這裡）。
+**觸發方式**：本型不是任何階段的無條件步驟——研究／提案 loop 的**交付載體**（要不要 post 成 issue comment、還是只留本地結論）是 `goal` 階段就該開一個決策點確認的 blocking 決策（形狀與平台映射見 `interaction-adapter.md`），不當假設推；確認「要發」，發文時才套本版型（與全型相同，經 `comment-policy.md` → `outbound-templates.md` 委派路徑找到這裡）。
 
 **與其他版型的分界（辨文體、不是辨階段——同一個 iterate 階段可能發 §8 也可能發 EDD）**：
 

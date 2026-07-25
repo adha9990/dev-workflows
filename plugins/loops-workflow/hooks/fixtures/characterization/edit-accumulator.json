@@ -1,0 +1,55 @@
+[
+  {
+    "id": "writes-silently",
+    "description": "flag on ＋ .loops/ 存在 ＋ 合法 file_path（真的記錄，但 stdout 仍空）",
+    "payload": {
+      "cwd": "$ROLE$EA_WITH_LOOPS",
+      "session_id": "ea-s1",
+      "tool_input": {
+        "file_path": "$ROLE$EA_WITH_LOOPS/foo.txt"
+      }
+    },
+    "env": {},
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "noop-all-flags-off",
+    "description": "消費端 flag 全關 → no-op（提前 return）",
+    "payload": {
+      "cwd": "$ROLE$EA_WITH_LOOPS",
+      "session_id": "ea-s2",
+      "tool_input": {
+        "file_path": "$ROLE$EA_WITH_LOOPS/foo.txt"
+      }
+    },
+    "env": {
+      "LOOPS_EVAL_GATE": "0",
+      "LOOPS_EVAL_TAGS_GATE": "0",
+      "LOOPS_EVAL_POLL_GATE": "0"
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "noop-no-loops-dir",
+    "description": "cwd 下無 .loops/ → no-op（非 loops 專案）",
+    "payload": {
+      "cwd": "$ROLE$EA_NO_LOOPS",
+      "session_id": "ea-s3",
+      "tool_input": {
+        "file_path": "$ROLE$EA_NO_LOOPS/foo.txt"
+      }
+    },
+    "env": {},
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "malformed-json",
+    "description": "stdin 非 JSON → no-op",
+    "rawInput": "yy",
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  }
+]

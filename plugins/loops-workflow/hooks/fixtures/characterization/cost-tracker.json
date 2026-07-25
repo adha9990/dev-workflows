@@ -1,0 +1,60 @@
+[
+  {
+    "id": "normal-writes-row",
+    "description": "flag on ＋ .loops/ 存在 ＋ 可讀 transcript → stdout 靜默，靜默寫入 costs.jsonl 一行",
+    "payload": {
+      "cwd": "$ROLE$CT_WITH_LOOPS",
+      "session_id": "loops-t3-char-ct-normal",
+      "transcript_path": "$ROLE$CT_TRANSCRIPT"
+    },
+    "env": {
+      "LOOPS_COST_TRACKER": "1"
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0,
+    "fileCheck": {
+      "path": "$ROLE$CT_WITH_LOOPS/.loops/.metrics/costs.jsonl",
+      "normalize": "costRow",
+      "expectedContent": "{\"ts\":\"$TS$\",\"session_id\":\"loops-t3-char-ct-normal\",\"model\":\"claude-sonnet-4-5-20250929\",\"input_tokens\":2000,\"output_tokens\":800,\"cache_creation_input_tokens\":200,\"cache_read_input_tokens\":100,\"cost_usd\":0.01878,\"estimate\":true,\"schema\":2,\"by_stage\":[{\"stage\":\"(main)\",\"turns\":1,\"input_tokens\":2000,\"output_tokens\":800,\"cache_creation_input_tokens\":200,\"cache_read_input_tokens\":100,\"cost_usd\":0.01878}]}"
+    }
+  },
+  {
+    "id": "no-loops-dir",
+    "description": "cwd 下無 .loops/（無 loop 狀態）→ 靜默、不建目錄不寫檔",
+    "payload": {
+      "cwd": "$ROLE$CT_NO_LOOPS",
+      "session_id": "loops-t3-char-ct-noloop",
+      "transcript_path": "$ROLE$CT_TRANSCRIPT"
+    },
+    "env": {
+      "LOOPS_COST_TRACKER": "1"
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0,
+    "fileCheck": {
+      "path": "$ROLE$CT_NO_LOOPS/.loops/.metrics/costs.jsonl",
+      "expectMissing": true
+    }
+  },
+  {
+    "id": "transcript-unreadable",
+    "description": "transcript_path 讀不到 → 靜默、不崩、不寫檔（在寫檔前就已 return）",
+    "payload": {
+      "cwd": "$ROLE$CT_WITH_LOOPS",
+      "session_id": "loops-t3-char-ct-transcript-missing",
+      "transcript_path": "$ROLE$CT_TRANSCRIPT_MISSING"
+    },
+    "env": {
+      "LOOPS_COST_TRACKER": "1"
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "malformed-json",
+    "description": "stdin 非 JSON → 靜默 no-op",
+    "rawInput": "zz-not-json",
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  }
+]

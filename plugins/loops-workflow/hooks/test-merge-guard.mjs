@@ -634,6 +634,116 @@ try {
     assert(mergeBase === false, "[N8b-1] isGitMergeCommand('git merge-base a b') === false（現況預期紅：merge-base 被誤中）");
     assert(mergeTree === false, "[N8b-2] isGitMergeCommand('git merge-tree x') === false（現況預期紅：merge-tree 被誤中）");
   }
+
+  // -----------------------------------------------------------------------------
+  // P —— `-C` 繞過（#183 T7，三型一起修）：`\bgit\s+merge\b`／`\bgit\s+push\b`／`\bgh\s+api\b` 這種
+  // 「指令詞與子指令必須緊鄰」的正則，只要中間夾一個全域選項（`git -C /other merge x`）整條就不中
+  // ＝根本沒被歸類成該型指令、直接放行。每型都補正向（該擋）＋反向（不該擋），全部真 spawn。
+  // 反向的兩根釘子：①`-C` 指到非主幹 repo 時要放行（證明不是「見 -C 就一律 deny」）；②`-C` 屬於
+  // 別的指令（`foo -C /elsewhere && git merge x`）時不得被誤取成 git 的目的地——那會讓現況已擋的
+  // case 退化成放行。
+  // -----------------------------------------------------------------------------
+  {
+    const res = runHook({ command: `git -C ${MASTER_ROOT} merge feature-x`, cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[P1-1] "git -C <主幹 repo> merge feature-x"（-C 目的地在 master）→ deny（-C 繞過修復）');
+  }
+  {
+    const res = runHook({ command: `git -C ${MAIN_ROOT} merge feature-y`, cwd: FEATURE_ROOT });
+    assert(isDeny(res), '[P1-2] cwd 在 feature ＋ "git -C <main repo> merge feature-y" → deny（分支要判 -C 目的地、不是 payload.cwd）');
+  }
+  {
+    const res = runHook({ command: 'foo -C /elsewhere && git merge feature-x', cwd: MASTER_ROOT });
+    assert(isDeny(res), '[P1-3] "foo -C /elsewhere && git merge feature-x"（-C 屬於別的指令）＋ cwd 在 master → deny（回歸防護：不得把無關 -C 誤取成 git 目的地）');
+  }
+  {
+    const res = runHook({ command: `git -C ${FEATURE_ROOT} merge other-feature`, cwd: MASTER_ROOT });
+    assert(isAllow(res), '[P1-4] cwd 在 master ＋ "git -C <非主幹 repo> merge other-feature" → 放行（反向 case：不是一律 deny，判的是 -C 目的地的分支）');
+  }
+  {
+    const res = runHook({ command: `git -C "${MASTER_ROOT}" merge feature-x`, cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[P1-5] \'git -C "<主幹 repo>" merge feature-x\'（-C 值被引號包住，路徑可含空白）→ deny');
+  }
+  {
+    // 路徑真的含空白：引號 token 化必須把整段當一個值，否則 -C 目的地會取到半截路徑而漏判。
+    const SPACED_ROOT = join(SANDBOX, 'repo master with space');
+    mkdirSync(join(SPACED_ROOT, '.git'), { recursive: true });
+    writeFileSync(join(SPACED_ROOT, '.git', 'HEAD'), 'ref: refs/heads/master\n');
+    const res = runHook({ command: `git -C "${SPACED_ROOT}" merge feature-x`, cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[P1-6] \'git -C "<含空白的主幹 repo 路徑>" merge feature-x\' → deny（引號含空白仍取得 dir）');
+  }
+  {
+    const res = runHook({ command: `git -C ${MASTER_ROOT} push origin master`, cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[P2-1] "git -C <repo> push origin master"（push 型 -C 繞過修復）→ deny');
+  }
+  {
+    const res = runHook({ command: 'git -C /tmp/other push origin HEAD:refs/heads/main', cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[P2-2] "git -C /tmp/other push origin HEAD:refs/heads/main"（-C ＋ refspec 形）→ deny（push 型與分支無關，-C 目的地不影響判定）');
+  }
+  {
+    const res = runHook({ command: 'git -C /tmp/other push origin feature-x', cwd: MASTER_ROOT });
+    assert(isAllow(res), '[P2-3] "git -C /tmp/other push origin feature-x"（目的地是 feature 分支）→ 放行（反向 case：-C 不改變「只擋主幹目的地」）');
+  }
+  {
+    const res = runHook({ command: 'gh -C /tmp/other api -X PUT repos/x/y/pulls/1/merge', cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[P3-1] "gh -C /tmp/other api -X PUT repos/x/y/pulls/1/merge"（api 型：gh 與 api 之間夾旗標）→ deny');
+  }
+  {
+    const res = runHook({ command: 'git -C /tmp/other fetch && gh api -X PUT repos/x/y/pulls/1/merge', cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[P3-2] "git -C /tmp/other fetch && gh api -X PUT …/merge"（別的指令帶 -C）→ deny（api 型不受 -C 影響）');
+  }
+  {
+    const res = runHook({ command: 'gh -C /tmp/other api repos/x/y/pulls/1/mergeable', cwd: NEUTRAL_CWD });
+    assert(isAllow(res), '[P3-3] "gh -C /tmp/other api repos/x/y/pulls/1/mergeable"（無 PUT、路徑非 /merge）→ 放行（反向 case：夾旗標不等於一律 deny）');
+  }
+  {
+    const res = runHook({ command: 'gh pr merge 123 --squash', cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[P4-1] "gh pr merge 123 --squash" → deny（型①不受 -C 修復影響，行為不變）');
+  }
+  {
+    const res = runHook({ command: `git -C ${MASTER_ROOT} merge-base HEAD origin/master`, cwd: MASTER_ROOT });
+    assert(isAllow(res), '[P4-2] "git -C <主幹 repo> merge-base HEAD origin/master" → 放行（token 化子指令精確比對，plumbing 不被誤中）');
+  }
+
+  // -----------------------------------------------------------------------------
+  // Q —— 引號感知切段（#183 T7 二次仲裁）：命令段分隔符一律在 token 序列上判（且 `quoted === false`
+  // 才算），不在原始字串上 split。黏合引號形（`--body="…"`）的引號內文若含 `&&`／`;`，切段時不得
+  // 被當成新命令段——否則 ` git merge x 再說` 會被認成一次真的 git merge 呼叫而誤擋（改動前放行、
+  // token 化判定引入後一度誤擋，此處釘死）。同時釘住前綴指令形（sudo／xargs）仍要擋，防「改切法
+  // 順手把非段首的 git 呼叫放掉」的退化。
+  // 指令字串一律用組字產生：本 repo 的 outbound-comment-guard 會把字面 `gh issue comment … --body`
+  // 誤判成對外發訊而擋下跑測試的指令本身。
+  // -----------------------------------------------------------------------------
+  {
+    const ISSUE_COMMENT = `gh${' issue'} comment 1 ${String.fromCharCode(45, 45)}body`;
+    {
+      const res = runHook({ command: `${ISSUE_COMMENT} "先 foo git merge x"`, cwd: MASTER_ROOT });
+      assert(isAllow(res), '[Q1-1] 分離引號形評論（引號內文含 "git merge"）＋ cwd 在 master → 放行');
+    }
+    {
+      const res = runHook({ command: `${ISSUE_COMMENT}="先 git merge x"`, cwd: MASTER_ROOT });
+      assert(isAllow(res), '[Q1-2] 黏合引號形評論（--body="…git merge…"）＋ cwd 在 master → 放行');
+    }
+    {
+      const res = runHook({ command: `${ISSUE_COMMENT}="先 foo && git merge x 再說"`, cwd: MASTER_ROOT });
+      assert(isAllow(res), '[Q1-3] 黏合引號形評論、引號內文含 "&&"（--body="… && git merge x …"）＋ cwd 在 master → 放行（引號感知切段：引號內的 && 不是命令段分隔符）');
+    }
+    {
+      const res = runHook({ command: `${ISSUE_COMMENT}="a; git push origin master"`, cwd: NEUTRAL_CWD });
+      assert(isAllow(res), '[Q1-4] 黏合引號形評論、引號內文含 ";" 與 "git push origin master" → 放行（同 Q1-3，push 型亦不得被引號內文誤中）');
+    }
+  }
+  {
+    const res = runHook({ command: 'sudo git merge x', cwd: MASTER_ROOT });
+    assert(isDeny(res), '[Q2-1] "sudo git merge x"（git 不在命令段開頭）＋ cwd 在 master → deny（改切法後不得退化）');
+  }
+  {
+    const res = runHook({ command: 'xargs git merge', cwd: MASTER_ROOT });
+    assert(isDeny(res), '[Q2-2] "xargs git merge"（前綴指令形）＋ cwd 在 master → deny（改切法後不得退化）');
+  }
+  {
+    const res = runHook({ command: 'sudo git push origin master', cwd: NEUTRAL_CWD });
+    assert(isDeny(res), '[Q2-3] "sudo git push origin master" → deny（push 型的前綴指令涵蓋面同樣不得退化）');
+  }
 } finally {
   rmSync(SANDBOX, { recursive: true, force: true });
 }

@@ -1,0 +1,178 @@
+{
+  "schema_version": "1",
+  "facets": {
+    "plugin_root": {
+      "description": "plugin 根目錄辨識與載入",
+      "gaps_refs": [],
+      "rationale_if_no_gaps_ref": "兩邊 harness 都原生支援，無已知落差",
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "skill_discovery": {
+      "description": "skill 自動探索與載入",
+      "gaps_refs": ["gaps.md#skill-discovery"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "degraded", "measurability": "login_free", "interface": "cli", "fallback": "以文件指向手動載入 skill", "repro": "" }
+      }
+    },
+    "structured_question": {
+      "description": "結構化提問（clarify）",
+      "gaps_refs": ["gaps.md#structured-question"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "not_supported", "measurability": "no_stable_interface", "interface": "n/a", "fallback": "改用一般 CLI prompt 代替結構化提問", "repro": "" }
+      }
+    },
+    "subagent_dispatch": {
+      "description": "子代理派工",
+      "gaps_refs": ["gaps.md#subagent-dispatch"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "not_measured", "measurability": "needs_auth", "interface": "cli", "fallback": "無法確認子代理派發時，改由主線序列執行同一批工作", "repro": "跑 scripts/probe-subagent-dispatch.mjs 並記錄輸出" }
+      }
+    },
+    "model_tier": {
+      "description": "模型分層選型",
+      "gaps_refs": [],
+      "rationale_if_no_gaps_ref": "兩邊都能設定模型分層，無落差",
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "hook_events": {
+      "description": "hook 事件掛鉤",
+      "gaps_refs": ["gaps.md#hook-events"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "not_supported", "measurability": "no_stable_interface", "interface": "n/a", "fallback": "改用輪詢 transcript 檔取代 hook 事件", "repro": "" }
+      }
+    },
+    "hook_concurrency": {
+      "description": "hook 併發控制",
+      "gaps_refs": ["gaps.md#hook-concurrency"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "degraded", "measurability": "login_free", "interface": "cli", "fallback": "以檔案鎖序列化取代原生併發保護", "repro": "" }
+      }
+    },
+    "shell_file_transport": {
+      "description": "shell/檔案傳輸層",
+      "gaps_refs": [],
+      "rationale_if_no_gaps_ref": "兩邊皆用檔案系統傳輸，無落差",
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "worktree_and_state": {
+      "description": "worktree 與狀態管理",
+      "gaps_refs": [],
+      "rationale_if_no_gaps_ref": "兩邊皆原生支援 git worktree，無落差",
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" }
+      }
+    },
+    "transcript_metrics": {
+      "description": "transcript 指標統計",
+      "gaps_refs": ["gaps.md#transcript-metrics"],
+      "platforms": {
+        "claude": { "status": "supported", "measurability": "login_free", "interface": "cli", "fallback": "", "repro": "" },
+        "codex": { "status": "not_measured", "measurability": "needs_auth", "interface": "cli", "fallback": "無穩定介面時成本一律標 not measured，不以推估值入帳", "repro": "跑 scripts/probe-transcript-metrics.mjs 並人工抽樣核對輸出" }
+      }
+    }
+  },
+  "overrides": [
+    {
+      "id": "codex-hook-concurrency-serialize",
+      "runtime": "codex",
+      "scope": "plugins/loops-workflow/agents/referee.md",
+      "owner": "team-dual-harness",
+      "rationale": "codex 無原生 hook 併發保護，改用檔案鎖序列化，owner 需人工複核序列化正確性",
+      "test_ref": "plugins/loops-workflow/scripts/test-codex-plugin-lint.mjs"
+    }
+  ],
+  "deferred": [
+    {
+      "capability_id": "transcript_metrics",
+      "deferred_to": "vNext",
+      "reason": "codex 端尚無穩定 transcript 格式可供機械統計，先以人工抽樣代替"
+    }
+  ],
+  "model_tier": {
+    "referee": {
+      "claude": { "model": "opus" },
+      "codex": { "model": null, "status": "not_measured" }
+    },
+    "broad-review": {
+      "claude": { "model": "sonnet" },
+      "codex": { "model": "gpt-5-codex", "status": "supported" }
+    },
+    "implementation": {
+      "claude": { "model": "sonnet" },
+      "codex": { "model": "gpt-5-codex", "status": "supported" }
+    },
+    "fast-readonly": {
+      "claude": { "model": "sonnet" },
+      "codex": { "model": "gpt-5-codex", "status": "supported" }
+    }
+  },
+  "agent_tiers": {
+    "referee": "referee",
+    "architecture-reviewer-deep": "referee",
+    "code-quality-reviewer-deep": "referee",
+    "security-reviewer-deep": "referee",
+    "finding-validator-deep": "referee",
+    "accessibility-reviewer": "broad-review",
+    "architecture-reviewer": "broad-review",
+    "ci-cd-reviewer": "broad-review",
+    "code-quality-reviewer": "broad-review",
+    "docs-devex-reviewer": "broad-review",
+    "frontend-ui-reviewer": "broad-review",
+    "migration-reviewer": "broad-review",
+    "multi-user-concurrency-reviewer": "broad-review",
+    "observability-reviewer": "broad-review",
+    "performance-reviewer": "broad-review",
+    "processing-reliability-reviewer": "broad-review",
+    "product-contract-reviewer": "broad-review",
+    "root-cause-reviewer": "broad-review",
+    "security-reviewer": "broad-review",
+    "tests-reviewer": "broad-review",
+    "web-performance-reviewer": "broad-review",
+    "test-author": "implementation",
+    "impl-author": "implementation",
+    "finding-validator": "fast-readonly",
+    "eval-judge": "fast-readonly"
+  },
+  "agent_effort": {
+    "referee": "high",
+    "architecture-reviewer-deep": "high",
+    "code-quality-reviewer-deep": "high",
+    "security-reviewer-deep": "high",
+    "finding-validator-deep": "high",
+    "accessibility-reviewer": "medium",
+    "architecture-reviewer": "medium",
+    "ci-cd-reviewer": "medium",
+    "code-quality-reviewer": "medium",
+    "docs-devex-reviewer": "medium",
+    "frontend-ui-reviewer": "medium",
+    "migration-reviewer": "medium",
+    "multi-user-concurrency-reviewer": "medium",
+    "observability-reviewer": "medium",
+    "performance-reviewer": "medium",
+    "processing-reliability-reviewer": "medium",
+    "product-contract-reviewer": "medium",
+    "root-cause-reviewer": "medium",
+    "security-reviewer": "medium",
+    "tests-reviewer": "medium",
+    "web-performance-reviewer": "medium",
+    "test-author": "medium",
+    "impl-author": "medium",
+    "finding-validator": "medium",
+    "eval-judge": "low"
+  }
+}

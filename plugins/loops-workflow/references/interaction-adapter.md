@@ -1,0 +1,48 @@
+# interaction adapter 契約（決策點的平台中立表述 + 投影）
+
+> **為什麼要有這份**：規則文字裡「該不該問人、問什麼」的邏輯，跟「用平台哪個機制問」是兩件事。前者是 canonical 散文，後者是投影層。混在一起寫，換平台就要整段改寫；分開寫，canonical 散文永遠不動，只有投影段落隨平台增減。
+>
+> **與 `capability-registry.json` 的分工**：`structured_question` facet 講「這個能力在該平台能不能用、量不量得到、量不到時的 fallback 介面是什麼」（見該檔 `facets.structured_question`）——是**能力面**的單一真相源。本檔講「規則文字該怎麼**表達**一個決策點、怎麼把它**映射**到平台原生機制」——是**表達與映射面**。兩者一致：本檔的 fallback 分支即對應 registry 標記為 `not_measured` / 無穩定介面時的路徑；本檔不重複 registry 已有的 status / measurability / repro 欄位。
+
+## 1. canonical 決策點的表述（不帶平台工具名）
+
+規則文字裡要開一個「需要人來決定」的點時，固定用以下形狀描述——只講**內容**，不講**怎麼呈現**：
+
+- **觸發理由**：一句話講為什麼這裡需要人決定（不確定性 / 風險 / 多條合理路徑）。
+- **選項清單**：每個選項各自列**好處**與**代價**（不得只列好處）；「便宜但留債」的選項要把債標在代價面。
+- **推薦標記**：恰有一個選項標為推薦，附一句話講為什麼；除非所有選項都留債，此時推薦「長期最接近正確、債最明確可控」的那個。
+- **決策點等級**：二選一——
+  - **一般決策**：可被 auto 模式的「自動採推薦」規則吸收，不強制人工停下。
+  - **安全停**：即使在 auto 模式下也**不得**自動略過，必須等人決定才能往下（例：不可逆操作、跨越權限邊界、AGENTS 規則要求硬停的情境）。
+
+這個形狀跟平台無關——寫規則文字的人只填以上四項，不寫「用什麼機制呈現給使用者」。呈現方式的選擇規則見下一節；每個平台實際叫什麼工具名，包在文末的 `adapter-projection` 區塊。
+
+## 2. 平台映射規則
+
+canonical 決策點在執行時要落到某個平台的實際互動能力。映射規則只看**能力等級**，不看平台身分：
+
+1. **該平台有結構化提問能力**（能同時遞多個選項、標記推薦、拿到使用者對選項的一次性選擇）→ 決策點的選項清單、推薦標記整包映射過去，一次性完整呈現。
+2. **該平台沒有結構化提問能力、但有其他原生互動機制**（能來回對話、能等待輸入）→ 用該機制呈現，但選項與推薦說明仍要完整帶出，不因機制陽春而省略。
+3. **前兩者都不可用**（無穩定的互動介面可驗證）→ 退為**單一 blocking question fallback**：一次只問一件事（把多選項決策拆成單題，若有多個獨立子決策則依序逐一問）、用純文字寫清楚選項與推薦、**等到答案回來才繼續往下**，不得在沒有答案時自行假設並前進。
+   - 安全停等級的決策點走到這一階時，fallback 仍必須是「等答案」而不是「跳過」——`AGENTS.md` 對安全停的硬規則不因平台能力降級而失效。
+
+映射的判準是「能力有沒有」，不是寫死某平台一定走哪一階——同一份 canonical 散文，能力升級時自動吃到更好的呈現，不必回頭改文字。
+
+## 3. 平台投影（實際工具名，僅供實作對照）
+
+<!-- adapter-projection -->
+- Claude Code：規則 §2 的「結構化提問能力」對應到 `AskUserQuestion`。
+- Codex：規則 §2 的「其他原生互動機制」對應到 Codex 的 `request_user_input` 互動路徑；exec 非互動模式下該路徑若無法穩定 surface（見 `capability-registry.json` `structured_question.codex`），落到規則 §2 第 3 階——單一 blocking question fallback，改用一般 CLI prompt 逐題呈現。
+<!-- /adapter-projection -->
+
+## 4. 給規則作者的檢查清單
+
+- 新寫或改一個決策點段落時，先套第 1 節四要素，**不要**先想「這平台工具叫什麼」再倒著寫。
+- 需要具體舉平台工具名（教學 / debug 說明）才寫，且必須包進 `<!-- adapter-projection -->` … `<!-- /adapter-projection -->`；`compat-lint.mjs` 對 `references/` 掃描層會抓未包 marker 的平台專屬互動工具名與廠商 model ID（清單見 `compat-lint.mjs` 本身，此處不重複列舉以免自己又踩線）。
+- 安全停等級的決策點，任何投影分支都不得省略「等答案」這一步——這是跨平台不變的底線，不是投影層可調整的細節。
+
+## 5. 已知平台差異（scoped override）
+
+<!-- runtime: codex id=codex-request-user-input-shape -->
+Codex 的 `request_user_input` 決策通道形狀——exec 非互動模式下能否穩定 surface question 事件——尚未經真機校驗（見 `capability-registry.json` `structured_question.codex`，`status=not_measured`／`measurability=no_stable_interface`）。在校驗完成前，規則文字一律假設該路徑不可靠，走本檔 §2 第 3 階單一 blocking question fallback，不得假設它已可用。
+<!-- /runtime -->

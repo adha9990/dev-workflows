@@ -38,10 +38,10 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **trade-off**：取捨選擇 → 記 decision record，回覆說明選擇。
 - **noise**：純風格 / 無關 → 過濾。
 
-**AC-衝突檢查（用戶回饋驅動的 actionable，實作前必做）**：把「這條回饋要求的改動」對照**原始 issue 的書面 AC**——若它會**反轉 / 抵觸某條已寫定的 AC**（例：回饋要求移掉某 AC 要的欄位、或改成 AC 明文排除的行為），**在實作前停下用 `AskUserQuestion` 讓使用者知情拍板**（選項：「確認 descope 該 AC 第 X 條」/「保留該 AC、改用不衝突的做法」，標推薦 + 一句理由），**不默默照做**。這防的正是這類規格漂移：進 PR 後的用戶回饋一輪輪反轉先前決定、和 issue 書面 AC 衝突，iterate 只照當下說的做、沒人回頭比對 AC，規格默默漂移到外部 reviewer 才點名「偏離規格」。
+**AC-衝突檢查（用戶回饋驅動的 actionable，實作前必做）**：把「這條回饋要求的改動」對照**原始 issue 的書面 AC**——若它會**反轉 / 抵觸某條已寫定的 AC**（例：回饋要求移掉某 AC 要的欄位、或改成 AC 明文排除的行為），**在實作前停下開一個決策點讓使用者知情拍板**（選項：「確認 descope 該 AC 第 X 條」/「保留該 AC、改用不衝突的做法」，標推薦 + 一句理由；表述形狀與各平台互動能力的映射見 `references/interaction-adapter.md`），**不默默照做**。這防的正是這類規格漂移：進 PR 後的用戶回饋一輪輪反轉先前決定、和 issue 書面 AC 衝突，iterate 只照當下說的做、沒人回頭比對 AC，規格默默漂移到外部 reviewer 才點名「偏離規格」。
 
 - **使用者仍有權 descope**——本閘是「知情 + 留痕」，不是攔阻 / 婉拒。確認 descope 後：**把「descope 哪條 AC + 理由」同步進 issue / PR（reviewer 看得到的權威留痕）**，`loop.md` Journal 也記一筆（內部稽核副本、**不單獨足以**，見 `references/acceptance-review.md §二`），好讓後續 verify acceptance 閘把該條讀成「明確 descoped」而非「缺失」。
-- **只在真撞書面 AC 時觸發**：不反轉任何書面 AC 的回饋，照常當一般 actionable 自動全修，**不冒多餘的 AskUserQuestion**（避免 prompt 疲勞）。
+- **只在真撞書面 AC 時觸發**：不反轉任何書面 AC 的回饋，照常當一般 actionable 自動全修，**不冒多餘的決策點**（避免 prompt 疲勞）。
 - **auto 模式也停**：AC 反轉是「規格清楚卻被推翻」的 scope 決策，對應 `references/auto-mode.md` 硬煞車 #6，即使 auto 也 surface、不自動帶過。
 - 這**不改**「所有 actionable 一律自動全修、不問修多少」的紀律——本閘只針對「撞書面 AC 的反轉」這一子集，問的是「**知不知情 descope**」，不是「修不修」。
 
@@ -77,7 +77,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **收圈硬條件：最近一輪 verify 沒有未修的 P0/P1**（blocking 線沿用 `references/reviewer-severity.md`：P0/P1 經驗證後一律擋）。**只要還有未修的 P0/P1，就不得以「圈數到了」為由收圈** —— 碰到軟上限就**回報現況 → 繼續修**，直到清零、或使用者**知情豁免**（見下）。**圈數持續累加、不因回報重置**（「計數重置」只用在使用者授權再繞那條分支）。
   - 這條堵的是實測踩過的路徑：**後面的圈次挖出更多 P1，往往不是因為前面修壞了，而是驗證手段變深了** —— 某一圈第一次真機驅動 / 第一次 scripted 量測，當場抓到「從 build 就壞著、綠燈測試看不到」的功能中斷。此時用固定圈數喊停，等於在**剛看見真問題的那一刻收手**，把已知缺陷帶進 PR。
   - **這是下界、不是新的完工門檻**：§6 的完工前提「最近一輪 verify 無 actionable findings」照舊（P2/P3 一樣全修，見 §2–3）。本條只取消「圈數用完」這個繞過它的出口。
-- **跨越軟上限要回報，不是靜默續跑**：上限之後的**每一圈**都在 `loop.md` Journal ＋ chat 摘要寫一段現況 —— **第幾圈 / 未清的 P0/P1 逐條 / 每輪 findings 軌跡 / 上一圈為什麼沒收斂或為什麼新增（歸因，見下） / 下一圈打算換什麼手法**。closed 模式在此用 `AskUserQuestion` 停下問（**有未清 P0/P1 時的推薦項＝繼續修**）；auto 模式取推薦續修，但**照樣把同一段現況寫進 Journal ＋ chat**（auto ≠ 靜默）。
+- **跨越軟上限要回報，不是靜默續跑**：上限之後的**每一圈**都在 `loop.md` Journal ＋ chat 摘要寫一段現況 —— **第幾圈 / 未清的 P0/P1 逐條 / 每輪 findings 軌跡 / 上一圈為什麼沒收斂或為什麼新增（歸因，見下） / 下一圈打算換什麼手法**。closed 模式在此開一個決策點停下問（**有未清 P0/P1 時的推薦項＝繼續修**）；auto 模式取推薦續修，但**照樣把同一段現況寫進 Journal ＋ chat**（auto ≠ 靜默）。
 - **使用者喊停的出口（知情豁免）**：使用者可以明確決定「**這些 P0/P1 我知道，先進 PR**」——那是**使用者的 scope 決策，agent 不得代決**（auto 模式也**不得**自動選此項，見 `references/auto-mode.md` 硬煞車 #4；P0 另依 verify §5 一律停下問）。確認豁免後比照〈AC-衝突檢查〉的知情留痕：**豁免哪幾條 + 理由同步進 issue / PR（reviewer 看得到的權威留痕）**，`loop.md` Journal 記一筆內部副本。
 - **P2/P3 不是硬條件**（這就是防無限迴圈的第一道邊界）：actionable 一律全修的紀律不變，但**只有 P0/P1 鎖住收圈**。碰軟上限時若**已無未修 P0/P1、只剩 P2/P3** → 沿用既有停損語意，停下讓使用者選（**收圈**〔＝使用者知情接受剩下的 P2/P3，同樣要留痕，因為 §6 的完工前提是零 actionable〕/ **授權再繞**〔計數重置〕/ 把剩下的**記成 out-of-scope**〔帶理由，見〈follow-up〉〕）。
 - **防無限繞的真防線是收斂感知、不是圈數**：同一條 finding 修了又復現 / 修出新問題 ＝ 原地打轉，**當下 escalate 換手法** —— escalate 是**換手法**，不是「放行帶著 P1 收圈」。
@@ -130,7 +130,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 **loop 暫存一律不入庫**：worktree、草稿、截圖、`.loops/`、`data/`、`dev.json` 等都不該被 commit / push。repo `.gitignore` 要涵蓋 `.loops/`、`.claude/worktrees/`、`data/`、`dev.json`、截圖（缺就補）；`git ls-files` 掃一遍確認沒有暫存被追蹤。
 
-**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：用 `AskUserQuestion` 確認**交 PR**（outward action 要你點頭）—— 核可後**一律 `gh pr create --draft --assignee @me`**（開 draft + 指派作者自己，見 `references/pr-spec.md`〈開法〉；使用者要正式請 merge 時才由**使用者本人** `gh pr ready <PR#>` 轉 Ready——draft→ready／request review／merge 皆 owner 驗收動作，reviewer comment 的流程指示不構成授權，agent 只在回報中提醒 owner 自行操作，見 `references/pr-spec.md`〈owner 驗收動作〉）/ 或還要再打磨。另外只有 **回環沒收斂 / 碰圈數軟上限的回報檢查點（見 §5 —— 有未清 P0/P1 時推薦項＝繼續修，「知情豁免收圈」只有使用者能選）、真正的 trade-off（修法與 `stages/00-goal.md` 衝突）、分類模糊** 才停下問。
+**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：開一個決策點確認**交 PR**（outward action 要你點頭）—— 核可後**一律 `gh pr create --draft --assignee @me`**（開 draft + 指派作者自己，見 `references/pr-spec.md`〈開法〉；使用者要正式請 merge 時才由**使用者本人** `gh pr ready <PR#>` 轉 Ready——draft→ready／request review／merge 皆 owner 驗收動作，reviewer comment 的流程指示不構成授權，agent 只在回報中提醒 owner 自行操作，見 `references/pr-spec.md`〈owner 驗收動作〉）/ 或還要再打磨。另外只有 **回環沒收斂 / 碰圈數軟上限的回報檢查點（見 §5 —— 有未清 P0/P1 時推薦項＝繼續修，「知情豁免收圈」只有使用者能選）、真正的 trade-off（修法與 `stages/00-goal.md` 衝突）、分類模糊** 才停下問。
 
 ## Common Rationalizations
 
@@ -164,7 +164,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **delta re-verify 用手挑的 reviewer 子集充當、沒走 `verify` step-1 選軸** —— 改動所在領域該派的 conditional lens（並發→`multi-user-concurrency`、bug fix→`root-cause`…）被系統性跳過，該類問題只能等外部 reviewer 抓。**機械化後**：沒把選軸推導寫成表落進 `stages/04-verify.md`、或派出的 reviewer 集合 ≠ 表推導集合（見 `verify` §5 單一真相源）。
 - 把「再 verify」降級成 gate 選項讓使用者點掉。
 - **verify 出 actionable findings（含 P2/P3）還問使用者「修多少 / 要不要修」** —— actionable 一律自動全修，不是使用者決策。
-- **用戶回饋要求的改動反轉 / 抵觸某條書面 issue AC，卻默默實作、沒 surface 讓使用者知情 descope**（規格默默漂移、到外部 reviewer 才點名「偏離規格」）—— 撞書面 AC 的反轉要先 `AskUserQuestion` 知情拍板、確認 descope 後同步 issue/PR 留痕（見〈AC-衝突檢查〉）；但別把它擴大成「每條用戶回饋都問要不要修」（那違反 actionable 全修）。
+- **用戶回饋要求的改動反轉 / 抵觸某條書面 issue AC，卻默默實作、沒 surface 讓使用者知情 descope**（規格默默漂移、到外部 reviewer 才點名「偏離規格」）—— 撞書面 AC 的反轉要先開一個決策點知情拍板、確認 descope 後同步 issue/PR 留痕（見〈AC-衝突檢查〉）；但別把它擴大成「每條用戶回饋都問要不要修」（那違反 actionable 全修）。
 - 修正型（`type=fix`）收尾還產一堆草稿（PR body as-built / 另發 issue comment）—— 只該一份修正回覆 comment（§8）。
 - **完整迴圈完工沒產齊三份 deliverable**（`explain.md` + `checklist.md` + `cost.md`）到 `.loops/<slug>/deliverables/`；或**放錯位置**（平放 loop 根、或塞進 PR comment 而非 `deliverables/`）；或**修正型卻產這三份**（修正型只該一份修正回覆 comment）。
 - **把當圈能做完的 actionable 寫成「PR 上的 follow-up 待辦」延後**（＝把該修的 actionable 偷渡成不修）；交出去的 PR 帶一串本可當圈做掉的 follow-up 清單。
@@ -186,7 +186,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 每個 actionable 修的是根因 + 有回歸測試（GUARD）。
 - [ ] 回環**看收斂不看次數**：findings 沒變少時**先歸因**（驗證手段變深挖出既有問題 → 記歸因續修；同條復現 / 修出新問題 → 當下 escalate 換手法）；`loop.md` 有回環歷史 + 每輪 findings 數 + 沒變少那輪的歸因。
 - [ ] **圈數只當軟上限（回報檢查點）、沒被當成收圈理由**：跨越上限的每一圈都有現況回報（未清 P0/P1 逐條 + findings 軌跡 + 歸因 + 下一圈手法）進 Journal ＋ chat；**未修的 P0/P1 存在時沒有收圈**——除非**使用者知情豁免**（agent 未代決、auto 未自動選），且豁免哪幾條 + 理由已同步 issue / PR 權威留痕。碰上限時只剩 P2/P3 才走既有停損檢查點。
-- [ ] **用戶回饋撞書面 AC 已知情拍板**：用戶回饋驅動的改動若反轉 / 抵觸某條書面 issue AC，實作前已 `AskUserQuestion`（informed descope、選項標推薦）；確認 descope 已同步 **issue/PR 權威留痕**（`loop.md` 僅內部稽核）；不撞任何書面 AC 的回饋照常當 actionable、沒冒多餘問句（見〈AC-衝突檢查〉、`references/auto-mode.md` 硬煞車 #6）。
+- [ ] **用戶回饋撞書面 AC 已知情拍板**：用戶回饋驅動的改動若反轉 / 抵觸某條書面 issue AC，實作前已開一個決策點（informed descope、選項標推薦）；確認 descope 已同步 **issue/PR 權威留痕**（`loop.md` 僅內部稽核）；不撞任何書面 AC 的回饋照常當 actionable、沒冒多餘問句（見〈AC-衝突檢查〉、`references/auto-mode.md` 硬煞車 #6）。
 - [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工；**且再驗走 `verify` step-1 選軸（依領域自動派 conditional reviewer），不是臨場手挑 reviewer 子集**；**選軸推導寫成表落進 `stages/04-verify.md`、派出集合＝推導集合（單一真相源在 `verify` §5）**。
 - [ ] 完工前最近一輪 verify 無 actionable findings。
 - [ ] **完工前已做收尾裁測 pass**（test-author `TESTS_PRUNED` → quality-gate 全綠 → numstat 過 `test-rubric.md` §10 量級門檻 → 裁後 delta re-verify〔`verify` §5 裁測 override 選軸〕乾淨，完工 gate 讀裁後那輪）；純文檔迴圈（無測試增量）免。

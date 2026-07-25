@@ -1,0 +1,18 @@
+{
+  "schema_version": "1",
+  "facets": {},
+  "overrides": [
+    {
+      "id": "codex-hook-concurrency-serialize",
+      "runtime": "codex",
+      "scope": "plugins/loops-workflow/agents/referee.md",
+      "owner": "",
+      "rationale": "",
+      "test_ref": "plugins/loops-workflow/scripts/test-codex-plugin-lint.mjs"
+    }
+  ],
+  "deferred": [],
+  "model_tier": {},
+  "agent_tiers": {},
+  "agent_effort": {}
+}

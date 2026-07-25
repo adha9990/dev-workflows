@@ -17,6 +17,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { flagEnabled } from './hook-flags.mjs';
+import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
 
 const DEFAULT_BASE = 250000; // 第一級提醒門檻（tokens）
 const DEFAULT_STEP = 60000; // 每升一級的級距（tokens）
@@ -143,14 +144,14 @@ function main() {
   // 若 writeFileSync 拋出 → 由 invokedDirectly 外層 catch 吞掉、不提醒、exit 0（永不擋路）；
   // 確保「提醒過」必然伴隨「已記住級數」，否則下次又會對同級距重複洗版。
   writeFileSync(stateFile, JSON.stringify({ lastNotifiedLevel: level, ts: Date.now() }));
-  console.log(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        additionalContext: formatCompactHint(size, level),
-      },
-    }),
+  // 注入什麼內容留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+  // 注意 hookEvent 是 PreToolUse（本 hook 掛在工具呼叫前），與 Stop 家族三支不同。
+  const decision = emitDecision(
+    { kind: 'context', context: formatCompactHint(size, level) },
+    ACTIVE_HARNESS,
+    'PreToolUse',
   );
+  if (decision !== null) console.log(decision);
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

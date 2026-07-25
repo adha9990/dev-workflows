@@ -15,13 +15,17 @@
 // 分層（仿同目錄 loops-path-guard.mjs）：
 //   1) 純函式（無 IO，測試直接 import）：parseLoopBranchCreation、isInsideWorktree。
 //   2) IO 薄邊界：findLoopRoot（走訪祖先找 .loops/<slug>/loop.md）、main()（讀 stdin、印 deny）。
-// 依賴：僅 node 內建（path / fs / url），零外部套件。
+// 依賴：node 內建（path / fs / url）＋ hook-input-normalize.mjs（正規化 Claude／Codex 兩種 harness
+// 的 payload 形狀，統一從 command 欄位取值——見 issue #183 T9）。parseLoopBranchCreation 本身的
+// 字面正規化解析（含 `-C` 容忍行為）不變，只換掉「從 payload 取 command 字串」這一步的來源。
 
 import { resolve, dirname, join } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 import { flagEnabled } from './hook-flags.mjs';
+import { normalize } from './hook-input-normalize.mjs';
+import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
 
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
 
@@ -99,6 +103,15 @@ function readStdin() {
   return readFileSync(0, 'utf8'); // fd 0 = stdin（hook payload 由父行程以 pipe 餵入）
 }
 
+/**
+ * degraded 只可見、不改擋不擋（issue #183 拍板）：normalize() 判不出 harness / root 時，把原因
+ * 印到 stderr 供事後排查——stdout（deny JSON 或空）與 fail-open 契約完全不受影響。
+ */
+function logDegraded(degraded) {
+  if (!degraded) return;
+  console.error(`[worktree-guard] 輸入正規化降級（僅供排查，不影響本次放行/擋下判定）：${degraded.reason}`);
+}
+
 function denyReason(slug) {
   return (
     `loop \`${slug}\` 的 code 要在獨立 worktree 做、不在主 checkout：` +
@@ -126,7 +139,8 @@ function main() {
 
   if (!flagEnabled('LOOPS_WORKTREE_GUARD', process.env)) return; // 明確 opt-out（字面 '0'）→ 放行
 
-  const command = payload?.tool_input?.command;
+  const { command, degraded } = normalize(payload, process.env);
+  logDegraded(degraded);
   const slug = parseLoopBranchCreation(command);
   if (!slug) return; // 不是 branch 建立指令 → 放行
 
@@ -135,15 +149,9 @@ function main() {
 
   if (!findLoopRoot(cwd, slug)) return; // slug 不是已建 loop → 放行（一般 branch 不管）
 
-  console.log(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: 'deny',
-        permissionDecisionReason: denyReason(slug),
-      },
-    }),
-  );
+  // 「擋不擋、理由是什麼」留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+  const decision = emitDecision({ kind: 'deny', reason: denyReason(slug) }, ACTIVE_HARNESS, 'PreToolUse');
+  if (decision !== null) console.log(decision);
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

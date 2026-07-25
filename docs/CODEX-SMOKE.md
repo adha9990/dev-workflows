@@ -9,7 +9,7 @@
 - 隔離規則：全程 `CODEX_HOME=$(mktemp -d)`，絕不讀寫使用者真實 `~/.codex`（含其中的 auth、session、以及已知壞掉的 `eagle-project` marketplace 登記）。每個 Test 各自用一份全新的隔離 `CODEX_HOME`，不共用。
 - 測試標的：`plugins/loops-workflow/.codex-plugin/plugin.json`（commit `9e937a0`）＋`.agents/plugins/marketplace.json`（commit `a9df45a`），已合併進本 worktree（merge commit `f7a4335`）。**commit SHA provenance 註記**：本篇引用的 SHA 皆為整合前各 subtask worktree 的本地 commit；本 PR 若經 squash/rebase 合併，最終 PR 歷史的 SHA 會不同——這些 SHA 是撰寫證據當下用來標示「測的是哪個版本內容」的參照，不保證合併後仍查得到同一個雜湊值。要核對本篇證據對應的實際內容，請比對 manifest／marketplace.json 檔案本身（name/version 是否等值、skills 路徑是否為 `./skills/` 等），不要只依賴 SHA 字串比對。
 - **安裝路徑 provenance 註記（兩個階段，證據來源不同）**：`docs/CODEX-QUICKSTART.md` 教使用者用的是 GitHub owner/repo 簡寫（`codex plugin marketplace add adha9990/dev-workflows`，走 GitHub remote 解析）；Test 2／Test 4 用的是本機檔案系統絕對路徑（worktree 的本地路徑，因為撰寫證據當下 T1 的兩個新檔尚未推上真實 GitHub remote）；owner/repo 簡寫這條路徑另外由 Test 6 直接對真實 remote 實測過，兩個階段的證據狀態如下：
-  - **pre-merge（已實測，見 Test 6）**：owner/repo 簡寫指令**真的用 Codex CLI 執行成功過**（隔離 CODEX_HOME、免登入，exit 0）——不是「Claude Code 讀文件字面確認寫得通」這種弱證據，是 Codex 實際對 GitHub remote 做了 clone/fetch，靠既有的 Claude 相容解析層讀到 `.claude-plugin/marketplace.json` 完成整條安裝生命週期。細節見 Test 6。
+  - **pre-merge（已實測，見 Test 6）**：owner/repo 簡寫指令**真的用 Codex CLI 執行成功過**（隔離 CODEX_HOME、免登入，exit 0）——不是「Claude Code 讀文件字面確認寫得通」這種弱證據，是 Codex 實際對 GitHub remote 做了 clone/fetch，靠既有的 Claude 相容解析層讀到 <!-- adapter-projection -->`.claude-plugin/marketplace.json`<!-- /adapter-projection --> 完成整條安裝生命週期。細節見 Test 6。
   - **post-merge（尚未驗證，留給下一輪）**：PR 合併推上 GitHub、remote 上同時存在兩份 marketplace manifest 之後，同一條 owner/repo 簡寫指令預期會依 Test 4a 的結論改採 `.agents/plugins/marketplace.json`（Codex-native）——但這是**推論**，不是本篇任何一個 Test 直接驗證過的結果；合併後應該用同一條指令重跑一次 Test 2／Test 4／Test 6，把「post-merge 改採 Codex-native」這個推論換成真實證據。
 
 ## Test 1 — CODEX_HOME 隔離完整性驗證（PASS）
@@ -39,7 +39,7 @@ T1（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marke
 | 3. 安裝 plugin | `codex plugin add loops-workflow@dev-workflows --json` | ✅ `{"pluginId":"loops-workflow@dev-workflows","name":"loops-workflow","version":"0.56.4","installedPath":"...\\plugins\\cache\\dev-workflows\\loops-workflow\\0.56.4","authPolicy":"ON_INSTALL"}`，exit 0，不需要登入 |
 | 4. 確認已安裝狀態 | `codex plugin list --json` | ✅ `installed: [{"pluginId":"loops-workflow@dev-workflows",...,"installed":true,"enabled":true,...}]` |
 
-**這就是「官方 validator」的實際運作**：manifest／marketplace 的結構驗證，是 `codex plugin marketplace add` 與 `codex plugin list` 解析時自然發生的步驟——本機唯讀探測階段已用使用者真實環境裡一個壞掉的 marketplace 登記證實過這個報錯機制（見 explore 階段記錄）；本測試進一步證實：**對 dev-workflows 真實內容跑這整條路徑（marketplace 註冊→列出→安裝→確認），在此 CLI 版本上完全不需要登入即可成功完成，`@dev-workflows` 正確解析到本 repo、版本號 `0.56.4` 與 `.claude-plugin/plugin.json` 一致**（呼應 Tier A lint 的 name/version 同步斷言，這裡是 Codex CLI 自己也認同這個值，不只是我方 lint 自己說了算）。
+**這就是「官方 validator」的實際運作**：manifest／marketplace 的結構驗證，是 `codex plugin marketplace add` 與 `codex plugin list` 解析時自然發生的步驟——本機唯讀探測階段已用使用者真實環境裡一個壞掉的 marketplace 登記證實過這個報錯機制（見 explore 階段記錄）；本測試進一步證實：**對 dev-workflows 真實內容跑這整條路徑（marketplace 註冊→列出→安裝→確認），在此 CLI 版本上完全不需要登入即可成功完成，`@dev-workflows` 正確解析到本 repo、版本號 `0.56.4` 與 <!-- adapter-projection -->`.claude-plugin/plugin.json`<!-- /adapter-projection --> 一致**（呼應 Tier A lint 的 name/version 同步斷言，這裡是 Codex CLI 自己也認同這個值，不只是我方 lint 自己說了算）。
 
 **結論**：plugin 發現與安裝機制對本 repo 真實內容確認可行、無需認證。`policy.authentication: "ON_INSTALL"` 目前看來不代表「安裝當下就要求登入」，而更可能代表「該 plugin 的能力在實際被呼叫時才會要求認證」——這點未被本測試直接證實，見 Test 3。
 
@@ -47,7 +47,7 @@ T1（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marke
 
 ## Test 4 — 雙 marketplace 並存優先權 + Remove 生命週期（PASS）
 
-補測，隔離 `CODEX_HOME`（非 OS 暫存目錄、非使用者 `~/.codex`，測完整個刪除），標的是 integration worktree（`.claude/worktrees/182-codex-bootstrap`，HEAD `fdb8463`），該 worktree 此時**同時含** `.claude-plugin/marketplace.json` 與 `.agents/plugins/marketplace.json` 兩份 marketplace manifest（單一 canonical 內容樹＋雙薄 entry-point 的設計本來就是這樣，不算複製違規——複製違規指的是 `skills/`／`references/` 這類內容樹被複製第二份，不是入口 manifest 本身）。
+補測，隔離 `CODEX_HOME`（非 OS 暫存目錄、非使用者 `~/.codex`，測完整個刪除），標的是 integration worktree（`.claude/worktrees/182-codex-bootstrap`，HEAD `fdb8463`），該 worktree 此時**同時含** <!-- adapter-projection -->`.claude-plugin/marketplace.json`<!-- /adapter-projection --> 與 `.agents/plugins/marketplace.json` 兩份 marketplace manifest（單一 canonical 內容樹＋雙薄 entry-point 的設計本來就是這樣，不算複製違規——複製違規指的是 `skills/`／`references/` 這類內容樹被複製第二份，不是入口 manifest 本身）。
 
 ### 4a. 兩份 marketplace 並存時，Codex 讀哪一份
 
@@ -60,7 +60,7 @@ T1（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marke
 | 5. 確認 | `codex plugin list --json` | ✅ installed 一筆（installed:true, enabled:true） |
 | 6. **判定關鍵** | `codex plugin list`（**非** `--json`，人讀輸出） | 逐字印出：<br>`Marketplace \`dev-workflows\``<br>`C:\...\182-codex-bootstrap\.agents\plugins\marketplace.json`<br>`PLUGIN ... STATUS ... VERSION ... PATH`<br>`loops-workflow@dev-workflows  installed, enabled  0.56.4  ...\plugins\loops-workflow` |
 
-**結論**：兩份 marketplace manifest 同時存在時，**Codex 明確採用 `.agents/plugins/marketplace.json`（Codex-native 格式），不是 `.claude-plugin/marketplace.json`**——這是好消息，代表不需要擔心兩份入口互相打架或行為不確定；Codex 會忽略 Claude 專用格式、只認自己的格式。**方法論註記**：`--json` 系列輸出（`marketplace list`／`plugin list`）不會回吐 manifest 路徑或 `category`／`interface.*` 等 Codex-only 欄位，這個判定只能從**非 `--json` 的人讀輸出**裡讀到，日後重跑或設計自動化檢查時要注意這點，不能只看 `--json`。另外，安裝後 plugin cache 目錄（`...\0.56.4\`）底下同時含 `.claude-plugin` 與 `.codex-plugin`——因為 Codex 是把整個 plugin 目錄複製進 cache，不是只取 Codex 需要的子集，這點不是複製違規（cache 是 Codex 自己的安裝副本，不是 repo 裡的第二份內容樹）。
+**結論**：兩份 marketplace manifest 同時存在時，**Codex 明確採用 `.agents/plugins/marketplace.json`（Codex-native 格式），不是 <!-- adapter-projection -->`.claude-plugin/marketplace.json`<!-- /adapter-projection -->**——這是好消息，代表不需要擔心兩份入口互相打架或行為不確定；Codex 會忽略 Claude 專用格式、只認自己的格式。**方法論註記**：`--json` 系列輸出（`marketplace list`／`plugin list`）不會回吐 manifest 路徑或 `category`／`interface.*` 等 Codex-only 欄位，這個判定只能從**非 `--json` 的人讀輸出**裡讀到，日後重跑或設計自動化檢查時要注意這點，不能只看 `--json`。另外，安裝後 plugin cache 目錄（`...\0.56.4\`）底下同時含 <!-- adapter-projection -->`.claude-plugin`<!-- /adapter-projection --> 與 `.codex-plugin`——因為 Codex 是把整個 plugin 目錄複製進 cache，不是只取 Codex 需要的子集，這點不是複製違規（cache 是 Codex 自己的安裝副本，不是 repo 裡的第二份內容樹）。
 
 ### 4b. Remove 生命週期（PASS）
 
@@ -101,9 +101,9 @@ T1（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marke
 | 2. 列出可安裝 plugin | `codex plugin list --available --json` | ✅ 一筆：`pluginId=loops-workflow@dev-workflows, version=0.56.4, marketplaceSource={sourceType:"git", source:"https://github.com/adha9990/dev-workflows.git"}` |
 | 3. 安裝 | `codex plugin add loops-workflow@dev-workflows --json` | ✅ `installedPath=...\plugins\cache\dev-workflows\loops-workflow\0.56.4` |
 | 4. 確認 | `codex plugin list --json` | ✅ installed 一筆（installed:true, enabled:true） |
-| 5. **判定關鍵** | `codex plugin list`（非 `--json`，人讀輸出） | 逐字印出：`Marketplace \`dev-workflows\``<br>`...\.tmp\marketplaces\dev-workflows\.claude-plugin\marketplace.json` |
+| 5. **判定關鍵** | `codex plugin list`（非 `--json`，人讀輸出） | 逐字印出：`Marketplace \`dev-workflows\``<br><!-- adapter-projection -->`...\.tmp\marketplaces\dev-workflows\.claude-plugin\marketplace.json`<!-- /adapter-projection --> |
 
-**Provenance 結論（呼應「環境」段的兩條路徑註記，這裡補上實測）**：步驟 5 證實——**在這個 PR 尚未合併推上 GitHub 的當下**，真實 remote `adha9990/dev-workflows` 的預設分支只有 `.claude-plugin/marketplace.json`（這是既有的 Claude 專用檔，本 PR 之前就存在），Codex 靠自己的 Claude 相容解析層讀到了這份檔案並成功完成整個安裝生命週期——這不是本 PR 新增的 `.agents/plugins/marketplace.json` 在起作用，因為那份檔案這個時間點根本還沒推上 GitHub。這條路徑印證了 Codex 具備相容讀取 Claude marketplace 資訊的能力、且此刻正在被使用。**待這個 PR 真的合併推上 GitHub 之後**，remote 上會同時存在兩份 marketplace manifest，依 Test 4a 的結論，屆時 Codex 應該會改採用 `.agents/plugins/marketplace.json`（Codex-native）——但這是推論，PR 合併後應該用同一條指令（`codex plugin marketplace add adha9990/dev-workflows`）重跑一次本測試，把「合併後」的結果也補上真實證據，不能只靠推論收尾。兩個階段使用者打的指令完全相同，差別只在 Codex 內部解析到哪一份檔案。
+**Provenance 結論（呼應「環境」段的兩條路徑註記，這裡補上實測）**：步驟 5 證實——**在這個 PR 尚未合併推上 GitHub 的當下**，真實 remote `adha9990/dev-workflows` 的預設分支只有 <!-- adapter-projection -->`.claude-plugin/marketplace.json`<!-- /adapter-projection -->（這是既有的 Claude 專用檔，本 PR 之前就存在），Codex 靠自己的 Claude 相容解析層讀到了這份檔案並成功完成整個安裝生命週期——這不是本 PR 新增的 `.agents/plugins/marketplace.json` 在起作用，因為那份檔案這個時間點根本還沒推上 GitHub。這條路徑印證了 Codex 具備相容讀取 Claude marketplace 資訊的能力、且此刻正在被使用。**待這個 PR 真的合併推上 GitHub 之後**，remote 上會同時存在兩份 marketplace manifest，依 Test 4a 的結論，屆時 Codex 應該會改採用 `.agents/plugins/marketplace.json`（Codex-native）——但這是推論，PR 合併後應該用同一條指令（`codex plugin marketplace add adha9990/dev-workflows`）重跑一次本測試，把「合併後」的結果也補上真實證據，不能只靠推論收尾。兩個階段使用者打的指令完全相同，差別只在 Codex 內部解析到哪一份檔案。
 
 ## Test 3 — 認證邊界（範疇邊界：not measured）
 
@@ -141,7 +141,7 @@ CODEX_HOME=<已認證的隔離 CODEX_HOME> "<codex 執行檔絕對路徑>" featu
 # ②③ 真實觸發一次 Bash 呼叫與一次檔案編輯，從 --json 事件流讀 hook 收到的 tool_name 實際值
 CODEX_HOME=<已認證的隔離 CODEX_HOME> "<codex 執行檔絕對路徑>" exec --json \
   -C "<repo worktree 路徑>" "跑 echo hello，然後編輯一個測試檔加一行文字"
-# 檢查事件流裡 PreToolUse/PostToolUse 對應的 tool_name 是否為 Bash（shell）／apply_patch（編輯）
+# 檢查事件流裡 <!-- adapter-projection -->PreToolUse/PostToolUse<!-- /adapter-projection --> 對應的 tool_name 是否為 Bash（shell）／apply_patch（編輯）
 
 # ④ 檢查上一步檔案編輯事件的 payload 是否含 file_path；Bash 呼叫事件是否含 command
 # （直接讀 ②③ 輸出的 JSON 節點，不需要另外下指令）
@@ -153,7 +153,7 @@ CODEX_HOME=<已認證的隔離 CODEX_HOME> "<codex 執行檔絕對路徑>" exec 
 # ⑥ Read 與 SessionStart/Stop 類是否真的觸發、payload 有無炸掉
 CODEX_HOME=<已認證的隔離 CODEX_HOME> "<codex 執行檔絕對路徑>" exec --json \
   -C "<repo worktree 路徑>" "讀一個檔案的內容"
-# 檢查 read-accumulator 對應的 PostToolUse 是否觸發；並觀察 session 開始/結束時
+# 檢查 read-accumulator 對應的 <!-- adapter-projection -->PostToolUse<!-- /adapter-projection --> 是否觸發；並觀察 session 開始/結束時
 # session-start.mjs／cost-tracker.mjs／progress-render.mjs／loop-driver.mjs 是否正常跑、無例外
 ```
 
@@ -172,13 +172,19 @@ CODEX_HOME=<已認證的隔離 CODEX_HOME> "<codex 執行檔絕對路徑>" exec 
 |---|---|---|
 | `setup`（規劃中的 `/loops-workflow:setup` 公開入口，尚未於任一平台推出） | Claude Code／Codex Preview 皆 `not supported`——這個 skill 兩邊都還沒建置，不是任一 harness 的能力落差 | 逐檔搜尋 `plugins/loops-workflow/skills/`，確認不存在此 skill、repo 內無 `loops-workflow:setup` 引用 |
 | skill discovery / `dispatch` | `not measured`（範疇邊界，非暫時性缺口；plugin 安裝完成後 skill 檔案已確認落在 Codex plugin cache 內，但新 task 中是否真的被辨識為可呼叫 skill 仍未量測，見 Test 2 範疇澄清） | Test 2（安裝前置）＋Test 3a（未量測部分） |
-| `AskUserQuestion` 類互動 | `not measured`（範疇邊界，非暫時性缺口） | Test 3 |
+| <!-- adapter-projection -->`AskUserQuestion`<!-- /adapter-projection --> 類互動 | `not measured`（範疇邊界，非暫時性缺口） | Test 3 |
 | subagent / model profile | `not measured`（範疇邊界，非暫時性缺口） | Test 3 |
 | hooks 與 hook 信任 | `not measured`（範疇邊界，非暫時性缺口；官方文件載相容別名，但版本修復史與 payload 欄位兩軸未實測） | Test 3b–3h |
 | shell / `apply_patch` guard | `not measured`（範疇邊界，非暫時性缺口；官方文件載相容別名，但版本修復史與 payload 欄位兩軸未實測） | Test 3c–3h |
 | worktree | `not measured`（範疇邊界，非暫時性缺口） | Test 3 |
 | `.loops/` resume / progress | `not measured`（範疇邊界，非暫時性缺口） | Test 3i |
 | transcript / token metrics | `not measured`（範疇邊界，非暫時性缺口） | Test 3 |
+
+### shell / `apply_patch` guard 的 fail-open 決策
+
+<!-- runtime: codex id=codex-shell-guard-fail-open -->
+`loops-path-guard.mjs` 與 `config-protection.mjs` 讀 `tool_input.file_path`、`worktree-guard.mjs` 讀 `tool_input.command`，皆在讀不到欄位或發生例外時 fail-open（放行、不擋）。Codex `apply_patch` payload 的欄位是否對得上這些讀法尚未量測（見 `gaps.json` 的 `codex.guard.shell_apply_patch`），在驗證前維持 fail-open 而非 fail-closed，避免誤擋合法操作。
+<!-- /runtime -->
 
 ## 方法論
 

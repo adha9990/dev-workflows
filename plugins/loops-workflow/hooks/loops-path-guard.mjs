@@ -14,13 +14,18 @@
 // 分層（仿同目錄 config-protection.mjs）：
 //   1) 純函式（無 IO，測試直接 import）：isWorktreeLoopsPath。
 //   2) IO 薄邊界：main()（讀 stdin、印 deny JSON）——被 import 時不執行（import.meta.url 守門）。
-// 依賴：僅 node 內建（path / fs / url），零外部套件；除 stdin 外零 I/O。
+// 依賴：node 內建（path / fs / url）＋ hook-input-normalize.mjs（正規化 Claude／Codex 兩種 harness
+// 的 payload 形狀，逐檔抽出 filePaths；不再只看 tool_input.file_path 單一字串——見 issue #183 T9：
+// apply_patch 形狀的多檔 diff 夾在 tool_input.command 裡，改前只抽單一欄位、遇這種 payload 會全面
+// fail-open，一個檔都不查）。
 
 import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 import { flagEnabled } from './hook-flags.mjs';
+import { normalize } from './hook-input-normalize.mjs';
+import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
 
 const DENY_REASON =
   '.loops/ 一律錨定主 repo —— 請寫入 $LOOPS_ROOT/.loops/<slug>/' +
@@ -54,6 +59,15 @@ function readStdin() {
 }
 
 /**
+ * degraded 只可見、不改擋不擋（issue #183 拍板）：normalize() 判不出 harness / root 時，把原因
+ * 印到 stderr 供事後排查——stdout（deny JSON 或空）與 fail-open 契約完全不受影響。
+ */
+function logDegraded(degraded) {
+  if (!degraded) return;
+  console.error(`[loops-path-guard] 輸入正規化降級（僅供排查，不影響本次放行/擋下判定）：${degraded.reason}`);
+}
+
+/**
  * PreToolUse(Write|Edit|MultiEdit) hook 入口：違規路徑（worktree 內 .loops/）→ 回 deny 阻擋；
  * 其餘一律放行（無輸出）。fail-open：payload 壞掉 / 缺欄位一律放行，永不擋路。
  */
@@ -70,21 +84,17 @@ function main() {
 
   if (!flagEnabled('LOOPS_PATH_CONTAINMENT', process.env)) return; // 明確 opt-out（僅字面 '0'）→ 放行
 
-  const filePath = payload?.tool_input?.file_path;
-  if (typeof filePath !== 'string') return; // 無檔路徑 → 無從判定，放行
+  const { filePaths, degraded } = normalize(payload, process.env);
+  logDegraded(degraded);
+  if (filePaths.length === 0) return; // 無檔路徑 → 無從判定，放行
 
   const cwd = typeof payload?.cwd === 'string' ? payload.cwd : process.cwd();
-  if (!isWorktreeLoopsPath(filePath, cwd)) return; // 未違規 → 放行
+  // 逐檔判定：多檔 apply_patch diff 裡任一檔命中即擋（不只查第一檔）。
+  if (!filePaths.some((filePath) => isWorktreeLoopsPath(filePath, cwd))) return; // 全數未違規 → 放行
 
-  console.log(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: 'deny',
-        permissionDecisionReason: DENY_REASON,
-      },
-    }),
-  );
+  // 「擋不擋、理由是什麼」留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+  const decision = emitDecision({ kind: 'deny', reason: DENY_REASON }, ACTIVE_HARNESS, 'PreToolUse');
+  if (decision !== null) console.log(decision);
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

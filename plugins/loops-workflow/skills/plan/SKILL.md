@@ -26,11 +26,11 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 ### 1. 決策留痕（decision record，欄位集＝design-plan-schema §6）
 
-每個設計決策記一筆，欄位集以 `references/design-plan-schema.md` §6 為正本：**選擇 / 為什麼 / 背書 / 未採用 / 拍板人**（背書絕不可空）。涉及取捨的用 `AskUserQuestion` 給使用者拍板，每選項標推薦 + 理由。要另出**獨立 ADR 檔**時才用 `references/adr-template.md`（Context / Decision / Alternatives / Consequences 四段式）——plan 內嵌的決策留痕表用 §6 欄位集，兩者用途不同。
+每個設計決策記一筆，欄位集以 `references/design-plan-schema.md` §6 為正本：**選擇 / 為什麼 / 背書 / 未採用 / 拍板人**（背書絕不可空）。涉及取捨的開一個決策點給使用者拍板（表述形狀與各平台互動能力的映射見 `references/interaction-adapter.md`），每選項標推薦 + 理由。要另出**獨立 ADR 檔**時才用 `references/adr-template.md`（Context / Decision / Alternatives / Consequences 四段式）——plan 內嵌的決策留痕表用 §6 欄位集，兩者用途不同。
 
 ### 2. 套件評估（若要引入新套件）
 
-任何新依賴走：掃現有 deps → 列 **≥3 候選** → 比較表 → `AskUserQuestion` 拍板。不接受「直接用最熱門」。
+任何新依賴走：掃現有 deps → 列 **≥3 候選** → 比較表 → 開一個決策點拍板。不接受「直接用最熱門」。
 
 ### 3. 機制圖（每機制：白話 + 兩張圖）
 
@@ -79,7 +79,7 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 
 **同時攤一份「我做的假設 → 現在糾正我」清單**：把技術 / 架構 / 範圍 / 平台層面那些**沒問、但默默假設**的事編號列出給使用者看。這跟內部的 HYPOTHESIS+CONFIDENCE 不同 —— 是把藏在決策底下的假設**顯式**攤出來，趁拍板前糾正；比 build 到一半才發現假設錯便宜得多（對齊規則 10 成本意識）。
 
-然後**一定停在 `plan → build` 拍板 gate**（`AskUserQuestion`）—— **進 build 前務必先問使用者、不可自行跨入 build**（即使 routine 也要在此 gate 停）。gate 要把使用者要拍板的點顯式列出並**標推薦**：方案 + 任務拆解、**所有新增套件（逐一列出名稱+版本+用途，附推薦，使用者核可後才裝）**、以及任何需要使用者定奪的決策。**新套件 / 新決策一律先問 + 推薦，不先斬後奏**；build 中途若冒出計畫外的新套件或新決策，也停下回此 gate 問。**gate 只拍板上述這些（方案／任務／新套件／新決策），不把『要不要 post 對齊 comment』當成 gate 的選項** —— 對齊 comment 已在上一步無條件處理完（issue → 已 post；非 issue → 已呈現）。
+然後**一定停在 `plan → build` 拍板 gate**（開一個決策點；表述形狀與各平台互動能力的映射見 `references/interaction-adapter.md`）—— **進 build 前務必先問使用者、不可自行跨入 build**（即使 routine 也要在此 gate 停）。gate 要把使用者要拍板的點顯式列出並**標推薦**：方案 + 任務拆解、**所有新增套件（逐一列出名稱+版本+用途，附推薦，使用者核可後才裝）**、以及任何需要使用者定奪的決策。**新套件 / 新決策一律先問 + 推薦，不先斬後奏**；build 中途若冒出計畫外的新套件或新決策，也停下回此 gate 問。**gate 只拍板上述這些（方案／任務／新套件／新決策），不把『要不要 post 對齊 comment』當成 gate 的選項** —— 對齊 comment 已在上一步無條件處理完（issue → 已 post；非 issue → 已呈現）。
 
 > **`stages/02-plan.md` 是 living source of truth**：實作階段若偏離（決策變、任務拆法變），**回去更新它**（並同步已 post 的版本），保持 as-built —— 不是放到 loop 結束才補。完工時這份 as-built plan 提煉成 PR body（見 `references/pr-spec.md`）。
 

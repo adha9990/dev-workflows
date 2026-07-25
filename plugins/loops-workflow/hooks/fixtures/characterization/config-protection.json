@@ -1,0 +1,45 @@
+[
+  {
+    "id": "deny-existing-protected",
+    "description": "受保護且已存在的設定檔（loops-scoped 生效）→ deny",
+    "payload": {
+      "cwd": "$ROLE$CP_WITH_LOOPS",
+      "tool_input": {
+        "file_path": "$ROLE$CP_WITH_LOOPS/eslint.config.js"
+      }
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"請修正程式碼錯誤，而非弱化 linter/formatter 設定檔。若確需修改設定，請設 LOOPS_CONFIG_PROTECTION=0 暫時關閉（僅字面 '0' 會關）。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "allow-new-protected-name",
+    "description": "受保護名稱但檔案尚不存在（新建）→ 放行",
+    "payload": {
+      "cwd": "$ROLE$CP_WITH_LOOPS",
+      "tool_input": {
+        "file_path": "$ROLE$CP_WITH_LOOPS/eslint.config.mjs"
+      }
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "allow-outside-loops-scope",
+    "description": "cwd 下無 .loops/ 時未顯式開啟 → 即使設定檔已存在也放行",
+    "payload": {
+      "cwd": "$ROLE$CP_NO_LOOPS",
+      "tool_input": {
+        "file_path": "$ROLE$CP_NO_LOOPS/eslint.config.js"
+      }
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "malformed-json",
+    "description": "stdin 非 JSON → fail-open 放行",
+    "rawInput": "{{{",
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  }
+]

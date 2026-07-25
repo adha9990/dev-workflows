@@ -1,0 +1,99 @@
+[
+  {
+    "id": "deny-gate1-no-verify",
+    "description": "閘①：stages/04-verify.md 不存在 → deny",
+    "payload": {
+      "cwd": "$ROLE$PRG_NO_VERIFY_WT",
+      "tool_input": {
+        "command": "gh pr create --draft --assignee @me --title x --body \"Closes #999\""
+      }
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"這是 loop `999-test-slug` 的分支，開 PR 前必須先過 verify——找不到 `.loops/999-test-slug/stages/04-verify.md`。build 完必先過 verify（多視角 reviewer 驗收）才能送審，不能跳過直接開 PR。請先完成 verify 階段（或確認它真的跑完、有落盤產物）再重新 `gh pr create`。確需繞過：設 LOOPS_PR_GATE=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "deny-gate2-missing-draft",
+    "description": "閘②：缺 --draft/--assignee @me → deny",
+    "payload": {
+      "cwd": "$ROLE$PRG_VERIFY_ONLY_WT",
+      "tool_input": {
+        "command": "gh pr create --title x --body \"Closes #999\""
+      }
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"這是 loop `999-test-slug` 的分支，開 PR 要同時帶 `--draft` 且 `--assignee @me`（house rule：先開成 draft、指派給自己，人核可後才轉正式）——目前指令缺 `--draft`、`--assignee @me`。請補齊旗標後重送，例如：\\n  gh pr create --draft --assignee @me --title <title> --body <body>\\n確需繞過：設 LOOPS_PR_GATE=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "deny-gate3-no-closes",
+    "description": "閘③：body 缺行首 Closes #<issue> → deny",
+    "payload": {
+      "cwd": "$ROLE$PRG_VERIFY_ONLY_WT",
+      "tool_input": {
+        "command": "gh pr create --draft --assignee @me --title x --body \"no closes line here\""
+      }
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"這是 issue #999 的 loop 分支，PR body 要有獨立一行、行首純文字 `Closes #999`（不能包在 code span/fence 裡、也不能只出現在行中）才會被 GitHub 自動關聯、merge 時一併關閉該 issue。請在 body 加上這一行（自己獨立一行）後重送。確需繞過：設 LOOPS_PR_GATE=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "deny-gate4-no-realrun",
+    "description": "閘④：real-run 截圖 receipt 缺 → deny",
+    "payload": {
+      "cwd": "$ROLE$PRG_VERIFY_ONLY_WT",
+      "tool_input": {
+        "command": "gh pr create --draft --assignee @me --title x --body \"Closes #999\""
+      }
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"這是 loop `999-test-slug` 的分支，開 / 轉正 PR 前要有「真機驗證」的截圖存證——找不到 `.loops/999-test-slug/deliverables/real-run/` 下任何截圖檔（*.png/*.jpg/*.jpeg）。jsdom / 單元測試綠 ≠ 真機正確：請用**本專案宣告的方式**（見專案 AGENTS.md / CLAUDE.md 宣告的 run / verify / smoke skill 或啟動指令）把 app 跑起來、人眼確認這次改動的畫面，把截圖存到 `.loops/999-test-slug/deliverables/real-run/` 再重試。若這條 loop 沒有可見畫面可截（純後端 / 純文檔 / 純工具），在同一資料夾放一個**非空**的 `no-ui.md`（寫明為何無畫面可驗、改用什麼方式驗，如 API 回應 / driver log）即可通過此閘。確需繞過：設 LOOPS_PR_REALRUN_GATE=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "deny-gate5-conflict",
+    "description": "閘⑤：PR 合併衝突（stub）→ deny",
+    "payload": {
+      "cwd": "$ROLE$PRG_READY_WT",
+      "tool_input": {
+        "command": "gh pr create --draft --assignee @me --title x --body \"Closes #999\""
+      }
+    },
+    "env": {
+      "LOOPS_PR_CONFLICT_STUB": "{\"mergeable\":\"CONFLICTING\",\"mergeStateStatus\":\"DIRTY\"}"
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"這是 loop `999-test-slug` 的分支，對應 PR 目前與 base 有合併衝突（mergeable=CONFLICTING / mergeStateStatus=DIRTY）——留言 / 開 PR / 轉正前請先解衝突：把 base（通常 master）merge 或 rebase 進本分支、解掉衝突、push，等 GitHub 重新判定為可合併後再重試。確需繞過：設 LOOPS_PR_CONFLICT_GATE=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "allow-full-clean",
+    "description": "五閘全過 → 放行",
+    "payload": {
+      "cwd": "$ROLE$PRG_READY_WT",
+      "tool_input": {
+        "command": "gh pr create --draft --assignee @me --title x --body \"Closes #999\""
+      }
+    },
+    "env": {
+      "LOOPS_PR_CONFLICT_STUB": "{\"mergeable\":\"MERGEABLE\",\"mergeStateStatus\":\"CLEAN\"}"
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "allow-nonloop",
+    "description": "非 loop 分支（判不出 slug）→ 放行",
+    "payload": {
+      "cwd": "$ROLE$GENERIC",
+      "tool_input": {
+        "command": "gh pr create --draft --assignee @me --title x --body \"Closes #999\""
+      }
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "malformed-json",
+    "description": "stdin 非 JSON → fail-open 放行",
+    "rawInput": "xx",
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  }
+]

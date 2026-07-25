@@ -1,0 +1,69 @@
+[
+  {
+    "id": "deny-mention-no-session",
+    "description": "@ 點名違規（無 session_id，read-gate 略過，純機械規則判）→ deny",
+    "payload": {
+      "cwd": "$ROLE$GENERIC",
+      "tool_input": {
+        "command": "gh pr comment 5 --body \"@someone please check this\""
+      }
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"這則對外內容違反 comment-policy：\\n- comment 不 @ 點名人（找到 \\\"@someone\\\"）——見 comment-policy §6/§8\\n請改掉內容（拿掉 @點名／客套開場、避免 .loops/ 路徑與亂碼、偏長的技術英文改寫成中文白話）再送。確需繞過：設 LOOPS_COMMENT_GUARD=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "deny-readgate-missing",
+    "description": "session 尚未讀過 comment-policy.md → read-gate deny",
+    "payload": {
+      "cwd": "$ROLE$GENERIC",
+      "session_id": "loops-t3-char-comment-session-a",
+      "tool_input": {
+        "command": "gh pr comment 5 --body \"clean text, no violations here\""
+      }
+    },
+    "stateSetup": {
+      "kind": "reads",
+      "preset": null
+    },
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"這則對外 comment 送出前，本 session 還沒讀過 comment-policy.md——那裡有 §7 驗收報告版型、§8 修正回覆版型：§7 逐點用固定四小節（會發生什麼情境／為什麼是問題／建議怎麼修／建議補測試）；§8 逐點用工程角度／客戶角度雙視角（根因／怎麼修／怎麼驗＋修正前後）。兩邊皆不 @ 點名、不客套。\\n請先讀 $HOOKS_DIR$/comment-policy.md，套用對應版型後再送出這則 comment。\\n內容如果含 code fence，記得先確認 fence 內外的分界正確（fence 內的程式碼片段不受這些格式規則管）。\\n確需繞過：設 LOOPS_COMMENT_GUARD=0。\"}}\n",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "allow-clean-with-readgate",
+    "description": "read-gate 已滿足 ＋ 內容乾淨 → 放行",
+    "payload": {
+      "cwd": "$ROLE$GENERIC",
+      "session_id": "loops-t3-char-comment-session-b",
+      "tool_input": {
+        "command": "gh pr comment 5 --body \"clean text, no violations here\""
+      }
+    },
+    "stateSetup": {
+      "kind": "reads",
+      "preset": [
+        "comment-policy.md"
+      ]
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "allow-nonmanaged-command",
+    "description": "非受管指令 → 放行",
+    "payload": {
+      "cwd": "$ROLE$GENERIC",
+      "tool_input": {
+        "command": "git status"
+      }
+    },
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  },
+  {
+    "id": "malformed-json",
+    "description": "stdin 非 JSON → fail-open 放行",
+    "rawInput": "qq",
+    "expectedStdout": "",
+    "expectedExitCode": 0
+  }
+]

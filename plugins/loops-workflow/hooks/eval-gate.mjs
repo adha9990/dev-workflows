@@ -27,6 +27,7 @@ import { spawnSync } from 'node:child_process';
 
 import { readEditsForSession, clearEditsState } from './edit-accumulator.mjs';
 import { flagEnabled } from './hook-flags.mjs';
+import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
 
 const GATE_TIMEOUT_MS = 120000; // check 很便宜（讀 JSONL）；上限 2 分鐘，逾時視為 spawn 失敗 → no-op
 const MAX_INJECTION_CHARS = 10000; // 注入回 context 的摘要上限，過長截斷
@@ -197,14 +198,9 @@ function main() {
 
   const injection = composeInjections([gate.injection, tags.injection, poll.injection]);
   if (injection !== null) {
-    console.log(
-      JSON.stringify({
-        hookSpecificOutput: {
-          hookEventName: 'Stop',
-          additionalContext: injection,
-        },
-      }),
-    );
+    // 注入什麼內容留在本檔；信封形狀交給 hook-decision-emit.mjs 這個單一葉節點（#183 T13）。
+    const decision = emitDecision({ kind: 'context', context: injection }, ACTIVE_HARNESS, 'Stop');
+    if (decision !== null) console.log(decision);
   }
 
   // accumulator 清理：任一訊號真的跑過閘（ranAny）才消費 edits；只在 stop-gate「真的會跑並清」時才 defer

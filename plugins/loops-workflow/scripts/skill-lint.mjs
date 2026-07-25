@@ -658,13 +658,23 @@ export function flagSyncCheck({ hookFlagsContent, settingsContent, journalingCon
 // （hook 路徑段不含裸 ".mjs" 字面量），不需要 non-greedy。
 const HOOK_COMMAND_REF_RE = /\$\{CLAUDE_PLUGIN_ROOT\}\/(hooks\/[\w./-]+\.mjs)/g;
 
-// fixtures/ 段（任一路徑段等於 fixtures）、test-*.mjs、hook-flags.mjs：這三類本就不是「該被
-// hooks.json 掛載執行」的 hook 本體（測試 fixture／單元測試／純資料表），未掛載不算 P2。
+// fixtures/ 段（任一路徑段等於 fixtures）、test-*.mjs、hook-flags.mjs、hook-input-normalize.mjs、
+// hook-decision-emit.mjs：這五類本就不是「該被 hooks.json 掛載執行」的 hook 本體（測試
+// fixture／單元測試／純資料表／被其他 hook import 的純函式葉節點），未掛載不算 P2。
+// hook-input-normalize.mjs 與 hook-decision-emit.mjs 與 hook-flags.mjs 同類：三者都只被其他
+// hook 當模組 import，自己不是 hooks.json 裡的 entry。
+const NON_HOOK_LEAF_FILES = new Set([
+  'hook-flags.mjs',
+  'hook-input-normalize.mjs',
+  'hook-decision-emit.mjs',
+  'atomic-write.mjs',
+]);
+
 function isHookWiringExempt(relPath) {
   const segments = String(relPath ?? '').split('/');
   if (segments.includes('fixtures')) return true;
   const base = segments[segments.length - 1] ?? '';
-  return base === 'hook-flags.mjs' || /^test-.*\.mjs$/.test(base);
+  return NON_HOOK_LEAF_FILES.has(base) || /^test-.*\.mjs$/.test(base);
 }
 
 /**
