@@ -815,6 +815,56 @@
         "plugins/loops-workflow/references/shared/runtime/journaling.md",
         "plugins/loops-workflow/docs/settings.md"
       ]
+    },
+    {
+      "id": "unknowns-before-build",
+      "title": "未解決的 blocking unknown 不得進 build",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "enter-build"
+        ],
+        "stages": [
+          "build"
+        ]
+      },
+      "enforcement": "forbid",
+      "tier": "workflow-invariant",
+      "runtime": {
+        "guard": "unknowns-register",
+        "protected_actions": [
+          "enter-build"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": true,
+      "requires": [
+        "進 build 前四象限 Unknowns Register 的 blocking 項全數解決"
+      ],
+      "forbids": [
+        "帶著未解決的-blocking-unknown-開工",
+        "把-AI-假設-升格成-known-known",
+        "宣稱盲點已清零"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "未解決的 blocking unknown 不得進 build",
+      "tests": [
+        "plugins/loops-workflow/scripts/test-unknowns-register.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/skills/decision-interview/SKILL.md"
+      ]
     }
   ]
 }

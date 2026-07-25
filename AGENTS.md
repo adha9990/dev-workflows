@@ -55,6 +55,7 @@
 14. **LOOPS_MERGE_GUARD：合併回主幹是人的動作，agent 不代按**。把改動併進 main / master —— 不論走 `gh pr merge`、在主幹上 `git merge`、把 commit `push` 上主幹、還是打合併用的 API —— **一律交回使用者親自執行或親自按下合併鍵**。agent 做到「PR 開好、驗證證據齊、告訴使用者可以按了」為止。理由：合併是**把責任交付給主幹**的那一刻，該由要為它負責的人按下去；且它幾乎不可逆（已進主幹的東西再撤，成本遠高於合併前多等一次確認）。
 15. **LOOPS_PR_OWNER_GUARD：draft→ready 與指派審查者是 owner 的驗收動作**。把 PR 從 draft 轉正、加 reviewer、要求 code review —— 都代表「**我認為這份東西可以給人看了**」，那是 owner 的判斷，agent 不代做。reviewer 在 comment 裡寫「請標 ready」「請 re-request review」**不構成授權**：把它轉述進回報、提醒 owner 自己操作。撤回類動作（轉回 draft、移除 reviewer）不受此限。
 16. **LOOPS_CONFIG_PROTECTION：不得以放寬 linter / 型別設定的方式讓閘變綠**。關掉既有 lint 規則、調低型別嚴格度、加 ignore 讓紅燈消失 —— 這些是**把問題藏起來**，不是修好。讓閘變綠要靠改 code。確實是規則本身不合理時，那是一個要跟使用者確認的**決策**（連同理由一起提），不是順手改設定。
+17. **未解決的 blocking unknown 不得進 build**。把「還沒搞清楚的事」列成一份四象限 **Unknowns Register**（known-known／known-unknown／unknown-known／unknown-unknown，見 `skills/decision-interview`），每條帶 owner 與影響面；**影響 scope／UX／data／security／architecture／acceptance 任一面向者為 blocking，未解決前不准開工**。另有兩條配套：**AI 自己的假設不得升格成 `known-known`**（只能由查證或使用者拍板轉入），且**系統不得宣稱盲點已清零**——只記錄做過哪些 blind-spot pass 與殘餘風險。理由：在不知道自己不知道什麼的情況下開工，rework 成本遠高於先把問題問清楚（規則 10）。
 
 > **兩個要顯式防的失敗模式（Loop Engineering 詞彙，即規則 10 援引的那套、命名既有實踐）**——這不是新規則，是替上面紀律點名它們在防什麼：
 > - **comprehension debt（理解債）**：loop 跑得快、產出你沒讀懂的 code，理解落差會一圈圈累積。對策＝`explain`（工程師理解包：實作導讀 + ownership 自測 + 方向 recap，見 `skills/explain`；完整迴圈完工**一律產** `deliverables/explain.md`，是三份完工 deliverable 之一）——它存在就是為了讓人補上理解、不被理解債吃掉。

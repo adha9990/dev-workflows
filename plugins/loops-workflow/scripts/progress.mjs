@@ -62,6 +62,8 @@ export function extractProgress(entry) {
   else if (stage !== '?') nextStep = 'goal';
 
   const outcome = (md.split('\n').map((l) => l.trim()).find((l) => l.includes('★[outcome]'))) || '';
+  const unknowns = extractUnknownsSection(md);
+  const blockingUnknowns = countBlockingUnknowns(unknowns);
   const recentJournal = journal.slice(-RECENT_JOURNAL_N).map(stripEventTagKeepId);
 
   return {
@@ -73,8 +75,40 @@ export function extractProgress(entry) {
     stopCondition: pickLoopField(md, '停止條件') || '',
     stages, preStages,
     findings: findingsText, head,
-    currentTask, nextStep, outcome, recentJournal,
+    currentTask, nextStep, outcome, recentJournal, unknowns, blockingUnknowns,
   };
+}
+
+/**
+ * 數 register 裡「擋著 build 的」那幾條（不含殘餘風險——兩者都用 `- \`id\`` 起頭，
+ * 一律照 list 項數算會把不擋的也算進去，chat 上就會誇大擋路的數量）。
+ */
+export function countBlockingUnknowns(section) {
+  const lines = String(section || '').split('\n');
+  const start = lines.findIndex((l) => l.startsWith('**擋著 build 的'));
+  if (start < 0) return 0;
+  let n = 0;
+  for (let i = start + 1; i < lines.length; i += 1) {
+    if (lines[i].startsWith('**')) break; // 下一個粗體小節（殘餘風險 / blind-spot pass）
+    if (lines[i].startsWith('- `')) n += 1;
+  }
+  return n;
+}
+
+/**
+ * 從 loop.md 原樣切出 Unknowns Register 區塊（#174）。**刻意不重新解析成結構再渲染一次**：
+ * 那份 markdown 已由 `unknowns-register.renderRegister` 產生，這裡二次解析只會多出一個會漂移的
+ * 格式來源。切到下一個同級標題（`## `）為止；沒有這個區塊就回空字串。
+ */
+export function extractUnknownsSection(md) {
+  const lines = String(md || '').split('\n');
+  const start = lines.findIndex((l) => l.startsWith('## Unknowns Register'));
+  if (start < 0) return '';
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i += 1) {
+    if (lines[i].startsWith('## ')) { end = i; break; }
+  }
+  return lines.slice(start, end).join('\n').trimEnd();
 }
 
 function findLast(arr, re) {
@@ -95,6 +129,8 @@ export function renderChat(p) {
   const taskBits = [p.currentTask, p.head && `HEAD ${p.head}`].filter(Boolean).join('   ');
   if (taskBits) lines.push(taskBits);
   if (p.findings) lines.push(p.findings);
+  // chat 儀表板要緊湊：只帶「擋著 build 的」條數，完整四象限留給 PROGRESS.md。
+  if (p.blockingUnknowns) lines.push(`擋著 build 的 unknown ${p.blockingUnknowns} 條`);
   if (p.recentJournal.length) lines.push('最近：' + p.recentJournal.join(' / '));
   if (p.nextStep) lines.push(`下一步 → ${p.nextStep}`);
   if (p.done && p.outcome) lines.push(p.outcome);
@@ -142,6 +178,7 @@ export function renderMarkdown(p) {
     if (bits) out.push(bits);
     out.push('');
   }
+  if (p.unknowns) { out.push(p.unknowns, ''); }
   if (p.recentJournal.length) { out.push('## Journal（最近）', ...journalRows, ''); }
   out.push(p.done ? (p.outcome || '完工 ✅') : `下一步 → ${p.nextStep}`, '');
   return out.join('\n');

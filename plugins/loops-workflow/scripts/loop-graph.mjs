@@ -22,7 +22,7 @@ import { pathToFileURL } from 'node:url';
 import { readEvents } from './loop-ledger.mjs';
 
 /** node 種類（issue #172 資料模型）。 */
-export const NODE_KINDS = Object.freeze(['Loop', 'Issue', 'Stage', 'Decision', 'Task', 'Artifact', 'Finding', 'Gate', 'Commit', 'PR', 'ToolRun']);
+export const NODE_KINDS = Object.freeze(['Loop', 'Issue', 'Stage', 'Decision', 'Task', 'Artifact', 'Finding', 'Gate', 'Commit', 'PR', 'ToolRun', 'Unknown']);
 /** edge 種類（issue #172 資料模型）。 */
 export const EDGE_KINDS = Object.freeze(['HAS_STAGE', 'DEPENDS_ON', 'PRODUCED_BY', 'SUPERSEDES', 'ADDRESSES', 'VERIFIED_BY', 'IMPLEMENTS']);
 
@@ -36,6 +36,7 @@ export const PROJECTED_TYPES = Object.freeze({
   'stage-enter': 'Stage', 'stage-exit': 'Stage', round: 'Loop',
   decision: 'Decision', task: 'Task', artifact: 'Artifact',
   finding: 'Finding', gate: 'Gate', commit: 'Commit', pr: 'PR', toolrun: 'ToolRun', note: null,
+  unknown: 'Unknown',
 });
 
 /** blocking 嚴重度下限——與 references/personas/reviewer-severity.md 的 P0/P1 擋線一致。 */
@@ -62,6 +63,8 @@ function emptyState(slug) {
     prs: [],
     toolRuns: [],
     notes: [],
+    unknowns: [],
+    blindSpotPasses: [],
     eventCount: 0,
   };
 }
@@ -178,6 +181,11 @@ export function projectEvents(events, { slug = '' } = {}) {
       case 'note':
         state.notes.push({ at, text: p.text ?? '', stage: p.stage ?? state.currentStage ?? '' });
         break;
+      case 'unknown':
+        // 兩種 payload：blind-spot pass 的留痕（只有 blindSpotPass 欄）與 unknown node 本身。
+        if (p.blindSpotPass) state.blindSpotPasses.push(String(p.blindSpotPass));
+        else if (typeof p.id === 'string' && p.id) upsert(state.unknowns, p.id, { at, ...p }, {});
+        break;
       default:
         break; // 認不得的型別：忽略，不猜語意
     }
@@ -193,7 +201,9 @@ export function selectBlocking(state) {
   const findings = state.findings.filter((f) => f.status === 'open' && BLOCKING_SEVERITIES.includes(f.severity));
   const gates = state.gates.filter((g) => g.status === 'fail');
   const decisions = state.decisions.filter((d) => d.status === 'pending' && !d.supersededBy);
-  return { findings, gates, decisions, count: findings.length + gates.length + decisions.length };
+  // #174：未解決的 blocking unknown 與未修的 P0/P1 同級——都是「還沒搞清楚就往下做」的形狀。
+  const unknowns = (state.unknowns ?? []).filter((u) => u.blocking === true && u.status !== 'resolved');
+  return { findings, gates, decisions, unknowns, count: findings.length + gates.length + decisions.length + unknowns.length };
 }
 
 /** state → `{nodes, edges}`（issue #172 的 node/edge 模型）。純函式。 */
@@ -272,6 +282,12 @@ export function toGraph(state) {
   }
 
   for (const tr of state.toolRuns) push('ToolRun', tr.id, `${tr.tool} → ${tr.outcome}`, tr, tr.at);
+
+  for (const u of state.unknowns ?? []) {
+    const id = push('Unknown', u.id, `[${u.kind}] ${u.statement ?? ''}`, u, u.at);
+    const st = stageAt(u.at);
+    if (st) link(st, id, 'PRODUCED_BY', u.at); // 這條 unknown 是在哪個階段被挖出來的
+  }
 
   return { nodes, edges };
 }
