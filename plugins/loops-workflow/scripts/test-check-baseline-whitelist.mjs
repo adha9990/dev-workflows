@@ -28,14 +28,16 @@ function assert(cond, msg) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// 0. 基線清單本身：恰好 31 支，13 hooks + 18 scripts
+// 0. 基線清單本身：恰好 33 支，13 hooks + 20 scripts
+//    這裡刻意寫死數字：清單是手維護的常數，數字對不上就代表有人動了清單卻沒說明來源。
+//    要增刪基線得同時改這三個數字——那正是「刻意的摩擦」，不是可以改成推導式的樣板。
 // ══════════════════════════════════════════════════════════════════════════
 {
-  assert(BASELINE_TEST_FILES.length === 31, `基線清單恰有 31 支測試檔（實際：${BASELINE_TEST_FILES.length}）[baseline-count]`);
+  assert(BASELINE_TEST_FILES.length === 33, `基線清單恰有 33 支測試檔（實際：${BASELINE_TEST_FILES.length}）[baseline-count]`);
   const hooksCount = BASELINE_TEST_FILES.filter((f) => f.includes('/hooks/')).length;
   const scriptsCount = BASELINE_TEST_FILES.filter((f) => f.includes('/scripts/')).length;
   assert(hooksCount === 13, `hooks/ 基線恰 13 支（實際：${hooksCount}）[baseline-hooks-count]`);
-  assert(scriptsCount === 18, `scripts/ 基線恰 18 支（實際：${scriptsCount}）[baseline-scripts-count]`);
+  assert(scriptsCount === 20, `scripts/ 基線恰 20 支（實際：${scriptsCount}）[baseline-scripts-count]`);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -56,12 +58,12 @@ function assert(cond, msg) {
   );
 }
 {
-  // 負向 fixture：假裝所有 31 支基線都少了其中一支（每支輪流試，確保清單裡每個路徑都真的被檢查到）
+  // 負向 fixture：假裝整份基線清單都少了其中一支（每支輪流試，確保清單裡每個路徑都真的被檢查到）
   const missing = BASELINE_TEST_FILES[BASELINE_TEST_FILES.length - 1];
   const result = checkBaseline(BASELINE_TEST_FILES, (rel) => rel !== missing);
   assert(
     result.ok === false && result.findings.some((f) => f.file === missing),
-    `checkBaseline：31 支基線裡假裝少最後一支（${missing}）→ 命中並指名（實際：${JSON.stringify(result.findings)}）[unit-negative-last]`,
+    `checkBaseline：整份基線裡假裝少最後一支（${missing}）→ 命中並指名（實際：${JSON.stringify(result.findings)}）[unit-negative-last]`,
   );
 }
 
@@ -78,7 +80,7 @@ function assert(cond, msg) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// 3. buildReport 對真實 repo root → 綠（本 repo 現況必須含滿 31 支基線）
+// 3. buildReport 對真實 repo root → 綠（本 repo 現況必須含滿整份基線）
 // ══════════════════════════════════════════════════════════════════════════
 {
   const result = buildReport(REPO_ROOT);
@@ -109,7 +111,7 @@ function runCli(root, args = ['--json']) {
   return { res, json };
 }
 
-// IO-1：合成 repo，31 支基線全放好 → 綠
+// IO-1：合成 repo，整份基線全放好 → 綠
 {
   const dir = mkdtempSync(join(tmpdir(), 'cbw-'));
   try {
@@ -117,7 +119,7 @@ function runCli(root, args = ['--json']) {
     for (const rel of BASELINE_TEST_FILES) files[rel] = '// placeholder\n';
     writeFiles(dir, files);
     const { res, json } = runCli(dir, ['--json']);
-    assert(res.status === 0, `IO-1：31 支基線全在 → exit code===0（實際 stdout：${res.stdout}；stderr：${res.stderr}）[IO-1]`);
+    assert(res.status === 0, `IO-1：整份基線全在 → exit code===0（實際 stdout：${res.stdout}；stderr：${res.stderr}）[IO-1]`);
     assert(json && json.ok === true, `IO-1：--json ok===true（實際：${JSON.stringify(json)}）[IO-1]`);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -146,7 +148,7 @@ function runCli(root, args = ['--json']) {
   }
 }
 
-// IO-3：不帶 --root，對本 repo 真實預設路徑跑 → 綠（本 repo 現況必須含滿 31 支基線）
+// IO-3：不帶 --root，對本 repo 真實預設路徑跑 → 綠（本 repo 現況必須含滿整份基線）
 {
   const res = spawnSync('node', [SCRIPT, '--json'], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
   let json = null;
@@ -156,7 +158,7 @@ function runCli(root, args = ['--json']) {
     json = null;
   }
   assert(res.status === 0, `IO-3：預設 --root 對真實 repo 跑 → exit code===0（實際 status：${res.status}；stdout：${res.stdout}）[IO-3]`);
-  assert(json && json.ok === true, `IO-3：真實 repo 31 支基線全過 → ok===true（實際：${JSON.stringify(json)}）[IO-3]`);
+  assert(json && json.ok === true, `IO-3：真實 repo 整份基線全過 → ok===true（實際：${JSON.stringify(json)}）[IO-3]`);
 }
 
 // IO-4：非 --json 模式，健康合成 repo 印出繁體中文成功摘要，exit 0

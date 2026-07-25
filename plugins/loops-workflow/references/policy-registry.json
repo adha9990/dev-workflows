@@ -1,7 +1,215 @@
 {
   "schema_version": "1",
-  "notes": "#170 policy registry 第一版。scope.kind 區分 path-based（有檔案面、參與 path 交集判定）與 activity-based（純活動型規則，無自然 glob、不參與 path 交集，改以 scope.activities 比對）——T0 用 AGENTS.md 規則 9／13／5 實填後確認：若沒有這個維度，活動型規則只能寫 paths:[\"**\"]，會與所有規則假交集、把衝突判定退化成噪音。",
+  "notes": "#170 T11：AGENTS.md §2 的 13 條 Operating Rules 逐條登記，編號即本檔順序。scope.kind 區分 path-based（有檔案面、參與 path 交集判定）與 activity-based（純活動型規則，無自然 glob、不參與 path 交集，改以 scope.activities 比對）——T0 用規則 9／13／5 實填後確認：若沒有這個維度，活動型規則只能寫 paths:[\"**\"]，會與所有規則假交集、把衝突判定退化成噪音。projection 是規則文字的正本落點（projection_marker 逐字比對，抓「檔案還在、規則段落被拿掉」的漂移）；tests 是「這條規則由誰機械守著」——兩者皆不得為空：宣告了規則卻沒有任何測試承載，就是空宣告，由 scripts/test-registry-coverage.mjs 擋。",
   "policies": [
+    {
+      "id": "traditional-chinese-narrative",
+      "title": "對外敘述一律繁體中文，識別碼與路徑保留英文",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": ["author-user-facing-narrative", "author-outbound-comment", "report-to-user"],
+        "stages": []
+      },
+      "enforcement": "require",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": ["面向人的敘述用繁體中文"],
+      "forbids": ["把-code-identifier-或路徑翻成中文"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "對外敘述一律繁體中文",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-outbound-comment-guard.mjs",
+        "plugins/loops-workflow/hooks/test-guard-characterization.mjs"
+      ],
+      "docs": ["AGENTS.md", "plugins/loops-workflow/references/comment-policy.md"]
+    },
+    {
+      "id": "stage-advance-without-asking",
+      "title": "階段間不問要不要繼續，只在真正要選的決策點與安全停停下",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": ["stage-transition", "open-decision-point", "safety-stop"],
+        "stages": []
+      },
+      "enforcement": "require",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": null,
+      "fail_closed_on_missing_state": true,
+      "requires": ["真正要選時開一個決策點", "危險或分類模糊時安全停"],
+      "forbids": ["每進一階段就問要不要繼續", "用純文字要使用者打字回覆", "auto-模式吞掉安全停"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md", "plugins/loops-workflow/references/auto-mode.md"],
+      "projection_marker": "安全停",
+      "tests": [
+        "plugins/loops-workflow/scripts/test-safe-stop-assertion.mjs",
+        "plugins/loops-workflow/hooks/test-loop-driver.mjs"
+      ],
+      "docs": ["AGENTS.md", "plugins/loops-workflow/references/interaction-adapter.md"]
+    },
+    {
+      "id": "loops-stage-memory",
+      "title": ".loops/<slug>/ 是階段間記憶體，每階段寫對應 markdown 並更新 loop.md",
+      "scope": {
+        "kind": "path-based",
+        "paths": [".loops/**"],
+        "activities": [],
+        "stages": ["dispatch", "goal", "explore", "plan", "build", "verify", "iterate"]
+      },
+      "enforcement": "require",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": 30,
+      "fail_closed_on_missing_state": true,
+      "requires": ["每階段把結論寫成對應-markdown", "進入階段更新-loop-md-當前階段與-journal"],
+      "forbids": ["下一階段重讀原始素材", "單份階段檔超過-2000-行"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "階段間記憶體",
+      "tests": [
+        "plugins/loops-workflow/scripts/test-canonical-contracts.mjs",
+        "plugins/loops-workflow/scripts/test-progress.mjs",
+        "plugins/loops-workflow/hooks/test-path-guard.mjs"
+      ],
+      "docs": ["AGENTS.md", "plugins/loops-workflow/references/journaling.md"]
+    },
+    {
+      "id": "surface-ambiguity",
+      "title": "需求、分類或方案不清楚時停下來問，不自行假設往下做",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": ["classify-request", "interpret-requirement"],
+        "stages": []
+      },
+      "enforcement": "require",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": null,
+      "fail_closed_on_missing_state": true,
+      "requires": ["不清楚就停下來問"],
+      "forbids": ["用自行假設補齊不清楚的需求"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "模糊就 surface",
+      "tests": [
+        "plugins/loops-workflow/scripts/test-safe-stop-assertion.mjs",
+        "plugins/loops-workflow/scripts/test-baseline-corpus.mjs"
+      ],
+      "docs": ["AGENTS.md"]
+    },
+    {
+      "id": "metric-honesty",
+      "title": "沒實際跑出來的數字與狀態一律標 not measured，不得補一個看起來合理的值",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": ["claim-metric", "report-run-status", "cite-tool-result"],
+        "stages": []
+      },
+      "enforcement": "require",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": null,
+      "fail_closed_on_missing_state": true,
+      "requires": ["未實測標-not-measured", "只引用單一乾淨指令的實際回傳"],
+      "forbids": ["憑感覺填數字", "工具沒回傳仍敘述狀態"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "Metric-Honesty",
+      "tests": [
+        "plugins/loops-workflow/scripts/test-check-e2e-evidence.mjs",
+        "plugins/loops-workflow/scripts/test-check-baseline-whitelist.mjs",
+        "plugins/loops-workflow/scripts/test-check-registry-shape.mjs"
+      ],
+      "docs": ["AGENTS.md"]
+    },
+    {
+      "id": "reuse-before-build",
+      "title": "重用優先、不以 MVP 交付，寫的當下就照 clean code 與 clean architecture",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": ["write-implementation", "choose-approach"],
+        "stages": ["plan", "build"]
+      },
+      "enforcement": "require",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": ["動手前先搜既有實作", "優先參數化既有方法"],
+      "forbids": ["in-scope-實作以-MVP-交付", "先寫爛再靠-refactor-救"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "重用優先",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-config-protection.mjs",
+        "plugins/loops-workflow/scripts/test-quality-gate.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/reuse-check.md",
+        "plugins/loops-workflow/references/clean-code.md",
+        "plugins/loops-workflow/references/clean-architecture.md"
+      ]
+    },
+    {
+      "id": "documentation-discipline",
+      "title": "文件紀律：新子系統寫 docs/<topic>.md 並維護索引，慣例改變才動 AGENTS.md",
+      "scope": {
+        "kind": "path-based",
+        "paths": ["docs/**", "plugins/loops-workflow/docs/**", "AGENTS.md", "CLAUDE.md"],
+        "activities": [],
+        "stages": ["iterate"]
+      },
+      "enforcement": "require",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": 40,
+      "fail_closed_on_missing_state": false,
+      "requires": ["新子系統或跨切面寫-docs-topic-md", "維護-docs-readme-索引"],
+      "forbids": ["小功能塞進-docs", "慣例未變仍改-agents-md"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "文件紀律",
+      "tests": ["plugins/loops-workflow/scripts/test-skill-lint.mjs"],
+      "docs": ["AGENTS.md", "plugins/loops-workflow/references/docs-policy.md"]
+    },
+    {
+      "id": "outbound-communication",
+      "title": "對外書面依 comment-policy：繁中白話、雙視角、暫存草稿校稿後刪除",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": ["author-outbound-comment", "reply-to-review", "report-acceptance"],
+        "stages": ["verify", "iterate"]
+      },
+      "enforcement": "require",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": null,
+      "fail_closed_on_missing_state": true,
+      "requires": ["送出前先讀對外規範", "對外內容先寫暫存草稿校稿"],
+      "forbids": ["對外書面寫客套話", "暫存草稿留在專案或進版控"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "對外溝通",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-outbound-comment-guard.mjs",
+        "plugins/loops-workflow/hooks/test-pr-gate.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/comment-policy.md",
+        "plugins/loops-workflow/references/outbound-templates.md"
+      ]
+    },
     {
       "id": "worktree-isolation",
       "title": "會動 code 的迴圈在獨立 worktree 裡做，.loops 狀態一律留主 repo",
@@ -26,6 +234,89 @@
         "plugins/loops-workflow/hooks/test-path-guard.mjs"
       ],
       "docs": ["AGENTS.md"]
+    },
+    {
+      "id": "cost-awareness",
+      "title": "成本意識：高上下文效率、便宜的先貴的後，但不砍 mandatory gate、不外溢到方案取捨",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": ["dispatch-subagent", "choose-model-tier", "escalate-research", "recommend-option"],
+        "stages": []
+      },
+      "enforcement": "require",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": ["subagent-只拿它需要的那段脈絡", "貴動作預設不開要才開", "留債選項明標它埋的債"],
+      "forbids": ["為省成本略過-mandatory-gate", "以實作代價最小當取捨主軸", "把留債選項標成推薦"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "成本意識",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-cost-hooks.mjs",
+        "plugins/loops-workflow/scripts/test-check-registry-shape.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/model-effort-policy.md",
+        "plugins/loops-workflow/references/context-diet.md"
+      ]
+    },
+    {
+      "id": "quality-shift-left",
+      "title": "品質前置：build 寫的當下就套 verify 會查的同一套標準",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": ["write-implementation", "review-change"],
+        "stages": ["build", "verify"]
+      },
+      "enforcement": "require",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": ["build-當下套用-verify-同一套品質標準"],
+      "forbids": ["把品質問題留到-verify-才抓"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "品質前置",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-stop-gate.mjs",
+        "plugins/loops-workflow/scripts/test-quality-gate.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/security-checklist.md",
+        "plugins/loops-workflow/references/design-patterns.md"
+      ]
+    },
+    {
+      "id": "issue-first-intake",
+      "title": "每件工作都從 define 建立的 issue 起手，沒有獨立的研究 issue",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": ["start-work", "create-issue"],
+        "stages": ["dispatch", "goal", "explore", "plan", "build"]
+      },
+      "enforcement": "forbid",
+      "overridable": false,
+      "approval": { "required": false, "by": null },
+      "precedence": null,
+      "fail_closed_on_missing_state": true,
+      "requires": ["動工前有對應-issue", "issue-一律用-repo-template-由-define-建"],
+      "forbids": ["以-ad-hoc-指令直接開-issue", "從口頭描述或父-issue-切片直接動工"],
+      "conflicts_with": [],
+      "projection": ["AGENTS.md"],
+      "projection_marker": "沒有獨立的「研究 issue」",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-pr-gate.mjs",
+        "plugins/loops-workflow/hooks/test-pr-owner-guard.mjs"
+      ],
+      "docs": ["AGENTS.md", "plugins/loops-workflow/references/pr-spec.md"]
     },
     {
       "id": "canonical-platform-neutral",
@@ -53,28 +344,6 @@
       "projection_marker": "平台中立",
       "tests": ["plugins/loops-workflow/scripts/test-compat-lint.mjs"],
       "docs": ["AGENTS.md", "plugins/loops-workflow/references/interaction-adapter.md"]
-    },
-    {
-      "id": "metric-honesty",
-      "title": "沒實際跑出來的數字與狀態一律標 not measured，不得補一個看起來合理的值",
-      "scope": {
-        "kind": "activity-based",
-        "paths": [],
-        "activities": ["claim-metric", "report-run-status", "cite-tool-result"],
-        "stages": []
-      },
-      "enforcement": "require",
-      "overridable": false,
-      "approval": { "required": false, "by": null },
-      "precedence": null,
-      "fail_closed_on_missing_state": true,
-      "requires": ["未實測標-not-measured", "只引用單一乾淨指令的實際回傳"],
-      "forbids": ["憑感覺填數字", "工具沒回傳仍敘述狀態"],
-      "conflicts_with": [],
-      "projection": ["AGENTS.md"],
-      "projection_marker": "Metric-Honesty",
-      "tests": [],
-      "docs": ["AGENTS.md"]
     }
   ]
 }

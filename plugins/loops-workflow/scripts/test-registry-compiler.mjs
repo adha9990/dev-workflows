@@ -110,9 +110,22 @@ function registryOf(...policies) {
 
 const ALL_PATHS_EXIST = { pathExists: () => true };
 
-/** 讀真實 repo 的 policy-registry.json（讀不到就讓例外冒出來——測試該紅，不該靜默）。 */
-function readRealRegistry() {
-  return parseRegistryJson(readFileSync(join(REPO_ROOT, ...POLICY_REL.split('/')), 'utf8'));
+/** 讀真實 repo 的 registry（讀不到就讓例外冒出來——測試該紅，不該靜默）。 */
+function readRealRegistry(rel = POLICY_REL) {
+  return parseRegistryJson(readFileSync(join(REPO_ROOT, ...rel.split('/')), 'utf8'));
+}
+
+/**
+ * 真實 registry 檔裡某個集合的實際筆數。
+ * summary 只有「與檔案內容相符」才有意義，所以測試自己重數一次，
+ * 不把某個當下的筆數寫死成期望值（那是鎖資料，不是鎖行為）。
+ */
+function realEntryCount(rel, key) {
+  const parsed = readRealRegistry(rel);
+  if (parsed.error) throw new Error(`${rel} 無法解析：${parsed.error}`);
+  const entries = parsed.registry?.[key];
+  if (!Array.isArray(entries)) throw new Error(`${rel} 缺少陣列欄位 "${key}"`);
+  return entries.length;
 }
 
 function runCli(root, args = []) {
@@ -222,7 +235,11 @@ testCase('T0-2', '活動型規則用 activity-based scope、不靠裸 ** 假裝�
 testCase('T0-3', '真實 registry 對真實 repo 全綠（三條都填得進去）', () => {
   const result = buildReport(REPO_ROOT);
   assert(result.ok === true, `T0-3：buildReport 全綠（實際 findings：${JSON.stringify(result.findings)}）`);
-  assert(result.summary.policies === 3, `T0-3：summary.policies===3（實際：${result.summary.policies}）`);
+  const actual = realEntryCount(POLICY_REL, 'policies');
+  assert(
+    result.summary.policies === actual,
+    `T0-3：summary.policies 等於 policy-registry.json 實際筆數（摘要：${result.summary.policies}／實際：${actual}）`,
+  );
 });
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -448,9 +465,13 @@ testCase('T1-10', 'formatSummary 同時渲染 findings 與 decisions（decisions
 testCase('T2-1', '真實 component-registry.json 對真實 repo 全綠', () => {
   const result = buildReport(REPO_ROOT);
   assert(result.ok === true, `T2-1：buildReport 全綠（實際 findings：${JSON.stringify(result.findings)}）`);
-  assert(result.summary.components === 6, `T2-1：summary.components===6（實際：${result.summary.components}）`);
-  const registry = parseRegistryJson(readFileSync(join(REPO_ROOT, ...COMPONENT_REL.split('/')), 'utf8'));
+  const registry = readRealRegistry(COMPONENT_REL);
   assert(!registry.error, `T2-1：component-registry.json 可解析（實際 error：${registry.error ?? '無'}）`);
+  const actual = realEntryCount(COMPONENT_REL, 'components');
+  assert(
+    result.summary.components === actual,
+    `T2-1：summary.components 等於 component-registry.json 實際筆數（摘要：${result.summary.components}／實際：${actual}）`,
+  );
 });
 
 testCase('T2-2', 'C1 負向：id 重複 → 紅且訊息指名 id', () => {
@@ -577,7 +598,11 @@ testCase('T2-7', 'CLI 整合：component registry 壞掉 → exit 1 且 --json �
 testCase('T3-1', '真實 integration-registry.json 對真實 repo 全綠', () => {
   const result = buildReport(REPO_ROOT);
   assert(result.ok === true, `T3-1：buildReport 全綠（實際 findings：${JSON.stringify(result.findings)}）`);
-  assert(result.summary.integrations === 4, `T3-1：summary.integrations===4（實際：${result.summary.integrations}）`);
+  const actual = realEntryCount(INTEGRATION_REL, 'integrations');
+  assert(
+    result.summary.integrations === actual,
+    `T3-1：summary.integrations 等於 integration-registry.json 實際筆數（摘要：${result.summary.integrations}／實際：${actual}）`,
+  );
 });
 
 testCase('T3-2', 'I2 負向：同一 exclusive_group 內兩個 supported → 紅且指名 group 與 id', () => {

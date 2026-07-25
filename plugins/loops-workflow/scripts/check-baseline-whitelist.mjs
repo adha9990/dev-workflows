@@ -4,9 +4,13 @@
 // 有人刪掉既有測試檔，glob 命中數就跟著少一個，CI 照樣綠、零警訊。
 // 這條 lint 補的就是這個洞：持一份基線清單，逐檔存在性檢查，少了任何一支就紅並指名。
 //
-// 基線清單來源：master@bdb67db（`git ls-tree -r --name-only master -- plugins | grep
-// -E 'hooks/test-.*\.mjs$|scripts/test-.*\.mjs$'` 查證得出），共 31 支：
-// 13 支在 plugins/loops-workflow/hooks/、18 支在 plugins/loops-workflow/scripts/。
+// 基線清單有兩個來源，合計 33 支（13 支在 plugins/loops-workflow/hooks/、
+// 20 支在 plugins/loops-workflow/scripts/）：
+//   1) master@bdb67db 的既有測試檔 31 支（`git ls-tree -r --name-only master -- plugins
+//      | grep -E 'hooks/test-.*\.mjs$|scripts/test-.*\.mjs$'` 查證得出）。
+//   2) registry 機制隨附的 2 支：test-registry-compiler.mjs（compiler 各條檢查的紅綠斷言）
+//      與 test-registry-coverage.mjs（三份 registry 對 repo 現況的覆蓋率地板＋波及面煙霧）。
+//      它們是 registry 這套機制唯一的紅綠來源，被刪掉的話 registry 可以填空還照樣綠。
 // 之後任何 PR 若真的要刪測試檔，得同時改這份清單——這是刻意的摩擦，逼人做出明確決定，
 // 而不是讓刪除行為在 glob 迴圈裡悄悄消失。
 //
@@ -55,10 +59,12 @@ const SCRIPTS_BASELINE = [
   'plugins/loops-workflow/scripts/test-gen-reviewers.mjs',
   'plugins/loops-workflow/scripts/test-progress.mjs',
   'plugins/loops-workflow/scripts/test-quality-gate.mjs',
+  'plugins/loops-workflow/scripts/test-registry-compiler.mjs',
+  'plugins/loops-workflow/scripts/test-registry-coverage.mjs',
   'plugins/loops-workflow/scripts/test-skill-lint.mjs',
 ];
 
-// master@bdb67db 基線：13（hooks）+ 18（scripts）＝ 31 支測試檔（見檔頭來源說明）。
+// 基線：13（hooks）+ 20（scripts）＝ 33 支測試檔（見檔頭的兩個來源說明）。
 export const BASELINE_TEST_FILES = [...HOOKS_BASELINE, ...SCRIPTS_BASELINE];
 
 // ── 判定層（純函式，無 IO，測試直接 import）──────────────────────────────────────
@@ -77,7 +83,7 @@ export function checkBaseline(baseline, pathExists) {
         check: 'baseline-file-missing',
         severity: 'P1',
         file: rel,
-        detail: `master@bdb67db 基線測試檔缺失：${rel}（是被刪了還是搬走了？請同步更新 check-baseline-whitelist.mjs 的清單）`,
+        detail: `基線測試檔缺失：${rel}（是被刪了還是搬走了？請同步更新 check-baseline-whitelist.mjs 的清單）`,
       });
     }
   }
