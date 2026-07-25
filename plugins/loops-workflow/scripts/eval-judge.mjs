@@ -6,7 +6,7 @@
 //
 // 混合架構（issue #32 拍板）：**本 script 不 spawn judge agent**（plugin script 無此能力）。
 //   judge 的 LLM 調用由主迴圈/Workflow 在 verify/eval 流程派（像現有 reviewer agent，見
-//   agents/eval-judge.md）；script 只做離線可測的解析/驗證/分軌。
+//   agents/eval/eval-judge.md）；script 只做離線可測的解析/驗證/分軌。
 //
 // 分軌（Metric-Honesty）：judge 分數帶 track:'judge-estimate'、落獨立 judge-results.jsonl，
 //   **絕不**進 eval-metrics 的 passRate 回歸 gate（那只讀 eval-results.jsonl 的確定性 oracle 結果）。

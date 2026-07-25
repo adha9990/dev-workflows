@@ -28,16 +28,16 @@ function assert(cond, msg) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// 0. 基線清單本身：恰好 33 支，13 hooks + 20 scripts
+// 0. 基線清單本身：恰好 53 支，22 hooks + 31 scripts（#171 T11②：對帳到現況全量）
 //    這裡刻意寫死數字：清單是手維護的常數，數字對不上就代表有人動了清單卻沒說明來源。
 //    要增刪基線得同時改這三個數字——那正是「刻意的摩擦」，不是可以改成推導式的樣板。
 // ══════════════════════════════════════════════════════════════════════════
 {
-  assert(BASELINE_TEST_FILES.length === 33, `基線清單恰有 33 支測試檔（實際：${BASELINE_TEST_FILES.length}）[baseline-count]`);
+  assert(BASELINE_TEST_FILES.length === 53, `基線清單恰有 53 支測試檔（實際：${BASELINE_TEST_FILES.length}）[baseline-count]`);
   const hooksCount = BASELINE_TEST_FILES.filter((f) => f.includes('/hooks/')).length;
   const scriptsCount = BASELINE_TEST_FILES.filter((f) => f.includes('/scripts/')).length;
-  assert(hooksCount === 13, `hooks/ 基線恰 13 支（實際：${hooksCount}）[baseline-hooks-count]`);
-  assert(scriptsCount === 20, `scripts/ 基線恰 20 支（實際：${scriptsCount}）[baseline-scripts-count]`);
+  assert(hooksCount === 22, `hooks/ 基線恰 22 支（實際：${hooksCount}）[baseline-hooks-count]`);
+  assert(scriptsCount === 31, `scripts/ 基線恰 31 支（實際：${scriptsCount}）[baseline-scripts-count]`);
 }
 
 // ══════════════════════════════════════════════════════════════════════════

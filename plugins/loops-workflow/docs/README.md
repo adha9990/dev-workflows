@@ -7,6 +7,7 @@
 - [dual-harness.md](dual-harness.md) — **雙 harness 相容層**：四個平台差異投影點在哪、能力清單（`capability-registry.json`）結構與怎麼加一個 facet、六道機械檢查各管什麼、怎麼加一個新平台、目前有什麼限制。
 - [dual-harness-e2e.md](dual-harness-e2e.md) — **雙 harness E2E 證據表**：七個關鍵流程步驟 × 兩個平台的實測狀態，`pass` 附測試檔／真實樣本、`not_measured` 附可執行重播指令；`check-e2e-evidence.mjs` 機械驗證表格完整性。
 - [registries.md](registries.md) — **規則／元件／外部工具三份登記表**：各表記什麼、`required_checks.integrations` 這條唯一跨表連線怎麼走、怎麼加一條規則／一個元件／一個外部工具、compiler 的檢查各在防什麼（含衝突三態與空清單假綠）、怎麼用 `--affected` 查波及面、目前有什麼限制。
+- [layout.md](layout.md) — **目錄結構**：agents／references 怎麼分類（skills 為何維持平鋪、分類記在 registry）、怎麼加一個新元件（建檔／登記 registry／跑檢查）、怎麼引用一份規範（用元件 id 問 resolver）、有哪些檢查在守這件事、目前有什麼限制。
 - [FLOW.md](FLOW.md) — **完整流程圖**：從一句話 / issue 到開 PR，每階段的 skill / agent / 機制 / 策略，含 mermaid 全貌（總流程、build 紅綠分離、verify fan-out）；開頭有新人 5 分鐘導讀。
 - [settings.md](settings.md) — **可設參數總覽**：settings.json `env` 能設的全部 LOOPS_* 開關（預設開 8 枚／預設關 5 枚）、可抄範例、怎麼驗證生效。
 - [REFERENCES.md](REFERENCES.md) — **規範目錄**：`references/` 共用規範依功能分 6 類（寫碼品質標準 / 階段 schema / 驗證機制〔含 per-axis 審查判準〕/ 對外溝通〔含 `outbound-templates` 統一索引〕/ 編排進階 / 工具模板），各自處理什麼、誰在用（全量與計數以該檔為準）。

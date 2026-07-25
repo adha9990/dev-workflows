@@ -192,11 +192,11 @@ exit code：**ok exit 0**（多餘步仍 0）、**漏/禁止/順序 exit 1**、*
 
 ---
 
-# E4 — eval-judge（`eval-judge.mjs` + `agents/eval-judge.md` + `references/personas/eval-judge-rubric.md`）
+# E4 — eval-judge（`eval-judge.mjs` + `agents/eval/eval-judge.md` + `references/personas/eval-judge-rubric.md`）
 
 > E1–E3 都**零 judge**（oracle / 規則）。E4 補唯一缺口：**沒有可執行 ground truth 的維度**（解釋/溝通品質）。原則仍是 **oracle-first, judge-last**——能用測試轉綠 / exit 0 / 檔案存在判的**一律不用 judge**；judge 只評「人類讀者能不能看懂/據以驗證」這種無 ground truth 的東西。
 >
-> **混合架構**：`eval-judge.mjs` **不 spawn judge agent**（plugin script 無此能力）。LLM judge 的調用由**主迴圈 / Workflow** 在 eval/verify 流程**opt-in** 派 `agents/eval-judge.md`（像 verify 的 reviewer，複用反偏誤）；script 只做**離線可確定性測**的部分——驗 rubric、解析 judge verdict、門檻為準推導 pass、分軌、落檔。
+> **混合架構**：`eval-judge.mjs` **不 spawn judge agent**（plugin script 無此能力）。LLM judge 的調用由**主迴圈 / Workflow** 在 eval/verify 流程**opt-in** 派 `agents/eval/eval-judge.md`（像 verify 的 reviewer，複用反偏誤）；script 只做**離線可確定性測**的部分——驗 rubric、解析 judge verdict、門檻為準推導 pass、分軌、落檔。
 
 ## rubric（`references/personas/eval-judge-rubric.md`，G-Eval 式鎖死步驟）
 扁平 YAML frontmatter（機讀，`eval-judge.mjs` 驗）：`dimension` / `scale_min` / `scale_max` / `threshold` / `schema`；body 的 `## Evaluation steps` ≥3 條編號步驟（**鎖死**、judge 逐步照走防分數漂移）。`validateRubric` 驗：dimension 非空 ＆ 整數 scaleMin<scaleMax ＆ scaleMin≤threshold≤scaleMax ＆ stepCount≥3。
