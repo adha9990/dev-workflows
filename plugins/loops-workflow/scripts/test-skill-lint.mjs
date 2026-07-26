@@ -24,6 +24,7 @@ import {
   referenceIntegrityCheck,
   countLintCheck,
   deadCommandCheck,
+  conflictMarkerCheck,
   formatSummary,
 } from './skill-lint.mjs';
 
@@ -551,6 +552,58 @@ const NOTE_LINE =
   const findings = deadCommandCheck(map);
   const f = (findings || []).find((x) => x.check === 'dead-command');
   assert(!!f, 'deadCommandCheck：大小寫混合 "Loops-Workflow:resume" 仍命中（lowercase 比對）[GUARD-6]');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// 9b. conflictMarkerCheck（#209）
+// 真實回歸：`skills/verify/SKILL.md` 帶著三行衝突標記被 commit 進 master（#188），活過 11 次後續
+// 合併與全套 lint／測試都沒被抓到。這一節同時釘「該紅要紅」與「markdown 正常寫法不得誤報」。
+// ══════════════════════════════════════════════════════════════════════════
+{
+  const OPEN = '<<<<<<< HEAD';
+  const SEP = '=======';
+  const CLOSE = '>>>>>>> feature-branch';
+  const conflicted = `# 規則\n\n這一段沒問題。\n${OPEN}\n這是 HEAD 的版本。\n${SEP}\n這是另一邊的版本。\n${CLOSE}\n收尾。\n`;
+
+  const findings = conflictMarkerCheck({ 'plugins/loops-workflow/skills/x/SKILL.md': conflicted });
+  const hits = (findings || []).filter((x) => x.check === 'conflict-marker');
+  assert(hits.length === 3, 'conflictMarkerCheck：三個標記各報一條 [9b-a]');
+  assert(hits.every((x) => x.severity === 'P0'), 'conflictMarkerCheck：severity===P0（檔案內容有歧義，比風格債嚴重）[9b-b]');
+  assert(hits.some((x) => /第 4 行/.test(x.detail)), 'conflictMarkerCheck：detail 指出行號，讀者直接跳過去修 [9b-c]');
+  assert(hits.every((x) => x.file === 'plugins/loops-workflow/skills/x/SKILL.md'), 'conflictMarkerCheck：file 指回真實可打開的路徑 [9b-d]');
+}
+{
+  // 反向一：**setext H1 底線**是合法 markdown（標題下一行 7 個等號），不得誤報——
+  // 這是無條件抓 `=======` 的天真實作會踩爆的那一格。
+  const setext = '這是標題\n=======\n\n內文。\n';
+  const findings = conflictMarkerCheck({ 'plugins/loops-workflow/docs/a.md': setext });
+  assert((findings || []).length === 0, 'conflictMarkerCheck：setext H1 底線（未先出現 <<<<<<<）不誤報 [9b-e]');
+}
+{
+  // 反向二：乾淨檔、以及「文中提到衝突標記但不在行首」的敘述性內容，都不得誤報。
+  const clean = '# 說明\n\n合併衝突時 git 會插入 <<<<<<< 這種標記在行首。\n\n完。\n';
+  const findings = conflictMarkerCheck({ 'plugins/loops-workflow/docs/b.md': clean });
+  assert((findings || []).length === 0, 'conflictMarkerCheck：標記出現在行中（非行首）→ 不誤報 [9b-f]');
+}
+{
+  // 反向三：長度必須**恰好 7**——markdown 的長分隔線（8 個以上）不是衝突標記。
+  const longer = '<<<<<<<<<<<<<<<< 裝飾線\n\n內文\n';
+  const findings = conflictMarkerCheck({ 'plugins/loops-workflow/docs/c.md': longer });
+  assert((findings || []).length === 0, 'conflictMarkerCheck：8 個以上的 < 不是 git 標記 → 不誤報 [9b-g]');
+}
+{
+  // .mjs 也掃得到（衝突標記在 code 裡會直接讓檔案語法錯誤，但 lint 先於執行）。
+  const js = `const a = 1;\n${'<<<<<<< HEAD'}\nconst b = 2;\n${'>>>>>>> other'}\n`;
+  const findings = conflictMarkerCheck({ 'plugins/loops-workflow/scripts/x.mjs': js });
+  assert((findings || []).length === 2, 'conflictMarkerCheck：.mjs 同樣掃得到 [9b-h]');
+}
+{
+  // 邊界：空 map／空內容／非字串內容都不炸。
+  assert(conflictMarkerCheck({}).length === 0, 'conflictMarkerCheck：空 map → 無 finding [9b-i]');
+  assert(conflictMarkerCheck().length === 0, 'conflictMarkerCheck：無參數不炸 [9b-j]');
+  assert(conflictMarkerCheck({ 'a.md': null }).length === 0, 'conflictMarkerCheck：內容為 null 不炸 [9b-k]');
+  assert(conflictMarkerCheck({ 'a.md': '<<<<<<<\n=======\n>>>>>>>\n' }).length === 3,
+    'conflictMarkerCheck：標記後面直接換行（無空格、無分支名）仍命中 [9b-l]');
 }
 
 // ══════════════════════════════════════════════════════════════════════════

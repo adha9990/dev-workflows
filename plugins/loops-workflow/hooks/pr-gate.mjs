@@ -4,7 +4,7 @@
 // （worktree 路徑段或 `.git/HEAD` 反查 `.loops/<slug>/loop.md` 存在）時生效。
 //
 // 依指令型別分派各自適用的閘（`classifyPrCommand` → create / ready / comment），依序、命中即擋：
-//   `gh pr create` → 閘①②③⑥④⑤；`gh pr ready` → 閘⑥④⑤；`gh pr comment` → 閘⑤。
+//   `gh pr create` → 閘①②③⑥⑦④⑤；`gh pr ready` → 閘⑥⑦④⑤；`gh pr comment` → 閘⑤。
 //   （既有三閘①②③ 維持只作用於 `gh pr create`，不套到 ready/comment，避免誤擋。）
 //
 //   ① `stages/04-verify.md` 不存在 → deny（build 完必先過 verify，不能跳過直接送審）
@@ -26,6 +26,16 @@
 //     真 marker 一定在 raw、藏不掉）。最近一輪仍有未修 P0/P1（verdict=not-ready 或 p0/p1>0）→ deny，除非
 //     **知情豁免**：非 auto 且 `.loops/<slug>/blocking-waiver.md` 非空 → 放行；**auto 一律不認 waiver**
 //     （防用豁免繞過、對齊 auto 硬煞車 #4）。兩視圖皆無 marker / 讀檔失敗 → fail-open 放行。
+//   ⑦ 第二輪確認沒跑（#209，create + ready）：同一個 marker 多讀兩個欄位
+//     `findings=<候選 blocking 條數> validated=<經 finding-validator 確認的條數>`。
+//     `findings>0 && validated===0` → deny：報告自己承認有候選 blocking finding、卻一條都沒過二輪確認。
+//     **這一格是本閘唯一擋的事**，其餘一律放行：
+//       - 兩欄位皆缺（舊報告 / 舊版 verify）→ 放行。**缺席 ≠ 沒派**，把「不知道」當違規就是造假數字；
+//       - `findings=0` → 放行（零候選本來就不必派 validator）。
+//     唯一的 fail-safe 例外：**已宣告 `findings>0` 卻沒宣告 `validated`** → deny。這只打得到「已經
+//     採用新契約、卻只寫一半」的報告（舊報告連 `findings` 都沒有、打不到），且修法就是補上那個數字。
+//     **本閘不認 `blocking-waiver.md`**——那份豁免的語意是「知情接受這些風險」，但二輪確認沒跑時
+//     風險根本還沒被評估過，沒有東西可以知情接受。確需繞過只有 `LOOPS_PR_VALIDATION_GATE=0`。
 //
 // 非 loop 分支／非受管 gh pr 指令／任何判不出的情況（含 detached HEAD）一律放行——這是提醒型
 // 守衛，不能因為自己判斷不出來就卡住人。
@@ -41,11 +51,12 @@
 // （重用 worktree-guard.mjs 的 findLoopRoot——它的祖先上溯天然涵蓋 worktree cwd 剝
 // `.claude/worktrees/<slug>` 後綴的那幾層，不必另外維護一條「捷徑」路徑）。
 //
-// 四個獨立 flag（皆 defaultOn，僅字面 '0' 關；各守一組行為、逃生口互不牽連）：
-//   LOOPS_PR_GATE          → 閘①②③（build 完先 verify／draft+assignee／Closes 開法，只作用 create）
-//   LOOPS_PR_REALRUN_GATE  → 閘④（真機截圖 receipt，作用 create + ready）
-//   LOOPS_PR_BLOCKING_GATE → 閘⑥（P0/P1 未清不准收圈，作用 create + ready；純讀檔）
-//   LOOPS_PR_CONFLICT_GATE → 閘⑤（合併衝突，作用 create + ready + comment；唯一 spawn gh）
+// 五個獨立 flag（皆 defaultOn，僅字面 '0' 關；各守一組行為、逃生口互不牽連）：
+//   LOOPS_PR_GATE           → 閘①②③（build 完先 verify／draft+assignee／Closes 開法，只作用 create）
+//   LOOPS_PR_REALRUN_GATE   → 閘④（真機截圖 receipt，作用 create + ready）
+//   LOOPS_PR_BLOCKING_GATE  → 閘⑥（P0/P1 未清不准收圈，作用 create + ready；純讀檔）
+//   LOOPS_PR_VALIDATION_GATE→ 閘⑦（第二輪確認沒跑不准收圈，作用 create + ready；純讀檔）
+//   LOOPS_PR_CONFLICT_GATE  → 閘⑤（合併衝突，作用 create + ready + comment；唯一 spawn gh）
 // fail-open：payload 壞 / 讀檔失敗 / 判不出分支 / gh 錯誤一律放行 exit 0，永不因 hook 故障卡住使用者。
 //
 // 閘⑤ 的 `gh` spawn 不會遞迴觸發 PreToolUse——PreToolUse 只對 model 的 tool call 觸發，不對 hook
@@ -250,10 +261,17 @@ export function stripCodeForMarker(text) {
 }
 
 /**
- * 閘⑥：從**已預處理**的文字取最後一個機械 marker，回傳 `{ verdict, p0, p1, round }` 或 null。
- * 契約：`<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`；`matchAll` global、
- * 取**最後一個**（多輪 append 最近一輪 wins；`round` 僅供人讀、不用於選取）；無行錨（`[^>]*?` 不跨
- * `-->`）CRLF 安全。verdict 原樣回字串（呼叫端**嚴格全等**比對，絕不 `includes`——`not-ready` 內含 `ready`）。
+ * 閘⑥⑦：從**已預處理**的文字取最後一個機械 marker，回傳
+ * `{ verdict, p0, p1, round, findings, validated }` 或 null。
+ * 契約：`<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> findings=<n> validated=<n> -->`；
+ * `matchAll` global、取**最後一個**（多輪 append 最近一輪 wins；`round` 僅供人讀、不用於選取）；無行錨
+ * （`[^>]*?` 不跨 `-->`）CRLF 安全。verdict 原樣回字串（呼叫端**嚴格全等**比對，絕不 `includes`——
+ * `not-ready` 內含 `ready`）。
+ *
+ * `findings`/`validated`（#209）是**後加的欄位**：`findings`＝這一輪去重後的候選 blocking finding 條數、
+ * `validated`＝其中經 finding-validator 二輪確認的條數。與 `p0`/`p1` 是不同的量——後者是**判定當下仍未修**
+ * 的條數（Ready 時必為 0），所以 `p0=0 p1=0` 完全不代表「這一輪沒有 finding」，也就無法用來判斷第二輪
+ * 有沒有跑。缺欄位一律回 `undefined`（**不補 0**）——舊報告沒有這兩欄，補 0 會把「沒寫」讀成「零條」。
  */
 export function extractLatestMarker(text) {
   if (typeof text !== 'string') return null;
@@ -268,7 +286,14 @@ export function extractLatestMarker(text) {
     const n = Number.parseInt(v, 10);
     return Number.isNaN(n) ? undefined : n;
   };
-  return { verdict: field('verdict'), p0: num(field('p0')), p1: num(field('p1')), round: num(field('round')) };
+  return {
+    verdict: field('verdict'),
+    p0: num(field('p0')),
+    p1: num(field('p1')),
+    round: num(field('round')),
+    findings: num(field('findings')),
+    validated: num(field('validated')),
+  };
 }
 
 /**
@@ -310,6 +335,38 @@ export function hasBlockingFindings(parsed) {
   if (typeof parsed.p0 === 'number' && parsed.p0 > 0) return true;
   if (typeof parsed.p1 === 'number' && parsed.p1 > 0) return true;
   return false;
+}
+
+/**
+ * 閘⑦（#209）：這份 verify verdict 是否代表「第二輪確認沒跑」。**只擋一件事**——報告自報有候選
+ * blocking finding，卻自報零條經過 finding-validator 確認。
+ *
+ * 判定表（**放行是預設，deny 是例外**）：
+ *   | findings | validated | 結果 | 為什麼 |
+ *   |---|---|---|---|
+ *   | 缺席 | 任意 | false | 舊報告 / 舊版 verify 沒有這個欄位。**缺席 ≠ 沒派**，不知道就不擋。 |
+ *   | 0 | 任意 | false | 零候選 finding 本來就不必派 validator。 |
+ *   | >0 | >0 | false | 第二輪跑過了。 |
+ *   | >0 | 0 | **true** | 有候選卻零確認 —— 這就是本閘存在的理由。 |
+ *   | >0 | 缺席 / 無法解析 | **true** | 已採用新契約卻只寫一半，fail-safe 向 deny（見下）。 |
+ *
+ * 最後一列是唯一的 fail-safe：它**打不到舊報告**（舊報告連 `findings` 都沒有，落在第一列放行），
+ * 只打得到「已經開始寫 `findings=` 卻漏掉 `validated=`」的半套 marker，而那個修法就是補上數字。
+ * null（無 marker / 讀檔失敗）→ false，同 fail-open 精神。
+ */
+export function validationSkipped(parsed) {
+  if (!parsed) return false;
+  if (typeof parsed.findings !== 'number' || parsed.findings <= 0) return false;
+  return typeof parsed.validated !== 'number' || parsed.validated === 0;
+}
+
+/**
+ * 閘⑦：verify 報告是否代表「第二輪確認沒跑」。與閘⑥ 同一套 raw + fence-robust **兩視圖聯合、
+ * 任一命中即擋**（fail-safe 方向一致；理由同 `verifyReportBlocks` 的 doc-comment）。
+ */
+export function verifyReportSkipsValidation(text) {
+  if (typeof text !== 'string') return false;
+  return validationSkipped(parseLatestVerifyVerdict(text)) || validationSkipped(extractLatestMarker(text));
 }
 
 /**
@@ -396,6 +453,24 @@ function buildBlockingDenyReason(slug, parsed, auto) {
     `硬條件是 P0/P1 清零（見 iterate §5）。請先把未修的 P0/P1 修完、再跑一輪 verify 到 Ready 再重試。` +
     exemptionLine +
     `確需繞過本閘：設 LOOPS_PR_BLOCKING_GATE=0。`
+  );
+}
+
+function buildValidationDenyReason(slug, parsed) {
+  const missing = typeof parsed?.validated !== 'number';
+  const counts = `findings=${parsed?.findings ?? '?'} validated=${missing ? '(缺)' : parsed.validated}`;
+  const body = missing
+    ? `marker 宣告了 \`findings=${parsed?.findings ?? '?'}\` 卻沒宣告 \`validated=\`——補上「其中幾條經過 ` +
+      `finding-validator 二輪確認」這個數字再重試（真的一條都沒確認就寫 \`validated=0\`，本閘會如實擋下）。`
+    : `這一輪有 ${parsed?.findings} 條候選 blocking finding，卻沒有任何一條經過 \`finding-validator\` 的` +
+      `二輪確認（是否真實 / 是否本次引入 / 是否已被既有防護處理 / 修法是否對症）。**未經確認的 finding ` +
+      `不該驅動 iterate**——會去修根本不需要修的東西。請對每條候選 blocking finding 派 ` +
+      `\`finding-validator\`，把結果寫回報告的 \`Validation coverage\`，並更新 marker 的 \`validated=\`。`;
+  return (
+    `這是 loop \`${slug}\` 的分支，最近一輪 verify 的第二輪確認沒跑（${counts}）——` +
+    body +
+    `\n\n本閘**不認 \`blocking-waiver.md\`**：那份豁免的語意是「知情接受這些風險」，但二輪確認沒跑時` +
+    `風險還沒被評估過，沒有東西可以知情接受。確需繞過：設 LOOPS_PR_VALIDATION_GATE=0。`
   );
 }
 
@@ -565,8 +640,9 @@ function denyWith(reason) {
  * PreToolUse(Bash|PowerShell) hook 入口：依指令型別（create / ready / comment）跑各自適用的閘，
  * 依序、命中即 deny；非受管 gh pr 指令 / 非 loop 分支 / 判不出分支一律放行。fail-open：payload 壞 /
  * 缺欄位 / 任何讀檔或 gh 錯誤一律放行。
- *   create  → ①②③（LOOPS_PR_GATE）→ ④（LOOPS_PR_REALRUN_GATE）→ ⑤（LOOPS_PR_CONFLICT_GATE）
- *   ready   → ④ → ⑤
+ *   create  → ①②③（LOOPS_PR_GATE）→ ⑥（LOOPS_PR_BLOCKING_GATE）→ ⑦（LOOPS_PR_VALIDATION_GATE）
+ *             → ④（LOOPS_PR_REALRUN_GATE）→ ⑤（LOOPS_PR_CONFLICT_GATE）
+ *   ready   → ⑥ → ⑦ → ④ → ⑤
  *   comment → ⑤
  * 閘⑤（唯一 spawn gh）殿後：廉價的檔案 / 字串判定全過才 spawn，省無謂子行程（仿 merge-guard
  * 「便宜判定放前面」）。
@@ -588,8 +664,9 @@ function main() {
   const runClosesGates = flagEnabled('LOOPS_PR_GATE', process.env) && kind === 'create'; // ①②③
   const runRealRun = flagEnabled('LOOPS_PR_REALRUN_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ④
   const runBlocking = flagEnabled('LOOPS_PR_BLOCKING_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ⑥
+  const runValidation = flagEnabled('LOOPS_PR_VALIDATION_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ⑦
   const runConflict = flagEnabled('LOOPS_PR_CONFLICT_GATE', process.env); // ⑤（三型皆可能）
-  if (!runClosesGates && !runRealRun && !runBlocking && !runConflict) return;
+  if (!runClosesGates && !runRealRun && !runBlocking && !runValidation && !runConflict) return;
 
   const cwd = typeof payload?.cwd === 'string' ? payload.cwd : process.cwd();
 
@@ -632,9 +709,13 @@ function main() {
   // 閘⑥（#188）：verify 仍有未修 P0/P1 → 不准收圈（create + ready）。排在閘④ 前——verify blocking
   // 比截圖 receipt 更根本；仍在唯一 spawn gh 的閘⑤ 之前（純讀檔、廉價）。blocking 時：auto 一律 deny
   // （waiver 不認、防繞過）；非 auto 則有非空 waiver 才放行（知情豁免）。
-  if (runBlocking) {
+  // 閘⑥⑦ 共讀同一份 verify 報告：兩閘都是純讀檔、判的是**同一個 marker 的不同欄位**（⑥ 看 p0/p1
+  // ＝仍未修的 blocking 條數，⑦ 看 findings/validated ＝這一輪有幾條候選、確認了幾條），沒有理由
+  // 讀兩次。⑥ 排在 ⑦ 前：還有未修 P0/P1 時，先講那件更根本的事。
+  if (runBlocking || runValidation) {
     const verifyText = readVerifyText(loopRoot, slug);
-    if (verifyReportBlocks(verifyText)) {
+
+    if (runBlocking && verifyReportBlocks(verifyText)) {
       const auto = isAutoMode(process.env, readLoopMdText(loopRoot, slug));
       if (auto || !waiverExists(loopRoot, slug)) {
         // deny 訊息挑「真正 blocking 的那個 marker」的計數顯示（stripped 優先，退 raw）。
@@ -643,6 +724,15 @@ function main() {
         denyWith(buildBlockingDenyReason(slug, parsed, auto));
         return;
       }
+    }
+
+    // 閘⑦（#209）：第二輪確認沒跑 → 不准收圈。**不認 waiver**（見檔頭 ⑦ 說明：風險還沒被評估過，
+    // 沒有東西可以知情接受），所以也不必判 auto/attended——兩者一視同仁。
+    if (runValidation && verifyReportSkipsValidation(verifyText)) {
+      const strM = parseLatestVerifyVerdict(verifyText);
+      const parsed = validationSkipped(strM) ? strM : extractLatestMarker(verifyText);
+      denyWith(buildValidationDenyReason(slug, parsed));
+      return;
     }
   }
 

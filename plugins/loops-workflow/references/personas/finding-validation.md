@@ -6,7 +6,12 @@
 
 ## 何時要驗證
 
-任何 finding 進 `Blocking findings` 之前都要驗證，除非 coordinator 能直接從 code 或明確專案規則驗證它。以下必驗：
+> **這一節是寫給 coordinator 的，但本檔是注入給 validator 的**——沒派 validator 的時候，沒有人讀得到它。
+> 所以「什麼時候可以不派」的**執行版**規則在 `skills/verify/SKILL.md` 步驟 3（coordinator 唯一一定會讀到的地方）：
+> 去重後**先標候選嚴重度**，每條候選 blocking 都要派；免驗要**逐條在 `Validation coverage` 寫明理由**，
+> 沉默跳過一律當步驟 3 未執行。本節是同一條規則的判準細節，不是它的豁免條款。
+
+任何 finding 進 `Blocking findings` 之前都要驗證，除非 coordinator 能直接從 code 或明確專案規則驗證它（**且把該條的自證理由寫進報告**）。以下必驗：
 
 - 只有一個 reviewer 報了這個問題；
 - 信心 `75`、但依賴周邊 code / caller / middleware / runtime 順序 / 需求解讀；

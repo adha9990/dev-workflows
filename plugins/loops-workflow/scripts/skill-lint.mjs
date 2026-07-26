@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // skill-lint.mjs —— 掃 loops-workflow plugin 樹，抓 skill/agent 描述膨脹、審查內容漂移、
-// reference 斷鏈/孤兒、文件計數失準、已刪指令殘留、flag 分類與 hooks 掛載未同步七類維護債。
+// reference 斷鏈/孤兒、文件計數失準、已刪指令殘留、未解合併衝突標記、flag 分類與 hooks 掛載
+// 未同步八類維護債。
 // 分層：
 //   1) 解析 / 判定層（純函式，無 IO）：parseDescription / footprintCheck / wordSet / jaccard /
 //      stripDeepVariantNote / stripFrontmatter / duplicateCheck / deepSyncCheck /
-//      referenceIntegrityCheck / countLintCheck / deadCommandCheck / parseFlagDefaults /
-//      flagSyncCheck / hooksWiringCheck / formatSummary —— 給單元測試直接 import。
+//      referenceIntegrityCheck / countLintCheck / deadCommandCheck / conflictMarkerCheck /
+//      parseFlagDefaults / flagSyncCheck / hooksWiringCheck / formatSummary —— 給單元測試直接 import。
 //   2) IO 薄邊界：walk（掃檔）與 CLI main（組裝、印出、決定 exit code）——
 //      main 被 import 時不執行（import.meta.url 守門）。
 // 依賴：僅 node 內建（fs / path / url / process），無外部套件。
@@ -430,6 +431,47 @@ export function deadCommandCheck(map) {
       if (content.includes(token)) {
         findings.push({ check: 'dead-command', severity: 'P1', file, detail: `殘留已刪指令「${token}」` });
       }
+    }
+  }
+
+  return findings;
+}
+
+// ── #209：未解的合併衝突標記 ────────────────────────────────────────────────────
+
+/**
+ * 未解的 git 合併衝突標記留在受管檔裡 → P0。
+ *
+ * 為什麼要有這條：`skills/verify/SKILL.md` 帶著三行衝突標記被 commit 進 master（#188），接著活過
+ * **11 次後續合併**、skill-lint / docs-lint / reference-graph / 18 道 final-acceptance 閘與 72 支測試
+ * ——**沒有任何一個在找它**。規則檔裡夾著兩份互相矛盾的段落，讀它的 agent 得到的是有歧義的指示。
+ *
+ * 判定刻意收緊，避免 markdown 誤報：
+ *   - `<<<<<<<` / `>>>>>>>`（**恰好 7 個**、後接空白或行尾）在任何 markdown / JS 語境都沒有合法意義 → 直接命中；
+ *   - `=======` **只在同一份檔案已經先出現過 `<<<<<<<` 時**才算標記——單獨的 7 個等號是合法的
+ *     **setext H1 底線**（`標題` 下面一行 `=======`），無條件命中會把正常文件判紅。
+ *
+ * 掃描面用 `lintScanMap`（沿用 `isExcludedFromLintScan` 的既有界線：test-*.mjs 與 skill-lint 自身
+ * 的字面是合成 fixture、不是真違規）。代價是**測試檔裡的真衝突標記掃不到**——這是本 repo 對
+ * 「合成字面」既有共識的一致代價，不為這條檢查另立一套名單。
+ */
+export function conflictMarkerCheck(map) {
+  const findings = [];
+
+  for (const file of Object.keys(map ?? {})) {
+    const lines = String(map[file] ?? '').split(/\r?\n/);
+    let opened = false;
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      const hit = (marker) => findings.push({
+        check: 'conflict-marker',
+        severity: 'P0',
+        file,
+        detail: `第 ${i + 1} 行殘留未解的合併衝突標記「${marker}」——這份檔的內容是有歧義的，讀它的人與 agent 會拿到兩份互相矛盾的段落`,
+      });
+      if (/^<{7}(?=[ \t]|$)/.test(line)) { opened = true; hit('<<<<<<<'); }
+      else if (/^>{7}(?=[ \t]|$)/.test(line)) hit('>>>>>>>');
+      else if (opened && /^={7}[ \t]*$/.test(line)) hit('=======');
     }
   }
 
@@ -1023,11 +1065,13 @@ export function buildReport(root) {
   const deepSyncFindings = deepSyncCheck(buildDeepSyncPairs(agentsList), DEEP_SYNC_THRESHOLD);
   const countLint = countLintCheck(countLintMap, computeActualCounts(root));
   const deadCommandFindings = deadCommandCheck(lintScanMap);
+  const conflictFindings = conflictMarkerCheck(lintScanMap);
   const flagAndWiring = buildFlagAndWiringResults(fullMap, root);
 
   // footprint 命中降為 informational notes（與 countLint 的非強制鍵 notes 同機制）：
   // 提醒既有內容該瘦身，但不因既有債把每次跑判紅、擋住其餘檢查的綠燈。
   const findings = [
+    ...conflictFindings, // P0 排最前：檔案本身有歧義時，其餘檢查讀到的是哪一份都說不準
     ...referenceFindings,
     ...duplicateFindings,
     ...deepSyncFindings,

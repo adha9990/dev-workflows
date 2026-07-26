@@ -68,7 +68,10 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 ### 3. 驗 findings — 去重 + 二輪確認
 
 - **coordinator（主線）**去重、濾純 style / 低信心雜訊；併入本機 `/code-review` 的 findings。
-- **finding-validator 二輪**：每個 blocking finding 確認 是否真實 / 是否本次引入 / 是否已被 caller·middleware·既有防護處理 / 修法是否對症 → `validated` / `rejected` / `degraded`（判準見 `references/personas/finding-validation.md`）。
+- **先標候選嚴重度，再派 validator（順序不可對調）**：去重後**當場**給每條 finding 一個**候選** P0–P2 / P3（判準同步驟 5 的 `references/personas/reviewer-severity.md`），P0–P2 即**候選 blocking**。這一步刻意提前到這裡——嚴重度若留到步驟 5 才標，步驟 3 執行當下「哪些算 blocking」根本還沒定案，「這幾條不算 blocking」就成了一個合法、無人複查、也不必留痕的自我豁免出口（**#209 實測踩到**：一整條 loop 派了 10 個 reviewer、`finding-validator` **一個都沒派**，4 條 finding 未經確認直接驅動了 iterate）。候選級只是輸入，步驟 5 仍可依 validator 回覆調整。
+- **finding-validator 二輪**：**每條候選 blocking finding 都要派**，確認 是否真實 / 是否本次引入 / 是否已被 caller·middleware·既有防護處理 / 修法是否對症 → `validated` / `rejected` / `degraded`（判準見 `references/personas/finding-validation.md`）。
+  - **「不必派」不是可以沉默行使的判斷**：`finding-validation.md` 允許 coordinator 對「能直接從 code 或明確專案規則自證」的條目免驗——但那份判準檔是**注入給 validator 的**，coordinator 不會拿到它（步驟 2 的參考檔對照表）。也就是說，**沒派的時候，決定「可以不派」的規則沒有任何人讀得到**。因此在本 skill 這一側改成：免驗要**逐條在報告的 `Validation coverage` 寫下「哪一條、憑什麼自證」**，寫不出來就派。沉默跳過一律當「步驟 3 未執行」。
+  - **在報告寫下兩個數字**：`候選 blocking N 條 / 經二輪確認 M 條`，並填進步驟 5 marker 的 `findings=` / `validated=`。**`N>0 且 M=0` 就是第二輪被跳過**——這是 pr-gate 閘⑦ 唯一擋的事（見步驟 5）。零候選（`N=0`）本來就不必派 validator，如實寫 `findings=0` 即可，不是違規。
 - **MUCR 收貨檢查（承步驟 2）**：若這回合派了 `multi-user-concurrency-reviewer`，coordinator 去重前先確認它交出了兩張表（逐格窮舉表 + 「同一問題被回答幾次」對照表）與測試可觀測性核對——**缺表 → 該軸判「未跑 / 證據不足」，重派或擋 acceptance，不當 clean 放行**（見步驟 2）。
 
 ### 4. acceptance 閘 — 有沒有做到 issue（所有級通用）
@@ -86,14 +89,10 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 - 每個 finding 標 **P0–P2（P3 落 Non-blocking notes）+ Confidence(50/75/100) + Route**（見 `references/personas/reviewer-severity.md`），先工程視角（哪檔哪行 + 機制 + 驗證）再使用者視角（什麼操作會踩到 + 看到什麼）；沒實跑標 `not measured`（**Metric-Honesty**）。
 - 主線 merge 成 **Ready / Not ready** 寫 `stages/04-verify.md` + 摘要，**直接進 iterate**（routine 不問）；**只有出 P0** 才停下開一個決策點問（先修 / 接受風險 / 看細節；表述形狀與各平台互動能力的映射見 `references/shared/delivery/interaction-adapter.md`）。
   - **每輪判定末尾寫一行機械可讀 marker（放判定段最末、每輪都寫、不藏進 code fence）**：
-    `<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`
-<<<<<<< HEAD
+    `<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> findings=<n> validated=<n> -->`
     其中 `p0`/`p1`＝**判定當下仍未修（blocking）的** P0/P1 條數（Ready ⟹ `p0=0 p1=0`）、`round`＝第幾輪、`verdict`＝Ready 時 `ready`、Not ready 時 `not-ready`。這是 `hooks/pr-gate.mjs` **閘⑥**（`LOOPS_PR_BLOCKING_GATE`）的**唯一機械可讀契約**——閘⑥ 取報告裡**最後一個** marker（raw 與 fence-robust 兩視圖聯合、fail-safe）判「收圈硬條件＝P0/P1 清零」，仍有未清時 deny `gh pr create`/`ready`（除非 attended 知情豁免 `blocking-waiver.md`；auto 不認）。**兩視圖皆無 marker / 讀檔失敗時閘⑥ fail-open 放行**——所以每輪務必吐、**寫成獨立一行、不藏進 code fence**，這道機械閘才有牙（HTML 註解、rendered 不可見、不干擾人讀）。
+    `findings`/`validated`＝**步驟 3 的候選 blocking finding 條數**與**其中經 `finding-validator` 二輪確認的條數**（見步驟 3）。**這兩個數字和 `p0`/`p1` 量的是不同的東西**：`p0`/`p1` 是「判定當下**仍未修**」，Ready 時必為 0——所以它們永遠回答不了「這一輪到底有沒有 finding、第二輪有沒有跑」，那正是第二輪被整段跳過卻無人察覺的原因（#209 實測：一整條 loop 派了 10 個 reviewer、**0 個 `finding-validator`**，4 條 finding 未經確認就驅動了 iterate）。`hooks/pr-gate.mjs` **閘⑦**（`LOOPS_PR_VALIDATION_GATE`）讀這兩欄：`findings>0 && validated=0` → deny。**兩欄缺席 → fail-open 放行**（舊報告相容；缺席 ≠ 沒派，不知道就不擋）；但**已寫 `findings>0` 卻沒寫 `validated=`** → deny（半套契約，補上數字即可）。閘⑦ **不認 `blocking-waiver.md`**：那份豁免的語意是「知情接受這些風險」，二輪確認沒跑時風險還沒被評估過，沒有東西可以知情接受。
 - **回環再驗（delta re-verify）**：iterate 修完回來，聚焦「改了什麼 + **波及面**（誰用到被改的）」再派 fresh reviewer 驗一輪 —— 不是只重跑 diff、更不是只看測試綠；改到共用元件要把 consumer 一起納入。修完一律再驗，是 closed-loop 預設、不是選項。**再驗一律走本 skill 步驟 1 選軸**（依 fix + 波及面的領域定核心軸 + 加派 conditional reviewer），**不是臨場手挑幾個 reviewer 充當再驗** —— 手挑子集會把改動所在領域最該派的 lens 系統性跳過（例：修同步 / 併發競態 / **前端樂觀狀態層（樂觀更新 / 回滾 / 快照對帳）**卻沒派 `multi-user-concurrency-reviewer`〔窮舉事件順序 / 亂序 / lost-update / read-your-writes ＋前端樂觀層歸屬 / 回滾語意 / 變動歸因 / 本地預測 vs 伺服器真相 / 失敗路徑對稱性〕、修 bug 沒派 `root-cause`），於是 sibling 競態 / 同類入口一輪一輪被外部 reviewer 才抓到、而非內部一次收斂。
-=======
-    其中 `p0`/`p1`＝**判定當下仍未修（blocking）的** P0/P1 條數（Ready ⟹ `p0=0 p1=0`）、`round`＝第幾輪、`verdict`＝Ready 時 `ready`、Not ready 時 `not-ready`。這是 `hooks/pr-gate.mjs` **閘⑥**（`LOOPS_PR_BLOCKING_GATE`）的**唯一機械可讀契約**——閘⑥ 取報告裡**最後一個** marker（raw 與 fence-robust 兩視圖聯合、fail-safe）判「收圈硬條件＝P0/P1 清零」，仍有未清時 deny `gh pr create`/`ready`（除非 attended 知情豁免 `blocking-waiver.md`；auto 不認）。**兩視圖皆無 marker / 讀檔失敗時閘⑥ fail-open 放行**——所以每輪務必吐、**寫成獨立一行、不藏進 code fence**，這道機械閘才有牙（HTML 註解、rendered 不可見、不干擾人讀）。
-- **回環再驗（delta re-verify）**：iterate 修完回來，聚焦「改了什麼 + **波及面**（誰用到被改的）」再派 fresh reviewer 驗一輪 —— 不是只重跑 diff、更不是只看測試綠；改到共用元件要把 consumer 一起納入。修完一律再驗，是 closed-loop 預設、不是選項。**再驗一律走本 skill 步驟 1 選軸**（依 fix + 波及面的領域定核心軸 + 加派 conditional reviewer），**不是臨場手挑幾個 reviewer 充當再驗** —— 手挑子集會把改動所在領域最該派的 lens 系統性跳過（例：修同步 / 併發競態卻沒派 `multi-user-concurrency-reviewer`〔專門窮舉事件順序 / 亂序 / lost-update / read-your-writes〕、修 bug 沒派 `root-cause`），於是 sibling 競態 / 同類入口一輪一輪被外部 reviewer 才抓到、而非內部一次收斂。
->>>>>>> c06f70f (fix(pr-gate): 閘⑥ marker 解析 fence-robust——raw+stripped 兩視圖 fail-safe (#188))
   - **驗證深度只進不退（下界棘輪）**：上一輪若有 finding 是被某個**更深的驗證手段**第一次看見的（首次真機驅動 / 首次 scripted 量測 / 某個 lens 第一次看這塊——即 `iterate` §5 的「findings 沒變少先歸因」判成**進展**的那種），**該手段納入本輪與其後每輪再驗的下界、不得退回淺驗證**。否則下一輪的「findings 變少」是**驗證變淺造成的假象**，收斂判斷會被它騙過。
   - **機械化：re-verify 選軸推導表（不靠當下記得、非空殼）**。每輪 delta re-verify **在 fan-out 之前**於 `stages/04-verify.md` 寫一份**選軸推導表**——逐列 `本輪改動領域 / 簽名 → 步驟 1 定的核心軸下界 → 觸發的 conditional lens`（依 `references/stages/optional-reviewers.md` 觸發對照表逐條核：並發 / 前端樂觀狀態層〔樂觀更新 / 回滾 / 快照對帳〕→`multi-user-concurrency`〔專案宣告多人才觸發〕、bug fix→`root-cause`、queue/背景→`processing-reliability`、UI→`frontend-ui`/`accessibility`、migration→`migration`…；**延後回呼 / debounce / timer 捕捉可變 target 的 stale-capture 由恆派的 `code-quality`〔correctness §六〕承接，不必另派 conditional**）。**這份表不是事後補的合理化**：Verification 要求 (1) 表在派 reviewer **之前**寫、(2) **這輪實際派出的 reviewer 集合＝表推導出的集合**（下一輪 verify / 人可對 fan-out 記錄否證）。這是把既有的「走步驟 1 選軸」文字警告變成**必寫、可否證的 checklist gate**，堵住「憑印象手挑子集」。此表**單一真相源在本步驟**；iterate §4 指回這裡、不另立第二份。
   - **裁測 consolidation override（iterate 收尾裁測、測試移除）**：這輪改動＝收尾裁測 pass 時，**不套步驟 1「test-only→瑣碎→核心軸 0」**——刪測試不會紅，0 軸＝複查空過、裁過頭無人抓；推導表該列固定寫 `核心軸（至少 code-quality）＋ tests（fresh）`，複查「裁掉的有沒有守著行為的、留下的過不過 `test-rubric.md` §10 判必要下限」。
@@ -108,6 +107,7 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 - 碰 auth / migration 等高風險硬閘卻按瑣碎 / 小孤立級縮軸（「小 ≠ 安全」，2 行可釀數月漏洞，一律高風險 6 核心滿派）。
 - tests-reviewer 被餵「作者說已過」；或把作者辯護餵給 reviewer 當框架（只給 artifact + 契約）。
 - blocking finding 沒過 finding-validator 就進報告；或出現未實測的效能 / 覆蓋率數字。
+- **有候選 blocking finding，卻一個 `finding-validator` 都沒派**（`findings>0 validated=0`）—— 第二輪確認被整段跳過，未經確認的 finding 直接驅動 iterate，會去修根本不需要修的東西。**「當下覺得這幾條不算 blocking」不是合法出口**：候選級在步驟 3 就要標、免驗要逐條寫理由，沉默跳過一律當步驟 3 未執行（pr-gate 閘⑦ 擋）。
 - 報告敘述了**工具沒有實際回傳**的狀態值（merge SHA / CI 結論 / 測試數）——與「未實測數字」不同層：這是把沒執行過的查詢寫成已執行；狀態類宣稱每個都要能指回一條實際跑過的指令輸出（規則 5）。
 - 判 Ready 卻沒對 issue 逐條勾稽 acceptance（findings 清完 ≠ 做到 issue）。
 - **重 UI、jsdom 測不準幾何 / 互動的 loop，jsdom 綠就進 PR、根本沒產出 / 檢視真機 artifact**（把互動正確性整包丟 checklist）—— jsdom 綠對虛擬化幾何 / pointer / 捲動 / 拖放 / 焦點時序不是可信證據，真機 artifact 是 pass-condition（步驟 2 (a)）；只有純視覺手感 / OS 整合才是 checklist 的正解。
@@ -123,8 +123,9 @@ acceptance 閘的核對單位優先用 **GWT 場景 ID（`S1…`，見 `referenc
 - [ ] **步驟 1（專案約定）**：已讀專案 root + 就近 `CLAUDE.md`/`AGENTS.md` 枚舉跨切面約定，對每個新 user-facing / 功能面逐條核（不以通過機械 gate 當滿足），違反者當可行 finding（見 `references/shared/docs/project-conventions.md`）。
 - [ ] **步驟 2**：同一回合並行派出、各一軸；只給 artifact + 契約（不給作者辯護）、tests-reviewer 不被告知已過；跑真 app + 本機 `/code-review` 或據實標 `not measured`；參考檔絕對路徑（含 `context-diet.md`）+ `code-retrieval.md` 路徑 + **本次改動檔清單（含 stale 提醒）**已塞進 reviewer prompt。
 - [ ] **步驟 2（真機/scripted 必要條件）**：重 UI、jsdom 測不準幾何 / 互動的 loop 有**產出並檢視真機 artifact**（非 jsdom-only；(a)）；issue 有 runtime 規模 / 效能 / 請求收斂 / 觀測主張的 AC 有 **scripted 真機量測的可斷言數字**（非 jsdom 代理 / 純文字；(b)）；無 harness 時走 degrade path 標 `not measured` + surface。
-- [ ] **步驟 3**：coordinator 去重後，每個 blocking finding 有 finding-validator 結果。
+- [ ] **步驟 3**：coordinator 去重後**先標候選嚴重度**，每條候選 blocking（P0–P2）有 finding-validator 結果；免驗的逐條在 `Validation coverage` 寫明「哪一條、憑什麼自證」（沉默跳過 ＝ 步驟 3 未執行）。
+- [ ] **步驟 3（機械數字）**：報告寫下「候選 blocking N 條 / 經二輪確認 M 條」，並填進步驟 5 marker 的 `findings=`／`validated=`——`N>0 且 M=0` 是 pr-gate 閘⑦ 唯一擋的事；`N=0` 如實寫 `findings=0`（零候選不必派，不是違規）。
 - [ ] **步驟 4**：acceptance 閘 —— 每條 criterion 收斂到 已滿足（有證據）/ 明確 descoped（留痕）才判 Ready；確證根本做錯 → 整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）。
 - [ ] **步驟 5**：每條 finding 有 P0–P2（P3 落 Non-blocking notes）+ Confidence + Route + Metric-Honesty；結論 Ready / Not ready 進 iterate（只 P0 才停下問）；回環修完再驗一輪。
-- [ ] **步驟 5（機械 marker）**：`stages/04-verify.md` 判定段最末有一行 `<!-- loops-verify verdict=… p0=… p1=… round=… -->`（每輪都寫、不藏 code fence；`p0`/`p1`＝仍未修的 blocking 條數，Ready ⟹ `p0=0 p1=0`）——pr-gate 閘⑥ 讀它判收圈硬條件，缺了閘⑥ fail-open 就形同關閉。
+- [ ] **步驟 5（機械 marker）**：`stages/04-verify.md` 判定段最末有一行 `<!-- loops-verify verdict=… p0=… p1=… round=… findings=… validated=… -->`（每輪都寫、不藏 code fence；`p0`/`p1`＝仍未修的 blocking 條數，Ready ⟹ `p0=0 p1=0`；`findings`/`validated`＝步驟 3 的候選 blocking 條數與經二輪確認條數，**與 `p0`/`p1` 是不同的量**）——pr-gate 閘⑥ 讀前者判收圈硬條件、閘⑦ 讀後者判第二輪有沒有跑，缺了各自 fail-open 就形同關閉。
 - [ ] **步驟 5（delta re-verify 機械化）**：每輪再驗**在 fan-out 前**於 `stages/04-verify.md` 寫了選軸推導表（改動領域 / 簽名 → 核心軸 → conditional lens），且**實際派出的 reviewer 集合＝表推導出的集合**（非事後補、非手挑子集）；**上一輪被更深驗證手段第一次看見缺陷的那個手段，本輪仍在用**（沒退回淺驗證，見 `iterate` §5 歸因）。
