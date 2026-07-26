@@ -45,7 +45,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "affected-sources-tests"
+        "affected-sources-tests",
+        "optimization-pipeline"
       ],
       "required_checks": {
         "hooks": [],
@@ -2217,6 +2218,53 @@
       }
     },
     {
+      "id": "optimization-pipeline",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/optimization-pipeline.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/optimization-pipeline.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "affected-sources",
+        "policy-change"
+      ],
+      "consumers": [
+        "optimization-pipeline-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "optimization-pipeline-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-optimization-pipeline.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-optimization-pipeline.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "optimization-pipeline"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
       "id": "outbound-comment-guard",
       "kind": "hook",
       "paths": [
@@ -2423,6 +2471,7 @@
         "policy-registry"
       ],
       "consumers": [
+        "optimization-pipeline",
         "policy-change-tests"
       ],
       "required_checks": {

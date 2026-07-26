@@ -90,6 +90,19 @@ dispatch → maintainer 讀 policy/component registry → duplicate/coverage/con
 
 SkillOpt 等自動最佳化**不得**改 policy registry、hard hooks、approval contract、eval oracle 與 gold artifact（`gateOptimizerChange()` 機械擋）——讓自動最佳化去動規則本身與評分基準，等於讓被考的人改考卷。
 
+### 8. 受影響來源怎麼跑（#179）
+
+用 `scripts/optimization-pipeline.mjs` 的 `resolveActions()` 由**改到的檔**推出要跑哪些 action，並依固定順序執行——**便宜且確定的先跑**：
+
+`compiler/schema → deterministic tests → code graph refresh → symbol consistency → replay/migration → lifecycle canary → docs/devex checks → skill candidate → prompt eval → token benchmark`
+
+三件事由機械保證：
+
+- **同一個 `optimization_run_id` 內每個來源最多跑一次**——擋掉「optimizer 產出的改動又觸發 optimizer」的無限迴圈。
+- **optimizer 只產 candidate**：改動必須落在 candidate 目錄，不得直接覆寫正式 skill；碰到 policy registry／hard hooks／approval contract／eval oracle 一律拒。
+- **品質關過了才比成本**：hard invariant adherence 與 held-out success／adherence 任一低於 baseline → 拒；**沒量到也拒**（沒量不等於沒退步）。
+- **沒跑的 action 標 `not measured`**——「已安裝」不等於「已優化」。
+
 ## Verification
 
 - [ ] 動筆前跑過 `analyzeProposal()`，判定與建議動作寫進 proposal issue。
