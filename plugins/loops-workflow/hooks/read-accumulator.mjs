@@ -26,6 +26,10 @@ import { flagEnabled } from './hook-flags.mjs';
 // read-gate 只在乎這兩份「對外規範」檔有沒有讀過；basename 精確比對（大小寫不敏感）、忽略路徑。
 const TRACKED_REFERENCE_FILES = ['comment-policy.md', 'outbound-templates.md'];
 
+// #205 純觀測面：`references/` 樹底下的任何 .md。刻意用「路徑含 references/ 段」而不是白名單——
+// 白名單要跟著 reference 增刪維護，漏更新就會靜默少記，而少記正是這個觀測要防的事。
+const ANY_REFERENCE_RE = /(^|\/)references\/.+\.md$/i;
+
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
 
 /** append 一筆已讀 basename：回「新」陣列（不就地改入參）；已存在則去重不重覆加。 */
@@ -70,6 +74,16 @@ function matchTrackedReference(filePath) {
   return TRACKED_REFERENCE_FILES.find((name) => name === base) ?? null;
 }
 
+/**
+ * file_path 是不是 `references/` 樹底下的 .md（#205 純觀測用）；是就回 basename，否則 null。
+ * 用路徑段判而不是白名單：白名單要跟著 reference 增刪維護，漏更新會**靜默少記**，
+ * 而少記正是這個觀測要防的事。
+ */
+export function matchAnyReference(filePath) {
+  const normalized = String(filePath ?? '').split('\\').join('/');
+  return ANY_REFERENCE_RE.test(normalized) ? crossPlatformBasename(filePath) : null;
+}
+
 // ── IO 薄邊界：main()（被 import 時不執行）────────────────────────────────────────
 
 function readStdin() {
@@ -91,6 +105,26 @@ function writeStateFile(sessionId, state) {
 }
 
 /**
+ * 解析 state 檔內容字串 → 觀測欄（#205）。壞 JSON / 無該欄 → []（容錯不丟）。
+ * **與 loadReads 分開**：gate 的判定只吃 loadReads，觀測欄永遠影響不到它。
+ */
+export function loadObserved(rawString) {
+  let parsed;
+  try {
+    parsed = JSON.parse(rawString);
+  } catch {
+    return []; // 壞 JSON / 空字串 → 視為空（同 loadReads 的容錯慣例）
+  }
+  if (!parsed || typeof parsed !== 'object') return [];
+  return Array.isArray(parsed.observed) ? parsed.observed : [];
+}
+
+/** 讀本 session 的觀測欄（純觀測，read-gate 不看它）。 */
+export function readObservedForSession(sessionId) {
+  return loadObserved(readStateRaw(readsStateFile(sessionId)));
+}
+
+/**
  * 讀本 session 已累積的已讀 basename 陣列：state 檔不存在 / 壞 JSON / 無 reads → []（容錯不丟）。
  * accumulator.main 與 outbound-comment-guard 的 read-gate 讀 state 的唯一入口（讀路徑只有
  * readStateRaw 一處）。
@@ -99,9 +133,18 @@ export function readReadsForSession(sessionId) {
   return loadReads(readStateRaw(readsStateFile(sessionId)));
 }
 
-/** 把已讀 basename 陣列落盤成本 session 的 state（{ ts, reads }）；accumulator.main 累積後寫回用。 */
-export function writeReadsState(sessionId, reads) {
-  writeStateFile(sessionId, { ts: Date.now(), reads });
+/**
+ * 把已讀 basename 陣列落盤成本 session 的 state（`{ ts, reads, observed }`）。
+ *
+ * `observed`（#205）是**純觀測**欄：記錄本 session 讀過的**所有** plugin reference basename，
+ * 用來回答「規則寫了有沒有被載入」。它與 read-gate **完全隔離**——gate 只讀 `reads`
+ * （`readReadsForSession`），所以放寬觀測範圍**證明上不會改變 gate 的判定**。
+ * 兩者刻意分兩個欄位而不是共用一個：合併會讓「讀過某份無關規範」意外滿足 gate 的前置條件。
+ * `observed` 去重後天然有界（最多就是 reference 檔數），不需要另設上限。
+ */
+export function writeReadsState(sessionId, reads, observed = null) {
+  const prev = observed === null ? readObservedForSession(sessionId) : observed;
+  writeStateFile(sessionId, { ts: Date.now(), reads, observed: prev });
 }
 
 /**
@@ -126,12 +169,17 @@ function main() {
   const filePath = payload?.tool_input?.file_path;
   if (typeof filePath !== 'string' || !filePath) return; // 無檔路徑 → 無事可記
 
-  const tracked = matchTrackedReference(filePath);
-  if (!tracked) return; // 非受管規範檔 → 不記、不建 state 檔
-
   const sessionId = payload.session_id;
-  const next = addRead(readReadsForSession(sessionId), tracked);
-  writeReadsState(sessionId, next);
+  const tracked = matchTrackedReference(filePath);
+  const observedRef = matchAnyReference(filePath);
+
+  // 兩條路徑各自獨立：受管檔進 gate 用的 reads；任何 reference 進純觀測的 observed。
+  // 非受管、也不是 reference 的檔 → 兩邊都不記、不建 state 檔（維持既有「不亂建檔」行為）。
+  if (!tracked && !observedRef) return;
+
+  const reads = tracked ? addRead(readReadsForSession(sessionId), tracked) : readReadsForSession(sessionId);
+  const observed = observedRef ? addRead(readObservedForSession(sessionId), observedRef) : readObservedForSession(sessionId);
+  writeReadsState(sessionId, reads, observed);
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

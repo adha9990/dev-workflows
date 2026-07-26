@@ -233,15 +233,50 @@ function runHook(payload, env = {}) {
   }
 }
 
-// ── E6：其他檔名（不相關）→ 不記、不建 state 檔 ────────────────────────────────
+// ── E6：完全不相關的檔（非 reference）→ 不記、不建 state 檔 ────────────────────
 {
   const sessionId = freshSession('e6-other');
   const stateFile = stateFileFor(sessionId);
   rmSync(stateFile, { force: true });
   try {
-    const res = runHook({ session_id: sessionId, tool_input: { file_path: 'references/other-file.md' } });
+    const res = runHook({ session_id: sessionId, tool_input: { file_path: 'src/app.ts' } });
     assert(res.status === 0, `E6：exit 0（實際 status：${res.status}）[E6]`);
-    assert(existsSync(stateFile) === false, 'E6：不相關檔名 → 不建 state 檔 [E6]');
+    assert(existsSync(stateFile) === false, 'E6：完全不相關的檔 → 不建 state 檔 [E6]');
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+
+// ── E6b（#205）：非受管的 reference → 進純觀測欄，但 **gate 用的 reads 不得被污染** ──
+// 這條是 A2 的核心保證：放寬觀測範圍不會讓「讀過某份無關規範」意外滿足 read-gate 的前置條件。
+{
+  const sessionId = freshSession('e6b-observe');
+  const stateFile = stateFileFor(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    const res = runHook({ session_id: sessionId, tool_input: { file_path: 'plugins/loops-workflow/references/shared/quality/clean-code.md' } });
+    assert(res.status === 0, `E6b：exit 0（實際 status：${res.status}）[E6b]`);
+    assert(existsSync(stateFile), 'E6b：reference 被讀 → 有 state 檔（純觀測要記得下來）[E6b]');
+    const state = JSON.parse(readFileSync(stateFile, 'utf8'));
+    assert(Array.isArray(state.observed) && state.observed.includes('clean-code.md'),
+      `E6b：observed 記到這份 reference（實際：${JSON.stringify(state.observed)}）[E6b]`);
+    assert(Array.isArray(state.reads) && state.reads.length === 0,
+      `E6b：**gate 用的 reads 仍為空**——放寬觀測不得改變 read-gate 判定（實際：${JSON.stringify(state.reads)}）[E6b]`);
+  } finally {
+    rmSync(stateFile, { force: true });
+  }
+}
+
+// ── E6c（#205）：受管規範檔 → reads 與 observed 各記一份，兩欄互不干擾 ────────
+{
+  const sessionId = freshSession('e6c-both');
+  const stateFile = stateFileFor(sessionId);
+  rmSync(stateFile, { force: true });
+  try {
+    runHook({ session_id: sessionId, tool_input: { file_path: 'plugins/loops-workflow/references/shared/delivery/comment-policy.md' } });
+    const state = JSON.parse(readFileSync(stateFile, 'utf8'));
+    assert(state.reads.includes('comment-policy.md'), `E6c：受管檔進 reads（gate 看得到）[E6c]`);
+    assert(state.observed.includes('comment-policy.md'), `E6c：同時也進 observed（觀測看得到）[E6c]`);
   } finally {
     rmSync(stateFile, { force: true });
   }

@@ -39,6 +39,7 @@ export const DOC_SCAN_EXCLUDES = Object.freeze([
 export const HISTORY_SKIP = Object.freeze([
   { file: 'docs/CODEX-SMOKE.md', reason: '真機驗證證據紀錄：記的就是某一次跑了什麼、結果如何' },
   { file: 'docs/ACCEPTANCE.md', reason: '最終驗收報告：記的就是某一次全 repo 驗收的實測結果' },
+  { file: 'docs/SKILL-USAGE.md', reason: '載入度量測紀錄：記的就是某一次對既有 transcript 的觀測結果' },
 ]);
 
 /** 具體歷史的圖樣：這些寫進教學會過期。 */
