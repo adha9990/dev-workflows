@@ -33,6 +33,8 @@
 
 [SKILL-USAGE.md](SKILL-USAGE.md) —— **規則寫了有沒有被載入**：對既有 transcript 量到的 skill／reference 實際載入度，含「宣稱會用卻從沒讀進去」的清單。
 
+[VERIFY-DISPATCH.md](VERIFY-DISPATCH.md) —— **verify 的第二輪確認有沒有真的跑**：逐 session 量到派了幾個 reviewer、幾個 validator。實測到的是「一次都沒派」，以及這支工具刻意判不出來的那一格為什麼判不出來。
+
 [ACCEPTANCE.md](ACCEPTANCE.md) —— 全 repo 驗收的實測結果：哪些閘跑過、哪些因為環境缺少來源而**未量測**、以及殘餘風險與負責人。**未量測不等於通過**——這份報告刻意把沒跑的項目逐條列出來。
 
 ## 歷史

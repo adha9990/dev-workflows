@@ -986,6 +986,93 @@ try {
     assert(safe(m?.verifyReportBlocks, '完全沒有 marker') === false, '[BN28] verifyReportBlocks：無 marker → false（fail-open，S9）');
     assert(safe(m?.verifyReportBlocks, 42) === false, '[BN28b] verifyReportBlocks：非字串 → false');
   }
+
+  // ── V 系列：閘⑦ 第二輪確認沒跑（#209）────────────────────────────────────────────
+  // 核心不對稱：**放行是預設、deny 是例外**。只擋「自報有候選 blocking finding、卻自報 0 條確認」。
+  // 每一條 deny 都配一條反向 allow，殺掉「凡有 findings 欄位就擋」這種過寬實作。
+  {
+    const MK_SKIPPED = '# verify\n判定：Ready\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 findings=4 validated=0 -->\n';
+    const MK_VALIDATED = '# verify\n判定：Ready\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 findings=4 validated=4 -->\n';
+    const MK_ZERO_FINDINGS = '# verify\n判定：Ready\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 findings=0 validated=0 -->\n';
+    const MK_HALF_CONTRACT = '# verify\n判定：Ready\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 findings=3 -->\n';
+    const MK_PARTIAL = '# verify\n判定：Ready\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 findings=4 validated=1 -->\n';
+
+    {
+      const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g7-skip', 'v-skipped', MK_SKIPPED) });
+      assert(isDeny(res), '[V1] create：findings=4 validated=0 → 閘⑦ deny（第二輪被整段跳過）');
+      assert(reasonOf(res).includes('finding-validator'), '[V1-2] reason 指名該派什麼（finding-validator），不是含糊說「請補驗證」');
+      assert(reasonOf(res).includes('LOOPS_PR_VALIDATION_GATE'), '[V1-3] reason 附閘⑦ 專屬逃生口');
+      // 訊息**要**提到 waiver，但必須是「這裡不吃這一招」而不是「拿它當出口」——知道閘⑥ 有 waiver 的
+      // 人一定會先去試，訊息沉默只會讓他多繞一圈。所以釘的是「不認」這個否定，不是關鍵字缺席。
+      assert(/不認\s*`?blocking-waiver/.test(reasonOf(res)),
+        '[V1-4] reason 明講**不認** blocking-waiver（二輪沒跑時風險未經評估，沒有東西可以知情接受）');
+      assert(!/寫明豁免哪幾條|再重試（此知情豁免/.test(reasonOf(res)),
+        '[V1-5] reason **不**把 waiver 寫成可行出口（不複製閘⑥ 的補救指引）');
+    }
+    // 反向三連：三種「不該擋」的情形都要真的放行，否則這道閘會變成「有 findings 就擋」。
+    assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g7-ok', 'v-validated', MK_VALIDATED) })),
+      '[V2] create：findings=4 validated=4 → allow（第二輪跑過了）');
+    assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g7-zero', 'v-zero', MK_ZERO_FINDINGS) })),
+      '[V3] create：findings=0 → allow（零候選本來就不必派 validator，不是違規）');
+    assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g7-old', 'v-oldreport', MK_READY) })),
+      '[V4] create：**舊報告無 findings/validated 欄位** → allow（缺席 ≠ 沒派；不擋既有 loop）');
+    assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g7-partial', 'v-partial', MK_PARTIAL) })),
+      '[V5] create：findings=4 validated=1（只確認了一部分）→ allow（閘⑦ 只擋「一條都沒確認」，不當覆蓋率閘）');
+
+    {
+      const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g7-half', 'v-half', MK_HALF_CONTRACT) });
+      assert(isDeny(res), '[V6] create：宣告 findings=3 卻沒宣告 validated= → deny（半套契約，fail-safe）');
+      assert(reasonOf(res).includes('validated'), '[V6-2] reason 指名缺的是哪個欄位');
+    }
+
+    assert(isDeny(runHook({ command: 'gh pr ready', cwd: mkG6('g7-ready', 'v-ready', MK_SKIPPED) })),
+      '[V7] ready：閘⑦ 在 ready 也 deny（作用範圍同閘⑥）');
+    assert(isAllow(runHook({ command: 'gh pr comment --body "近況"', cwd: mkG6('g7-cm', 'v-comment', MK_SKIPPED) })),
+      '[V8] comment：閘⑦ 不套 comment → allow');
+    assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g7-off', 'v-flagoff', MK_SKIPPED), env: { LOOPS_PR_VALIDATION_GATE: '0' } })),
+      '[V9] create：LOOPS_PR_VALIDATION_GATE=0 → 閘⑦ 關（逃生口）');
+    assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g7-indep', 'v-indep', MK_SKIPPED), env: { LOOPS_PR_BLOCKING_GATE: '0' } })),
+      '[V10] create：關掉閘⑥ 不影響閘⑦（獨立 flag、互不牽連）');
+    assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g7-b6off', 'v-b6off', MK_VALIDATED), env: { LOOPS_PR_VALIDATION_GATE: '0' } })),
+      '[V10b] create：關掉閘⑦ 不影響其餘閘（乾淨報告仍放行、無副作用）');
+
+    // waiver **不被認可**——這是閘⑦ 與閘⑥ 最大的行為差異，正反都釘。
+    assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g7-wv', 'v-waiver', MK_SKIPPED, { waiver: '使用者知情，先進 PR' }) })),
+      '[V11] create：findings>0 validated=0 + 非空 waiver + 非 auto → **仍 deny**（閘⑦ 不認 waiver）');
+    assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g7-wvauto', 'v-waiverauto', MK_SKIPPED, { waiver: '豁免' }), env: { LOOPS_AUTO: '1' } })),
+      '[V12] create：同上 + auto → 仍 deny（auto/attended 一視同仁，閘⑦ 不分模式）');
+
+    // 閘⑥ 優先：兩個問題同時存在時，先講更根本的那個（還有未修 P0/P1）。
+    {
+      const both = '# verify\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 findings=4 validated=0 -->\n';
+      const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g7-both', 'v-both', both) });
+      assert(isDeny(res), '[V13] create：同時 not-ready 與第二輪沒跑 → deny');
+      assert(reasonOf(res).includes('P0/P1'), '[V13-2] 先報閘⑥ 的理由（P0/P1 未清更根本），不是兩條訊息混在一起');
+    }
+
+    // 純函式層直測（含 fence-robust 兩視圖）。
+    {
+      const m = prGateModule;
+      const safe = (fn, ...a) => { try { return fn(...a); } catch { return '__throw__'; } };
+      assert(safe(m?.validationSkipped, { findings: 2, validated: 0 }) === true, '[VN1] validationSkipped：findings>0 validated=0 → true');
+      assert(safe(m?.validationSkipped, { findings: 2, validated: 2 }) === false, '[VN2] validationSkipped：已確認 → false');
+      assert(safe(m?.validationSkipped, { findings: 0, validated: 0 }) === false, '[VN3] validationSkipped：findings=0 → false（零候選不必派）');
+      assert(safe(m?.validationSkipped, { p0: 0, p1: 0 }) === false, '[VN4] validationSkipped：兩欄位皆缺 → false（缺席 ≠ 沒派）');
+      assert(safe(m?.validationSkipped, { findings: 2 }) === true, '[VN5] validationSkipped：宣告 findings 卻缺 validated → true（半套契約 fail-safe）');
+      assert(safe(m?.validationSkipped, null) === false, '[VN6] validationSkipped：null → false');
+      assert(safe(m?.extractLatestMarker, '<!-- loops-verify verdict=ready p0=0 p1=0 round=1 findings=5 validated=3 -->')?.findings === 5,
+        '[VN7] extractLatestMarker 解得出後加的 findings 欄位');
+      assert(safe(m?.extractLatestMarker, '<!-- loops-verify verdict=ready p0=0 p1=0 round=1 -->')?.findings === undefined,
+        '[VN8] extractLatestMarker：舊 marker 的 findings → undefined（**不補 0**）');
+      assert(safe(m?.verifyReportSkipsValidation,
+        'x\n```\n<!-- loops-verify verdict=ready p0=0 p1=0 round=9 findings=0 validated=0 -->\n```\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 findings=2 validated=0 -->') === true,
+        '[VN9] verifyReportSkipsValidation：fenced 示範 marker（findings=0）蓋不掉真的（findings=2 validated=0）→ true');
+      assert(safe(m?.verifyReportSkipsValidation, '```\nx\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 findings=2 validated=0 -->') === true,
+        '[VN10] verifyReportSkipsValidation：未閉合 fence 藏住真 marker → raw 視圖仍擋住 → true');
+      assert(safe(m?.verifyReportSkipsValidation, '完全沒有 marker') === false, '[VN11] verifyReportSkipsValidation：無 marker → false（fail-open）');
+      assert(safe(m?.verifyReportSkipsValidation, 42) === false, '[VN11b] verifyReportSkipsValidation：非字串 → false');
+    }
+  }
 } finally {
   rmSync(SANDBOX, { recursive: true, force: true });
 }
@@ -995,6 +1082,7 @@ console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.lengt
 console.log(`(共 ${total} 條斷言：P1–P8／EXTRA／WIN＝#132 三閘與接線、Q1–Q8＝#132 verify 修正輪邊界、`
   + `R＝#152 閘④ real-run receipt、C＝#152 閘⑤ 合併衝突、N＝#152 新純函式直測、`
   + `F5＝三 flag 互不牽連、G＝閘⑤ 真 gh spawn 端到端（假 gh，POSIX/CI）、`
-  + `B／BN＝#188 閘⑥ P0/P1 未清不准收圈（marker 契約 + 知情豁免 + auto 不繞過 + 純函式）；`
+  + `B／BN＝#188 閘⑥ P0/P1 未清不准收圈（marker 契約 + 知情豁免 + auto 不繞過 + 純函式）、`
+  + `V／VN＝#209 閘⑦ 第二輪確認沒跑不准收圈（findings/validated 欄位 + 缺席 fail-open + 不認 waiver + 純函式）；`
   + `R5b/c·N9–N11·C10/11·F5·G＝#152 verify/wiring 修正輪)`);
 process.exit(failed.length > 0 ? 1 : 0);
