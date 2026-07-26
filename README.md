@@ -6,6 +6,8 @@
 |---|---|---|
 | **loops-workflow** | 7 階段閉環開發工作流（**既有專案**內加功能 / 設計 / 修問題）+ 內建 greenfield 專案 scaffold | `/loops-workflow:dispatch <一句話>` |
 
+**先讀哪一份**：想直接開工看下面的〈最短開始〉；想知道一條 loop 會發生什麼、你要在哪把關 → [`docs/WORKFLOW-GUIDE.md`](docs/WORKFLOW-GUIDE.md)；要裝／換外部來源 → [`docs/SETUP-GUIDE.md`](docs/SETUP-GUIDE.md)。完整索引在 [`docs/README.md`](docs/README.md)。
+
 **CI**：push 到 `master`、開 PR 會自動跑全部 hooks/scripts 測試 + skill-lint（ubuntu + windows 雙平台）。
 
 ## 安裝
@@ -16,7 +18,25 @@
 /reload-plugins
 ```
 
-**怎麼用**：一律 `/loops-workflow:dispatch <想做的事>` —— 既有專案內開發直接分流到對的階段；空資料夾則由 dispatch 偵測到乾淨專案、確認後自動走內建 scaffold 建骨架。
+## 最短開始
+
+```
+/loops-workflow:setup                      # 一次就好：問你要哪些外部來源，重跑安全
+/loops-workflow:dispatch <你想做的事>       # 之後都用這個
+```
+
+`dispatch` 會判斷這是什麼類型的工作、幫你把 issue 開好、然後一路跑到 PR；空資料夾則會先確認再建骨架。`setup` 管的是外部來源（程式碼圖、評測、token 最佳化…）——**不裝也能用，只是少了那幾項能力**。
+
+## 常見情境
+
+| 你想要 | 怎麼做 |
+|---|---|
+| 開始一件新工作 | `/loops-workflow:dispatch <一句話>` |
+| 接續中斷的工作 | `/loops-workflow:dispatch <slug>`（自動偵測並重建狀態） |
+| 看某條 loop 跑到哪 | 開 `.loops/<slug>/PROGRESS.md`（每回合自動重生） |
+| 裝／換／停用外部來源 | `/loops-workflow:setup`（重跑安全，選擇沒變就什麼都不動） |
+| 某個來源壞了想回復 | `/loops-workflow:setup` → 看 receipt 的回滾欄；詳見 [`docs/SETUP-GUIDE.md`](docs/SETUP-GUIDE.md) |
+| 想搞懂剛做完的東西 | 完工時產的 `deliverables/explain.md` |
 
 ## Codex Preview
 
@@ -30,11 +50,15 @@
 
 你打**一個**指令 `/loops-workflow:dispatch <想做的事>`，它就把這件事跑完一條「開發產線」：判斷你要做什麼 → 探索做法 → 拍板規劃 → 寫 code（測試先行）→ 獨立審查 → 修到好 → 開 PR。**全程只在真正該你拍板的地方停下問你**（選做法 / 拍板方案 / 完工），其餘自己往下；你隨時能插話喊停或改。各階段產出寫進 `.loops/<slug>/` 的 markdown 當「階段間記憶」，中斷了也接得回來。
 
-> 📊 想看每階段用哪些 agent / 機制的**完整流程圖**（含 mermaid）→ [`docs/FLOW.md`](plugins/loops-workflow/docs/FLOW.md)；**共用規範目錄** → [`docs/REFERENCES.md`](plugins/loops-workflow/docs/REFERENCES.md)。
+> 📊 想看每階段用哪些 agent / 機制的**完整流程圖**（含 mermaid）→ [`plugins/loops-workflow/docs/FLOW.md`](plugins/loops-workflow/docs/FLOW.md)；**共用規範目錄** → [`plugins/loops-workflow/docs/REFERENCES.md`](plugins/loops-workflow/docs/REFERENCES.md)；**架構與兩張圖的差別** → [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)。
 
-## 只有一個指令
+## 兩個指令
 
-**`/loops-workflow:dispatch <一句話 / issue# / PR# / slug>`** —— 唯一入口。判類型、開一條 loop、自動往下跑；**輸入既有 loop 的 slug 就自動接續**（resume）。其餘能力都不是指令：
+**`/loops-workflow:dispatch <一句話 / 票號 / slug>`** —— 開始或接續一條 loop。判類型、開一條 loop、自動往下跑；**輸入既有 loop 的 slug 就自動接續**（resume）。
+
+**`/loops-workflow:setup`** —— 安裝與對帳外部來源。問你要哪些、只套用差異、**重跑安全**。詳見 [`docs/SETUP-GUIDE.md`](docs/SETUP-GUIDE.md)。
+
+其餘能力都不是指令：
 
 | 你想要 | 怎麼做 |
 |---|---|
