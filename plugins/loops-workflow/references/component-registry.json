@@ -5731,6 +5731,50 @@
       }
     },
     {
+      "id": "skill-usage",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/skill-usage.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/skill-usage.mjs",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-usage-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "skill-usage-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-skill-usage.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-skill-usage.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "skill-usage"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
       "id": "stop-gate",
       "kind": "hook",
       "paths": [
