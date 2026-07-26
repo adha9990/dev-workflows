@@ -38,6 +38,13 @@ export const READ_PATH_RE = /"name":"Read","input":\{"file_path":"((?:[^"\\]|\\.
 /** 這個 session 有沒有在動某條 loop 的階段檔／索引（判 loop-session 的第二個訊號）。 */
 export const LOOP_ARTIFACT_RE = /\.loops[/\\\\]+[\w.-]+[/\\\\]+(?:loop\.md|PROGRESS\.md|stages|deliverables|events\.jsonl)/g;
 
+/**
+ * transcript 裡出現的**已安裝 plugin 版本路徑**，形如 `…/loops-workflow/0.20.0/references/…`。
+ * reviewer 的 prompt 帶的是安裝路徑下的絕對路徑，所以這個字串幾乎一定會出現在跑過 loop 的
+ * transcript 裡——比「猜最新版」可靠得多，而且不需要任何外部資料。
+ */
+export const VERSION_PATH_RE = /loops-workflow[/\\]+(\d+\.\d+\.\d+)[/\\]/g;
+
 /** 本 plugin 的 skill 命名空間前綴。 */
 export const SKILL_NS = 'loops-workflow:';
 
@@ -64,7 +71,7 @@ export function scanTranscript(text) {
     if (/(^|\/)references\//.test(path) && path.endsWith('.md')) referenceReads.push(basename(path));
   }
   const loopArtifacts = (raw.match(LOOP_ARTIFACT_RE) ?? []).length;
-  return { skillCalls, referenceReads, loopArtifacts };
+  return { skillCalls, referenceReads, loopArtifacts, detectedVersion: detectVersion(raw) };
 }
 
 /**
@@ -75,6 +82,17 @@ export function scanTranscript(text) {
 export function classifyKind({ skillCalls = [], loopArtifacts = 0 } = {}) {
   const usedOurSkill = skillCalls.some((s) => s.startsWith(SKILL_NS));
   return usedOurSkill || loopArtifacts > 0 ? 'loop-session' : 'non-loop';
+}
+
+/**
+ * 這份 transcript 跑的是哪一版。**取出現最多次的**——偶爾出現的舊路徑（例如引用歷史紀錄）
+ * 不該蓋掉這條 loop 實際跑的版本。抽不到 → `null`（**不猜**：標明比猜對更重要）。
+ */
+export function detectVersion(text) {
+  const counts = new Map();
+  for (const m of String(text ?? '').matchAll(VERSION_PATH_RE)) counts.set(m[1], (counts.get(m[1]) ?? 0) + 1);
+  if (!counts.size) return null;
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0];
 }
 
 // ── 期望集合（純函式）─────────────────────────────────────────────────────
@@ -99,6 +117,26 @@ export function expectedReferences(snapshot) {
 // ── 比對（純函式）─────────────────────────────────────────────────────────
 
 /**
+ * 只報**事實**、不報差集：叫了哪些 skill、讀了哪些 reference。
+ * 給「抽不到版本／找不到對應快照」的那些組用——沒有期望集合就不能算差集，但事實仍然有價值，
+ * 整組丟掉等於把已經拿到的觀測浪費掉。
+ */
+export function observedOnly(observations) {
+  const loop = observations.filter((o) => o.kind === 'loop-session');
+  const tally = (pick) => {
+    const m = new Map();
+    for (const o of loop) for (const it of pick(o)) m.set(it, (m.get(it) ?? 0) + 1);
+    return [...m.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  };
+  return {
+    loopSessions: loop.length,
+    nonLoop: observations.length - loop.length,
+    skills: tally((o) => (o.skillCalls ?? []).filter((x) => x.startsWith(SKILL_NS)).map((x) => x.slice(SKILL_NS.length))),
+    references: tally((o) => o.referenceReads ?? []),
+  };
+}
+
+/**
  * 觀察 × 快照 → 載入度報告。
  *
  * `observations` 是 `[{file, kind, skillCalls, referenceReads}]`。
@@ -116,6 +154,12 @@ export function compareUsage(observations, snapshot) {
   for (const o of observations) {
     if (o.kind === 'non-loop') { nonLoop += 1; continue; }
     const ours = (o.skillCalls ?? []).filter((s) => s.startsWith(SKILL_NS)).map((s) => s.slice(SKILL_NS.length));
+    // 版本錯配的**第一道**判準：transcript 自己講它跑的是哪一版。
+    // 這條擋的是既有規則擋不住的方向——跑舊版時 skill 名是新版的子集，靠 skill 名永遠看不出來。
+    if (o.detectedVersion && snapshot.version && o.detectedVersion !== snapshot.version) {
+      notMeasured.push({ file: o.file, reason: `transcript 跑的是 ${o.detectedVersion}，快照是 ${snapshot.version}——拿新版的期望集合去比舊版的行為會得出假差集（實測差過 3.6 倍）` });
+      continue;
+    }
     const unknown = [...new Set(ours)].filter((s) => !snapshotSkills.has(s));
     if (unknown.length) {
       notMeasured.push({ file: o.file, reason: `叫到快照裡沒有的 skill（${unknown.join('、')}）——這份 transcript 跑的不是快照 ${snapshot.version}，硬比會得出假差集` });
@@ -151,6 +195,7 @@ export function compareUsage(observations, snapshot) {
   // 那本身就是最強的訊號，不能被聚合數字蓋掉。
   const sessions = counted.map((r) => ({
     file: r.file,
+    detectedVersion: r.detectedVersion ?? 'unknown',
     skillCalls: r.ours.length,
     distinctSkills: [...new Set(r.ours)].sort(),
     referenceReads: (r.referenceReads ?? []).length,
@@ -324,7 +369,8 @@ export function shortenProjectLabel(name) {
 /** 掃一組 transcript（主檔＋子代理）→ 一筆觀察。 */
 export function observeTranscript(entry) {
   const parts = [entry.main, ...(entry.subagents ?? [])];
-  const merged = { skillCalls: [], referenceReads: [], loopArtifacts: 0 };
+  const merged = { skillCalls: [], referenceReads: [], loopArtifacts: 0, detectedVersion: null };
+  const versionCounts = new Map();
   for (const f of parts) {
     const text = safeRead(f);
     if (text === null) continue;
@@ -332,13 +378,79 @@ export function observeTranscript(entry) {
     merged.skillCalls.push(...s.skillCalls);
     merged.referenceReads.push(...s.referenceReads);
     merged.loopArtifacts += s.loopArtifacts;
+    if (s.detectedVersion) versionCounts.set(s.detectedVersion, (versionCounts.get(s.detectedVersion) ?? 0) + 1);
   }
+  // 主檔與子代理檔各自投票；版本以出現在最多份檔案的那個為準
+  if (versionCounts.size) merged.detectedVersion = [...versionCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0];
   return {
     file: `${shortenProjectLabel(entry.project)}/${entry.sessionId.slice(0, 8)}`,
     kind: classifyKind(merged),
     subagentFiles: (entry.subagents ?? []).length,
     ...merged,
   };
+}
+
+/**
+ * 依偵測到的版本分組，各自對上**自己那一版的快照**分析。這才是正確的做法——
+ * 單一快照模式只在「所有 transcript 都跑同一版」時才成立。
+ *
+ * 沒有對應快照的版本組、以及抽不到版本的組，**整組標明原因**、不硬套別版的期望集合。
+ */
+export function analyzeByVersion(projectsRoot, cacheRoot) {
+  const snapshotsByVersion = new Map(listSnapshots(cacheRoot).map((d) => [basename(d), d]));
+  const observations = collectTranscripts(projectsRoot).map(observeTranscript);
+
+  const groups = new Map();
+  for (const o of observations) {
+    const key = o.detectedVersion ?? 'unknown';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(o);
+  }
+
+  const analysed = [];
+  const skipped = [];
+  for (const [version, rows] of [...groups.entries()].sort()) {
+    const loopRows = rows.filter((r) => r.kind === 'loop-session');
+    if (version === 'unknown') {
+      skipped.push({ version, transcripts: rows.length, loopSessions: loopRows.length, observed: observedOnly(rows), reason: '這批 transcript 裡抽不到版本路徑——不猜它跑的是哪一版，整組不下差集結論；但觀測到的事實仍列出' });
+      continue;
+    }
+    const dir = snapshotsByVersion.get(version);
+    if (!dir) {
+      skipped.push({ version, transcripts: rows.length, loopSessions: loopRows.length, observed: observedOnly(rows), reason: `找不到 ${version} 的 plugin 快照——沒有當時的期望集合就無從比對，整組不下差集結論；但觀測到的事實仍列出` });
+      continue;
+    }
+    analysed.push({ version, report: compareUsage(rows, loadSnapshot(dir)) });
+  }
+  return { analysed, skipped, totalTranscripts: observations.length };
+}
+
+/** 分版本報告 → markdown。逐版本各一節，並把整組被跳過的原因寫出來。 */
+export function renderByVersionReport(result) {
+  const lines = [
+    '# skill／reference 實際載入度（逐版本）',
+    '',
+    `掃到 ${result.totalTranscripts} 份 transcript。**每一組都用它自己那一版的快照當期望集合**——`,
+    '拿新版的期望去比舊版的行為會得出假差集（實測差過 3.6 倍），所以版本不對就不比。',
+    '',
+  ];
+  if (result.skipped.length) {
+    lines.push('## 整組未量測（誠實揭露）', '', '| 版本 | transcript | 其中 loop session | 原因 |', '|---|---|---|---|');
+    for (const s of result.skipped) lines.push(`| \`${s.version}\` | ${s.transcripts} | ${s.loopSessions} | ${s.reason} |`);
+    lines.push('');
+    for (const s of result.skipped) {
+      if (!s.observed || !s.observed.loopSessions) continue;
+      lines.push(`### \`${s.version}\` 組觀測到的事實（**沒有期望集合，所以不下差集結論**）`, '',
+        `loop session ${s.observed.loopSessions} 個｜叫到的 skill：${s.observed.skills.length ? s.observed.skills.map((x) => `\`${x.name}\`×${x.count}`).join('、') : '（無）'}`, '',
+        `載入的 reference：${s.observed.references.length ? s.observed.references.map((x) => `\`${x.name}\`×${x.count}`).join('、') : '（無）'}`, '');
+    }
+  }
+  for (const a of result.analysed) {
+    // 去掉子報告自己的 H1，換成標明版本的標題——一份文件裡不該有多個同級主標題
+    const body = renderReport(a.report).split('\n').slice(1).join('\n');
+    lines.push('---', '', `# 版本 \`${a.version}\``, body);
+  }
+  return lines.join('\n');
 }
 
 /** 一步到位：掃 transcript 根目錄 × 快照 → 報告。 */
@@ -367,6 +479,14 @@ function main() {
   if (!existsSync(projectsRoot)) {
     process.stderr.write(`skill-usage：找不到 transcript 根目錄（${projectsRoot}）\n`);
     return 1;
+  }
+  if (args.includes('--by-version')) {
+    const result = analyzeByVersion(projectsRoot, cacheRoot);
+    if (args.includes('--json')) process.stdout.write(`${JSON.stringify(result, null, 2)}
+`);
+    else process.stdout.write(`${renderByVersionReport(result)}
+`);
+    return 0;
   }
   const report = analyzeAll(projectsRoot, snapshotDir);
   if (args.includes('--json')) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
