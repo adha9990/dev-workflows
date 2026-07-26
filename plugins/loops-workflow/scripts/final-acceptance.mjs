@@ -40,6 +40,7 @@ export const GATES = Object.freeze([
   { id: 'check-registry-shape', kind: 'script', script: 'check-registry-shape.mjs', why: 'registry envelope 形狀' },
   { id: 'check-legacy-paths', kind: 'script', script: 'check-legacy-paths.mjs', why: '沒有扁平舊路徑殘留' },
   { id: 'check-emit-residual', kind: 'script', script: 'check-emit-residual.mjs', why: 'hook 輸出信封沒有殘留的舊寫法' },
+  { id: 'check-plugin-version', kind: 'script', script: 'check-plugin-version.mjs', why: 'plugin 對外表面（skill／公開入口／hook 集合）變動時版本有跟著前進' },
   { id: 'docs-lint', kind: 'script', script: 'docs-lint.mjs', why: '人類文件的連結／指令／來源／參數與事實一致' },
   { id: 'setup-plan', kind: 'script', script: 'setup-plan.mjs', why: 'setup catalog 自洽、資格未過的來源不在選單' },
   { id: 'reference-graph', kind: 'script', script: 'reference-graph.mjs', args: ['--compare'], why: '規範引用圖與基準逐條比對（抓文件漂移）' },
