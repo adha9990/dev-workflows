@@ -6,7 +6,7 @@
 
 | 通過 | 失敗 | 未量測 |
 |---|---|---|
-| 14 | 0 | 4 |
+| 15 | 0 | 4 |
 
 ## 逐項
 
@@ -16,16 +16,17 @@
 | `policy-runtime` | ✓ passed | 四級規則編譯，且每支會 deny 的 hook 都有宣告來源 |   · advisory（prompt）：stage-advance-without-asking、surface-ambiguity、cost-awareness |
 | `skill-lint` | ✓ passed | skill／agent／reference 的引用、計數與 flag 三方同步 | ⚠ [footprint] plugins/loops-workflow/skills/scaffold-fullstack/SKILL.md — 1189 chars |
 | `compat-lint` | ✓ passed | canonical 規則文字守平台中立表面 | （另有 72 筆豁免命中記錄於 notes，見 --json） |
-| `codex-plugin-lint` | ✓ passed | 第二個 harness 的 manifest 與投影一致 | ✓ codex-plugin-lint：380 檔全綠，無 finding。 |
+| `codex-plugin-lint` | ✓ passed | 第二個 harness 的 manifest 與投影一致 | ✓ codex-plugin-lint：381 檔全綠，無 finding。 |
 | `check-registry-shape` | ✓ passed | registry envelope 形狀 | ✓ check-registry-shape：capability-registry.json 全綠，無 finding。 |
 | `check-legacy-paths` | ✓ passed | 沒有扁平舊路徑殘留 | ✓ check-legacy-paths：無舊扁平路徑殘留（allowlist 7 檔已知豁免）。 |
 | `check-emit-residual` | ✓ passed | hook 輸出信封沒有殘留的舊寫法 | ✓ check-emit-residual：19 支 production hook 全綠，無決策輸出殘留。 |
-| `docs-lint` | ✓ passed | 人類文件的連結／指令／來源／參數與事實一致 | ✓ docs-lint：19 份人類文件全綠，無 finding。 |
+| `check-plugin-version` | ✓ passed | plugin 對外表面（skill／公開入口／hook 集合）變動時版本有跟著前進 | ✓ check-plugin-version：0.57.0——對外表面沒有變動（skill／公開入口／hook 集合都一樣）——不要求 bump |
+| `docs-lint` | ✓ passed | 人類文件的連結／指令／來源／參數與事實一致 | ✓ docs-lint：18 份人類文件全綠，無 finding。 |
 | `setup-plan` | ✓ passed | setup catalog 自洽、資格未過的來源不在選單 |   · 未進 wizard：token-optimizer-alternate——還缺 Windows 平台實測、本 harness 上的 hook 掛載順序驗證、rollback 路徑實測、真實 benchmark 對照（非宣稱值） |
 | `reference-graph` | ✓ passed | 規範引用圖與基準逐條比對（抓文件漂移） |   基準 c55b3ed0555804f30d26fdbe2275c7ed9d219562｜merge-base c55b3ed0555804f30d26fdbe2275c7ed9d219562｜比對 237 條 real |
 | `gen-reviewers` | ✓ passed | 生成的 reviewer 人設與真相源沒有漂移 | gen-reviewers --check：21 檔 + model-effort-policy.md 分層表區塊全部與真相源一致，無漂移。 |
 | `hook-tests` | ✓ passed | hook 的 direct／bypass／approval／malformed-state 全套 | 22 支全綠 |
-| `script-tests` | ✓ passed | registry／記憶體／policy／setup／optimization／docs 的全部單元與整合測試 | 46 支全綠 |
+| `script-tests` | ✓ passed | registry／記憶體／policy／setup／optimization／docs 的全部單元與整合測試 | 47 支全綠 |
 | `skill-optimizer-run` | — not measured | 對所有支援的 skill 產候選並依序驗收 | 外部來源 `skill-optimizer` 未安裝或未啟用——沒跑就標 not measured，不寫成 passed |
 | `prompt-eval-full` | — not measured | 完整 corpus ＋ held-out trajectory | 外部來源 `prompt-eval` 未安裝或未啟用——沒跑就標 not measured，不寫成 passed |
 | `token-benchmark-full` | — not measured | 全 corpus 的 token／call／duration 實測對照 | 外部來源 `token-optimizer` 未安裝或未啟用——沒跑就標 not measured，不寫成 passed |

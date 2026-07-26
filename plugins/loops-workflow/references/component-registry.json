@@ -445,6 +445,51 @@
       }
     },
     {
+      "id": "check-plugin-version",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/check-plugin-version.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/check-plugin-version.mjs",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "check-plugin-version-tests",
+        "final-acceptance"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "check-plugin-version-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-check-plugin-version.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-check-plugin-version.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "check-plugin-version"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
       "id": "check-registry-shape",
       "kind": "script",
       "paths": [
@@ -1451,7 +1496,9 @@
       "owner_class": null,
       "target_path": "plugins/loops-workflow/scripts/final-acceptance.mjs",
       "user_invocable": false,
-      "dependencies": [],
+      "dependencies": [
+        "check-plugin-version"
+      ],
       "consumers": [
         "final-acceptance-tests"
       ],
