@@ -10,7 +10,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  HUMAN_DOC_ROOTS, DOC_SCAN_EXCLUDES,
+  HUMAN_DOC_ROOTS, DOC_SCAN_EXCLUDES, HISTORY_SKIP,
   collectHumanDocs, loadFacts, checkLinks, checkCommands, checkCatalog, checkEnvNames, checkNoHistory,
   stripCodeAndLinks, buildReport, formatSummary,
 } from './docs-lint.mjs';
@@ -49,6 +49,7 @@ testCase('D1', '掃描面：只掃人類文件，AGENTS.md 與歷史設計文件
   assert(!HUMAN_DOC_ROOTS.includes('AGENTS.md'), 'AGENTS.md 不在掃描面（它是 AI 執行契約，不是人的教學）');
   assert(HUMAN_DOC_ROOTS.includes('README.md') && HUMAN_DOC_ROOTS.includes('docs'), 'README 與 docs 在掃描面');
   assert(DOC_SCAN_EXCLUDES.some((x) => x.prefix === 'docs/specs/' && x.reason), '歷史設計文件被排除且附理由');
+  assert(HISTORY_SKIP.length >= 2 && HISTORY_SKIP.every((x) => x.file && x.reason), '不套 no-history 的檔逐項附理由（紀錄型文件本來就在記某一次的事）');
   withTmp((root) => {
     mkdirSync(join(root, 'docs', 'specs'), { recursive: true });
     writeFileSync(join(root, 'README.md'), '# x', 'utf8');
@@ -85,7 +86,12 @@ testCase('D4', 'checkCatalog：文件提到的來源要存在，能進選單的�
 
   const ghost = doc('docs/SETUP-GUIDE.md', '我們有 `code-graph` 與 `code-graph-ghost`。');
   const out = checkCatalog([ghost], FACTS);
-  assert(out.some((f) => f.detail.includes('code-graph-ghost')), '提到不存在的來源 → 紅');
+  assert(out.some((f) => f.detail.includes('code-graph-ghost')), '安裝教學提到不存在的來源 → 紅');
+
+  // GUARD：驗收報告裡的 `skill-optimizer-run` 之類是**衍生名稱**，不是在宣稱有這個來源。
+  // 用前綴啟發式去全 repo 抓會製造偽陽性，然後大家學會忽略這道閘。
+  const derived = [guide, doc('docs/ACCEPTANCE.md', '`skill-optimizer-run` 與 `prompt-eval-full` 未量測')];
+  assert(checkCatalog(derived, FACTS).length === 0, '別處的衍生名稱不誤報（只在安裝教學裡查來源 id）');
 
   const missing = doc('docs/SETUP-GUIDE.md', '（什麼都沒寫）');
   const out2 = checkCatalog([missing], FACTS);
@@ -114,7 +120,7 @@ testCase('D6', 'checkNoHistory：具體單號與具體 loop 目錄不得當永�
 });
 
 testCase('D7', '真 repo：人類文件全綠，且新寫的指南都在索引裡', () => {
-  const report = buildReport(REPO_ROOT, { skipHistory: ['docs/CODEX-SMOKE.md'] });
+  const report = buildReport(REPO_ROOT, { skipHistory: HISTORY_SKIP.map((x) => x.file) });
   assert(report.ok, `真 repo 人類文件全綠（實際：${JSON.stringify(report.findings)}）`);
   assert(report.scanned >= 12, `掃到 ${report.scanned} 份文件`);
   assert(formatSummary(report).includes('✓'), '全綠摘要有 ✓');

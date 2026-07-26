@@ -1441,6 +1441,50 @@
       }
     },
     {
+      "id": "final-acceptance",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/final-acceptance.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/final-acceptance.mjs",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "final-acceptance-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "final-acceptance-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-final-acceptance.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-final-acceptance.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "final-acceptance"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
       "id": "finding-validator-agent",
       "kind": "agent",
       "paths": [

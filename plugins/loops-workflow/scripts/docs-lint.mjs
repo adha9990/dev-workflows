@@ -32,6 +32,15 @@ export const DOC_SCAN_EXCLUDES = Object.freeze([
   { prefix: 'docs/specs/', reason: '歷史設計文件：凍結為某時點的提案紀錄，不是給人讀的教學' },
 ]);
 
+/**
+ * 不套 no-history 規則的檔（逐項附理由）。這些檔**本質就是某一次的紀錄**——把「不要寫具體單號」
+ * 套在驗證證據上，只會逼人把證據寫得無法追溯。
+ */
+export const HISTORY_SKIP = Object.freeze([
+  { file: 'docs/CODEX-SMOKE.md', reason: '真機驗證證據紀錄：記的就是某一次跑了什麼、結果如何' },
+  { file: 'docs/ACCEPTANCE.md', reason: '最終驗收報告：記的就是某一次全 repo 驗收的實測結果' },
+]);
+
 /** 具體歷史的圖樣：這些寫進教學會過期。 */
 const HISTORY_PATTERNS = Object.freeze([
   { re: /\.loops\/\d[\w-]*/g, id: 'loops-history', why: '某條具體的 loop 目錄是本地暫存、會被清掉；教學請寫通用型樣 `.loops/<slug>/`' },
@@ -146,12 +155,14 @@ export function checkCatalog(files, facts, { guideFile = 'docs/SETUP-GUIDE.md' }
   const ids = new Set(entries.map((e) => e.id));
   const guide = files.find((f) => f.rel === guideFile);
 
-  for (const f of files) {
-    // 只認被反引號包起來的字面，避免把散文裡的普通字詞當 id
-    for (const m of f.text.matchAll(/`([a-z][a-z0-9-]{3,})`/g)) {
+  // 「提到不存在的來源」只在**安裝教學**裡查。別處出現的相似字面多半是**衍生名稱**
+  // （驗收項目 `skill-optimizer-run`、`prompt-eval-full` 之類），那不是在宣稱有這個來源；
+  // 用前綴啟發式去全 repo 抓，只會製造偽陽性，然後大家學會忽略這道閘。
+  if (guide) {
+    for (const m of guide.text.matchAll(/`([a-z][a-z0-9-]{3,})`/g)) {
       const token = m[1];
       if (!/^(?:code-graph|prompt-eval|token-optimizer|skill-optimizer|symbol-aware)/.test(token)) continue;
-      if (!ids.has(token)) out.push(finding('doc-catalog', f.rel, `文件提到來源 \`${token}\`，但它不在 setup catalog 內`));
+      if (!ids.has(token)) out.push(finding('doc-catalog', guideFile, `安裝教學提到來源 \`${token}\`，但它不在 setup catalog 內`));
     }
   }
   if (guide) {
@@ -227,8 +238,7 @@ function repoRoot() {
 function main() {
   const args = process.argv.slice(2);
   const root = args.includes('--root') ? args[args.indexOf('--root') + 1] : repoRoot();
-  // Codex smoke 紀錄是「某次真機驗證的證據」，本質就是歷史紀錄，不套 no-history 規則。
-  const report = buildReport(root, { skipHistory: ['docs/CODEX-SMOKE.md'] });
+  const report = buildReport(root, { skipHistory: HISTORY_SKIP.map((x) => x.file) });
   if (args.includes('--json')) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   else process.stdout.write(`${formatSummary(report)}\n`);
   return report.ok ? 0 : 1;
