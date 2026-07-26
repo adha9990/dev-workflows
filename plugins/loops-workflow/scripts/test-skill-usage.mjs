@@ -13,6 +13,7 @@ import {
   SKILL_NS, TRANSCRIPT_KINDS,
   scanTranscript, classifyKind, expectedReferences, compareUsage, renderReport,
   loadSnapshot, listSnapshots, collectTranscripts, observeTranscript, analyzeAll, shortenProjectLabel,
+  detectVersion, observedOnly, analyzeByVersion, renderByVersionReport,
 } from './skill-usage.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -218,6 +219,79 @@ testCase('U10', '真 repo 的 plugin 目錄本身可以當快照（不必依賴�
   assert(exp.size > 20, `有 ${exp.size} 份 reference 被至少一個 skill 正文指名`);
   assert(exp.has('reviewer-severity.md'), '抽樣：verify 指名的 reviewer-severity.md 在期望集合裡');
   assert(!snap.references.includes('SKILL.md'), 'skills 底下的檔不會混進 reference 集合');
+});
+
+testCase('U11', 'detectVersion：從 transcript 自己認版本，多個取最多次，抽不到就 null', () => {
+  const two = '/loops-workflow/0.20.0/references/a.md /loops-workflow/0.20.0/references/b.md /loops-workflow/0.56.4/references/c.md';
+  assert(detectVersion(two) === '0.20.0', '多個版本 → 取出現最多次的（偶爾出現的舊路徑不該蓋掉主版本）');
+  assert(detectVersion('C:\\x\\loops-workflow\\0.20.0\\references\\a.md') === '0.20.0', '反斜線路徑也認得');
+  assert(detectVersion('完全沒有版本') === null, '抽不到 → null（不猜）');
+  assert(detectVersion(null) === null, 'null 輸入不丟例外');
+  assert(detectVersion('/loops-workflow/1.2.3/skills/x') === '1.2.3', 'references 以外的路徑段也算');
+});
+
+testCase('U12', '版本不符 → not measured（這條擋的是「跑舊版」這個既有規則擋不住的方向）', () => {
+  withTmp((root) => {
+    const snap = loadSnapshot(makeSnapshot(root)); // 版本 0.99.0
+    const older = { file: 'old', kind: 'loop-session', skillCalls: [`${SKILL_NS}alpha`], referenceReads: ['used.md'], loopArtifacts: 1, detectedVersion: '0.20.0' };
+    const r = compareUsage([older], snap);
+    assert(r.transcripts.notMeasured.length === 1, '版本不符 → 排除');
+    assert(r.transcripts.notMeasured[0].reason.includes('0.20.0') && r.transcripts.notMeasured[0].reason.includes('0.99.0'), '理由指名兩邊的版本');
+    assert(r.transcripts.loopSessions === 0, '不計入分母');
+
+    // 反向：版本相符不得誤判（殺掉「凡有 detectedVersion 就擋」的實作）
+    const same = compareUsage([{ ...older, detectedVersion: '0.99.0' }], snap);
+    assert(same.transcripts.notMeasured.length === 0 && same.transcripts.loopSessions === 1, '版本相符 → 正常計入');
+    // 抽不到版本時沿用既有行為（只靠 skill 名判斷），不是一律排除
+    const none = compareUsage([{ ...older, detectedVersion: null }], snap);
+    assert(none.transcripts.loopSessions === 1, '抽不到版本 → 不因此排除（沿用既有的 skill 名判準）');
+  });
+});
+
+testCase('U13', 'observedOnly：沒有期望集合時只報事實、不報差集', () => {
+  const o = observedOnly([
+    { kind: 'loop-session', skillCalls: [`${SKILL_NS}goal`, `${SKILL_NS}goal`, 'code-review'], referenceReads: ['a.md'] },
+    { kind: 'non-loop', skillCalls: [], referenceReads: [] },
+  ]);
+  assert(o.loopSessions === 1 && o.nonLoop === 1, '分母照樣誠實');
+  assert(o.skills[0].name === 'goal' && o.skills[0].count === 2, '只算本 plugin 的 skill、次數正確');
+  assert(!o.skills.some((x) => x.name === 'code-review'), '別的 plugin 的 skill 不混進來');
+  assert(o.references[0].name === 'a.md', 'reference 事實也帶出來');
+  assert(!('neverLoaded' in o) && !('neverInvoked' in o), '**沒有差集欄位**——沒有期望集合就不下結論');
+});
+
+testCase('U14', '分版本分析：各組用自己的快照；沒有快照／沒有版本的整組不下差集', () => {
+  withTmp((root) => {
+    const cache = join(root, 'cache');
+    mkdirSync(cache, { recursive: true });
+    // 只準備 0.99.0 的快照；另有一組 transcript 宣稱跑 1.0.0（沒有快照）
+    const snapDir = makeSnapshot(cache);
+    assert(snapDir.endsWith('0.99.0'), '快照版本取自目錄名');
+
+    const projects = join(root, 'projects', 'p');
+    mkdirSync(projects, { recursive: true });
+    const nl = String.fromCharCode(10);
+    writeFileSync(join(projects, 'a.jsonl'), [skillLine(`${SKILL_NS}alpha`), readLine('/x/loops-workflow/0.99.0/references/used.md')].join(nl), 'utf8');
+    writeFileSync(join(projects, 'b.jsonl'), [skillLine(`${SKILL_NS}alpha`), readLine('/x/loops-workflow/1.0.0/references/used.md')].join(nl), 'utf8');
+    writeFileSync(join(projects, 'c.jsonl'), [skillLine(`${SKILL_NS}alpha`), loopLine()].join(nl), 'utf8');
+
+    const r = analyzeByVersion(join(root, 'projects'), cache);
+    assert(r.totalTranscripts === 3, '三份都掃到');
+    assert(r.analysed.length === 1 && r.analysed[0].version === '0.99.0', '只有有快照的版本被分析');
+    assert(r.analysed[0].report.transcripts.loopSessions === 1, '該組只含自己那一版的 transcript');
+    const noSnap = r.skipped.find((s) => s.version === '1.0.0');
+    assert(noSnap && noSnap.reason.includes('找不到'), '有版本但沒快照 → 整組跳過並說明');
+    const unknown = r.skipped.find((s) => s.version === 'unknown');
+    assert(unknown && unknown.reason.includes('不猜'), '抽不到版本 → 整組跳過並說明');
+    assert(unknown.observed.skills[0].name === 'alpha', '被跳過的組仍列出觀測到的事實（不浪費已拿到的觀測）');
+
+    const md = renderByVersionReport(r);
+    assert(md.includes('每一組都用它自己那一版的快照'), '報告講清楚分組原則');
+    assert(md.includes('整組未量測（誠實揭露）'), '跳過的組列出來');
+    assert(md.includes('沒有期望集合，所以不下差集結論'), '事實與結論的界線寫明');
+    assert(md.includes('# 版本 `0.99.0`'), '逐版本各一節');
+    assert((md.match(/^# /gm) ?? []).length >= 2, '子報告的 H1 被換成版本標題，不會有多個同級主標題打架');
+  });
 });
 
 // ══════════════════════════════════════════════════════════════════════════
