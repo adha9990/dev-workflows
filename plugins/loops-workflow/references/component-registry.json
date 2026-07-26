@@ -1088,6 +1088,52 @@
       }
     },
     {
+      "id": "docs-lint",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/docs-lint.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/docs-lint.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "setup-catalog"
+      ],
+      "consumers": [
+        "docs-lint-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "docs-lint-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-docs-lint.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-docs-lint.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "docs-lint"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
       "id": "edit-accumulator",
       "kind": "hook",
       "paths": [
@@ -5345,6 +5391,7 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
+        "docs-lint",
         "setup-plan",
         "setup-plan-tests",
         "setup-skill"
