@@ -1,6 +1,6 @@
 # AGENTS.md — __PROJECT_NAME__
 
-本檔給「在這個 repo 工作的人與 AI agent」看 —— 目的是讓你在動手前就理解專案的**架構與設計方向**。
+本檔給「在這個 repo 工作的人與 AI agent」看 —— 目的是讓你在動手前就理解專案的**架構與工作慣例**。
 (若你用 Claude Code,可在 `CLAUDE.md` 只寫一行 `AGENTS.md` 指向本檔,讓人與 agent 讀同一份來源。)
 
 ## 這是什麼專案
@@ -9,20 +9,22 @@
   (`frontend/`),兩者是**獨立 package、只透過 HTTP 溝通**。
 - 後端採 clean-architecture 分層,結構由 ESLint 強制執行,不會隨成長而腐化。
 
-## 最重要的慣例:邊建邊留「設計方向」文件
+## 最重要的慣例:邊建邊留教學文檔
 
 這是本專案的核心工作習慣,也是讓新人能快速接手的關鍵:
 
-> **每當你建立或改變一個「環境、功能、或概念」,就在 `docs/` 留下一份說明「設計方向」的文件 ——
-> 記錄「為什麼這樣設計、有哪些取捨與邊界」,而不只是「怎麼用」。**
+> **每當你建立或改變一個「環境、功能、或概念」,就在 `docs/` 留下一份教學文檔 ——
+> 寫「怎麼用、有什麼限制與坑、擴充時怎麼判斷」;「為什麼這樣設計」最多一句帶過。**
 
-- 例:設定好測試環境 → 寫 `docs/testing.md`(為什麼用真 SQLite 而非 mock、各層各測什麼)。
-- 例:設計了一條匯入流程 → 寫 `docs/import.md`(流程、邊界、取捨、失敗模式)。
-- 分工:**`docs/` 講「why + 高層 how」;程式碼註解講「這一行在做什麼」。**
+- 例:設定好測試環境 → 寫 `docs/testing.md`(各層各測什麼、加新測試放哪套、該不該 mock 的判斷)。
+- 例:設計了一條匯入流程 → 寫 `docs/import.md`(流程、邊界、失敗模式、擴充時的判斷準則)。
+- 分工:**`docs/` 教「怎麼用 + 約束不變式 + 擴充時的判斷準則」;程式碼註解講「這一行在做什麼」;
+  「為什麼這樣設計、評估過哪些方案」的完整敘事放 PR / 設計文件,不進 `docs/`。**
 - 寫完記得在 `docs/README.md` 的索引加一行。
 
-為什麼要這樣:ESLint 鎖住*程式碼*分層不腐化;`docs/` 與本檔鎖住*設計意圖*不流失。程式碼會告訴你
-「怎麼做」,但只有文件能告訴你「當初為什麼這樣決定」—— 這正是新人與 AI agent 最快卡住的地方。
+為什麼要這樣:ESLint 鎖住*程式碼*分層不腐化;`docs/` 與本檔鎖住*使用方式與判斷準則*不流失。程式碼
+會告訴你「怎麼做」,但只有文件能教你「怎麼用、遇到新案例怎麼判斷」—— 這正是新人與 AI agent 最快
+卡住的地方。
 
 新人 / agent 動手前的閱讀順序:
 `docs/README.md` → `docs/architecture.md` → 你要動的領域對應的 `docs/<topic>.md` → 程式碼。
@@ -32,7 +34,7 @@
 ```
 backend/    Fastify 後端 package(分層:domain / ports / adapters / repositories / services / http;bin 為 composition root)
 frontend/   React SPA package(MVVM:model ← viewmodels ← View(routes + components);lib 為跨層工具)
-docs/       設計方向文件 —— 邊建邊寫(見上)
+docs/       教學文檔 —— 邊建邊寫(見上)
 AGENTS.md   本檔:給人與 agent 的工作指南
 ```
 
@@ -66,5 +68,5 @@ AGENTS.md   本檔:給人與 agent 的工作指南
 ## 完工定義(Definition of Done)
 
 - **程式碼**:`pnpm -r typecheck && pnpm -r lint && pnpm -r test` 全綠。
-- **文件**:若你建立或改變了一個環境/功能/概念,`docs/` 有對應的設計方向文件且已更新,`docs/README.md` 索引同步。
+- **文件**:若你建立或改變了一個環境/功能/概念,`docs/` 有對應的教學文檔且已更新,`docs/README.md` 索引同步。
 - **回報**:說明改了哪些檔、行為有何變化、有哪些風險。

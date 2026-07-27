@@ -329,11 +329,13 @@
       "fail_closed_on_missing_state": false,
       "requires": [
         "新子系統或跨切面寫-docs-topic-md",
-        "維護-docs-readme-索引"
+        "維護-docs-readme-索引",
+        "操作型決策準則自足寫進-docs"
       ],
       "forbids": [
         "小功能塞進-docs",
-        "慣例未變仍改-agents-md"
+        "慣例未變仍改-agents-md",
+        "決策敘事塞進-docs"
       ],
       "conflicts_with": [],
       "projection": [
