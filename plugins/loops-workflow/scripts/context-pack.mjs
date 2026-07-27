@@ -10,6 +10,10 @@
 //   2) **blocking 永不丟**：未修的 P0/P1 finding、沒過的閘、未決的決策屬**受保護區段**——預算再
 //      緊也照放；真的塞不下時把 `overBudget` 標成 true 讓呼叫端知道（而不是靜默丟掉最關鍵的資訊）。
 //      這條堵的是「為了省 token 把『還有什麼沒修完』擠掉」——那正是 #162/#188 反覆踩到的失效模式。
+//      **這裡的 P0/P1 對應的是「完工前提」那一層（iterate §6：最近一輪 verify 無 actionable
+//      findings），不是 pr-gate 閘⑥ 的機械下界（#211 起只認 P0）。兩層刻意不同、不要對齊**：
+//      把 P1 從受保護區段拿掉，預算一緊 P1 就會被擠出 context，於是「還沒修完的 P1」沒人記得——
+//      那正是本規則要防的事。詳見 `scripts/loop-graph.mjs` 的 `BLOCKING_SEVERITIES`。
 //
 // 純函式為主（estimateTokens / buildSections / packSections / buildContextPack）；
 // 讀檔（artifact 內容）由呼叫端注入 `readSource`，本檔不自己碰 IO。
@@ -80,7 +84,7 @@ export function buildSections({ state, events, stage = null, affected = [], read
   for (const d of blocking.decisions) blockingLines.push(`- 未決決策 \`${d.id}\`：${d.question}`);
   sections.push({
     id: 'blocking',
-    title: '仍擋著收圈的（受保護區段，不因預算丟棄）',
+    title: '仍擋著完工的（受保護區段，不因預算丟棄）',
     priority: 0,
     protected: true,
     truncatable: false,

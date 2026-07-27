@@ -113,7 +113,7 @@ testCase('S5', '有界選取：高訊號事件優先於流水帳；編號用行�
 testCase('S6', 'blocking 區段：未修 P0/P1 與沒過的閘出現在快照', () => {
   const events = build(RUN);
   const md = renderLoopMd(projectEvents(events, { slug: 'demo' }), events);
-  assert(md.includes('仍擋著收圈的'), '有 blocking 區段');
+  assert(md.includes('仍擋著完工的'), '有 blocking 區段');
   assert(md.includes('F1') && md.includes('P0'), '未修的 P0 finding 出現在快照');
   assert(md.includes('tests') && md.includes('fail'), '沒過的閘出現在快照');
   const clean = build([{ type: 'loop-create', payload: {} }, { type: 'stage-enter', payload: { stage: 'goal' } }]);

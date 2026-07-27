@@ -39,7 +39,15 @@ export const PROJECTED_TYPES = Object.freeze({
   unknown: 'Unknown',
 });
 
-/** blocking 嚴重度下限——與 references/personas/reviewer-severity.md 的 P0/P1 擋線一致。 */
+/**
+ * blocking 嚴重度下限——與 references/personas/reviewer-severity.md 的 P0/P1 擋線一致
+ * （＝verify 判 Ready / Not ready 的擋線，#211 沒有改它）。
+ *
+ * **刻意與 pr-gate 閘⑥ 的下界不同、別對齊**：閘⑥ 是「誰都不能繞過的機械下界」，#211 起只認 P0；
+ * 這裡是「還有什麼站在完工路上」——iterate §6 的完工前提仍是「最近一輪 verify 無 actionable
+ * findings」，未修的 P1 一樣還在路上，而且它必須留在 context pack 的受保護區段裡（把 P1 從這個
+ * 集合拿掉，預算一緊它就被丟出 context、沒人記得修）。
+ */
 export const BLOCKING_SEVERITIES = Object.freeze(['P0', 'P1']);
 
 /** index 落點（相對主 repo 根）。 */
@@ -194,8 +202,11 @@ export function projectEvents(events, { slug = '' } = {}) {
 }
 
 /**
- * 仍擋著收圈的東西：未解決的 P0/P1 finding ＋ 最近一次評估為 fail 的閘 ＋ 仍 pending 的決策。
+ * 仍擋著**完工**的東西：未解決的 P0/P1 finding ＋ 最近一次評估為 fail 的閘 ＋ 仍 pending 的決策。
  * 這是 context pack 的**受保護區段**（AC-4：預算再緊也不得丟）。
+ *
+ * 用「完工」而非「收圈」：對應的是 iterate §6 的完工前提（最近一輪 verify 無 actionable findings），
+ * **不是** pr-gate 閘⑥ 的機械下界（#211 起只認 P0）。兩層刻意不同——見上方 `BLOCKING_SEVERITIES`。
  */
 export function selectBlocking(state) {
   const findings = state.findings.filter((f) => f.status === 'open' && BLOCKING_SEVERITIES.includes(f.severity));

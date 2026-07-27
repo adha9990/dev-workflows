@@ -177,7 +177,7 @@ testCase('U10', 'IO：unknown 走 loop ledger 的唯一寫入路徑、同 id 後
   });
 });
 
-testCase('U11', '接進 work graph：unknown 成為節點、blocking unknown 與未修 P0/P1 同級擋收圈', () => {
+testCase('U11', '接進 work graph：unknown 成為節點、blocking unknown 與未修 P0/P1 同級擋完工', () => {
   withTmp((root) => {
     const loopDir = join(root, 'demo');
     mkdirSync(loopDir, { recursive: true }); // loop-ledger 契約 6：ledger 不建目錄，建目錄是呼叫端的事

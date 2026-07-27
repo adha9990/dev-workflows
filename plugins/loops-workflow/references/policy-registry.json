@@ -865,6 +865,61 @@
         "AGENTS.md",
         "plugins/loops-workflow/skills/decision-interview/SKILL.md"
       ]
+    },
+    {
+      "id": "close-round-blocking-floor",
+      "title": "收圈的機械下界＝未修的 P0 清零（P1 不機械擋、但仍照 actionable 全修）",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "close-round"
+        ],
+        "stages": [
+          "iterate"
+        ]
+      },
+      "enforcement": "require",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "pr-gate",
+        "protected_actions": [
+          "close-round"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": [
+        "收圈前最近一輪-verify-的未修-P0-為零",
+        "帶著未修的-P1-收圈要使用者拍板並同步-issue-PR-留痕",
+        "知情豁免-blocking-waiver-僅-attended-生效-auto-一律不認"
+      ],
+      "forbids": [
+        "以圈數到頂為由帶著未修的-P0-收圈",
+        "agent-代決帶著未修的-finding-收圈",
+        "auto-模式用-blocking-waiver-繞過本閘"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md",
+        "plugins/loops-workflow/skills/iterate/SKILL.md"
+      ],
+      "projection_marker": "未清 P0 不准收圈",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-pr-gate.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/skills/iterate/SKILL.md",
+        "plugins/loops-workflow/references/shared/runtime/auto-mode.md",
+        "plugins/loops-workflow/docs/settings.md"
+      ]
     }
   ]
 }

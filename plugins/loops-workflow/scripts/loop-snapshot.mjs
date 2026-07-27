@@ -121,7 +121,10 @@ export function renderLoopMd(state, events, { warnings = [] } = {}) {
     '',
     `> ${summarize(state)}`,
     '',
-    '## 仍擋著收圈的',
+    // 「完工」而不是「收圈」：這一段列的是 iterate §6 完工前提（最近一輪 verify 無 actionable
+    // findings）還沒清掉的東西——**不是** pr-gate 閘⑥ 的機械下界（#211 起只認 P0）。用「收圈」會
+    // 和那個現在有精確定義的詞撞在一起，讓人以為這裡列的 P1 也會被機械閘擋。
+    '## 仍擋著完工的',
   );
   if (!blocking.count) {
     lines.push('', '（無）', '');
