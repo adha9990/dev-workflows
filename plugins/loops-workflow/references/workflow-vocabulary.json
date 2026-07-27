@@ -1,0 +1,121 @@
+{
+  "schema_version": "1",
+  "notes": "canonical workflow vocabulary（#217）——Claude 與 Codex 共用的同一份工作流詞彙。artifact registry、telemetry ledger、cost renderer 與所有 gate 一律從這裡取值，不各自寫死字串清單。三件事在這裡定案：①哪些是 phase（工作階段）、②哪些是 control node（控制節點，不是 phase）、③成本歸因的維度順序。iterate 保留為相容的 skill 名，但語意是 iteration-controller、不是 phase——把它當 phase 會掩蓋『成本實際發生在 remediation 還是 reverify』。",
+
+  "phases": [
+    {
+      "id": "clarify",
+      "order": 1,
+      "skill": "clarify",
+      "optional": true,
+      "description": "把模糊的一句話收斂成確認過的理解與方向"
+    },
+    {
+      "id": "define",
+      "order": 2,
+      "skill": "define",
+      "optional": true,
+      "description": "把已釐清的工作寫成 GitHub issue（建 issue 的唯一入口）"
+    },
+    {
+      "id": "goal",
+      "order": 3,
+      "skill": "goal",
+      "optional": false,
+      "description": "訂出完工定義與停止條件"
+    },
+    {
+      "id": "explore",
+      "order": 4,
+      "skill": "explore",
+      "optional": false,
+      "description": "研究怎麼做，產出有證據的選項與建議"
+    },
+    {
+      "id": "plan",
+      "order": 5,
+      "skill": "plan",
+      "optional": false,
+      "description": "拍板設計並切成可獨立驗收的任務"
+    },
+    {
+      "id": "build",
+      "order": 6,
+      "skill": "build",
+      "optional": false,
+      "description": "把計畫實作成有測試保護的程式碼"
+    },
+    {
+      "id": "verify",
+      "order": 7,
+      "skill": "verify",
+      "optional": false,
+      "description": "獨立複查合併就緒與否，回 Ready / Not ready"
+    },
+    {
+      "id": "finalize",
+      "order": 8,
+      "skill": "iterate",
+      "optional": false,
+      "description": "收圈：產固定 deliverables、開 PR、收尾。skill 名沿用 iterate（相容），但這個 phase 只涵蓋『收圈與交付』那一段，回環控制屬 iteration-controller"
+    }
+  ],
+
+  "control_nodes": [
+    {
+      "id": "dispatch",
+      "skill": "dispatch",
+      "description": "路由：判類型、建 loop、決定起點 phase。它決定要走哪個 phase，本身不是工作階段"
+    },
+    {
+      "id": "iteration-controller",
+      "skill": "iterate",
+      "compat_skill_name": "iterate",
+      "description": "回環控制：讀 verify findings、決定回哪個 phase、遞增 iteration。成本要記在它驅動出來的 remediate／reverify activity 上，不是記成一個叫 iterate 的 phase"
+    }
+  ],
+
+  "activities": [
+    { "id": "route", "description": "分類與路由（dispatch 的主要動作）" },
+    { "id": "clarify", "description": "向使用者釐清需求、確認理解" },
+    { "id": "author-issue", "description": "撰寫或更新 GitHub issue body" },
+    { "id": "research", "description": "查既有實作、外部資料、方案調查" },
+    { "id": "design", "description": "設計決策、方案取捨、切任務" },
+    { "id": "implement", "description": "寫或改實作程式碼" },
+    { "id": "execute-test", "description": "跑測試／lint／typecheck 等驗證命令" },
+    { "id": "review", "description": "reviewer 審查（verify 的 fan-out）" },
+    { "id": "validate-finding", "description": "finding 的二輪確認（finding-validator）" },
+    { "id": "remediate", "description": "依 finding 修正（回環後的修）" },
+    { "id": "reverify", "description": "修完後重新驗證" },
+    { "id": "document", "description": "寫或更新人類文件" },
+    { "id": "render-artifact", "description": "產生受管的人類可見 Markdown 產物" },
+    { "id": "publish", "description": "把內容送出到 GitHub（issue／PR／comment）" },
+    { "id": "cleanup", "description": "收尾清理（worktree、暫存草稿）" }
+  ],
+
+  "cost_dimensions": [
+    "loop",
+    "iteration",
+    "workflow_node",
+    "activity",
+    "agent",
+    "task",
+    "turn"
+  ],
+
+  "planes": [
+    { "id": "main", "description": "主線 turn（orchestrator 自己的回合）" },
+    { "id": "subagent", "description": "被派出的 subagent 的 turn" }
+  ],
+
+  "measurement_statuses": [
+    { "id": "exact", "description": "runtime 直接提供該數值" },
+    { "id": "estimated", "description": "由可觀測訊號推導（必須寫明推導方式）" },
+    { "id": "not_measured", "description": "runtime 沒有提供、也無法誠實推導。不得用關鍵字、固定比例或模型猜測補成 exact" }
+  ],
+
+  "attribution": {
+    "unattributed_prefix": "unattributed:",
+    "notes": "instrumentation 還原不出 agent 身分時的唯一寫法。有有效 loop context 時寫 unattributed:<runtime-id> 並附 reason／缺少的 event／transcript evidence；連 loop context 都沒有時只寫 telemetry defect diagnostic，不得捏造 loop attribution。**禁止使用 other-subagent**——把不同 reviewer 與任務混成一桶，正是 #217 要消除的形狀"
+  }
+}

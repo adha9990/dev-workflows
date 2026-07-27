@@ -15,15 +15,15 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
+        "ref-persona-accessibility-reviewer",
         "ref-reviewer-severity",
-        "ref-persona-accessibility-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -160,19 +160,19 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-architecture-review",
         "ref-clean-architecture",
         "ref-code-retrieval",
         "ref-design-patterns",
         "ref-minimalism-ladder",
+        "ref-persona-architecture-reviewer",
         "ref-reviewer-severity",
-        "ref-persona-architecture-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -194,19 +194,19 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-architecture-review",
         "ref-clean-architecture",
         "ref-code-retrieval",
         "ref-design-patterns",
         "ref-minimalism-ladder",
+        "ref-persona-architecture-reviewer",
         "ref-reviewer-severity",
-        "ref-persona-architecture-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -255,8 +255,8 @@
       "target_path": null,
       "user_invocable": false,
       "dependencies": [
-        "path-containment",
-        "baseline-corpus-data"
+        "baseline-corpus-data",
+        "path-containment"
       ],
       "consumers": [
         "baseline-harness-tests",
@@ -334,10 +334,10 @@
         "ref-test-rubric"
       ],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "canonical-contracts-tests",
-        "safe-stop-tests"
+        "compat-lint",
+        "safe-stop-tests",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -366,8 +366,6 @@
       "target_path": "plugins/loops-workflow/scripts/test-canonical-contracts.mjs",
       "user_invocable": false,
       "dependencies": [
-        "plugin-manifests",
-        "skill-lint",
         "baseline-corpus-data",
         "build-skill",
         "clarify-skill",
@@ -378,7 +376,9 @@
         "goal-skill",
         "iterate-skill",
         "plan-skill",
+        "plugin-manifests",
         "scaffold-fullstack-skill",
+        "skill-lint",
         "verify-skill"
       ],
       "consumers": [],
@@ -402,41 +402,41 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "compat-lint",
-        "check-registry-shape",
-        "reviewer-generator",
-        "hooks-codex-generator",
-        "build-skill",
-        "dispatch-skill",
-        "explore-skill",
-        "goal-skill",
-        "iterate-skill",
-        "plan-skill",
-        "verify-skill",
         "accessibility-reviewer-agent",
         "architecture-reviewer-agent",
         "architecture-reviewer-deep-agent",
+        "build-skill",
+        "check-registry-shape",
         "ci-cd-reviewer-agent",
         "code-quality-reviewer-agent",
         "code-quality-reviewer-deep-agent",
+        "compat-lint",
+        "dispatch-skill",
         "docs-devex-reviewer-agent",
         "eval-judge-agent",
+        "explore-skill",
         "finding-validator-agent",
         "finding-validator-deep-agent",
         "frontend-ui-reviewer-agent",
+        "goal-skill",
+        "hooks-codex-generator",
         "impl-author-agent",
+        "iterate-skill",
         "migration-reviewer-agent",
         "multi-user-concurrency-reviewer-agent",
         "observability-reviewer-agent",
         "performance-reviewer-agent",
+        "plan-skill",
         "processing-reliability-reviewer-agent",
         "product-contract-reviewer-agent",
         "referee-agent",
+        "reviewer-generator",
         "root-cause-reviewer-agent",
         "security-reviewer-agent",
         "security-reviewer-deep-agent",
         "test-author-agent",
         "tests-reviewer-agent",
+        "verify-skill",
         "web-performance-reviewer-agent"
       ],
       "required_checks": {
@@ -503,10 +503,10 @@
       "target_path": "plugins/loops-workflow/scripts/check-registry-shape.mjs",
       "user_invocable": false,
       "dependencies": [
-        "capability-registry",
         "accessibility-reviewer-agent",
         "architecture-reviewer-agent",
         "architecture-reviewer-deep-agent",
+        "capability-registry",
         "ci-cd-reviewer-agent",
         "code-quality-reviewer-agent",
         "code-quality-reviewer-deep-agent",
@@ -556,15 +556,15 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
+        "ref-persona-ci-cd-reviewer",
         "ref-reviewer-severity",
-        "ref-persona-ci-cd-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -591,9 +591,9 @@
         "ref-interaction-adapter"
       ],
       "consumers": [
-        "skill-lint",
+        "canonical-contracts-tests",
         "compat-lint",
-        "canonical-contracts-tests"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -617,21 +617,21 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-clean-code",
         "ref-code-retrieval",
         "ref-code-simplification",
         "ref-correctness-review",
         "ref-minimalism-ladder",
+        "ref-persona-code-quality-reviewer",
         "ref-refactoring",
         "ref-reuse-check",
         "ref-reviewer-severity",
-        "ref-persona-code-quality-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -653,21 +653,21 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-clean-code",
         "ref-code-retrieval",
         "ref-code-simplification",
         "ref-correctness-review",
         "ref-minimalism-ladder",
+        "ref-persona-code-quality-reviewer",
         "ref-refactoring",
         "ref-reuse-check",
         "ref-reviewer-severity",
-        "ref-persona-code-quality-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -838,8 +838,8 @@
         "web-performance-reviewer-agent"
       ],
       "consumers": [
-        "registry-compiler",
-        "compat-lint-tests"
+        "compat-lint-tests",
+        "registry-compiler"
       ],
       "required_checks": {
         "hooks": [],
@@ -939,8 +939,8 @@
       "target_path": "plugins/loops-workflow/scripts/context-pack.mjs",
       "user_invocable": false,
       "dependencies": [
-        "loop-ledger",
         "loop-graph",
+        "loop-ledger",
         "loop-snapshot"
       ],
       "consumers": [
@@ -991,8 +991,8 @@
         "hook-shared-runtime"
       ],
       "consumers": [
-        "loop-driver",
-        "hook-wiring"
+        "hook-wiring",
+        "loop-driver"
       ],
       "required_checks": {
         "hooks": [
@@ -1052,9 +1052,9 @@
         "ref-operation-first-move"
       ],
       "consumers": [
-        "skill-lint",
+        "canonical-contracts-tests",
         "compat-lint",
-        "canonical-contracts-tests"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -1115,10 +1115,10 @@
         "ref-operation-first-move"
       ],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "canonical-contracts-tests",
-        "safe-stop-tests"
+        "compat-lint",
+        "safe-stop-tests",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -1147,17 +1147,17 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
         "ref-docs-devex-review",
         "ref-docs-policy",
+        "ref-persona-docs-devex-reviewer",
         "ref-reviewer-severity",
-        "ref-persona-docs-devex-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -1228,9 +1228,9 @@
         "suggest-compact"
       ],
       "consumers": [
-        "stop-gate",
         "eval-gate",
-        "hook-wiring"
+        "hook-wiring",
+        "stop-gate"
       ],
       "required_checks": {
         "hooks": [
@@ -1259,9 +1259,9 @@
       "target_path": "plugins/loops-workflow/hooks/eval-gate.mjs",
       "user_invocable": false,
       "dependencies": [
-        "hook-shared-runtime",
         "edit-accumulator",
-        "eval-harness"
+        "eval-harness",
+        "hook-shared-runtime"
       ],
       "consumers": [
         "hook-wiring"
@@ -1294,8 +1294,8 @@
       "target_path": null,
       "user_invocable": false,
       "dependencies": [
-        "path-containment",
-        "eval-suites"
+        "eval-suites",
+        "path-containment"
       ],
       "consumers": [
         "eval-gate",
@@ -1354,9 +1354,9 @@
         "ref-eval-judge-rubric"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -1432,8 +1432,8 @@
       "target_path": null,
       "user_invocable": false,
       "dependencies": [
-        "plugin-docs",
-        "hook-shared-runtime"
+        "hook-shared-runtime",
+        "plugin-docs"
       ],
       "consumers": [
         "evidence-check-tests"
@@ -1462,9 +1462,9 @@
         "agents-constitution"
       ],
       "consumers": [
-        "skill-lint",
+        "canonical-contracts-tests",
         "compat-lint",
-        "canonical-contracts-tests"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -1500,10 +1500,10 @@
         "ref-risk-map"
       ],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "canonical-contracts-tests",
-        "safe-stop-tests"
+        "compat-lint",
+        "safe-stop-tests",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -1579,15 +1579,15 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
         "ref-finding-validation",
-        "ref-persona-finding-validator"
+        "ref-persona-finding-validator",
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -1609,15 +1609,15 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
         "ref-finding-validation",
-        "ref-persona-finding-validator"
+        "ref-persona-finding-validator",
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -1639,16 +1639,16 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
+        "ref-persona-frontend-ui-reviewer",
         "ref-reviewer-severity",
         "ref-ui-interaction-review",
-        "ref-persona-frontend-ui-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -1679,10 +1679,10 @@
         "ref-project-conventions"
       ],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "canonical-contracts-tests",
-        "safe-stop-tests"
+        "compat-lint",
+        "safe-stop-tests",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -1715,12 +1715,15 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
+        "agent-trace-guard",
+        "artifact-creation-guard",
         "config-protection",
         "cost-tracker",
         "edit-accumulator",
         "eval-gate",
         "evidence-checks",
         "hook-wiring",
+        "loop-context",
         "loop-driver",
         "loop-migrate",
         "loop-snapshot",
@@ -1732,6 +1735,7 @@
         "read-accumulator",
         "stop-gate",
         "suggest-compact",
+        "telemetry-recorder",
         "worktree-guard"
       ],
       "required_checks": {
@@ -1762,23 +1766,26 @@
       "target_path": null,
       "user_invocable": false,
       "dependencies": [
-        "hook-shared-runtime",
-        "suggest-compact",
-        "read-accumulator",
-        "edit-accumulator",
-        "cost-tracker",
+        "agent-trace-guard",
+        "artifact-creation-guard",
         "config-protection",
-        "worktree-guard",
+        "cost-tracker",
+        "edit-accumulator",
+        "eval-gate",
+        "hook-shared-runtime",
+        "loop-driver",
         "loops-path-guard",
+        "merge-guard",
         "outbound-comment-guard",
         "pr-gate",
-        "merge-guard",
         "pr-owner-guard",
-        "stop-gate",
-        "eval-gate",
-        "loop-driver",
         "progress-render",
-        "session-start"
+        "read-accumulator",
+        "session-start",
+        "stop-gate",
+        "suggest-compact",
+        "telemetry-recorder",
+        "worktree-guard"
       ],
       "consumers": [
         "hooks-codex-generator"
@@ -1843,9 +1850,9 @@
         "ref-security-checklist"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -1908,10 +1915,10 @@
         "ref-test-rubric"
       ],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "canonical-contracts-tests",
-        "safe-stop-tests"
+        "compat-lint",
+        "safe-stop-tests",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -1940,8 +1947,8 @@
       "target_path": "plugins/loops-workflow/hooks/loop-driver.mjs",
       "user_invocable": false,
       "dependencies": [
-        "hook-shared-runtime",
-        "cost-tracker"
+        "cost-tracker",
+        "hook-shared-runtime"
       ],
       "consumers": [
         "hook-wiring"
@@ -2028,6 +2035,7 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
+        "agent-trace",
         "context-pack",
         "loop-graph",
         "loop-graph-tests",
@@ -2039,6 +2047,7 @@
         "loop-snapshot-tests",
         "policy-runtime",
         "policy-runtime-tests",
+        "telemetry-ledger",
         "unknowns-register",
         "unknowns-register-tests"
       ],
@@ -2106,12 +2115,12 @@
       "target_path": "plugins/loops-workflow/scripts/test-loop-memory.mjs",
       "user_invocable": false,
       "dependencies": [
+        "baseline-harness",
+        "eval-harness",
         "loop-ledger",
         "loop-memory-fixtures",
         "progress-cli",
-        "session-start",
-        "eval-harness",
-        "baseline-harness"
+        "session-start"
       ],
       "consumers": [],
       "required_checks": {
@@ -2133,11 +2142,11 @@
       "target_path": "plugins/loops-workflow/scripts/loop-migrate.mjs",
       "user_invocable": false,
       "dependencies": [
-        "loop-ledger",
+        "hook-shared-runtime",
         "loop-graph",
+        "loop-ledger",
         "loop-snapshot",
-        "progress-cli",
-        "hook-shared-runtime"
+        "progress-cli"
       ],
       "consumers": [
         "loop-migrate-tests"
@@ -2161,10 +2170,10 @@
       "target_path": "plugins/loops-workflow/scripts/test-loop-migrate.mjs",
       "user_invocable": false,
       "dependencies": [
-        "loop-migrate",
-        "loop-ledger",
         "loop-graph",
+        "loop-ledger",
         "loop-memory-fixtures",
+        "loop-migrate",
         "progress-cli"
       ],
       "consumers": [],
@@ -2217,9 +2226,9 @@
       "target_path": "plugins/loops-workflow/scripts/test-loop-snapshot.mjs",
       "user_invocable": false,
       "dependencies": [
-        "loop-snapshot",
-        "loop-ledger",
         "loop-graph",
+        "loop-ledger",
+        "loop-snapshot",
         "progress-cli"
       ],
       "consumers": [],
@@ -2242,8 +2251,8 @@
       "target_path": "plugins/loops-workflow/hooks/loops-path-guard.mjs",
       "user_invocable": false,
       "dependencies": [
-        "policy-registry",
-        "hook-shared-runtime"
+        "hook-shared-runtime",
+        "policy-registry"
       ],
       "consumers": [
         "hook-wiring"
@@ -2311,15 +2320,15 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
+        "ref-persona-migration-reviewer",
         "ref-reviewer-severity",
-        "ref-persona-migration-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -2341,18 +2350,18 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
         "ref-finding-author-decision-rule",
         "ref-multi-user-review",
         "ref-optional-reviewers",
+        "ref-persona-multi-user-concurrency-reviewer",
         "ref-reviewer-severity",
-        "ref-persona-multi-user-concurrency-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -2374,15 +2383,15 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
+        "ref-persona-observability-reviewer",
         "ref-reviewer-severity",
-        "ref-persona-observability-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -2454,8 +2463,8 @@
         "read-accumulator"
       ],
       "consumers": [
-        "pr-gate",
-        "hook-wiring"
+        "hook-wiring",
+        "pr-gate"
       ],
       "required_checks": {
         "hooks": [
@@ -2488,8 +2497,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "eval-harness",
-        "baseline-harness"
+        "baseline-harness",
+        "eval-harness"
       ],
       "required_checks": {
         "hooks": [],
@@ -2511,16 +2520,16 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
         "ref-performance-review",
+        "ref-persona-performance-reviewer",
         "ref-reviewer-severity",
-        "ref-persona-performance-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -2562,10 +2571,10 @@
         "validate-plan"
       ],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "canonical-contracts-tests",
-        "safe-stop-tests"
+        "compat-lint",
+        "safe-stop-tests",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -2595,9 +2604,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "evidence-checks"
+        "evidence-checks",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -2621,8 +2630,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "codex-plugin-lint",
-        "canonical-contracts-tests"
+        "canonical-contracts-tests",
+        "codex-plugin-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -2643,9 +2652,9 @@
       "target_path": "plugins/loops-workflow/scripts/policy-change.mjs",
       "user_invocable": false,
       "dependencies": [
-        "registry-compiler",
+        "policy-registry",
         "policy-runtime",
-        "policy-registry"
+        "registry-compiler"
       ],
       "consumers": [
         "optimization-pipeline",
@@ -2696,6 +2705,8 @@
         "agents-constitution"
       ],
       "consumers": [
+        "agent-trace-guard",
+        "artifact-creation-guard",
         "compat-lint",
         "loops-path-guard",
         "policy-change",
@@ -2725,8 +2736,8 @@
       "target_path": "plugins/loops-workflow/scripts/policy-runtime.mjs",
       "user_invocable": false,
       "dependencies": [
-        "policy-registry",
-        "loop-ledger"
+        "loop-ledger",
+        "policy-registry"
       ],
       "consumers": [
         "affected-sources-tests",
@@ -2754,8 +2765,8 @@
       "target_path": "plugins/loops-workflow/scripts/test-policy-runtime.mjs",
       "user_invocable": false,
       "dependencies": [
-        "policy-runtime",
-        "loop-ledger"
+        "loop-ledger",
+        "policy-runtime"
       ],
       "consumers": [],
       "required_checks": {
@@ -2778,13 +2789,13 @@
       "user_invocable": false,
       "dependencies": [
         "hook-shared-runtime",
-        "worktree-guard",
-        "outbound-comment-guard"
+        "outbound-comment-guard",
+        "worktree-guard"
       ],
       "consumers": [
+        "hook-wiring",
         "merge-guard",
-        "pr-owner-guard",
-        "hook-wiring"
+        "pr-owner-guard"
       ],
       "required_checks": {
         "hooks": [
@@ -2850,15 +2861,15 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
+        "ref-persona-processing-reliability-reviewer",
         "ref-reviewer-severity",
-        "ref-persona-processing-reliability-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -2880,18 +2891,18 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-acceptance-review",
         "ref-bdd-scenarios",
         "ref-code-retrieval",
         "ref-contract-spec",
+        "ref-persona-product-contract-reviewer",
         "ref-reviewer-severity",
-        "ref-persona-product-contract-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -2996,8 +3007,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "stop-gate",
-        "quality-gate-tests"
+        "quality-gate-tests",
+        "stop-gate"
       ],
       "required_checks": {
         "hooks": [],
@@ -3046,8 +3057,8 @@
         "suggest-compact"
       ],
       "consumers": [
-        "outbound-comment-guard",
-        "hook-wiring"
+        "hook-wiring",
+        "outbound-comment-guard"
       ],
       "required_checks": {
         "hooks": [
@@ -3075,11 +3086,11 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
         "iterate-skill",
-        "verify-skill",
-        "product-contract-reviewer-agent"
+        "product-contract-reviewer-agent",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3103,9 +3114,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "plan-skill"
+        "plan-skill",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3129,11 +3140,11 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "verify-skill",
         "architecture-reviewer-agent",
-        "architecture-reviewer-deep-agent"
+        "architecture-reviewer-deep-agent",
+        "compat-lint",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3157,11 +3168,11 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "safe-stop-tests",
         "dispatch-skill",
-        "iterate-skill"
+        "iterate-skill",
+        "safe-stop-tests",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3185,8 +3196,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint"
+        "compat-lint",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3210,14 +3221,14 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
+        "compat-lint",
         "define-skill",
         "goal-skill",
-        "verify-skill",
         "product-contract-reviewer-agent",
-        "test-author-agent"
+        "skill-lint",
+        "test-author-agent",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3241,9 +3252,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "build-skill",
         "compat-lint",
-        "build-skill"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3267,14 +3278,14 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "build-skill",
-        "plan-skill",
-        "verify-skill",
         "architecture-reviewer-agent",
         "architecture-reviewer-deep-agent",
-        "impl-author-agent"
+        "build-skill",
+        "compat-lint",
+        "impl-author-agent",
+        "plan-skill",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3298,13 +3309,13 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
-        "verify-skill",
         "code-quality-reviewer-agent",
         "code-quality-reviewer-deep-agent",
-        "impl-author-agent"
+        "compat-lint",
+        "impl-author-agent",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3328,17 +3339,15 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "explore-skill",
-        "verify-skill",
         "accessibility-reviewer-agent",
         "architecture-reviewer-agent",
         "architecture-reviewer-deep-agent",
         "ci-cd-reviewer-agent",
         "code-quality-reviewer-agent",
         "code-quality-reviewer-deep-agent",
+        "compat-lint",
         "docs-devex-reviewer-agent",
+        "explore-skill",
         "finding-validator-agent",
         "finding-validator-deep-agent",
         "frontend-ui-reviewer-agent",
@@ -3351,7 +3360,9 @@
         "root-cause-reviewer-agent",
         "security-reviewer-agent",
         "security-reviewer-deep-agent",
+        "skill-lint",
         "tests-reviewer-agent",
+        "verify-skill",
         "web-performance-reviewer-agent"
       ],
       "required_checks": {
@@ -3376,12 +3387,12 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
-        "verify-skill",
         "code-quality-reviewer-agent",
-        "code-quality-reviewer-deep-agent"
+        "code-quality-reviewer-deep-agent",
+        "compat-lint",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3437,9 +3448,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "build-skill",
         "compat-lint",
-        "build-skill"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3463,15 +3474,15 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
+        "compat-lint",
         "explore-skill",
+        "impl-author-agent",
         "iterate-skill",
         "scaffold-fullstack-skill",
-        "verify-skill",
-        "impl-author-agent",
-        "test-author-agent"
+        "skill-lint",
+        "test-author-agent",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3495,10 +3506,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
         "plan-skill",
-        "product-contract-reviewer-agent"
+        "product-contract-reviewer-agent",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3522,11 +3533,11 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
-        "verify-skill",
         "code-quality-reviewer-agent",
-        "code-quality-reviewer-deep-agent"
+        "code-quality-reviewer-deep-agent",
+        "compat-lint",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3550,9 +3561,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "iterate-skill"
+        "iterate-skill",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3576,12 +3587,12 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "architecture-reviewer-agent",
+        "architecture-reviewer-deep-agent",
         "compat-lint",
         "plan-skill",
-        "verify-skill",
-        "architecture-reviewer-agent",
-        "architecture-reviewer-deep-agent"
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3605,9 +3616,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "plan-skill"
+        "plan-skill",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3631,10 +3642,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "verify-skill",
-        "docs-devex-reviewer-agent"
+        "docs-devex-reviewer-agent",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3658,11 +3669,11 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
+        "compat-lint",
+        "docs-devex-reviewer-agent",
         "iterate-skill",
-        "docs-devex-reviewer-agent"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3686,8 +3697,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint"
+        "compat-lint",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3711,8 +3722,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint"
+        "compat-lint",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3736,8 +3747,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint"
+        "compat-lint",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3761,9 +3772,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "eval-judge-agent"
+        "eval-judge-agent",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3787,8 +3798,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint"
+        "compat-lint",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3812,16 +3823,16 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "build-skill",
         "compat-lint",
-        "validate-plan",
         "diff-footprint",
         "goal-skill",
-        "plan-skill",
-        "build-skill",
-        "verify-skill",
         "iterate-skill",
-        "test-author-agent"
+        "plan-skill",
+        "skill-lint",
+        "test-author-agent",
+        "validate-plan",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3845,10 +3856,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "verify-skill",
-        "multi-user-concurrency-reviewer-agent"
+        "multi-user-concurrency-reviewer-agent",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3872,11 +3883,11 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "verify-skill",
         "finding-validator-agent",
-        "finding-validator-deep-agent"
+        "finding-validator-deep-agent",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -3900,10 +3911,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
         "explore-skill",
-        "plan-skill"
+        "plan-skill",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3927,10 +3938,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "clarify-skill",
-        "goal-skill"
+        "compat-lint",
+        "goal-skill",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -3989,11 +4000,11 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
+        "compat-lint",
         "dispatch-skill",
-        "iterate-skill"
+        "iterate-skill",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4045,13 +4056,13 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "architecture-reviewer-agent",
         "architecture-reviewer-deep-agent",
         "code-quality-reviewer-agent",
         "code-quality-reviewer-deep-agent",
-        "impl-author-agent"
+        "compat-lint",
+        "impl-author-agent",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4075,9 +4086,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
+        "compat-lint",
+        "skill-lint",
         "verify-skill"
       ],
       "required_checks": {
@@ -4102,10 +4113,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "verify-skill",
-        "multi-user-concurrency-reviewer-agent"
+        "multi-user-concurrency-reviewer-agent",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -4129,9 +4140,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "explore-skill"
+        "explore-skill",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4155,12 +4166,12 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
+        "compat-lint",
         "define-skill",
         "dispatch-skill",
-        "goal-skill"
+        "goal-skill",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4184,10 +4195,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "verify-skill",
-        "multi-user-concurrency-reviewer-agent"
+        "multi-user-concurrency-reviewer-agent",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -4211,8 +4222,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint"
+        "compat-lint",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4236,10 +4247,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "verify-skill",
-        "performance-reviewer-agent"
+        "performance-reviewer-agent",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -4263,9 +4274,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "accessibility-reviewer-agent",
         "reviewer-generator",
-        "accessibility-reviewer-agent"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4287,10 +4298,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "reviewer-generator",
         "architecture-reviewer-agent",
-        "architecture-reviewer-deep-agent"
+        "architecture-reviewer-deep-agent",
+        "reviewer-generator",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4312,9 +4323,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "ci-cd-reviewer-agent",
         "reviewer-generator",
-        "ci-cd-reviewer-agent"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4336,10 +4347,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "reviewer-generator",
         "code-quality-reviewer-agent",
-        "code-quality-reviewer-deep-agent"
+        "code-quality-reviewer-deep-agent",
+        "reviewer-generator",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4361,9 +4372,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "docs-devex-reviewer-agent",
         "reviewer-generator",
-        "docs-devex-reviewer-agent"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4385,10 +4396,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "reviewer-generator",
         "finding-validator-agent",
-        "finding-validator-deep-agent"
+        "finding-validator-deep-agent",
+        "reviewer-generator",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4410,9 +4421,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "frontend-ui-reviewer-agent",
         "reviewer-generator",
-        "frontend-ui-reviewer-agent"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4434,9 +4445,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "migration-reviewer-agent",
         "reviewer-generator",
-        "migration-reviewer-agent"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4458,9 +4469,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "multi-user-concurrency-reviewer-agent",
         "reviewer-generator",
-        "multi-user-concurrency-reviewer-agent"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4482,9 +4493,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "observability-reviewer-agent",
         "reviewer-generator",
-        "observability-reviewer-agent"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4506,9 +4517,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "performance-reviewer-agent",
         "reviewer-generator",
-        "performance-reviewer-agent"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4530,9 +4541,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "processing-reliability-reviewer-agent",
         "reviewer-generator",
-        "processing-reliability-reviewer-agent"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4554,9 +4565,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "product-contract-reviewer-agent",
         "reviewer-generator",
-        "product-contract-reviewer-agent"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4578,9 +4589,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "reviewer-generator",
-        "root-cause-reviewer-agent"
+        "root-cause-reviewer-agent",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4602,10 +4613,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "reviewer-generator",
         "security-reviewer-agent",
-        "security-reviewer-deep-agent"
+        "security-reviewer-deep-agent",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4627,8 +4638,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "reviewer-generator",
+        "skill-lint",
         "tests-reviewer-agent"
       ],
       "required_checks": {
@@ -4651,8 +4662,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "reviewer-generator",
+        "skill-lint",
         "web-performance-reviewer-agent"
       ],
       "required_checks": {
@@ -4675,9 +4686,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "iterate-skill"
+        "iterate-skill",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4701,10 +4712,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
         "iterate-skill",
-        "plan-skill"
+        "plan-skill",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4728,8 +4739,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
+        "skill-lint",
         "verify-skill"
       ],
       "required_checks": {
@@ -4754,10 +4765,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
         "goal-skill",
         "plan-skill",
+        "skill-lint",
         "verify-skill"
       ],
       "required_checks": {
@@ -4782,9 +4793,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "build-skill",
         "compat-lint",
-        "build-skill"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4808,13 +4819,13 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
-        "verify-skill",
         "code-quality-reviewer-agent",
         "code-quality-reviewer-deep-agent",
-        "impl-author-agent"
+        "compat-lint",
+        "impl-author-agent",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -4838,15 +4849,15 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
-        "explore-skill",
-        "plan-skill",
-        "verify-skill",
         "code-quality-reviewer-agent",
         "code-quality-reviewer-deep-agent",
-        "impl-author-agent"
+        "compat-lint",
+        "explore-skill",
+        "impl-author-agent",
+        "plan-skill",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -4870,8 +4881,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
+        "skill-lint",
         "verify-skill"
       ],
       "required_checks": {
@@ -4943,9 +4954,9 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "reviewer-generator"
+        "reviewer-generator",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -4969,11 +4980,11 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
+        "build-skill",
         "compat-lint",
         "explore-skill",
         "plan-skill",
-        "build-skill",
+        "skill-lint",
         "verify-skill"
       ],
       "required_checks": {
@@ -4998,10 +5009,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "verify-skill",
-        "root-cause-reviewer-agent"
+        "root-cause-reviewer-agent",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -5025,13 +5036,13 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
-        "verify-skill",
+        "compat-lint",
         "impl-author-agent",
         "security-reviewer-agent",
-        "security-reviewer-deep-agent"
+        "security-reviewer-deep-agent",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -5055,10 +5066,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
-        "plan-skill"
+        "compat-lint",
+        "plan-skill",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -5082,15 +5093,15 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "build-skill",
+        "compat-lint",
         "iterate-skill",
         "plan-skill",
-        "verify-skill",
         "root-cause-reviewer-agent",
+        "skill-lint",
         "test-author-agent",
-        "tests-reviewer-agent"
+        "tests-reviewer-agent",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -5114,10 +5125,10 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
-        "verify-skill",
-        "frontend-ui-reviewer-agent"
+        "frontend-ui-reviewer-agent",
+        "skill-lint",
+        "verify-skill"
       ],
       "required_checks": {
         "hooks": [],
@@ -5141,8 +5152,8 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "skill-lint",
         "compat-lint",
+        "skill-lint",
         "verify-skill"
       ],
       "required_checks": {
@@ -5169,9 +5180,9 @@
         "capability-registry"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -5248,9 +5259,9 @@
       "user_invocable": false,
       "dependencies": [
         "agents-constitution",
-        "policy-registry",
         "component-registry",
         "integration-registry",
+        "policy-registry",
         "registry-compiler"
       ],
       "consumers": [],
@@ -5319,7 +5330,6 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "ref-reviewer-shared",
         "ref-persona-accessibility-reviewer",
         "ref-persona-architecture-reviewer",
         "ref-persona-ci-cd-reviewer",
@@ -5336,10 +5346,10 @@
         "ref-persona-root-cause-reviewer",
         "ref-persona-security-reviewer",
         "ref-persona-tests-reviewer",
-        "ref-persona-web-performance-reviewer"
+        "ref-persona-web-performance-reviewer",
+        "ref-reviewer-shared"
       ],
       "consumers": [
-        "reviewer-generator-tests",
         "accessibility-reviewer-agent",
         "architecture-reviewer-agent",
         "architecture-reviewer-deep-agent",
@@ -5356,6 +5366,7 @@
         "performance-reviewer-agent",
         "processing-reliability-reviewer-agent",
         "product-contract-reviewer-agent",
+        "reviewer-generator-tests",
         "root-cause-reviewer-agent",
         "security-reviewer-agent",
         "security-reviewer-deep-agent",
@@ -5406,17 +5417,17 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
+        "ref-persona-root-cause-reviewer",
         "ref-reviewer-severity",
         "ref-root-cause-review",
         "ref-test-rubric",
-        "ref-persona-root-cause-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -5443,8 +5454,8 @@
         "goal-skill",
         "iterate-skill",
         "plan-skill",
-        "verify-skill",
-        "ref-auto-mode"
+        "ref-auto-mode",
+        "verify-skill"
       ],
       "consumers": [],
       "required_checks": {
@@ -5470,9 +5481,9 @@
         "ref-context-diet"
       ],
       "consumers": [
-        "skill-lint",
+        "canonical-contracts-tests",
         "compat-lint",
-        "canonical-contracts-tests"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -5496,16 +5507,16 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
+        "ref-persona-security-reviewer",
         "ref-reviewer-severity",
         "ref-security-checklist",
-        "ref-persona-security-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -5527,16 +5538,16 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
+        "ref-persona-security-reviewer",
         "ref-reviewer-severity",
         "ref-security-checklist",
-        "ref-persona-security-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -5609,8 +5620,8 @@
       "target_path": "plugins/loops-workflow/scripts/setup-plan.mjs",
       "user_invocable": false,
       "dependencies": [
-        "setup-catalog",
-        "integration-registry"
+        "integration-registry",
+        "setup-catalog"
       ],
       "consumers": [
         "setup-plan-tests",
@@ -5635,9 +5646,9 @@
       "target_path": "plugins/loops-workflow/scripts/test-setup-plan.mjs",
       "user_invocable": false,
       "dependencies": [
-        "setup-plan",
+        "integration-registry",
         "setup-catalog",
-        "integration-registry"
+        "setup-plan"
       ],
       "consumers": [],
       "required_checks": {
@@ -5801,8 +5812,8 @@
         "web-performance-reviewer-agent"
       ],
       "consumers": [
-        "skill-lint-tests",
-        "canonical-contracts-tests"
+        "canonical-contracts-tests",
+        "skill-lint-tests"
       ],
       "required_checks": {
         "hooks": [],
@@ -5891,8 +5902,8 @@
       "target_path": "plugins/loops-workflow/hooks/stop-gate.mjs",
       "user_invocable": false,
       "dependencies": [
-        "hook-shared-runtime",
         "edit-accumulator",
+        "hook-shared-runtime",
         "quality-gate"
       ],
       "consumers": [
@@ -5928,9 +5939,9 @@
         "hook-shared-runtime"
       ],
       "consumers": [
-        "read-accumulator",
         "edit-accumulator",
-        "hook-wiring"
+        "hook-wiring",
+        "read-accumulator"
       ],
       "required_checks": {
         "hooks": [
@@ -5966,9 +5977,9 @@
         "ref-test-rubric"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -5990,16 +6001,16 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
+        "ref-persona-tests-reviewer",
         "ref-reviewer-severity",
         "ref-test-rubric",
-        "ref-persona-tests-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -6042,8 +6053,8 @@
       "target_path": "plugins/loops-workflow/scripts/test-token-optimizer.mjs",
       "user_invocable": false,
       "dependencies": [
-        "token-optimizer",
-        "setup-plan"
+        "setup-plan",
+        "token-optimizer"
       ],
       "consumers": [],
       "required_checks": {
@@ -6090,11 +6101,11 @@
       "target_path": "plugins/loops-workflow/scripts/test-unknowns-register.mjs",
       "user_invocable": false,
       "dependencies": [
-        "unknowns-register",
-        "loop-ledger",
         "loop-graph",
+        "loop-ledger",
         "loop-snapshot",
-        "progress-cli"
+        "progress-cli",
+        "unknowns-register"
       ],
       "consumers": [],
       "required_checks": {
@@ -6183,10 +6194,10 @@
         "validate-plan"
       ],
       "consumers": [
-        "skill-lint",
-        "compat-lint",
         "canonical-contracts-tests",
-        "safe-stop-tests"
+        "compat-lint",
+        "safe-stop-tests",
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -6216,15 +6227,15 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
-        "reviewer-generator",
         "ref-code-retrieval",
+        "ref-persona-web-performance-reviewer",
         "ref-reviewer-severity",
-        "ref-persona-web-performance-reviewer"
+        "reviewer-generator"
       ],
       "consumers": [
-        "skill-lint",
+        "check-registry-shape",
         "compat-lint",
-        "check-registry-shape"
+        "skill-lint"
       ],
       "required_checks": {
         "hooks": [],
@@ -6245,12 +6256,12 @@
       "target_path": "plugins/loops-workflow/hooks/worktree-guard.mjs",
       "user_invocable": false,
       "dependencies": [
-        "policy-registry",
-        "hook-shared-runtime"
+        "hook-shared-runtime",
+        "policy-registry"
       ],
       "consumers": [
-        "pr-gate",
-        "hook-wiring"
+        "hook-wiring",
+        "pr-gate"
       ],
       "required_checks": {
         "hooks": [
@@ -6266,6 +6277,445 @@
         "integrations": [
           "worktree-cli"
         ]
+      }
+    },
+    {
+      "id": "loop-context",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/loop-context.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/loop-context.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "hook-shared-runtime"
+      ],
+      "consumers": [
+        "agent-trace-guard",
+        "telemetry-recorder"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-telemetry-hooks.mjs"
+        ],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "agent-trace-guard",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/agent-trace-guard.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/agent-trace-guard.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "agent-trace",
+        "hook-shared-runtime",
+        "loop-context",
+        "policy-registry",
+        "telemetry-ledger"
+      ],
+      "consumers": [
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-telemetry-hooks.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/settings.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "telemetry-recorder",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/telemetry-recorder.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/telemetry-recorder.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "agent-trace",
+        "hook-shared-runtime",
+        "loop-context",
+        "telemetry-ledger"
+      ],
+      "consumers": [
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-telemetry-hooks.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/settings.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "telemetry-ledger",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/telemetry-ledger.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/telemetry-ledger.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "loop-ledger"
+      ],
+      "consumers": [
+        "agent-trace",
+        "agent-trace-guard",
+        "codex-telemetry",
+        "cost-report",
+        "telemetry-ledger-tests",
+        "telemetry-recorder"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "agent-trace",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/agent-trace.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/agent-trace.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "artifact-contract",
+        "loop-ledger",
+        "telemetry-ledger"
+      ],
+      "consumers": [
+        "agent-trace-guard",
+        "agent-trace-tests",
+        "telemetry-recorder"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "artifact-contract",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/artifact-contract.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/artifact-contract.mjs",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "agent-trace",
+        "artifact-contract-tests",
+        "artifact-creation-guard",
+        "artifact-docs-gate",
+        "artifact-phase-gate",
+        "codex-telemetry",
+        "cost-report"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "artifact-creation-guard",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/artifact-creation-guard.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/artifact-creation-guard.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "artifact-contract",
+        "hook-shared-runtime",
+        "policy-registry"
+      ],
+      "consumers": [
+        "hook-wiring"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-artifact-creation-guard.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/docs/settings.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "artifact-docs-gate",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/artifact-docs-gate.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/artifact-docs-gate.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "artifact-contract"
+      ],
+      "consumers": [
+        "artifact-gates-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "artifact-phase-gate",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/artifact-phase-gate.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/artifact-phase-gate.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "artifact-contract"
+      ],
+      "consumers": [
+        "artifact-gates-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "cost-report",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/cost-report.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/cost-report.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "artifact-contract",
+        "telemetry-ledger"
+      ],
+      "consumers": [
+        "cost-report-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "artifact-contract-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-artifact-contract.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-artifact-contract.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "artifact-contract"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "artifact-gates-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-artifact-gates.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-artifact-gates.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "artifact-docs-gate",
+        "artifact-phase-gate"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "telemetry-ledger-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-telemetry-ledger.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-telemetry-ledger.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "telemetry-ledger"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "agent-trace-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-agent-trace.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-agent-trace.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "agent-trace"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "cost-report-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-cost-report.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-cost-report.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "cost-report"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "codex-telemetry",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/codex-telemetry.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/codex-telemetry.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "artifact-contract",
+        "telemetry-ledger"
+      ],
+      "consumers": [
+        "codex-telemetry-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "codex-telemetry-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-codex-telemetry.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-codex-telemetry.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "codex-telemetry"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
       }
     }
   ]

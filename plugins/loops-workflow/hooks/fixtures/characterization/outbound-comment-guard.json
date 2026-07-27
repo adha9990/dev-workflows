@@ -8,7 +8,7 @@
         "command": "gh pr comment 5 --body \"@someone please check this\""
       }
     },
-    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"這則對外內容違反 comment-policy：\\n- comment 不 @ 點名人（找到 \\\"@someone\\\"）——見 comment-policy §6/§8\\n請改掉內容（拿掉 @點名／客套開場、避免 .loops/ 路徑與亂碼、偏長的技術英文改寫成中文白話）再送。確需繞過：設 LOOPS_COMMENT_GUARD=0。\"}}\n",
+    "expectedStdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"這則對外內容違反 comment-policy：\\n- comment 不 @ 點名人（找到 \\\"@someone\\\"）——見 comment-policy §6/§8\\n請改掉內容（拿掉 @點名／客套開場、避免 .loops/ 路徑與亂碼、偏長的技術英文改寫成中文白話；帶了 loops-artifact marker 就要符合該契約）再送。確需繞過：設 LOOPS_COMMENT_GUARD=0。\"}}\n",
     "expectedExitCode": 0
   },
   {

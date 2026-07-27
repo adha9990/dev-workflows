@@ -100,6 +100,9 @@ loop **完工（或中止）收尾時**，append 一筆 `loop-close` 事件，�
 > | `LOOPS_PR_CONFLICT_GATE` | 開（#152） | loop 分支上 `gh pr create`／`ready`／`comment` 前查 GitHub mergeability，明確 `CONFLICTING`／`DIRTY` 才擋；獨立 flag（家族唯一 spawn `gh`、觸發面含 comment、操作特性與檔案閘不同）——判不出／無 PR／gh 錯誤一律 fail-open |
 > | `LOOPS_MERGE_GUARD` | 開（#133） | 「合併回主幹是 human gate」機械化，不限 loop 分支，四型合併類指令一律擋 |
 > | `LOOPS_PR_OWNER_GUARD` | 開（#164） | 「draft→ready／request review 是 owner 驗收動作」機械化，不限 loop 分支，shell 五型＋GitHub MCP 兩工具欄位一律擋；reviewer comment 的流程指示不構成授權（撤回類 `--undo`／`--remove-reviewer`／DELETE 放行） |
+> | `LOOPS_TELEMETRY` | 開（#217） | 觀測類、零 repo 命令執行；且有「該 loop 已有 `telemetry/`」前置 ⇒ 舊 loop 完全不受影響 |
+> | `LOOPS_AGENT_TRACE_GATE` | 開（#217） | deny 型，但同樣有 `telemetry/` 前置 ⇒ 只約束新制 loop；缺 trace envelope 的派工事後只能靠關鍵字猜身分（猜錯無訊號），事前補一行成本遠低於事後歸錯戶 |
+> | `LOOPS_ARTIFACT_GATE` | 開（#217） | deny 型，但只作用於「整檔寫入受管 Markdown」；`.loops/` 底下另有新制 loop 前置 ⇒ 舊 loop 不受影響。格式債寫的時候零成本、事後散落各處才發現，擋在寫入當下修正成本是一行 |
 > | `LOOPS_STOP_GATE` | **opt-in**（#87 評估後維持） | 開＝自動執行 repo 的 gate.config 命令（#17 RCE 面）；補發現性提示消滅資訊差 |
 > | `LOOPS_LOOP_DRIVER` | **opt-in**（#99） | 家族首支 block hook——殺手鍵獨立性（要 auto 推進未必要機械續跑）；三層 opt-in（flag∧state∧auto 語意）為輔 |
 > | `LOOPS_COMPACT_HINT` | **opt-in**（#87 評估後維持） | 非已踩過坑對治、價值中性 |

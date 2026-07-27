@@ -1,3 +1,4 @@
+<!-- loops-artifact: concept-doc@1 -->
 # 記憶體怎麼運作：事件流、索引與快照
 
 ## 三層，職責不同

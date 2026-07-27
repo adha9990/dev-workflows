@@ -40,6 +40,10 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { flagEnabled } from './hook-flags.mjs';
 import { readReadsForSession } from './read-accumulator.mjs';
 import { emitDecision, ACTIVE_HARNESS } from './hook-decision-emit.mjs';
+import { extractMarker, extractSections, loadArtifactRegistry } from '../scripts/artifact-contract.mjs';
+
+// artifact registry 的落點（#217 Outbound Gate）。registry 只在偵測到 marker 時才讀。
+const PLUGIN_ROOT_FOR_REGISTRY = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 // ── 純函式層（無 IO，測試直接 import）─────────────────────────────────────────────
 
@@ -244,6 +248,46 @@ export function findFormatViolations(body) {
   return violations;
 }
 
+/**
+ * Outbound Gate 的 artifact 契約檢查（#217）：**內容的種類由 body 第一行的 marker 決定，不從散文猜**。
+ *
+ * 邊界（刻意，且是已知限制）：**沒有 marker 的內容不擋**。強制每一則對外訊息都先帶 marker，會在
+ * 導入的當下擋掉所有既有流程送出的內容——一道上線第一天就得被關掉的閘，等於沒有閘。所以這裡採
+ * 「宣告了就必須算數」：帶了 marker 就用登記的契約驗到底，沒帶就維持既有的 comment-policy 檢查。
+ * 要讓某一型對外內容真正受管，就在它的樣板裡放上 marker。
+ *
+ * registry 採 lazy load：絕大多數對外訊息沒有 marker，不該為它們付讀檔成本。
+ */
+export function findArtifactContractViolations(body, deps = {}) {
+  const mark = extractMarker(body);
+  if (!mark) return [];
+
+  const load = deps.loadArtifactRegistry ?? loadArtifactRegistry;
+  const loaded = load(PLUGIN_ROOT_FOR_REGISTRY);
+  if (loaded.error) return []; // 讀不到 registry 就不擋：沒有依據的阻擋只會製造噪音
+
+  const entry = (loaded.registry.artifacts ?? []).find((a) => a.artifact_id === mark.artifactId);
+  if (!entry) {
+    return [`內容宣稱自己是 \`${mark.artifactId}\`，但這個 id 沒有登記在 artifact registry——`
+      + '新增一型對外內容要先補 catalog entry、樣板與 validator'];
+  }
+  if (entry.channel !== 'github') {
+    return [`\`${mark.artifactId}\` 登記的通道是 ${entry.channel}，不是對外訊息——這則內容用錯契約了`];
+  }
+
+  const violations = [];
+  if (mark.version !== entry.template_version) {
+    violations.push(`內容宣稱 @${mark.version}，但 \`${mark.artifactId}\` 目前登記的是 @${entry.template_version}`);
+  }
+  const titles = extractSections(body).map((s) => s.title);
+  for (const required of entry.required_sections ?? []) {
+    if (!titles.some((t) => t === required || t.startsWith(required))) {
+      violations.push(`缺少 \`${mark.artifactId}\` 的必填區塊「${required}」`);
+    }
+  }
+  return violations;
+}
+
 const HOOKS_DIR = dirname(fileURLToPath(import.meta.url));
 // deny 訊息會把這兩條絕對路徑印給 agent 去讀，路徑不存在＝執行期死結，故隨 reference 樹的
 // 巢狀分類同步（兩份對外訊息規範都歸 shared/delivery/）。
@@ -369,12 +413,17 @@ function main() {
   const body = extractCommentBody(cmd, readFileSafe);
   if (body == null) return; // 抽不到 body → 放行
 
-  const violations = [...findOutboundViolations(body), ...findFormatViolations(body)];
+  const violations = [
+    ...findOutboundViolations(body),
+    ...findFormatViolations(body),
+    ...findArtifactContractViolations(body),
+  ];
   if (violations.length === 0) return; // 乾淨 → 放行
 
   denyWith(
     `這則對外內容違反 comment-policy：\n- ${violations.join('\n- ')}\n`
-    + '請改掉內容（拿掉 @點名／客套開場、避免 .loops/ 路徑與亂碼、偏長的技術英文改寫成中文白話）再送。'
+    + '請改掉內容（拿掉 @點名／客套開場、避免 .loops/ 路徑與亂碼、偏長的技術英文改寫成中文白話；'
+    + '帶了 loops-artifact marker 就要符合該契約）再送。'
     + '確需繞過：設 LOOPS_COMMENT_GUARD=0。',
   );
 }

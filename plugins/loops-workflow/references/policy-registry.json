@@ -1187,6 +1187,114 @@
         "plugins/loops-workflow/references/stages/evidence-portfolio.md",
         "plugins/loops-workflow/references/shared/runtime/journaling.md"
       ]
+    },
+    {
+      "id": "agent-dispatch-traceability",
+      "title": "派 subagent 一律帶結構化 trace envelope，成本不得靠事後猜身分歸戶",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "dispatch-subagent",
+          "record-telemetry"
+        ],
+        "stages": []
+      },
+      "enforcement": "require",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "agent-trace-guard",
+        "protected_actions": [
+          "dispatch-agent"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": [
+        "派工-prompt-帶-loops-trace-envelope",
+        "還原不出身分時寫-unattributed-並附-evidence",
+        "量不到的欄位標-not-measured"
+      ],
+      "forbids": [
+        "用關鍵字猜-agent-角色",
+        "使用-other-subagent-當歸戶桶",
+        "把-tool-bytes-當成精確-token"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "派 subagent 一律帶 trace envelope",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-telemetry-hooks.mjs",
+        "plugins/loops-workflow/scripts/test-agent-trace.mjs",
+        "plugins/loops-workflow/scripts/test-telemetry-ledger.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/docs/settings.md",
+        "plugins/loops-workflow/references/shared/runtime/journaling.md"
+      ]
+    },
+    {
+      "id": "artifact-contract-registry",
+      "title": "人類可見的 Markdown 一律登記契約，新增一型要同時補模板與驗證",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "author-human-markdown",
+          "render-artifact",
+          "publish-outbound"
+        ],
+        "stages": []
+      },
+      "enforcement": "require",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "artifact-creation-guard",
+        "protected_actions": [
+          "write-file"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": [
+        "受管文件第一行帶-artifact-marker",
+        "新增一型要同時補-catalog-模板-validator",
+        "deterministic-產物由-renderer-生成"
+      ],
+      "forbids": [
+        "手改-deterministic-產物的數字",
+        "複製第二份模板正本",
+        "無條件要求條件式產物存在"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "人看的 Markdown 一律登記契約",
+      "tests": [
+        "plugins/loops-workflow/scripts/test-artifact-contract.mjs",
+        "plugins/loops-workflow/scripts/test-artifact-gates.mjs",
+        "plugins/loops-workflow/hooks/test-artifact-creation-guard.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/docs/settings.md"
+      ]
     }
   ]
 }

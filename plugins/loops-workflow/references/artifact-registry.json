@@ -1,0 +1,647 @@
+{
+  "schema_version": "1",
+  "notes": "Artifact Contract Registry（#217）——每一種**人類可見的 Markdown 產物**在這裡登記一次，之後由 marker、validator 與 gate 機械執行。目的：同一種產物在不同 loop 不會長成不同樣子，而且新增產物時漏了模板／validator／marker 會被擋下來，不是等人事後發現。\n\n**重用而非重建**：GitHub 產物與階段紀錄的骨架**正本仍在既有的 references 檔**（outbound-templates.md 及其指向的各 canonical source、stages/*-schema.md）——本 registry 的 `template` 欄位指過去，不複製一份。只有 deterministic 產物（完全由資料生成、AI 不得手改）才在 artifacts/templates/ 下新建固定骨架檔。\n\n**舊 loop 不受影響**：gate 只作用於新建與修改；既有 .loops 的格式不一致保留原樣、不回填。",
+  "marker": {
+    "pattern": "<!-- loops-artifact: <artifact_id>@<template_version> -->",
+    "regex": "^<!--\\s*loops-artifact:\\s*([a-z0-9][a-z0-9-]*)@(\\d+)\\s*-->$",
+    "position": "受管文件的第一行",
+    "notes": "HTML 註解，算繪後不影響閱讀。gate 用它認出『這份文件宣稱自己是哪一種產物的第幾版』；一般 comment 的 semantic type 也一律從這個 marker 決定，不從散文猜。"
+  },
+  "render_modes": [
+    {
+      "id": "deterministic",
+      "description": "數字與表格完全由 canonical data 生成，AI 不得手改。重複 render 必須 byte-for-byte 相同。"
+    },
+    {
+      "id": "hybrid",
+      "description": "固定骨架與必填 sections 由契約定，內容由 AI 填。"
+    },
+    {
+      "id": "authored-docs",
+      "description": "依文件目的選 type-specific headings 與 lint，不強迫所有文件長一樣。"
+    }
+  ],
+  "style_contracts": [
+    {
+      "id": "traditional-chinese-plain-language",
+      "source": "references/shared/delivery/comment-policy.md",
+      "description": "繁體中文白話、identifier／路徑／指令保留英文、不客套、先講結論與使用者影響"
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "loop-snapshot",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/loop.md",
+      "template_version": 1,
+      "render_mode": "deterministic",
+      "template": "artifacts/templates/loop-snapshot.md",
+      "required_sections": [
+        "仍擋著完工的",
+        "最近事件"
+      ],
+      "optional_sections": [
+        "未完成任務",
+        "Unknowns Register"
+      ],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "any-phase",
+      "data_source": [
+        "events.jsonl"
+      ],
+      "renderer": "loop-snapshot",
+      "validator": "deterministic-sections",
+      "gate": "creation"
+    },
+    {
+      "artifact_id": "progress-report",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/PROGRESS.md",
+      "template_version": 1,
+      "render_mode": "deterministic",
+      "template": "artifacts/templates/progress-report.md",
+      "required_sections": [
+        "階段"
+      ],
+      "optional_sections": [
+        "當前任務",
+        "Journal（最近）",
+        "Unknowns Register"
+      ],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "any-phase",
+      "data_source": [
+        "events.jsonl"
+      ],
+      "renderer": "progress",
+      "validator": "deterministic-sections",
+      "gate": "creation"
+    },
+    {
+      "artifact_id": "stage-clarify",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/stages/00-clarify.md",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "skills/clarify/SKILL.md",
+      "required_sections": [
+        "確認後的理解",
+        "選定方向"
+      ],
+      "optional_sections": [
+        "待釐清"
+      ],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "clarify",
+      "data_source": [],
+      "renderer": null,
+      "validator": "required-sections",
+      "gate": "phase"
+    },
+    {
+      "artifact_id": "stage-goal",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/stages/00-goal.md",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "references/stages/goal-restate-schema.md",
+      "required_sections": [
+        "完工定義",
+        "停止條件"
+      ],
+      "optional_sections": [
+        "訪談軌跡",
+        "behavior 收斂"
+      ],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "goal",
+      "data_source": [],
+      "renderer": null,
+      "validator": "required-sections",
+      "gate": "phase"
+    },
+    {
+      "artifact_id": "stage-explore",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/stages/01-explore.md",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "references/stages/risk-map.md",
+      "required_sections": [
+        "reuse map",
+        "impact surface",
+        "risk map"
+      ],
+      "optional_sections": [
+        "方案選項",
+        "推薦"
+      ],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "explore",
+      "data_source": [],
+      "renderer": null,
+      "validator": "required-sections",
+      "gate": "phase"
+    },
+    {
+      "artifact_id": "stage-plan",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/stages/02-plan.md",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "references/stages/design-plan-schema.md",
+      "required_sections": [
+        "§0 標題",
+        "§1 系統運作全貌",
+        "§2 機制與功能",
+        "§3 名詞說明",
+        "§4 設計目標與原則",
+        "§5 參考來源",
+        "§6 核心決策",
+        "§7 不在本次範圍",
+        "§8 施工圖",
+        "§9 驗收"
+      ],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "plan",
+      "data_source": [],
+      "renderer": null,
+      "validator": "required-sections",
+      "gate": "phase"
+    },
+    {
+      "artifact_id": "stage-build",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/stages/03-build.md",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "references/stages/task-template.md",
+      "required_sections": [
+        "任務進度",
+        "實作摘要",
+        "gate 結果"
+      ],
+      "optional_sections": [
+        "偏離與回改"
+      ],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "build",
+      "data_source": [],
+      "renderer": null,
+      "validator": "required-sections",
+      "gate": "phase"
+    },
+    {
+      "artifact_id": "stage-verify",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/stages/04-verify.md",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "references/stages/verify-triage.md",
+      "required_sections": [
+        "判定",
+        "findings",
+        "逐 behavior 回核"
+      ],
+      "optional_sections": [
+        "派工紀錄"
+      ],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "verify",
+      "data_source": [],
+      "renderer": null,
+      "validator": "required-sections",
+      "gate": "phase",
+      "machine_markers": [
+        "<!-- loops-verify verdict=… p0=… p1=… round=… -->",
+        "<!-- loops-footprint status=… -->"
+      ]
+    },
+    {
+      "artifact_id": "explain-pack",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/deliverables/explain.md",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "skills/explain/SKILL.md",
+      "required_sections": [
+        "實作導讀",
+        "Ownership 自測題",
+        "設計方向 recap"
+      ],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "finalize",
+      "data_source": [],
+      "renderer": null,
+      "validator": "required-sections",
+      "gate": "finalize"
+    },
+    {
+      "artifact_id": "merge-checklist",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/deliverables/checklist.md",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "artifacts/templates/merge-checklist.md",
+      "required_sections": [
+        "合併前手動驗證",
+        "已知取捨確認"
+      ],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "finalize",
+      "data_source": [],
+      "renderer": null,
+      "validator": "required-sections",
+      "gate": "finalize"
+    },
+    {
+      "artifact_id": "cost-report",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/deliverables/cost.md",
+      "template_version": 1,
+      "render_mode": "deterministic",
+      "template": "artifacts/templates/cost-report.md",
+      "required_sections": [
+        "Measurement Status",
+        "Executive Summary",
+        "By Phase",
+        "Control Overhead",
+        "By Iteration",
+        "By Activity",
+        "Agent & Task Detail",
+        "Tool / Context Footprint",
+        "Quality Yield",
+        "Artifact & Delivery Footprint",
+        "Hotspots and Recommendations"
+      ],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "finalize",
+      "data_source": [
+        "telemetry/events.jsonl"
+      ],
+      "renderer": "cost-report",
+      "validator": "deterministic-sections",
+      "gate": "finalize"
+    },
+    {
+      "artifact_id": "no-ui-evidence",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/deliverables/real-run/no-ui.md",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "artifacts/templates/no-ui-evidence.md",
+      "required_sections": [
+        "為什麼沒有畫面可截",
+        "改用什麼證據",
+        "怎麼重跑"
+      ],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "verify",
+      "data_source": [],
+      "renderer": null,
+      "validator": "required-sections",
+      "gate": "phase",
+      "optional": true,
+      "notes": "條件式產出：沒有畫面可截時才用它取代真機截圖。 Phase Gate 不得無條件要求它存在——那會逼人為了過閘生出一份沒有意義的文件。"
+    },
+    {
+      "artifact_id": "blocking-waiver",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/blocking-waiver.md",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "artifacts/templates/blocking-waiver.md",
+      "required_sections": [
+        "豁免哪幾條",
+        "理由",
+        "使用者拍板紀錄"
+      ],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "finalize",
+      "data_source": [],
+      "renderer": null,
+      "validator": "required-sections",
+      "gate": "finalize",
+      "optional": true,
+      "notes": "條件式產出：只有使用者知情決定帶著未修 P0 進 PR 時才寫。 Phase Gate 不得無條件要求它存在——那會逼人為了過閘生出一份沒有意義的文件。"
+    },
+    {
+      "artifact_id": "issue-body",
+      "audience": "mixed",
+      "channel": "github",
+      "path_pattern": "github:issue",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "references/shared/delivery/outbound-templates.md",
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "define",
+      "data_source": [],
+      "renderer": null,
+      "validator": "outbound-contract",
+      "gate": "outbound",
+      "notes": "骨架正本＝repo 的 .github/ISSUE_TEMPLATE/*.yml，無則 define 的 generic fallback。required_sections 刻意留空：目標 repo 的 issue template 才是真相源，本 registry 若複製一份必然漂移。"
+    },
+    {
+      "artifact_id": "plan-comment",
+      "audience": "mixed",
+      "channel": "github",
+      "path_pattern": "github:comment",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "references/shared/delivery/outbound-templates.md",
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "plan",
+      "data_source": [],
+      "renderer": null,
+      "validator": "outbound-contract",
+      "gate": "outbound",
+      "notes": "骨架正本＝plan skill 自己那份私有的 plan-comment 模板（第 2 型），由 outbound-templates 索引指過去。這裡指索引而非直接指檔：對外訊息的單一入口就是那份索引，繞過它會長出第二條查找路徑。"
+    },
+    {
+      "artifact_id": "verify-comment",
+      "audience": "mixed",
+      "channel": "github",
+      "path_pattern": "github:comment",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "references/shared/delivery/comment-policy.md",
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "verify",
+      "data_source": [],
+      "renderer": null,
+      "validator": "outbound-contract",
+      "gate": "outbound",
+      "notes": "骨架正本＝comment-policy.md §7（方向總評 → 按維度分組 → 每點四小節 → 結尾 CI 提醒）。"
+    },
+    {
+      "artifact_id": "fix-comment",
+      "audience": "mixed",
+      "channel": "github",
+      "path_pattern": "github:comment",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "references/shared/delivery/comment-policy.md",
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "finalize",
+      "data_source": [],
+      "renderer": null,
+      "validator": "outbound-contract",
+      "gate": "outbound",
+      "notes": "骨架正本＝comment-policy.md §8（每點雙視角：工程角度 + 客戶角度）。"
+    },
+    {
+      "artifact_id": "final-comment",
+      "audience": "mixed",
+      "channel": "github",
+      "path_pattern": "github:comment",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "references/shared/delivery/outbound-templates.md",
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "finalize",
+      "data_source": [],
+      "renderer": null,
+      "validator": "outbound-contract",
+      "gate": "outbound"
+    },
+    {
+      "artifact_id": "edd-comment",
+      "audience": "mixed",
+      "channel": "github",
+      "path_pattern": "github:comment",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "references/shared/delivery/edd-comment-template.md",
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "explore",
+      "data_source": [],
+      "renderer": null,
+      "validator": "outbound-contract",
+      "gate": "outbound"
+    },
+    {
+      "artifact_id": "pr-body",
+      "audience": "mixed",
+      "channel": "github",
+      "path_pattern": "github:pull-request",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "references/shared/delivery/pr-spec.md",
+      "required_sections": [
+        "這個 PR 做了什麼",
+        "主要改動",
+        "相容性 / 權限 / 邊界",
+        "怎麼驗證的"
+      ],
+      "optional_sections": [
+        "情境對照（before → after）",
+        "效能 / 影響"
+      ],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "finalize",
+      "data_source": [],
+      "renderer": null,
+      "validator": "outbound-contract",
+      "gate": "outbound"
+    },
+    {
+      "artifact_id": "manual-acceptance-checklist",
+      "audience": "mixed",
+      "channel": "github",
+      "path_pattern": "github:comment",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "artifacts/templates/manual-acceptance-checklist.md",
+      "required_sections": [
+        "怎麼驗",
+        "預期結果"
+      ],
+      "optional_sections": [
+        "已知限制"
+      ],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "finalize",
+      "data_source": [],
+      "renderer": null,
+      "validator": "outbound-contract",
+      "gate": "outbound"
+    },
+    {
+      "artifact_id": "readme",
+      "audience": "user",
+      "channel": "repo-docs",
+      "path_pattern": "README.md",
+      "template_version": 1,
+      "render_mode": "authored-docs",
+      "template": null,
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "document",
+      "data_source": [],
+      "renderer": null,
+      "validator": "doc-classification",
+      "gate": "docs"
+    },
+    {
+      "artifact_id": "docs-index",
+      "audience": "user",
+      "channel": "repo-docs",
+      "path_pattern": "docs/README.md",
+      "template_version": 1,
+      "render_mode": "authored-docs",
+      "template": null,
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "document",
+      "data_source": [],
+      "renderer": null,
+      "validator": "doc-classification",
+      "gate": "docs"
+    },
+    {
+      "artifact_id": "howto-guide",
+      "audience": "user",
+      "channel": "repo-docs",
+      "path_pattern": "docs/**",
+      "template_version": 1,
+      "render_mode": "authored-docs",
+      "template": null,
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "document",
+      "data_source": [],
+      "renderer": null,
+      "validator": "doc-classification",
+      "gate": "docs",
+      "doc_kind": "quickstart / setup / how-to"
+    },
+    {
+      "artifact_id": "concept-doc",
+      "audience": "engineer",
+      "channel": "repo-docs",
+      "path_pattern": "docs/**",
+      "template_version": 1,
+      "render_mode": "authored-docs",
+      "template": null,
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "document",
+      "data_source": [],
+      "renderer": null,
+      "validator": "doc-classification",
+      "gate": "docs",
+      "doc_kind": "concept / architecture / reference"
+    },
+    {
+      "artifact_id": "troubleshooting-doc",
+      "audience": "user",
+      "channel": "repo-docs",
+      "path_pattern": "docs/**",
+      "template_version": 1,
+      "render_mode": "authored-docs",
+      "template": null,
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "document",
+      "data_source": [],
+      "renderer": null,
+      "validator": "doc-classification",
+      "gate": "docs",
+      "doc_kind": "troubleshooting / migration"
+    },
+    {
+      "artifact_id": "design-spec",
+      "audience": "engineer",
+      "channel": "repo-docs",
+      "path_pattern": "docs/specs/**",
+      "template_version": 1,
+      "render_mode": "authored-docs",
+      "template": null,
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "document",
+      "data_source": [],
+      "renderer": null,
+      "validator": "doc-classification",
+      "gate": "docs",
+      "doc_kind": "design spec / implementation plan"
+    },
+    {
+      "artifact_id": "validation-report",
+      "audience": "engineer",
+      "channel": "repo-docs",
+      "path_pattern": "docs/**",
+      "template_version": 1,
+      "render_mode": "authored-docs",
+      "template": null,
+      "required_sections": [],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "document",
+      "data_source": [],
+      "renderer": null,
+      "validator": "doc-classification",
+      "gate": "docs",
+      "doc_kind": "validation report"
+    }
+  ],
+  "unmanaged": [
+    {
+      "path_pattern": "AGENTS.md",
+      "reason": "agent-facing 執行契約，不是人的教學——docs-lint 既有掃描面也刻意排除它"
+    },
+    {
+      "path_pattern": "plugins/loops-workflow/references/**",
+      "reason": "agent-facing reference 與模板來源本身，#217 明列不納入 human-doc 分類"
+    },
+    {
+      "path_pattern": "plugins/loops-workflow/skills/**",
+      "reason": "agent-facing skill 指令，同上"
+    },
+    {
+      "path_pattern": "plugins/loops-workflow/agents/**",
+      "reason": "agent-facing persona 定義，同上"
+    },
+    {
+      "path_pattern": "plugins/loops-workflow/artifacts/templates/**",
+      "reason": "模板來源本身：模板不是產物，套用 marker 會讓模板檔自己宣稱是一份產物"
+    }
+  ]
+}

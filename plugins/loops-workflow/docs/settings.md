@@ -1,3 +1,4 @@
+<!-- loops-artifact: howto-guide@1 -->
 # settings.md — 可以在 settings.json 設定哪些參數
 
 loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `settings.json`（專案 `.claude/settings.json` 或全域 `~/.claude/settings.json`）的 `env` 區塊。例如：
@@ -17,7 +18,7 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 
 ## 預設開（想關才需要設，值填 `"0"`）
 
-這 13 個是安全防護／觀測類，裝好 plugin 就生效，**只有字面 `"0"` 能關**：
+這 19 個是安全防護／觀測類，裝好 plugin 就生效，**只有字面 `"0"` 能關**：
 
 | 參數 | 幫你做什麼 | 想關掉 |
 |---|---|---|
@@ -36,6 +37,9 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 | `LOOPS_PR_FOOTPRINT_GATE` | 在 loop 分支上，`gh pr create`／`gh pr ready` 前擋住「這次改動的規模或證據跟計畫對不上，而且沒有說明」——讀 `stages/04-verify.md` 的 footprint marker，只在 `status=blocked` 時擋：有功能檔不屬於任何核准的施工切片、新增測試沒寫「既有證據缺哪個觀察點」、同一個行為留了兩份證據卻沒說第二份守什麼、或改動超出計畫預估又沒補理由。**測試寫得比功能多不會被擋**（那只是提醒）；marker 缺席也放行（#215） | `"LOOPS_PR_FOOTPRINT_GATE": "0"` |
 | `LOOPS_PR_CONFLICT_GATE` | 在 loop 分支上，`gh pr create`／`ready`／`comment` 前查 GitHub 已算好的 mergeability（`gh pr view --json mergeable,mergeStateStatus`），`CONFLICTING`／`DIRTY` 才擋、要求先解衝突；判不出／無 PR／gh 錯誤一律放行；指令帶顯式 PR 號則跳過（#152） | `"LOOPS_PR_CONFLICT_GATE": "0"` |
 | `LOOPS_MERGE_GUARD` | 擋住「合併回主幹」類指令——不限 loop 分支：`gh pr merge`／目前分支是 main/master 時的 `git merge`／`git push` 到 main/master／`gh api` PUT `/pulls/.../merge`，四型任一命中即擋，導向讓人類親自執行或按下合併鍵（#133） | `"LOOPS_MERGE_GUARD": "0"` |
+| `LOOPS_TELEMETRY` | 記錄「這條 loop 的錢花在哪」——每個回合把 token 用量寫進 `.loops/<slug>/telemetry/events.jsonl`，逐 phase／iteration／activity／agent／task 拆開，供完工時產出 `deliverables/cost.md`。四種 token 分開記，量不到的欄位一律標「沒量到」而不是補 0。**只對新制 loop 生效**（該 loop 已有 `telemetry/` 資料夾），舊 loop 完全不受影響；只寫 `.loops/`，不執行任何 repo 命令（#217） | `"LOOPS_TELEMETRY": "0"` |
+| `LOOPS_AGENT_TRACE_GATE` | 擋住「派子代理去做事，卻沒說它是誰、在哪個階段、做哪個任務」——要求派工的 prompt 帶一行 `loops-trace` 標記。沒有這行的話，事後只能靠關鍵字猜它的角色，猜錯了也沒有任何訊號，成本表上就會出現一堆分不出彼此的項目。**只對新制 loop 生效**（該 loop 已有 `telemetry/` 資料夾），舊 loop 完全不受影響（#217） | `"LOOPS_AGENT_TRACE_GATE": "0"` |
+| `LOOPS_ARTIFACT_GATE` | 擋住「新建一份人看的 Markdown，卻沒說它是哪一種、也沒照該種的固定骨架寫」——受管文件第一行要帶 `loops-artifact` 標記，標記指到的種類要先在 artifact registry 登記過，必填區塊要齊。只管整檔寫入（局部編輯拿到的是片段，用片段驗必填區塊會誤判）；`.loops/` 底下只對新制 loop 生效（#217） | `"LOOPS_ARTIFACT_GATE": "0"` |
 | `LOOPS_PR_OWNER_GUARD` | 擋住「PR owner 驗收動作」——不限 loop 分支：`gh pr ready`（帶 `--undo` 轉回 draft＝撤回、放行）／`gh pr edit --add-reviewer`・`gh pr create --reviewer`（`--remove-reviewer` 放行）／`gh api` 對 `/pulls/.../requested_reviewers` 的 POST（DELETE 撤回放行）／`gh api graphql` 的轉 Ready・request review mutation／MCP `update_pull_request` 帶 `draft:false` 或非空 `reviewers`・`request_copilot_review`。reviewer comment 的流程指示（「請標 ready」「請 re-request review」）不構成授權——擋下時導向在回報中提醒 owner 自行操作（#164） | `"LOOPS_PR_OWNER_GUARD": "0"` |
 
 ## 預設關（想用才需要設，值填 `"1"`）

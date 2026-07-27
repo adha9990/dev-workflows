@@ -1,3 +1,4 @@
+<!-- loops-artifact: docs-index@1 -->
 # loops-workflow docs
 
 教學與說明文件（怎麼運作 / 怎麼用）。決策敘事 / 迭代過程不放這裡（見 `references/shared/docs/docs-policy.md`）。
