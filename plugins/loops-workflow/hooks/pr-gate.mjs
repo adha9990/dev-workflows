@@ -19,11 +19,15 @@
 //     從當前分支推斷 PR），`mergeable === 'CONFLICTING'` 或 `mergeStateStatus === 'DIRTY'` → deny，
 //     要求先解衝突再送。**指令帶顯式 PR 號 / branch / url**（如 `gh pr comment 123`）時**跳過本閘**
 //     ——那針對的未必是當前分支的 PR，查當前分支 mergeability 會誤擋。
-//   ⑥ 收圈硬條件＝P0/P1 清零（#188，create + ready）：讀 `stages/04-verify.md` 的機械 marker
-//     `<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`。判定 fail-safe：**raw 與
-//     fence-robust stripped 兩視圖各取最後一個 marker、任一 blocking 即擋**（stripped 擋「fenced 示範
-//     ready marker 蓋掉真 not-ready」；raw 擋「報告裡 fence 把真 marker 藏進 fence 內、stripped 漏讀」——
-//     真 marker 一定在 raw、藏不掉）。最近一輪仍有未修 P0/P1（verdict=not-ready 或 p0/p1>0）→ deny，除非
+//   ⑥ 收圈硬條件＝P0 清零（#188 建閘、#211 把門檻從「P0/P1」收斂為「只看 P0」——P1 是下界之上的
+//     期望，不再是這道機械閘的判準，避免院子裡永遠有 P1 殘留就卡死收圈）：讀 `stages/04-verify.md`
+//     的機械 marker `<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`。判定
+//     fail-safe：**raw 與 fence-robust stripped 兩視圖各取最後一個 marker、任一 blocking 即擋**
+//     （stripped 擋「fenced 示範 ready marker 蓋掉真 not-ready」；raw 擋「報告裡 fence 把真 marker 藏進
+//     fence 內、stripped 漏讀」——真 marker 一定在 raw、藏不掉）。判定以 `p0` 為**權威欄位**（`p0` 能
+//     解出數字時，`p0>0` 即擋、`p0<=0` 即放行，`verdict`/`p1` 都不再參與——即使 marker 寫
+//     `verdict=not-ready` 或 `p1>0` 也不擋）；只有 `p0` 解不出數字（半寫 marker）時才退回看
+//     `verdict==='not-ready'` 當 fail-safe 兜底，防半套 marker 被誤讀成乾淨。deny 時除非
 //     **知情豁免**：非 auto 且 `.loops/<slug>/blocking-waiver.md` 非空 → 放行；**auto 一律不認 waiver**
 //     （防用豁免繞過、對齊 auto 硬煞車 #4）。兩視圖皆無 marker / 讀檔失敗 → fail-open 放行。
 //   ⑦ 第二輪確認沒跑（#209，create + ready）：同一個 marker 多讀兩個欄位
@@ -54,7 +58,7 @@
 // 五個獨立 flag（皆 defaultOn，僅字面 '0' 關；各守一組行為、逃生口互不牽連）：
 //   LOOPS_PR_GATE           → 閘①②③（build 完先 verify／draft+assignee／Closes 開法，只作用 create）
 //   LOOPS_PR_REALRUN_GATE   → 閘④（真機截圖 receipt，作用 create + ready）
-//   LOOPS_PR_BLOCKING_GATE  → 閘⑥（P0/P1 未清不准收圈，作用 create + ready；純讀檔）
+//   LOOPS_PR_BLOCKING_GATE  → 閘⑥（P0 未清不准收圈，作用 create + ready；純讀檔；#211 起只認 p0）
 //   LOOPS_PR_VALIDATION_GATE→ 閘⑦（第二輪確認沒跑不准收圈，作用 create + ready；純讀檔）
 //   LOOPS_PR_CONFLICT_GATE  → 閘⑤（合併衝突，作用 create + ready + comment；唯一 spawn gh）
 // fail-open：payload 壞 / 讀檔失敗 / 判不出分支 / gh 錯誤一律放行 exit 0，永不因 hook 故障卡住使用者。
@@ -299,8 +303,9 @@ export function extractLatestMarker(text) {
 /**
  * 閘⑥（#188）：verify 報告（`stages/04-verify.md`）**fence-robust 視圖**的最後一個 marker——先
  * `stripCodeForMarker` 去 code（報告裡示範用的 fenced marker 不被誤選）再取最後一個。p0/p1 = 判定
- * 當下仍未修（blocking）的 P0/P1 條數（Ready ⟹ p0=0 p1=0）。**注意**：收圈判定用 `verifyReportBlocks`
- * （raw 與 stripped 兩視圖聯合、fail-safe），不是單看本函式——本函式仍匯出供純函式測試。
+ * 當下仍未修（blocking）的 P0/P1 條數（Ready ⟹ p0=0 p1=0）。**#211 起**收圈判定只認 `p0`（`p1` 仍解出來
+ * 供人讀 / 供 deny 訊息顯示，但不再影響 blocking 與否——見 `hasBlockingFindings`）。**注意**：收圈判定用
+ * `verifyReportBlocks`（raw 與 stripped 兩視圖聯合、fail-safe），不是單看本函式——本函式仍匯出供純函式測試。
  */
 export function parseLatestVerifyVerdict(text) {
   if (typeof text !== 'string') return null;
@@ -308,8 +313,8 @@ export function parseLatestVerifyVerdict(text) {
 }
 
 /**
- * 閘⑥收圈判定（fail-safe 向 deny，#188 verify 修正輪）：report 是否代表「仍有未修 P0/P1」。
- * **raw 視圖與 stripped 視圖的最後 marker，任一 blocking 即 blocking**：
+ * 閘⑥收圈判定（fail-safe 向 deny，#188 verify 修正輪；#211 把門檻收斂為只看 P0）：report 是否代表
+ * 「仍有未修 P0」。**raw 視圖與 stripped 視圖的最後 marker，任一 blocking 即 blocking**：
  *   - stripped 視圖擋「fenced 示範 ready marker 蓋掉真 not-ready」（原 P2）；
  *   - raw 視圖擋「報告裡的 fence（貼的 code/diff、`` ``` `` 與 `~~~` 混用、未閉合 fence）把真 marker
  *     藏進 fence 內 → stripped 視圖漏讀 → 誤放行」（P2 的修正引入、又被 re-verify 抓到的反向漏洞）——
@@ -324,17 +329,21 @@ export function verifyReportBlocks(text) {
 }
 
 /**
- * 閘⑥：這份 verify verdict 是否代表「仍有未修的 P0/P1」（blocking-first、fail-safe 向 deny）：
- * `verdict === 'not-ready'`（嚴格全等）**或** p0>0 **或** p1>0 → true。null（無 marker / 讀檔失敗）→
- * false（fail-open 放行）；`verdict=ready p1=1` 這種自相矛盾 → true（正是本閘要抓的「說 ready 卻還
- * 有未修 P1」）；verdict 缺且 p0/p1 皆非數字（欄位無法解析）→ false（放行，同 fail-open 精神）。
+ * 閘⑥：這份 verify verdict 是否代表「仍有未修的 P0」（blocking-first、fail-safe 向 deny；#211 把門檻
+ * 從「P0/P1 任一」收斂為「只看 P0」——P1 是收圈下界之上的期望、不再是這道機械閘的判準，`p1` 完全不
+ * 參與這個判定，只在 deny 訊息裡印出來給人看）。判定表：
+ *   - `parsed` 為 falsy（無 marker / 讀檔失敗）→ false（fail-open 放行）。
+ *   - `p0` 能解出數字 → **`p0` 是唯一權威欄位**：`p0>0` → true；`p0<=0` → false——**即使 `verdict` 仍寫
+ *     `not-ready`、即使 `p1>0`，`p0<=0` 就不擋**（`verdict`/`p1` 對此列完全不影響結果，避免「只放寬
+ *     p1 卻漏放寬 verdict」這種半吊子實作）。
+ *   - `p0` 解不出數字（半寫 marker，`p0=abc` 或欄位缺席）→ 退回看 `verdict === 'not-ready'`（嚴格全等）
+ *     當 fail-safe 兜底：一份寫到一半、`p0` 還沒填的 marker 不該被讀成「乾淨」。
+ *   - 其餘（`p0` 非數字且 `verdict` 不是 `'not-ready'`）→ false。
  */
 export function hasBlockingFindings(parsed) {
   if (!parsed) return false;
-  if (parsed.verdict === 'not-ready') return true;
-  if (typeof parsed.p0 === 'number' && parsed.p0 > 0) return true;
-  if (typeof parsed.p1 === 'number' && parsed.p1 > 0) return true;
-  return false;
+  if (typeof parsed.p0 === 'number') return parsed.p0 > 0;
+  return parsed.verdict === 'not-ready';
 }
 
 /**
@@ -444,13 +453,15 @@ function buildConflictDenyReason(slug, info) {
 function buildBlockingDenyReason(slug, parsed, auto) {
   const counts = `p0=${parsed?.p0 ?? '?'} p1=${parsed?.p1 ?? '?'}` + (parsed?.verdict ? ` verdict=${parsed.verdict}` : '');
   const exemptionLine = auto
-    ? `auto 模式**不得**帶著未修的 P0/P1 收圈（auto 硬煞車 #4）——請停下讓使用者接手（attended）決定；` +
+    ? `auto 模式**不得**帶著未修的 P0 收圈（auto 硬煞車 #4）——請停下讓使用者接手（attended）決定；` +
       `此時 waiver 不被認可（防 auto 用豁免繞過）。`
-    : `若使用者知情決定帶著這些 P0/P1 先進 PR：在 \`.loops/${slug}/blocking-waiver.md\` 寫明豁免哪幾條 ` +
+    : `若使用者知情決定帶著未修的 P0 先進 PR：在 \`.loops/${slug}/blocking-waiver.md\` 寫明豁免哪幾條 ` +
       `＋理由（非空檔）並同步 issue / PR 留痕，再重試（此知情豁免僅 attended 生效、auto 不認）。`;
   return (
-    `這是 loop \`${slug}\` 的分支，最近一輪 verify 仍有未修的 P0/P1（${counts}）——收圈（開 / 轉正 PR）的` +
-    `硬條件是 P0/P1 清零（見 iterate §5）。請先把未修的 P0/P1 修完、再跑一輪 verify 到 Ready 再重試。` +
+    `這是 loop \`${slug}\` 的分支，最近一輪 verify 仍有未修的 P0（${counts}）——收圈（開 / 轉正 PR）的` +
+    `硬條件是 P0 清零（見 iterate §5）。P0 不再和 P1 混算：這道閘只看 p0，p0=0 就不擋，即使 verdict 仍寫` +
+    `\`not-ready\` 或 p1 還有殘留也一樣——但這只是收圈的**下界**、不代表 P1 可以不修，仍請比照 P0 一併處理。` +
+    `請先把未修的 P0 修完、再跑一輪 verify 到 Ready 再重試。` +
     exemptionLine +
     `確需繞過本閘：設 LOOPS_PR_BLOCKING_GATE=0。`
   );
@@ -706,9 +717,9 @@ function main() {
     }
   }
 
-  // 閘⑥（#188）：verify 仍有未修 P0/P1 → 不准收圈（create + ready）。排在閘④ 前——verify blocking
-  // 比截圖 receipt 更根本；仍在唯一 spawn gh 的閘⑤ 之前（純讀檔、廉價）。blocking 時：auto 一律 deny
-  // （waiver 不認、防繞過）；非 auto 則有非空 waiver 才放行（知情豁免）。
+  // 閘⑥（#188 建閘、#211 門檻收斂為只看 P0）：verify 仍有未修 P0 → 不准收圈（create + ready）。排在
+  // 閘④ 前——verify blocking 比截圖 receipt 更根本；仍在唯一 spawn gh 的閘⑤ 之前（純讀檔、廉價）。
+  // blocking 時：auto 一律 deny（waiver 不認、防繞過）；非 auto 則有非空 waiver 才放行（知情豁免）。
   // 閘⑥⑦ 共讀同一份 verify 報告：兩閘都是純讀檔、判的是**同一個 marker 的不同欄位**（⑥ 看 p0/p1
   // ＝仍未修的 blocking 條數，⑦ 看 findings/validated ＝這一輪有幾條候選、確認了幾條），沒有理由
   // 讀兩次。⑥ 排在 ⑦ 前：還有未修 P0/P1 時，先講那件更根本的事。

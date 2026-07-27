@@ -833,19 +833,21 @@ try {
     }
   }
   // ===========================================================================
-  // B —— #188 閘⑥「P0/P1 未清不准收圈」（create + ready；verify marker 契約 + 知情豁免 + auto 不繞過）
+  // B —— #188/#211 閘⑥「P0 未清不准收圈」（create + ready；verify marker 契約 + 知情豁免 + auto 不繞過）
+  //   #211：收圈門檻放寬為只看 P0——p1 不再參與判定（即使 p1>0、甚至 verdict=not-ready，只要 p0=0
+  //   一律放行；#188 原始版本是 P0 或 P1 任一 >0 皆擋）。
   // ===========================================================================
   // marker 契約：`<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`；閘⑥ 取
   // stripCode 後最後一個 marker。fixture slug 皆非數字前綴（跳過閘③）、備 04-verify + real-run 截圖
   // （過①②④），把閘⑥ 隔離成決定者。
-  const MK_NOT_READY = '# verify\n\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=0 p1=1 round=1 -->\n';
+  const MK_NOT_READY = '# verify\n\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\n';
   const MK_READY = '# verify\n\n判定：Ready\n<!-- loops-verify verdict=ready p0=0 p1=0 round=2 -->\n';
   const MK_CONTRADICT = '# verify\n<!-- loops-verify verdict=ready p0=0 p1=1 round=1 -->\n';
   const MK_NONE = '# verify\n\n判定：Ready（此報告刻意無 marker）\n';
-  const MK_MULTI_NR = '# verify\n<!-- loops-verify verdict=not-ready p0=0 p1=2 round=1 -->\n修完再驗\n<!-- loops-verify verdict=ready p0=0 p1=0 round=2 -->\n';
+  const MK_MULTI_NR = '# verify\n<!-- loops-verify verdict=not-ready p0=2 p1=0 round=1 -->\n修完再驗\n<!-- loops-verify verdict=ready p0=0 p1=0 round=2 -->\n';
   const MK_MULTI_RN = '# verify\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 -->\n又發現新問題\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=2 -->\n';
   const MK_FENCE = '# verify\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\n\nmarker 格式範例：\n```text\n<!-- loops-verify verdict=ready p0=0 p1=0 round=9 -->\n```\n';
-  const MK_CRLF = '# verify\r\n判定\r\n<!-- loops-verify verdict=not-ready p0=0 p1=1 round=1 -->\r\n';
+  const MK_CRLF = '# verify\r\n判定\r\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\r\n';
   const MK_TWO_ONE_LINE = '# verify\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 --> <!-- loops-verify verdict=not-ready p0=1 p1=0 round=2 -->\n';
   const LOOP_CLOSED = '# Loop\n- 推進模式：closed\n';
   const LOOP_AUTO = '# Loop\n- 推進模式：auto（LOOPS_AUTO 未設、task 授權）\n';
@@ -855,7 +857,7 @@ try {
   const MK_FENCE_UNBALANCED = '# verify\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\n\n格式範例：\n```text\n<!-- loops-verify verdict=ready p0=0 p1=0 round=9 -->\n';
   // verify P2：跨行 inline span 若用舊 stripCode 會把真 marker 一起吞掉 → null → allow；逐行去 span
   // （不跨行）→ 真 marker 存活 → deny。
-  const MK_INLINE_STRADDLE = '# verify\n這是 `code 開始\n<!-- loops-verify verdict=not-ready p0=0 p1=1 round=1 -->\ncode 結束` 收尾\n';
+  const MK_INLINE_STRADDLE = '# verify\n這是 `code 開始\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\ncode 結束` 收尾\n';
   // verify 修正輪（Finding 1）：**未閉合 fence 在真 marker 之前**——只靠 stripped 視圖會把真 marker 藏進
   // fence 內漏讀 → 誤放行；raw 視圖擋住（真 marker 一定在 raw）。
   const MK_FENCE_WRAP = '# verify\n```text\n貼上的一段 code（忘了閉合）\n<!-- loops-verify verdict=not-ready p0=2 p1=0 round=1 -->\n';
@@ -879,13 +881,14 @@ try {
   {
     const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g6-nr', 'block-nr', MK_NOT_READY) });
     assert(isDeny(res), '[B1] create：verify not-ready + 無 waiver + 非 auto → 閘⑥ deny（S5）');
-    assert(reasonOf(res).includes('P0/P1') && reasonOf(res).includes('LOOPS_PR_BLOCKING_GATE'), '[B1-2] reason 含硬條件語意 + 閘⑥ 逃生口');
+    assert(reasonOf(res).includes('P0') && !reasonOf(res).includes('P0/P1') && reasonOf(res).includes('LOOPS_PR_BLOCKING_GATE'),
+      '[B1-2] reason 含新 P0 專屬硬條件語意（不再是「P0/P1」混稱——#211 floor 只剩 P0）+ 閘⑥ 逃生口');
     assert(reasonOf(res).includes('blocking-waiver'), '[B1-3] 非 auto reason 指引知情豁免 waiver 出口');
   }
   assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-ready', 'block-ready', MK_READY) })),
     '[B2] create：verify ready（p0=0 p1=0）→ 閘⑥ allow（S6）');
-  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-contra', 'block-contra', MK_CONTRADICT) })),
-    '[B3] create：verdict=ready 但 p1=1（自相矛盾）→ blocking-first → deny');
+  assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-contra', 'block-contra', MK_CONTRADICT) })),
+    '[B3] create：verdict=ready 但 p1=1（p0=0，自相矛盾）→ allow（#211：p1 不再是 blocking 判準，只看 p0，p0=0 就不擋，不再視為矛盾）');
   assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-none', 'block-none', MK_NONE) })),
     '[B4] create：verify 無 marker → fail-open allow（S9）');
   assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-mnr', 'block-multinr', MK_MULTI_NR) })),
@@ -931,6 +934,22 @@ try {
   assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-tilde', 'block-tilde', MK_TILDE_MIX) })),
     '[B23] create：合法閉合 ```區塊內含 ~~~ 行（奇數 toggle）+ 之後真 not-ready → raw 視圖擋住 → deny（Finding 1 最現實案例，無 markdown 錯誤）');
 
+  // #211：收圈門檻放寬為只看 P0 的新案例。
+  const MK_P0ZERO = '# verify\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=0 p1=2 round=1 -->\n';
+  const MK_HALFWRITTEN = '# verify\n判定：Not ready\n<!-- loops-verify verdict=not-ready round=1 -->\n';
+  const MK_P0ZERO_P1_3 = '# verify\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=0 p1=3 round=1 -->\n';
+  const MK_P0_ONE = '# verify\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\n';
+
+  assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-p0zero', 'block-p0zero', MK_P0ZERO) })),
+    "[B24] create：verdict=not-ready 但 p0=0（p1=2）→ allow（#211 最關鍵新行為：只放寬「p1>0 擋」而漏放寬"
+    + "「verdict==='not-ready' 就擋」＝半吊子實作，這條會抓到；本閘現在只認 p0）");
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-halfwritten', 'block-halfwritten', MK_HALFWRITTEN) })),
+    '[B25] create：verdict=not-ready 但完全沒有 p0=/p1= 欄位（半寫 marker）→ deny（fail-safe：p0 解不出數字時退回看 verdict，不當放行；此案例 OLD/NEW 行為皆 deny，非判別性，純粹補上 fail-safe 覆蓋）');
+  assert(isAllow(runHook({ command: 'gh pr ready', cwd: mkG6('g6-p0zero-ready', 'block-p0zero-ready', MK_P0ZERO_P1_3) })),
+    '[B26] ready：verdict=not-ready 但 p0=0（p1=3）→ allow（ready 與 create 判定一致，同 #211 新 floor，縱深驗證）');
+  assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-p0waiver', 'block-p0waiver', MK_P0_ONE, { waiver: '知情豁免：P0-#1 屬既有、獨立處理；使用者拍板先進 PR。' }) })),
+    '[B27] create：p0=1（真 blocking）+ 非空 waiver + 非 auto → allow（知情豁免出口在 #211 後仍涵蓋 P0；此案例 OLD/NEW 皆 allow，非判別性，確認 waiver 機制沒被 floor 改動波及）');
+
   // ── BN 純函式直測（動態 import，仿 N/Q 系列）──────────────────────────────────────
   {
     const m = prGateModule;
@@ -945,9 +964,9 @@ try {
     assert(safe(m?.parseLatestVerifyVerdict, 42) === null, '[BN4b] parse 非字串 → null');
     assert(safe(m?.hasBlockingFindings, { verdict: 'not-ready' }) === true, '[BN5] hasBlocking：not-ready → true');
     assert(safe(m?.hasBlockingFindings, { verdict: 'ready', p0: 0, p1: 0 }) === false, '[BN6] hasBlocking：ready+0/0 → false');
-    assert(safe(m?.hasBlockingFindings, { verdict: 'ready', p0: 0, p1: 1 }) === true, '[BN7] hasBlocking：ready 但 p1=1（矛盾）→ true（blocking-first）');
+    assert(safe(m?.hasBlockingFindings, { verdict: 'ready', p0: 0, p1: 1 }) === false, "[BN7] hasBlocking：ready 且 p0=0（p1=1 矛盾）→ false（#211：p1 不再參與判定，p0=0 時即使 verdict/p1 有矛盾也不擋）");
     assert(safe(m?.hasBlockingFindings, null) === false, '[BN8] hasBlocking：null → false（fail-open）');
-    assert(safe(m?.hasBlockingFindings, { p1: 2 }) === true, '[BN9] hasBlocking：verdict 缺但 p1=2 → true');
+    assert(safe(m?.hasBlockingFindings, { p1: 2 }) === false, "[BN9] hasBlocking：verdict 缺、p0 缺（非數字）、p1=2 → false（#211：p1 不再參與判定；p0 非數字且 verdict 不是 'not-ready' → 不視為 blocking）");
     assert(safe(m?.hasBlockingFindings, { verdict: 'notready' }) === false, '[BN9b] hasBlocking：verdict 嚴格全等——"notready"（非 "not-ready"）不算 blocking');
     assert(safe(m?.isAutoMode, { LOOPS_AUTO: '1' }, '') === true, '[BN10] isAutoMode：env LOOPS_AUTO=1 → true');
     assert(safe(m?.isAutoMode, {}, '- 推進模式：auto（x）') === true, '[BN11] isAutoMode：loop.md 全形冒號 auto → true');
@@ -985,6 +1004,21 @@ try {
       '[BN27] verifyReportBlocks：多輪最後一輪 ready（無 fence）→ false（不因歷史 not-ready 誤擋、無 false-deny）');
     assert(safe(m?.verifyReportBlocks, '完全沒有 marker') === false, '[BN28] verifyReportBlocks：無 marker → false（fail-open，S9）');
     assert(safe(m?.verifyReportBlocks, 42) === false, '[BN28b] verifyReportBlocks：非字串 → false');
+    // #211：收圈門檻放寬為只看 P0 的純函式層新案例。
+    assert(safe(m?.hasBlockingFindings, { verdict: 'not-ready', p0: 0, p1: 5 }) === false,
+      "[BN29] hasBlocking：verdict=not-ready 但 p0=0（p1=5）→ false（#211 最關鍵新行為：p0=0 時即使 verdict=not-ready、p1>0 也不擋，只有 p0 說了算）");
+    assert(safe(m?.hasBlockingFindings, { p0: 1 }) === true, '[BN30] hasBlocking：verdict 缺，p0=1（數字 >0）→ true（p0 本身即可判定，不需 verdict 佐證）');
+    assert(safe(m?.hasBlockingFindings, { verdict: 'ready', p0: 2 }) === true, "[BN31] hasBlocking：verdict=ready 但 p0=2 → true（p0>0 蓋過 ready verdict，p0 優先於 verdict）");
+    // 原案例設計為 hasBlockingFindings({verdict:'not-ready', p0:'abc'})，但 parseLatestVerifyVerdict
+    // 的 num() 對不可解析值一律回 undefined（見 pr-gate.mjs extractLatestMarker），故 p0 永遠不會以
+    // 字串 'abc' 的形狀送進 hasBlockingFindings——用 p0 缺席貼近真實 parser 輸出。此案例 OLD/NEW 皆
+    // true（非判別性），純粹釘住 fail-safe 那一列：p0 非數字時退回看 verdict。
+    assert(safe(m?.hasBlockingFindings, { verdict: 'not-ready' }) === true,
+      "[BN32] hasBlocking：p0 缺席（貼近 num() 對不可解析值的真實輸出，非 p0:'abc' 這種 parser 不會產生的形狀）+ verdict=not-ready → true（fail-safe：半寫 marker 仍擋）");
+    assert(safe(m?.verifyReportBlocks, '<!-- loops-verify verdict=not-ready p0=abc p1=0 round=1 -->') === true,
+      '[BN32b] verifyReportBlocks：marker 層 p0=abc（parser 解不出、num() 回 undefined）+ verdict=not-ready → true（對應 BN32 的真實 marker 輸入形狀，fail-safe）');
+    assert(safe(m?.verifyReportBlocks, '<!-- loops-verify verdict=not-ready p0=0 p1=4 round=1 -->') === false,
+      "[BN33] verifyReportBlocks：marker 層 verdict=not-ready 但 p0=0（p1=4）→ false（#211 端到端：即使 verdict 寫 not-ready，p0=0 就放行）");
   }
 
   // ── V 系列：閘⑦ 第二輪確認沒跑（#209）────────────────────────────────────────────
@@ -1042,12 +1076,15 @@ try {
     assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g7-wvauto', 'v-waiverauto', MK_SKIPPED, { waiver: '豁免' }), env: { LOOPS_AUTO: '1' } })),
       '[V12] create：同上 + auto → 仍 deny（auto/attended 一視同仁，閘⑦ 不分模式）');
 
-    // 閘⑥ 優先：兩個問題同時存在時，先講更根本的那個（還有未修 P0/P1）。
+    // 閘⑥ 優先：兩個問題同時存在時，先講更根本的那個（還有未修的 P0，#211 起不再混算 P1）。
     {
       const both = '# verify\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 findings=4 validated=0 -->\n';
       const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g7-both', 'v-both', both) });
       assert(isDeny(res), '[V13] create：同時 not-ready 與第二輪沒跑 → deny');
-      assert(reasonOf(res).includes('P0/P1'), '[V13-2] 先報閘⑥ 的理由（P0/P1 未清更根本），不是兩條訊息混在一起');
+      // 用各自專屬措辭判別是哪個閘的訊息：閘⑥ 專屬「硬條件是 P0 清零」、閘⑦ 專屬「finding-validator」
+      // ——兩者互斥出現，才能真的證明拿到的是閘⑥ 的理由，而不是碰巧兩份訊息都提到 P0。
+      assert(reasonOf(res).includes('硬條件是 P0 清零') && !reasonOf(res).includes('finding-validator'),
+        '[V13-2] 先報閘⑥ 的理由（P0 未清更根本）：含閘⑥ 專屬措辭「硬條件是 P0 清零」、不含閘⑦ 專屬措辭「finding-validator」，證明不是兩條訊息混在一起');
     }
 
     // 純函式層直測（含 fence-robust 兩視圖）。
@@ -1082,7 +1119,7 @@ console.log(`\n${failed.length ? '✗' : '✓'} ${passed} passed, ${failed.lengt
 console.log(`(共 ${total} 條斷言：P1–P8／EXTRA／WIN＝#132 三閘與接線、Q1–Q8＝#132 verify 修正輪邊界、`
   + `R＝#152 閘④ real-run receipt、C＝#152 閘⑤ 合併衝突、N＝#152 新純函式直測、`
   + `F5＝三 flag 互不牽連、G＝閘⑤ 真 gh spawn 端到端（假 gh，POSIX/CI）、`
-  + `B／BN＝#188 閘⑥ P0/P1 未清不准收圈（marker 契約 + 知情豁免 + auto 不繞過 + 純函式）、`
+  + `B／BN＝#188/#211 閘⑥ P0 未清不准收圈（marker 契約 + 知情豁免 + auto 不繞過 + 純函式；#211 起 p1 不再參與判定）、`
   + `V／VN＝#209 閘⑦ 第二輪確認沒跑不准收圈（findings/validated 欄位 + 缺席 fail-open + 不認 waiver + 純函式）；`
   + `R5b/c·N9–N11·C10/11·F5·G＝#152 verify/wiring 修正輪)`);
 process.exit(failed.length > 0 ? 1 : 0);
