@@ -181,6 +181,10 @@ testCase('F11', '沒有計畫 / 沒有 budget / 沒有 portfolio → 據實標�
   assert(none.notes.some((n) => n.includes('evidence portfolio')), '證據對帳無從判定有留痕');
   assert(none.notes.some((n) => n.includes('budget')), 'drift 無從判定有留痕');
   assert(none.drift === null && none.budget === null, '沒有 budget 就不編一個 drift 數字');
+  assert(none.status === 'warn', '無從判定 → status=warn，**不是 ok**（沒判過就不宣稱通過；warn 不影響閘⑧ 放行）');
+
+  const noPortfolio = auditFootprint([row('src/a.ts', 10)], { slices: [{ id: 'S1', files: ['src/a.ts'], production_change_budget: { files: 1, lines: 100 }, test_change_budget: { files: 0, lines: 0 } }] });
+  assert(noPortfolio.status === 'warn', '有 slice 與 budget、但沒 evidence portfolio → 仍是 warn（證據面沒判過）');
 });
 
 testCase('F12', 'marker 是 pr-gate 閘⑧ 的唯一契約（單行、HTML 註解、欄位齊全）', () => {

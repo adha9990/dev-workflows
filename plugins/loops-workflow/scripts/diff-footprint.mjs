@@ -213,7 +213,10 @@ export function auditFootprint(rows, plan) {
     warnings.push(`測試／功能新增行數比 ${change.ratio.toFixed(2)}:1（>1 是過度訊號，先按 test-rubric §10 判多餘六型裁，不以比例當品質標準）。`);
   }
 
-  const status = blocking.length ? 'blocked' : (warnings.length ? 'warn' : 'ok');
+  // 「無從判定」不等於「判過了、沒問題」——沒有計畫可對帳時只能出 `warn`，不出 `ok`
+  //（規則 5：沒量到就不宣稱通過）。`warn` 不影響 pr-gate 閘⑧ 放行。
+  const undetermined = slices.length === 0 || !portfolio || !budget;
+  const status = blocking.length ? 'blocked' : ((warnings.length || undetermined) ? 'warn' : 'ok');
   return { status, change, budget, drift, blocking, warnings, notes, newTestFiles, unslotted };
 }
 
