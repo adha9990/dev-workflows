@@ -156,16 +156,16 @@ View 不直接 import `model/`,一律經 viewmodel —— `pnpm lint` 會替你�
 - 模板已先示範:`docs/architecture.md`(架構導覽)、`docs/testing.md`(測試設計方向)、`docs/README.md`(索引)。
 
 **因此,當你(或使用者)在這個 scaffold 出來的專案裡新增一個環境/功能/概念時,除了寫程式碼,還要:**
-1. 在 `docs/<topic>.md` 留下設計方向(為什麼、取捨、邊界、失敗模式);
+1. 在 `docs/<topic>.md` 留下教學與限制(怎麼用、邊界、失敗模式、擴充時要重複套的判斷準則);
 2. 在 `docs/README.md` 索引加一行;
 3. 若改變了動手規則或結構,更新 `AGENTS.md`。
 
-這不是額外的負擔,而是這套基礎建設的一部分 —— 就像 typecheck/lint/test 屬於「完工定義」,留下設計方向
+這不是額外的負擔,而是這套基礎建設的一部分 —— 就像 typecheck/lint/test 屬於「完工定義」,留下教學
 文件同樣屬於「完工定義」(見模板 `AGENTS.md` 的 Definition of Done)。
 
 > **scaffold 後的文件分工**:本 skill 鋪好 `docs/` + `AGENTS.md` 的 Definition-of-Done 骨架;之後每個
-> feature 往裡面補的 `docs/<topic>.md` 是**教學手冊**(只教學、怎麼用),而「為什麼這樣設計、取捨、邊界」
-> 這類**決策紀錄**改放 PR body / 設計文件,不混進手冊。
+> feature 往裡面補的 `docs/<topic>.md` 是**教學手冊**(怎麼用、限制、擴充時怎麼判斷),而「為什麼這樣
+> 設計、取捨」這類**決策敘事**改放 PR body / 設計文件,不混進手冊(見 loops-workflow 的 docs-policy)。
 
 ## 範圍:刻意保持精簡
 
