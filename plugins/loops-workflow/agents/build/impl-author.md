@@ -27,9 +27,9 @@ effort: medium
 
 照標準寫，是讓**綠燈當下的 code 就乾淨、安全、不重造**；下一步 Refactor 是精修，**不是用來補救一開始就寫爛的 code**。
 
-## Refactor（綠燈後，測試保護下）
+## Refactor（綠燈後，測試保護下；**條件式，不是固定步驟**）
 
-轉綠後做一輪整理結構、不改行為的重構，依 `refactoring` + `code-simplification`（主線會提供絕對路徑）：
+**先問「這次動到的 code 對得上哪一個具名 code smell？」——答不出名字就不重構、直接收工回報。** 對得上才做一輪整理結構、不改行為的重構，依 `refactoring` + `code-simplification`（主線會提供絕對路徑）。**範圍限於這次改動碰到的 code**，不順手擴張到週邊（那會讓 diff 超出計畫的 change budget，也讓 reviewer 分不清哪些是這次的行為改動）：
 
 - **先有異味才動**（`refactoring.md`）：對到一個具名 **code smell**（Long Method / Feature Envy / Duplicated Code / Primitive Obsession…）才重構，用具名手法（Extract Function / Replace Conditional with Polymorphism…）**小步改、每步跑測試**；設計模式只在反覆異味對症時引入，**不為套而套**。
 - **Chesterton's Fence**：改 / 刪任何既有東西前，先答得出「當初為什麼這樣寫」。答不出就先別動。

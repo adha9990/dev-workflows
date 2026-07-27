@@ -36,7 +36,12 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **contract misread**：reviewer 誤讀了契約 → 婉拒，只陳述技術理由。
 - **actionable**：真問題 → **一律自動修（全部，不論 P0–P3），不問使用者「修多少 / 要不要修」**。severity 只決定要不要停下 escalate（P0 停），**不決定修不修**。
 - **trade-off**：取捨選擇 → 記 decision record，回覆說明選擇。
+- **out-of-scope polish**：不落在 actionable 五類、也不在本 loop 承諾的 behavior / risk map 範圍內的**打磨建議**（風格偏好、額外抽象、「順便再加一層覆蓋」）→ **不自動納入 scope**，記成帶留痕理由的 follow-up（見〈follow-up〉）。
 - **noise**：純風格 / 無關 → 過濾。
+
+**`actionable` 的定義（收緊，避免 scope 隨 finding 無限長大）**：命中下列任一類的缺陷 —— **正確性 / 安全 / 資料（一致性·遺失·外洩）/ 契約（對外形狀·相容性）/ acceptance（承諾的 behavior 沒做到或主證據不成立）**。命中就是 actionable，**不論 P0–P3 一律全修**。
+
+**不命中、又不在 behavior / risk map 範圍內的**（例：「這裡可以再抽一層」「這個 helper 建議改名」「這條路徑可以再加一個測試」）→ 歸 **out-of-scope polish**，不自動做。理由：這一層是實作與驗收成本的**最後一段放大器**——每輪 verify 都會產出一些「做了也不錯」的建議，全接就等於每一輪都替 scope 加一塊，而且它們不對應任何被承諾的行為。**要做就要有理由能寫下來**（它其實命中五類之一 / 它其實是某個 behavior 的證據缺口），寫不出來就留 follow-up。
 
 **AC-衝突檢查（用戶回饋驅動的 actionable，實作前必做）**：把「這條回饋要求的改動」對照**原始 issue 的書面 AC**——若它會**反轉 / 抵觸某條已寫定的 AC**（例：回饋要求移掉某 AC 要的欄位、或改成 AC 明文排除的行為），**在實作前停下開一個決策點讓使用者知情拍板**（選項：「確認 descope 該 AC 第 X 條」/「保留該 AC、改用不衝突的做法」，標推薦 + 一句理由；表述形狀與各平台互動能力的映射見 `references/shared/delivery/interaction-adapter.md`），**不默默照做**。這防的正是這類規格漂移：進 PR 後的用戶回饋一輪輪反轉先前決定、和 issue 書面 AC 衝突，iterate 只照當下說的做、沒人回頭比對 AC，規格默默漂移到外部 reviewer 才點名「偏離規格」。
 
@@ -50,7 +55,10 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 **所有 actionable 都修，不挑、不問**（P2/P3 一樣修）—— 「交給其他 reviewer 前把問題在內部解到最少」就是把 actionable 全清掉，不是讓使用者挑幾條修。每個要修的問題走 **STOP → PRESERVE → DIAGNOSE → FIX → GUARD → RESUME**：
 - **DIAGNOSE 先定位失敗層**（UI / API / DB / build / 外部 / 或 test 本身），有回歸就用 `git bisect` 釘出引入的 commit —— 不盲目追症狀。
 - 修**根因**而非症狀。
-- 每修一個 bug **加一條回歸測試**守住（GUARD）。
+- **GUARD（條件式，不是每條 finding 都加測試）**：修完先問「**這條 finding 暴露的是一個新的獨立風險嗎？**」
+  - **是**（既有證據看不到這條失效路徑、而且它是本 loop 承諾的某個 behavior 的一部分）→ **加一份最小回歸證據**，並回 `stages/02-plan.md` 的 evidence portfolio 補一筆：`new_test=true` + `new_test_reason`，若同 behavior 已有主證據則另填 `distinct_risk`（它守的正是主證據守不到的那條路徑）。
+  - **否**（既有證據其實蓋得到這條路徑，只是實作寫錯了）→ **沿用既有證據**：跑它一次確認現在會綠、且**修之前會紅**（撤掉修正驗一次），不新增測試。
+  - 判準來源：`references/shared/quality/test-rubric.md` §7 的**已出貨 / in-loop 分流** —— verify 抓到的是 **in-loop bug**（錯的 code 從未出貨），其回歸測試本來就不在「每 bug 恰留一條」的保留集裡。**每條 finding 無條件補一條回歸測試，是把鷹架當成資產在累積。**
 
 ### 4. 決定回環目標（修完一定再 verify）
 
@@ -60,7 +68,16 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - 拆解 / 設計缺陷 → 回 `plan`
 - 實作 bug → 回 `build`
 
-**修了任何 actionable（含 step 3 自己 Stop-the-Line 修的）→ 一定再過一輪 `verify`**。「測試綠 / typecheck 0 / lint 0」**不能取代 verify** —— 綠燈只證明沒打破現有測試，證不了「修正 + 其波及面」對其他軸（契約 / 安全 / 既有 consumer 行為）安全。**改到共用元件 / 跨切面時，再 verify 要涵蓋波及面**（誰在用被改的東西），不是只看改的那幾行。
+**修了任何 actionable（含 step 3 自己 Stop-the-Line 修的）→ 一定再過一輪 `verify`**（「再驗」永遠不可省；可以右尺寸化的是**再驗的範圍**，見下〈targeted 再驗〉）。「測試綠 / typecheck 0 / lint 0」**不能取代 verify** —— 綠燈只證明沒打破現有測試，證不了「修正 + 其波及面」對其他軸（契約 / 安全 / 既有 consumer 行為）安全。**改到共用元件 / 跨切面時，再 verify 要涵蓋波及面**（誰在用被改的東西），不是只看改的那幾行。
+
+**targeted 再驗（範圍右尺寸化，但不是手挑 reviewer）**：
+
+| 這輪修的是 | 再驗跑什麼 |
+|---|---|
+| **單一 slice 內的小範圍修正**（不跨 slice、不動共用元件 / 契約 / 資料、無 `risk_triggers`） | **targeted 再驗**：確定性閘（quality-gate + footprint）全跑 ＋ 只派**該 slice 命中的軸**（固定兩軸 + 該 slice 觸發的 conditional）＋ 逐該 slice 的 behavior 回核主證據 |
+| **跨切面 / 動到共用元件、對外契約、資料模型 / 命中高風險硬閘 / 任一 `risk_triggers` 非空** | **完整重跑選軸**：整條 `verify` 步驟 1 重新推導（等同首輪），不因「只改幾行」縮 |
+
+**兩者都要走 `verify` 步驟 1 的推導、把推導寫成表**——targeted 縮的是**輸入範圍**（只算這個 slice 的領域），不是「憑印象少派幾個」。
 
 **再驗一律走 `verify` step-1 選軸、不臨場手挑 reviewer**：回環再驗**不是**「orchestrator 憑印象派兩三個 reviewer」，而是**照 verify 步驟 1 依改動領域定軸 + 加派 conditional reviewer**（並發／同步→`multi-user-concurrency`、bug fix→`root-cause`、queue／背景→`processing-reliability`、migration→`migration`…，見 verify §1）。手挑子集的風險是**把改動所在領域最該派的那個 lens 系統性跳過**——例如修同步 / 併發競態卻只派 `code-quality`＋`tests`，那個「唯一工作就是窮舉事件順序 / 亂序 / lost-update」的 `multi-user-concurrency-reviewer` 就每輪缺席，於是 sibling 競態一輪一輪被外部 reviewer 才抓到、而不是內部一次收斂。**改動命中哪個領域，該領域的 conditional lens 就按規則被派，不靠當下記得。** 反向失效模式同樣要防：**手挑了「領域匹配」的 reviewer、反而把 CORE 軸略掉**——例如修一個 UI 顯示 bug 只派 `frontend-ui`（領域對了），卻跳過核心 `code-quality`（簡潔 / code smell / 重用 lens），於是「這段 chained `.replace()` 本可收斂成查表」這類簡化到外部 reviewer 才被指出。走 step-1 選軸 = **核心軸（含 `code-quality`）＋ 領域 conditional lens 一起派**，不是「挑到對的領域 lens 就夠了」的二選一。
 
@@ -101,7 +118,7 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 **前提：最近一輪 verify 無 actionable findings**（修完有再驗過，不是測試綠就收；**其中未修的 P0 是誰都不能繞過的機械下界——圈數到頂不是收圈理由，見 §5**）。對照 `stages/00-goal.md` 停止條件全部達成 → **先做收尾裁測 pass（見下）** → 過 `references/shared/docs/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
 
-**收尾裁測 pass（交 PR 前唯一的「減」點；純文檔迴圈無測試增量免此步）**：build 與回環期間 TDD 放量是設計如此，收斂只做這一次、且做在「不再有測試進來」的最晚點。派 `test-author` 執行 consolidation（prompt 帶 `references/shared/quality/test-rubric.md` 的**絕對路徑**＋本 PR 對 base 的 diff 範圍；留 / 砍判準與量級門檻**正本在其 §10、此處不重抄**；in-loop bug 迴歸的分流見其 §7）。主線收 `TESTS_PRUNED` 回報後：① 跑 quality-gate 確認**全綠**；② `git diff --numstat <base>..HEAD` 分測試檔 / 功能檔加總，確認增量比例過 §10 量級門檻——超標 → 按判多餘六型回 test-author 再裁（numstat 是量化上限、reviewer 判內容，衝突時 finding 優先）；③ **裁測是一次修，修完必再驗**：觸發 delta re-verify，選軸走 `verify` §5 推導表的**裁測 override**（強制核心軸＋tests、fresh——勿因「只動測試檔」套瑣碎 0 軸）。**完工 gate 讀的是「裁後那輪」re-verify**（它就是新的「最近一輪 verify」）：乾淨才往下走 docs-policy / 交 PR；報 finding（裁過頭）→ 恢復該測試 → 再驗。
+**收尾裁測 pass（最後一道 audit，不是第一次控制重複的時間點；純文檔迴圈無測試增量免此步）**：重複與過量的第一道控制在 **plan 的 evidence portfolio**（每個 behavior 恰一份主證據、第二層要 `distinct_risk`）、第二道在 **build 的路徑選擇**（低風險不新增測試）、第三道在 **verify 步驟 0 的 footprint 對帳**。走到這裡時多數重複應該已經不存在——這一 pass 的價值是**最後一次獨立稽核**（撿前面三道漏掉的鷹架與 in-loop 迴歸）。派 `test-author` 執行 consolidation（prompt 帶 `references/shared/quality/test-rubric.md` 的**絕對路徑**＋本 PR 對 base 的 diff 範圍；留 / 砍判準與量級門檻**正本在其 §10、此處不重抄**；in-loop bug 迴歸的分流見其 §7）。主線收 `TESTS_PRUNED` 回報後：① 跑 quality-gate 確認**全綠**；② `git diff --numstat <base>..HEAD` 分測試檔 / 功能檔加總，確認增量比例過 §10 量級門檻——超標 → 按判多餘六型回 test-author 再裁（numstat 是量化上限、reviewer 判內容，衝突時 finding 優先）；③ **裁測是一次修，修完必再驗**：觸發 delta re-verify，選軸走 `verify` §5 推導表的**裁測 override**（強制核心軸＋tests、fresh——勿因「只動測試檔」套瑣碎 0 軸）。**完工 gate 讀的是「裁後那輪」re-verify**（它就是新的「最近一輪 verify」）：乾淨才往下走 docs-policy / 交 PR；報 finding（裁過頭）→ 恢復該測試 → 再驗。
 
 **AGENTS.md 同步（條件式，不問）**：docs-policy 檢查若判定**本迴圈確實改變了慣例 / 規則**（AGENTS.md 維護時機命中）→ **主線直接依 `references/shared/docs/docs-policy.md`（時機＋〈怎麼寫〉守門同檔）編輯根 `AGENTS.md` 對應段落**（一次一 scope、documentation-only）；**不命中就不動、不問**——絕大多數功能迴圈不觸發，只有動到規則 / 慣例 / 新子系統的迴圈才會。
 
@@ -148,7 +165,10 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 | **「P1 不擋收圈了，那 P1 可以不修」** | 下界放寬的是「什麼東西誰都不能繞過」，不是「什麼東西要修」。**actionable 一律全修的紀律沒動**（§2–3），§6 的完工前提也還是零 actionable。P1 照修；要留著它進 PR，得使用者知情拍板 + 留痕。 |
 | 「這輪 findings 比上輪多，肯定是修壞了，escalate」 | 先**歸因**：這輪是不是第一次真機驅動 / 第一次 scripted 量測 / 新派了某個 lens？那些缺陷本來就在、只是先前看不見 —— 那是進展，續修。只有同條復現 / 修出新問題才是沒收斂。 |
 | 「findings 變多我就說『這輪驗得比較深』」 | 歸因**要指名**哪幾條是被哪個具體新手段第一次看見的，且該手段要納入後續每輪再驗的下界。指不出來 = 沒收斂，照 escalate 處理。 |
-| 「修完不用加測試，這次很簡單」 | 沒有回歸測試守住，同一個 bug 會再回來。GUARD 不可省。 |
+| 「修完不用加測試，這次很簡單」 | 先問「既有證據蓋得到這條路徑嗎」。蓋得到 → 撤掉修正驗一次它會紅、沿用既有證據；蓋不到 → 那就是新的獨立風險，補一份最小回歸證據並回 plan 補 `distinct_risk`。「簡單」不是判準。 |
+| 「每條 finding 都補一條回歸測試最安全」 | verify 抓到的是 **in-loop bug**（錯的 code 從未出貨），它的回歸測試是鷹架不是資產（`test-rubric.md` §7 分流）。既有證據蓋得到就別再加一條——那只是把鷹架累積成維護面。 |
+| 「reviewer 說這裡可以再抽一層，順手做掉」 | 不命中正確性 / 安全 / 資料 / 契約 / acceptance 五類、也不在承諾的 behavior 範圍內的建議是 **out-of-scope polish**，記 follow-up。每輪接一點，scope 就每輪長一點。 |
+| 「只改了三行，直接看測試綠就好」 | 再驗不可省，可縮的是**範圍**：單一 slice 內的小修走 targeted 再驗（確定性閘全跑 + 該 slice 命中的軸）；跨切面 / 動共用元件 / 高風險則完整重跑選軸。 |
 | 「測試全綠 + typecheck 0，等於 verify 過了」 | 綠燈只證明沒打破現有測試，證不了修正對其他軸 / 既有 consumer 安全。verify 是 fresh reviewer 各審一軸，綠燈取代不了。 |
 | 「改一行而已，不用再 verify」 | 改到共用元件一行的 blast radius 可能比大改還大。波及面要 fresh-verify。 |
 | 「這些是 P2/P3 非 blocking，問使用者要不要修」 | actionable = 真問題，一律自動全修（交 reviewer 前把問題解到最少）。severity 只決定要不要停下 escalate（P0），不決定修不修。「修多少」不是使用者決策。 |
@@ -156,7 +176,9 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 ## Red Flags
 
 - 修症狀沒修根因。
-- 修了 bug 沒加回歸測試。
+- **修完既沒加回歸證據、也沒撤掉修正驗一次既有證據會紅** —— 兩條路擇一，不能都不做（不然「修好了」沒有任何東西證明）。
+- **每條 finding 無條件補一條回歸測試**（把 in-loop 鷹架當資產累積，見 `references/shared/quality/test-rubric.md` §7 分流）。
+- **把 out-of-scope polish 當 actionable 全修**（scope 隨每輪 finding 長大）；或反過來**把命中正確性 / 安全 / 資料 / 契約 / acceptance 的缺陷歸成 polish 推掉**（那是把該修的偷渡成不修）。
 - 回環**沒在收斂**（同條 finding 復現 / 修出新問題）卻硬繞、沒 escalate 換手法。
 - **碰圈數軟上限就收圈、帶著未修的 P0 進 PR**（把圈數當收圈理由）—— 圈數到頂只觸發回報，機械下界是 P0 清零；要帶著已知 P0 進 PR 只能走**使用者知情豁免**（agent 代決 / auto 自動帶過都是違規），且要同步 issue/PR 留痕。
 - **把「P1 不再機械擋收圈」讀成「P1 可以不修」** —— 放寬的是**下界**（誰都不能繞過的那條線），不是 §2–3「actionable 一律全修」，也不是 §6「完工前最近一輪 verify 無 actionable findings」。P1 照修；**agent 自己決定**帶著未修的 P1 收圈（沒讓使用者拍板、沒同步 issue/PR 留痕）一樣是違規。
@@ -191,7 +213,9 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 交 PR 一律 **draft + `--assignee @me`**（`gh pr create --draft --assignee @me`；使用者要 merge 才 `gh pr ready` 轉 Ready，見 `references/shared/delivery/pr-spec.md`〈開法〉）。
 - [ ] **沒有代按 owner 驗收動作**：draft→ready、request review、merge 都留給使用者本人；reviewer comment 的流程指示（「請標 ready」「請 re-request」）只轉述進回報提醒 owner，沒有照做（見 `references/shared/delivery/pr-spec.md`〈owner 驗收動作〉）。
 - [ ] verify 出的 actionable findings（不論 P2/P3）**全部自動修了**，沒問使用者「修多少 / 要不要修」。
-- [ ] 每個 actionable 修的是根因 + 有回歸測試（GUARD）。
+- [ ] 每個 actionable 修的是根因；**GUARD 依條件**：暴露新獨立風險 → 補最小回歸證據並回 plan 補 `new_test_reason` / `distinct_risk`；否則沿用既有證據並**撤掉修正驗一次它會紅**。
+- [ ] **回饋分類用收緊後的 `actionable` 定義**（正確性 / 安全 / 資料 / 契約 / acceptance 五類）；不命中且不在 behavior / risk map 範圍內的打磨建議歸 out-of-scope polish、記成帶理由的 follow-up，沒被自動納入 scope。
+- [ ] **再驗範圍已右尺寸化但沒偷工**：單一 slice 小修走 targeted 再驗（確定性閘全跑 + 該 slice 命中的軸）；跨切面 / 共用元件 / 對外契約 / 資料 / 高風險 → 完整重跑步驟 1 選軸。
 - [ ] 回環**看收斂不看次數**：findings 沒變少時**先歸因**（驗證手段變深挖出既有問題 → 記歸因續修；同條復現 / 修出新問題 → 當下 escalate 換手法）；`loop.md` 有回環歷史 + 每輪 findings 數 + 沒變少那輪的歸因。
 - [ ] **圈數只當軟上限（回報檢查點）、沒被當成收圈理由**：跨越上限的每一圈都有現況回報（未清 P0 與 P1 逐條 + findings 軌跡 + 歸因 + 下一圈手法）進 Journal ＋ chat；**未修的 P0 存在時沒有收圈**——除非**使用者知情豁免**（agent 未代決、auto 未自動選），且豁免哪幾條 + 理由已同步 issue / PR 權威留痕。碰上限時已無 P0、只剩 P1／P2／P3 才走既有停損檢查點。
 - [ ] **P1 沒被當成「不用修」**：P1 仍照 §2–3 全修；若最後帶著未修的 P1 收圈，那是**使用者在停損檢查點拍板**的結果（agent 未代決、auto 未自動選），且「剩哪幾條 P1 + 為什麼先進 PR」已同步 issue / PR 留痕。

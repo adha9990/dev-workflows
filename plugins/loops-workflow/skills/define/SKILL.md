@@ -54,7 +54,7 @@ description: Turns any new work that has no GitHub issue yet into a structured, 
 
 材料已夠就別問儀式性問題；non-blocking 缺漏寫進對應欄位、標假設 / 風險。
 
-> **問題本身就找不齊時走完整訪談**：連「該問什麼」都不確定（acceptance 講不清、疑似有沒寫下的隱性規則）→ 用 `skills/decision-interview` 把 tacit knowledge 與盲點挖成四象限 Unknowns Register；已確認的轉 `known-known` 寫進 AC，未決的標 owner 與 blocking（見 `AGENTS.md` 規則 17）。
+> **問題本身就找不齊時走完整訪談**：連「該問什麼」都不確定（acceptance 講不清、疑似有沒寫下的隱性規則）→ 用 `skills/decision-interview` 把 tacit knowledge 與盲點挖成四象限 Unknowns Register；已確認的轉 `known-known` 寫進 AC，未決的標 owner 與 blocking（見 `AGENTS.md` 規則 18）。
 
 ### 3. Judgment framing（下筆前釐清三件事）
 

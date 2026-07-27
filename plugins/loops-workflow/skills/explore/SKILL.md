@@ -90,6 +90,24 @@ description: Researches how to build something before it gets planned, and lays 
 
 > 上面是「**評估已知候選**」；若候選本身要先生出來（解法空間寬、沒有現成方向），用 **opt-in Fleet** 派多 agent 各從不同角度發想方案再評（見 `references/shared/runtime/fleet.md`）。
 
+### 4.9 固定產出三張表：reuse map / impact surface / risk map（收斂式必做）
+
+不論有沒有多方法競爭，收斂式 explore **一律**在 `stages/01-explore.md` 留下三張表 —— 它們是後面每一階段右尺寸化的依據，**不是額外 ceremony，是把「要不要加 ceremony」變成機械可判**：
+
+| 表 | 內容 | 誰消費 |
+|---|---|---|
+| **reuse map** | 找到的可重用實作 + 「為什麼擴充而非另造」（一條一行） | plan 拆 slice、build 不重造輪子 |
+| **impact surface** | 這次預期會動到 / 波及的路徑 | plan 切 slice 與抓 budget、verify 定波及面 |
+| **risk map** | 每個 `behavior_id` 的 `risk` 與 `risk_triggers`，加兩個 loop 級 predicate | plan / build / verify 全部 |
+
+**形狀與判準的唯一正本是 `references/stages/risk-map.md`**（此處不重抄）—— 內嵌一塊 `loops-risk-map` JSON，含：
+
+- `domain_complexity`：命中才開 **DDD 鏡片**（glossary / invariant / aggregate 邊界）；**未命中就不建**。
+- `external_or_cross_module_contract`：命中才開 **Contract-First**（先定契約 + 最小 contract test）；**未命中就不寫 contract 段、不建新 port / adapter**。
+- 每個 behavior 的 `risk_triggers`（`bug` / `core-invariant` / `algorithm` / `security` / `concurrency` / `data-consistency`）：命中才走 **test-first（TDD）**；全未命中的 behavior 由 plan 依證據階梯挑最低有效證據。
+
+**使用者不選方法論** —— 這三個 predicate 由 explore 依證據判定，不開決策點問。**拿不準一律判 true（向嚴）**；`references/stages/verify-triage.md` 的高風險硬閘不受本表縮小。
+
 ### 5. 攤開比較 + 推薦（依模式收斂）
 
 共通：**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」；有搜外部就內外並排、附 CITE。停在 gate 時**一律開一個決策點給選項**（每個列優缺、恰一個標推薦 + 一句理由；表述形狀與各平台互動能力的映射見 `references/shared/delivery/interaction-adapter.md`），不要用純文字要使用者打字。
@@ -111,6 +129,8 @@ description: Researches how to build something before it gets planned, and lays 
 | 「API 我記得大概長這樣」 | 記憶會錯。框架 API 一律查官方文件查證，查不到標 UNVERIFIED。 |
 | 「比較表先省了，直接講結論」 | 沒有攤開比較，使用者沒法在 gate 做有依據的選擇。 |
 | 「有個方法能用就用它，不用比」 | 多方法在效能 / 體積 / 維護上常有實質差，挑錯到 build 才發現貴。≥2 方法就做多維評估矩陣，挑**有依據的**、不是挑能跑的。 |
+| 「先建個 glossary / 定個 port，之後一定用得到」 | DDD 與 Contract-First 由 `risk-map.md` 的 predicate 觸發。未命中就建，等於替這條 loop 加一層沒人要求、之後每個階段都要維護的 ceremony。 |
+| 「風險我心裡有數，risk map 不用寫」 | 沒寫進 `loops-risk-map` 區塊，plan / build / verify 就讀不到，只能退回全套預設——那正是成本失控的來源。三張表是機械可讀的輸入，不是給人看的心得。 |
 | 「這個候選改動最小 / 最省工，推薦它」 | 代價小不是推薦理由，只是同等正確候選間的 tie-breaker。便宜但留債（雙路徑 / shim / 退回本該完成的遷移）的候選要明標債讓使用者知情拍板，不是預設贏家。 |
 | 「這選項至少先擋掉最糟的 / 先止血，很務實」 | 部分處理＝剩下的不修＝行為債（改動前正常的行為變差且這次不修，AGENTS 規則 10 客觀判準）。包裝成止血不改變事實；要嘛完整處理，要嘛把回歸明標在代價面讓使用者知情拍板、不標推薦。 |
 
@@ -125,6 +145,9 @@ description: Researches how to build something before it gets planned, and lays 
 - 推薦理由是「代價最小 / 改動最少」，卻沒論證長期正確性；或「便宜但留債」候選（含行為債：既有行為變差且這次不修）沒明標埋藏風險就標了推薦。
 - **拿 `codebase-memory-mcp` graph 查「剛改 / worktree / 未提交」那塊就直接採信**（沒 `detect_changes` 驗新鮮度、沒回頭 `Read` 實檔）—— graph 只保證「已索引 baseline」，正在動的那塊以實檔為準。
 - 大檔整檔重複讀、或引用**已改動檔**的舊 Read 內容做推理（context-diet §C：重讀該範圍）。
+- **收斂式 explore 沒留下 reuse map / impact surface / risk map**（後面階段沒有右尺寸依據，只能退回全套預設）。
+- **predicate 未命中卻照樣建 glossary / aggregate / port / adapter / 完整 contract 規格**（未命中就不做，見 `references/stages/risk-map.md`）。
+- 把方法論選擇（要不要 DDD / Contract-First / TDD）**開成決策點問使用者** —— 那是 predicate 判的，不是使用者的選擇。
 
 ## Verification
 
@@ -135,4 +158,6 @@ description: Researches how to build something before it gets planned, and lays 
 - [ ] 框架 API 來源已 CITE，查不到的標 UNVERIFIED。
 - [ ] deep-research（若用）有先經同意。
 - [ ] 內部掃描**優先用 `codebase-memory-mcp`**（repo 已索引時）；**剛改 / worktree / 未提交**的 code 已用 `detect_changes` + 直接 `Read` 驗證、未採信 stale graph；未索引 / 工具不可用則 fallback 派 `Explore` agent（見 `references/shared/runtime/code-retrieval.md`）。讀檔／輸出瘦身守 `references/shared/runtime/context-diet.md`。
+- [ ] **收斂式**：`stages/01-explore.md` 有 reuse map / impact surface / **`loops-risk-map` 區塊**（每個 `behavior_id` 帶 `risk` 與 `risk_triggers`，加兩個 loop 級 predicate；形狀見 `references/stages/risk-map.md`）。
+- [ ] predicate 未命中的鏡片**沒有**被啟用（沒憑感覺建 glossary / aggregate / port / adapter / 完整 contract 規格）；拿不準的 predicate 已向嚴判 true。
 - [ ] 已停在對應 gate：**收斂式** `explore → plan`（選方法）／**發散式** `explore → define`（確認 backlog 範圍 + 優先序）。

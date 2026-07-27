@@ -30,7 +30,7 @@ description: Turns a vague or ambiguous one-liner into a clear, confirmed unders
 - 每問內部記 **HYPOTHESIS + CONFIDENCE**（0–100），優先打最低信心、最影響方向的點。
 - **should-want 偵測**：見 `references/stages/goal-restate-schema.md`（表演式「應該／好的工程會」作答 → 追問一次真意圖）。
 - **能從素材推得的不要問**；只問會改變方向的 blocking 點。
-- **風險夠高就走完整訪談**：需求牽涉 scope／UX／data／security／architecture／acceptance 任一面向且講不清楚時，改用 `skills/decision-interview` —— 它會把 tacit knowledge 與盲點挖成一份四象限 Unknowns Register，並讓未解決的 blocking 項擋住 build（見 `AGENTS.md` 規則 17）。小任務不跑完整訪談樹。
+- **風險夠高就走完整訪談**：需求牽涉 scope／UX／data／security／architecture／acceptance 任一面向且講不清楚時，改用 `skills/decision-interview` —— 它會把 tacit knowledge 與盲點挖成一份四象限 Unknowns Register，並讓未解決的 blocking 項擋住 build（見 `AGENTS.md` 規則 18）。小任務不跑完整訪談樹。
 
 ### 2. Restate 理解 + 一次確認
 把收斂後的理解 restate 成這幾項：**問題（誰 / 什麼受影響、今天的痛）· 為何現在 · 大致範圍 · 明確不做 · 我的關鍵假設**。**開一個決策點**做**一次**確認（對齊 ／ 要調整 + 說明）。**單次整份對齊、不是逐項再審一輪** —— 對了就往下。
