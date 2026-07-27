@@ -20,7 +20,8 @@
 //     要求先解衝突再送。**指令帶顯式 PR 號 / branch / url**（如 `gh pr comment 123`）時**跳過本閘**
 //     ——那針對的未必是當前分支的 PR，查當前分支 mergeability 會誤擋。
 //   ⑥ 收圈硬條件＝P0 清零（#188 建閘、#211 把門檻從「P0/P1」收斂為「只看 P0」——P1 是下界之上的
-//     期望，不再是這道機械閘的判準，避免院子裡永遠有 P1 殘留就卡死收圈）：讀 `stages/04-verify.md`
+//     期望，不再是這道機械閘的判準——否則驗證愈做愈深、P1 每輪都還會冒出新的，一條 loop 會被
+//     「P1 永遠清不完」卡死在收圈前）：讀 `stages/04-verify.md`
 //     的機械 marker `<!-- loops-verify verdict=ready|not-ready p0=<n> p1=<n> round=<n> -->`。判定
 //     fail-safe：**raw 與 fence-robust stripped 兩視圖各取最後一個 marker、任一 blocking 即擋**
 //     （stripped 擋「fenced 示範 ready marker 蓋掉真 not-ready」；raw 擋「報告裡 fence 把真 marker 藏進
@@ -333,16 +334,20 @@ export function verifyReportBlocks(text) {
  * 從「P0/P1 任一」收斂為「只看 P0」——P1 是收圈下界之上的期望、不再是這道機械閘的判準，`p1` 完全不
  * 參與這個判定，只在 deny 訊息裡印出來給人看）。判定表：
  *   - `parsed` 為 falsy（無 marker / 讀檔失敗）→ false（fail-open 放行）。
- *   - `p0` 能解出數字 → **`p0` 是唯一權威欄位**：`p0>0` → true；`p0<=0` → false——**即使 `verdict` 仍寫
- *     `not-ready`、即使 `p1>0`，`p0<=0` 就不擋**（`verdict`/`p1` 對此列完全不影響結果，避免「只放寬
+ *   - `p0` 是**非負**數字 → **`p0` 是唯一權威欄位**：`p0>0` → true；`p0===0` → false——**即使 `verdict` 仍寫
+ *     `not-ready`、即使 `p1>0`，`p0===0` 就不擋**（`verdict`/`p1` 對此列完全不影響結果，避免「只放寬
  *     p1 卻漏放寬 verdict」這種半吊子實作）。
- *   - `p0` 解不出數字（半寫 marker，`p0=abc` 或欄位缺席）→ 退回看 `verdict === 'not-ready'`（嚴格全等）
- *     當 fail-safe 兜底：一份寫到一半、`p0` 還沒填的 marker 不該被讀成「乾淨」。
- *   - 其餘（`p0` 非數字且 `verdict` 不是 `'not-ready'`）→ false。
+ *   - `p0` **不是非負數字**（欄位缺席、`p0=abc` 這種解不出來的、或 `p0=-1` 這種壞資料）→ 退回看
+ *     `verdict === 'not-ready'`（嚴格全等）當 fail-safe 兜底：一份寫到一半、或把計數寫壞的 marker
+ *     不該被讀成「乾淨」。**負數特別要走這條**——把 `-1` 當合法計數會讓 `-1 > 0` 靜默放行，連這條
+ *     兜底都問不到（舊實作是靠 verdict 擋住那格的，放寬下界時不得順手把它弄丟）。
+ *   - 其餘（`p0` 不是非負數字，且 `verdict` 不是 `'not-ready'`）→ false。
  */
 export function hasBlockingFindings(parsed) {
   if (!parsed) return false;
-  if (typeof parsed.p0 === 'number') return parsed.p0 > 0;
+  // `>= 0` 而非只判 `typeof`：負數（與 NaN）是**壞資料、不是「零條」**，當成合法計數會靜默放行，
+  // 而且連下面那條 verdict fail-safe 都問不到——舊實作正是靠 verdict 擋住這格的。
+  if (typeof parsed.p0 === 'number' && parsed.p0 >= 0) return parsed.p0 > 0;
   return parsed.verdict === 'not-ready';
 }
 

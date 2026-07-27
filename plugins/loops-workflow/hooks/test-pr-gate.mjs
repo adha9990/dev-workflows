@@ -949,6 +949,11 @@ try {
     '[B26] ready：verdict=not-ready 但 p0=0（p1=3）→ allow（ready 與 create 判定一致，同 #211 新 floor，縱深驗證）');
   assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-p0waiver', 'block-p0waiver', MK_P0_ONE, { waiver: '知情豁免：P0-#1 屬既有、獨立處理；使用者拍板先進 PR。' }) })),
     '[B27] create：p0=1（真 blocking）+ 非空 waiver + 非 auto → allow（知情豁免出口在 #211 後仍涵蓋 P0；此案例 OLD/NEW 皆 allow，非判別性，確認 waiver 機制沒被 floor 改動波及）');
+  // #211 verify 修正輪：`verdict=ready` 但 `p0>0` 的矛盾組合，原本只有純函式層（BN31）覆蓋，
+  // 端到端沒有——補一條，證明「p0 贏過 verdict」這條在真 hook spawn 路徑上也成立。
+  const MK_READY_BUT_P0 = '# verify\n判定：Ready\n<!-- loops-verify verdict=ready p0=2 p1=0 round=3 -->\n';
+  assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-readyp0', 'block-readyp0', MK_READY_BUT_P0) })),
+    '[B28] create：verdict=ready 但 p0=2（自相矛盾）→ deny（端到端：p0 是權威欄位、贏過 verdict；對照 B3 的 p0=0 p1=1 放行）');
 
   // ── BN 純函式直測（動態 import，仿 N/Q 系列）──────────────────────────────────────
   {
@@ -1000,8 +1005,10 @@ try {
       '[BN25] verifyReportBlocks：```區塊含 ~~~（奇數 toggle）+ 之後真 not-ready → true（Finding 1 最現實）');
     assert(safe(m?.verifyReportBlocks, '判定 Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\n```text\n<!-- loops-verify verdict=ready p0=0 p1=0 round=9 -->\n```') === true,
       '[BN26] verifyReportBlocks：真 not-ready + fenced 示範 ready（原 P2）→ stripped 視圖擋住 → true');
-    assert(safe(m?.verifyReportBlocks, 'x\n<!-- loops-verify verdict=not-ready p0=0 p1=1 round=1 -->\ny\n<!-- loops-verify verdict=ready p0=0 p1=0 round=2 -->') === false,
-      '[BN27] verifyReportBlocks：多輪最後一輪 ready（無 fence）→ false（不因歷史 not-ready 誤擋、無 false-deny）');
+    // #211：歷史 marker 改用 p0=1 表達 blocking——原本寫 p0=0 p1=1，在新門檻下它本來就不 blocking，
+    // 這條斷言會變成「不管取哪個 marker 都是 false」，證不了「最後一輪 wins」。
+    assert(safe(m?.verifyReportBlocks, 'x\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 -->\ny\n<!-- loops-verify verdict=ready p0=0 p1=0 round=2 -->') === false,
+      '[BN27] verifyReportBlocks：多輪最後一輪 ready（無 fence）→ false（不因歷史 not-ready 誤擋、無 false-deny；歷史那筆 p0=1 是真 blocking，取錯 marker 就會紅）');
     assert(safe(m?.verifyReportBlocks, '完全沒有 marker') === false, '[BN28] verifyReportBlocks：無 marker → false（fail-open，S9）');
     assert(safe(m?.verifyReportBlocks, 42) === false, '[BN28b] verifyReportBlocks：非字串 → false');
     // #211：收圈門檻放寬為只看 P0 的純函式層新案例。
@@ -1019,6 +1026,17 @@ try {
       '[BN32b] verifyReportBlocks：marker 層 p0=abc（parser 解不出、num() 回 undefined）+ verdict=not-ready → true（對應 BN32 的真實 marker 輸入形狀，fail-safe）');
     assert(safe(m?.verifyReportBlocks, '<!-- loops-verify verdict=not-ready p0=0 p1=4 round=1 -->') === false,
       "[BN33] verifyReportBlocks：marker 層 verdict=not-ready 但 p0=0（p1=4）→ false（#211 端到端：即使 verdict 寫 not-ready，p0=0 就放行）");
+    // #211 verify 修正輪：**負數 p0 是壞資料，不是「零條」**。`num()` 用 parseInt，`p0=-1` 會解成
+    // 數字 -1；若把它當合法計數，`-1 > 0` 為 false ⇒ 放行，而且連 `verdict=not-ready` 的 fail-safe
+    // 都不會被問到（舊實作是靠 verdict 那條擋住的）——等於在放寬下界時順手開了一個新的靜默放行縫。
+    // 判準：只有**非負**數字才算合法計數，其餘（負數 / NaN）一律當「p0 讀不出來」退回看 verdict。
+    // （小數不必測：`num()` 走 parseInt，`p0=1.5` 只會解成 1，永遠到不了這個函式。）
+    assert(safe(m?.hasBlockingFindings, { verdict: 'not-ready', p0: -1 }) === true,
+      '[BN34] hasBlocking：p0=-1（壞資料）+ verdict=not-ready → true（負數不算合法計數，退回 verdict fail-safe；舊實作靠 verdict 擋住，放寬時不得漏掉這格）');
+    assert(safe(m?.hasBlockingFindings, { verdict: 'ready', p0: -1 }) === false,
+      '[BN34b] hasBlocking：p0=-1 + verdict=ready → false（退回 verdict 後 ready 就是放行，不無條件擋——證明 BN34 擋的是 verdict、不是「負數一律擋」）');
+    assert(safe(m?.verifyReportBlocks, '<!-- loops-verify verdict=not-ready p0=-1 p1=0 round=1 -->') === true,
+      '[BN34c] verifyReportBlocks：marker 層 p0=-1 + verdict=not-ready → true（對應 BN34 的真實 marker 形狀，端到端）');
   }
 
   // ── V 系列：閘⑦ 第二輪確認沒跑（#209）────────────────────────────────────────────

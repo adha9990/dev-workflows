@@ -76,7 +76,7 @@ flowchart TD
     class G,E,P,B,V,IT,DEF,CL stage
 ```
 
-**讀法**：實線往下是 routine（不問你、直接走）；`✋` = **會停下開一個決策點問你**的真決策點（形狀 + 平台映射見 `interaction-adapter.md`）。`iterate` 把問題修完會**回環**（看收斂；圈數預設 3 是**軟上限**＝到頂只回報現況，還有未修的問題就繼續修；其中 P0 是誰都不能繞過的機械下界）再驗，全乾淨才完工開 PR。explore 有兩種出口：**收斂式**→plan（選一個方法）、**發散式**→define（把設計空間盤成 issue backlog，開完停下等後續逐步解，不強制續跑）。
+**讀法**：實線往下是 routine（不問你、直接走）；`✋` = **會停下開一個決策點問你**的真決策點（形狀 + 平台映射見 `interaction-adapter.md`）。`iterate` 把問題修完會**回環**（看收斂；圈數預設 3 是**軟上限**＝到頂只回報現況，還有未修的問題就繼續修——其中**最嚴重的一級（P0）沒清掉，誰都不能開 PR**，有一道機械閘真的會擋；次一級（P1）照樣會修完，只是要不要留著它先進 PR 由你決定）再驗，全乾淨才完工開 PR。explore 有兩種出口：**收斂式**→plan（選一個方法）、**發散式**→define（把設計空間盤成 issue backlog，開完停下等後續逐步解，不強制續跑）。
 
 **dispatch 依意圖清晰度分流**：明確（issue# / PR#）直進 goal / iterate；**模糊想法先進 `clarify`** —— 一次一問把模糊收斂成「經確認的理解 + 方向」，再分流到 define / explore / iterate（dispatch 自己不做訪談確認）。clarify 與 scaffold / define 同為 dispatch 路由的**前置階段**、不在 goal→…→iterate 迴圈圈內。
 

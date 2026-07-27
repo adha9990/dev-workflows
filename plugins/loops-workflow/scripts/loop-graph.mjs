@@ -202,8 +202,11 @@ export function projectEvents(events, { slug = '' } = {}) {
 }
 
 /**
- * 仍擋著收圈的東西：未解決的 P0/P1 finding ＋ 最近一次評估為 fail 的閘 ＋ 仍 pending 的決策。
+ * 仍擋著**完工**的東西：未解決的 P0/P1 finding ＋ 最近一次評估為 fail 的閘 ＋ 仍 pending 的決策。
  * 這是 context pack 的**受保護區段**（AC-4：預算再緊也不得丟）。
+ *
+ * 用「完工」而非「收圈」：對應的是 iterate §6 的完工前提（最近一輪 verify 無 actionable findings），
+ * **不是** pr-gate 閘⑥ 的機械下界（#211 起只認 P0）。兩層刻意不同——見上方 `BLOCKING_SEVERITIES`。
  */
 export function selectBlocking(state) {
   const findings = state.findings.filter((f) => f.status === 'open' && BLOCKING_SEVERITIES.includes(f.severity));
