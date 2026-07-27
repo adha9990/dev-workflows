@@ -36,7 +36,7 @@ workspace 的 package 邊界保證,讓結構不會悄悄腐化。
 ├── package.json            # workspace 根:packageManager、engines + pnpm -r 便利 scripts
 ├── pnpm-workspace.yaml      # packages: [backend, frontend];為原生依賴(better-sqlite3)設 allowBuilds
 ├── AGENTS.md                # ★ 給人與 AI agent 的工作指南 + 文件慣例
-├── docs/                    # ★ 設計方向文件(邊建邊寫):README 索引 + architecture + testing
+├── docs/                    # ★ 教學文檔(邊建邊寫):README 索引 + architecture + testing
 ├── backend/                 # Fastify 後端 package(@<project>/backend)
 │   ├── package.json         # 後端 deps(fastify、better-sqlite3、kysely、typebox、pino…)
 │   ├── tsconfig.json        # server(Node)編譯設定;include src/scripts/e2e/benchmark
@@ -143,17 +143,18 @@ workspace 的 package 邊界保證,讓結構不會悄悄腐化。
 mutation)→ View(`frontend/src/routes/` 薄頁吃 viewmodel + `frontend/src/components/` 加純呈現元件)。
 View 不直接 import `model/`,一律經 viewmodel —— `pnpm lint` 會替你把關。
 
-## 文件慣例:邊建邊留設計方向(請傳承給使用者,也請自己遵守)
+## 文件慣例:邊建邊留教學文檔(請傳承給使用者,也請自己遵守)
 
 模板內建了 `AGENTS.md` 與 `docs/`,它們承載這個專案最重要的工作慣例 —— 也是讓新人與 AI agent 能
 快速接手的關鍵:
 
-> **每當你建立或改變一個「環境、功能、或概念」,就在 `docs/` 留下一份說明「設計方向」的文件 ——
-> 記錄「為什麼這樣設計、有哪些取捨與邊界」,而不只是「怎麼用」。**
+> **每當你建立或改變一個「環境、功能、或概念」,就在 `docs/` 留下一份教學文檔 ——
+> 寫「怎麼用、有什麼限制與坑、擴充時怎麼判斷」;「為什麼這樣設計」最多一句帶過。**
 
-- 分工:`docs/` 講「why + 高層 how」;程式碼註解講「這一行在做什麼」;`AGENTS.md` 講「動手前的規則」。
-- 為什麼:ESLint 鎖住*程式碼*分層不腐化,`docs/` 與 `AGENTS.md` 則鎖住*設計意圖*不流失。
-- 模板已先示範:`docs/architecture.md`(架構導覽)、`docs/testing.md`(測試設計方向)、`docs/README.md`(索引)。
+- 分工:`docs/` 教「怎麼用 + 約束不變式 + 擴充時的判斷準則」;程式碼註解講「這一行在做什麼」;
+  `AGENTS.md` 講「動手前的規則」;「為什麼這樣設計、評估過哪些方案」的完整敘事放 PR / 設計文件。
+- 為什麼:ESLint 鎖住*程式碼*分層不腐化,`docs/` 與 `AGENTS.md` 則鎖住*使用方式與判斷準則*不流失。
+- 模板已先示範:`docs/architecture.md`(架構導覽)、`docs/testing.md`(測試分工與準則)、`docs/README.md`(索引)。
 
 **因此,當你(或使用者)在這個 scaffold 出來的專案裡新增一個環境/功能/概念時,除了寫程式碼,還要:**
 1. 在 `docs/<topic>.md` 留下教學與限制(怎麼用、邊界、失敗模式、擴充時要重複套的判斷準則);

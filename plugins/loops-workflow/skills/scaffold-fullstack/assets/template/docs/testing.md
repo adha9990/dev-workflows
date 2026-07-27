@@ -1,6 +1,6 @@
-# 測試的設計方向
+# 測試怎麼分、怎麼寫
 
-這份文件說明本專案的測試**為什麼**這樣分,以及各層該測什麼 —— 是「邊建邊留設計方向文件」的範例。
+這份文件說明本專案的測試怎麼分套、各層該測什麼、加新測試時怎麼選 —— 是「邊建邊留教學文檔」的範例。
 
 ## 三套測試,三個目的
 
@@ -10,18 +10,16 @@
 | e2e | `pnpm --filter backend test:e2e` | `backend/vitest.e2e.config.ts` | node(序列執行) | 啟動真正的 Fastify app,用 `app.inject()` 打整條垂直切片 |
 | benchmark | `pnpm --filter backend test:benchmark` | `backend/vitest.benchmark.config.ts` | node(序列執行) | 對效能敏感的熱路徑 |
 
-**為什麼分這幾套**:每套的時間預算與隔離需求不同。單元測試要快且高度平行;e2e 共用 process 層級狀態
-(真資料庫、真路由),必須序列執行;benchmark 的計時不能被並行的 CPU 壓力干擾。混在一起會互相拖累。
-同樣地,前端測試獨立成 `frontend/` 自己的 jsdom 設定、後端測試留在 `backend/` 的 node 設定 —— 測試的
-切分呼應 front/back 的 package 切分,不會模糊這條邊界。
+**加新測試放哪套(判斷準則)**:純函數 / 單一單元 → 單元(要快且高度平行);要跑真資料庫、真路由的
+垂直切片 → e2e(共用 process 層級狀態,必須序列執行);對效能敏感的熱路徑 → benchmark(計時不能被
+並行的 CPU 壓力干擾)。三套隔離需求不同,混在一起會互相拖累。前端測試一律進 `frontend/` 自己的 jsdom
+設定、後端留在 `backend/` 的 node 設定 —— 測試的切分呼應 front/back 的 package 切分,不模糊這條邊界。
 
-## 用真的 SQLite,不要 mock
+## 該不該 mock 資料庫:不要,用真的 SQLite
 
 e2e 測試開一個 `tmpdir` 裡的真 SQLite 檔(見 `backend/e2e/notes.e2e.test.ts`),跑真的 migration、真的
-Kysely 查詢,而不是 mock 掉資料庫。
-
-**為什麼**:mock 掉的資料庫只會驗證「你以為 SQL 怎麼跑」,真資料庫才會驗證 constraint、index、型別轉換
-與實際 SQL 行為。測試的價值在於「過了就代表 production 也會過」—— mocking 容易把真 bug 藏起來。
+Kysely 查詢,而不是 mock 掉資料庫 —— mock 掉的資料庫只會驗證「你以為 SQL 怎麼跑」,真資料庫才會驗證
+constraint、index、型別轉換與實際 SQL 行為;mocking 容易把真 bug 藏起來。
 
 ## 各層各測各的
 
