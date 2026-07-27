@@ -127,6 +127,21 @@ pr-gate 閘⑧ 讀 footprint marker：未說明的 drift 不得收圈
       loop 才量得到（behavior acceptance、escaped defect、production/test LOC、subagent 數、token、
       verify 輪數）。本次交付**沒有**跑這個對照，因此不宣稱任何成本改善數字。
 
+### 6.1 要怎麼補上那個對照（給之後接手的人）
+
+至少三種題目各跑一條完整 loop：①一般跨前後端功能；②沿用既有 pattern、已有測試可重用的功能；
+③高風險 bug 或資料一致性功能。每條 loop 跑完後：
+
+| 要的數字 | 從哪裡來 |
+|---|---|
+| subagent 數 / token / duration | `node plugins/loops-workflow/scripts/baseline-trace.mjs --loop <slug> --loops-root <path>`（從 `.loops/.metrics/costs.jsonl` 機械加總，**不要用 Journal 的人工概估**） |
+| production / test LOC、新測試檔與案例數 | `node plugins/loops-workflow/scripts/diff-footprint.mjs --base <base> --plan <02-plan.md> --json` |
+| 階段序列 / 有沒有跳關 | corpus fixture + `scripts/eval-trajectory.mjs` |
+| 彙整成報告 | `node plugins/loops-workflow/scripts/baseline-report.mjs --corpus <dir> --traces-dir <dir> --repo-sha <sha> --out-dir <dir>` |
+
+**判準**：behavior acceptance 與風險攔截能力**不得退步**；footprint、subagent 數、token **至少一項**
+明確改善。量不到的欄位一律標 `not measured`，不得憑感覺填。
+
 ## 7. 殘餘風險
 
 | 風險 | 現況 |
