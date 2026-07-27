@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "baseline_commit": "091cc703db1c180614fbe057ff767b564486206d",
+  "baseline_commit": "c268a05bf53139df701dc478dc4afa7ea3587cf6",
   "entries": [
     {
       "referrer_component_id": "accessibility-reviewer-agent",
@@ -63,7 +63,7 @@
       "target_component_id": "ref-bdd-scenarios",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+      "normalized_sha256": "dcbbb35beaf437fd7411b13cc946839214aa94e66d34336f2a856d78b6153403"
     },
     {
       "referrer_component_id": "agents-constitution",
@@ -116,6 +116,13 @@
     },
     {
       "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-contract-spec",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "6e95071cd1c78b67d4d5e5782cf28e27f3df457f890632fe2589a24013b9dd1e"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
       "target_component_id": "ref-design-patterns",
       "ordinal": 0,
       "class": "real",
@@ -126,7 +133,21 @@
       "target_component_id": "ref-docs-policy",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "601cb4914909b478751cf89a43e34b64e6a6f934c559c44410272606b5c1f7d7"
+      "normalized_sha256": "8e54761a9e46e1e6b466285a05f6f027cf15e0e075ab7ee3fc9af5baf23f9b8f"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
     },
     {
       "referrer_component_id": "agents-constitution",
@@ -168,14 +189,14 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "agents-constitution",
       "target_component_id": "ref-journaling",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "agents-constitution",
@@ -214,6 +235,13 @@
     },
     {
       "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-risk-map",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
       "target_component_id": "ref-security-checklist",
       "ordinal": 0,
       "class": "real",
@@ -224,7 +252,14 @@
       "target_component_id": "ref-test-rubric",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "eb896b8250f4fe67c13715cc6947414cf2243fc3f12519ed52b5607a10810046"
+      "normalized_sha256": "9e54b4f860f2e9344482a7e3a53a8edb1af6265764d76df36a4d49dc7a8f3186"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-verify-triage",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "bda869d235a539c8a01532e0c2613a1cdbb7dae8bb4565daf7162954df44ae38"
     },
     {
       "referrer_component_id": "agents-md-maintainer-skill",
@@ -252,7 +287,7 @@
       "target_component_id": "ref-bdd-scenarios",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+      "normalized_sha256": "dcbbb35beaf437fd7411b13cc946839214aa94e66d34336f2a856d78b6153403"
     },
     {
       "referrer_component_id": "build-skill",
@@ -322,7 +357,21 @@
       "target_component_id": "ref-docs-policy",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "601cb4914909b478751cf89a43e34b64e6a6f934c559c44410272606b5c1f7d7"
+      "normalized_sha256": "8e54761a9e46e1e6b466285a05f6f027cf15e0e075ab7ee3fc9af5baf23f9b8f"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
     },
     {
       "referrer_component_id": "build-skill",
@@ -336,7 +385,14 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-minimalism-ladder",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "ec5fa062db291048a366a18a6cf52ac272213dd4416985c6d38f43cc3a6bf5e2"
     },
     {
       "referrer_component_id": "build-skill",
@@ -375,6 +431,13 @@
     },
     {
       "referrer_component_id": "build-skill",
+      "target_component_id": "ref-risk-map",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
+    },
+    {
+      "referrer_component_id": "build-skill",
       "target_component_id": "ref-security-checklist",
       "ordinal": 0,
       "class": "real",
@@ -385,14 +448,14 @@
       "target_component_id": "ref-task-template",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "1d18bf85daebe5d2fa0e8a9e757c3ec1231537c5c61659cc0baacbada52516ee"
+      "normalized_sha256": "054cd99fca1d8444d4572fcc201e68d8fe7a0b0b2e83e3aafce607a98033a03a"
     },
     {
       "referrer_component_id": "build-skill",
       "target_component_id": "ref-test-rubric",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "eb896b8250f4fe67c13715cc6947414cf2243fc3f12519ed52b5607a10810046"
+      "normalized_sha256": "9e54b4f860f2e9344482a7e3a53a8edb1af6265764d76df36a4d49dc7a8f3186"
     },
     {
       "referrer_component_id": "canonical-contracts-tests",
@@ -595,7 +658,7 @@
       "target_component_id": "ref-bdd-scenarios",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+      "normalized_sha256": "dcbbb35beaf437fd7411b13cc946839214aa94e66d34336f2a856d78b6153403"
     },
     {
       "referrer_component_id": "define-skill",
@@ -630,28 +693,28 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "dispatch-skill",
       "target_component_id": "ref-journaling",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "dispatch-skill",
       "target_component_id": "ref-journaling",
       "ordinal": 2,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "dispatch-skill",
       "target_component_id": "ref-journaling",
       "ordinal": 3,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "dispatch-skill",
@@ -752,6 +815,34 @@
       "normalized_sha256": "f126fb329dc3924ddd48f2ce214445fcfdfcf19bf4fc8fc8dc0eefeaac89e975"
     },
     {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-risk-map",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
+    },
+    {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-risk-map",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
+    },
+    {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-risk-map",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
+    },
+    {
+      "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-verify-triage",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "bda869d235a539c8a01532e0c2613a1cdbb7dae8bb4565daf7162954df44ae38"
+    },
+    {
       "referrer_component_id": "finding-validator-agent",
       "target_component_id": "ref-code-retrieval",
       "ordinal": 0,
@@ -777,7 +868,14 @@
       "target_component_id": "ref-bdd-scenarios",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+      "normalized_sha256": "dcbbb35beaf437fd7411b13cc946839214aa94e66d34336f2a856d78b6153403"
+    },
+    {
+      "referrer_component_id": "goal-skill",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
     },
     {
       "referrer_component_id": "goal-skill",
@@ -889,14 +987,14 @@
       "target_component_id": "ref-docs-policy",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "601cb4914909b478751cf89a43e34b64e6a6f934c559c44410272606b5c1f7d7"
+      "normalized_sha256": "8e54761a9e46e1e6b466285a05f6f027cf15e0e075ab7ee3fc9af5baf23f9b8f"
     },
     {
       "referrer_component_id": "iterate-skill",
       "target_component_id": "ref-docs-policy",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "601cb4914909b478751cf89a43e34b64e6a6f934c559c44410272606b5c1f7d7"
+      "normalized_sha256": "8e54761a9e46e1e6b466285a05f6f027cf15e0e075ab7ee3fc9af5baf23f9b8f"
     },
     {
       "referrer_component_id": "iterate-skill",
@@ -910,21 +1008,21 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "iterate-skill",
       "target_component_id": "ref-journaling",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "iterate-skill",
       "target_component_id": "ref-journaling",
       "ordinal": 2,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "iterate-skill",
@@ -1015,7 +1113,21 @@
       "target_component_id": "ref-test-rubric",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "eb896b8250f4fe67c13715cc6947414cf2243fc3f12519ed52b5607a10810046"
+      "normalized_sha256": "9e54b4f860f2e9344482a7e3a53a8edb1af6265764d76df36a4d49dc7a8f3186"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-test-rubric",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "9e54b4f860f2e9344482a7e3a53a8edb1af6265764d76df36a4d49dc7a8f3186"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-test-rubric",
+      "ordinal": 2,
+      "class": "real",
+      "normalized_sha256": "9e54b4f860f2e9344482a7e3a53a8edb1af6265764d76df36a4d49dc7a8f3186"
     },
     {
       "referrer_component_id": "loop-graph",
@@ -1029,14 +1141,14 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "merge-guard",
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "migration-reviewer-agent",
@@ -1064,7 +1176,7 @@
       "target_component_id": "ref-optional-reviewers",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "36ab7824ddf3b8746590e8e7938dee57b050b40d2862f41f33179d17dfd272e5"
+      "normalized_sha256": "7f81b231227f773abea34d288842c6f47225b9f52782b20d3ec4ca9e62f4e36b"
     },
     {
       "referrer_component_id": null,
@@ -1726,6 +1838,13 @@
     },
     {
       "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-clean-architecture",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "d554d6dcb4f72048965246667e96122753b28dd9bba819b404217a6109cbde2d"
+    },
+    {
+      "referrer_component_id": "plan-skill",
       "target_component_id": "ref-comment-policy",
       "ordinal": 0,
       "class": "real",
@@ -1789,6 +1908,20 @@
     },
     {
       "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
+    },
+    {
+      "referrer_component_id": "plan-skill",
       "target_component_id": "ref-fleet",
       "ordinal": 0,
       "class": "real",
@@ -1813,7 +1946,7 @@
       "target_component_id": "ref-machine-plan-schema",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "2b8af04058a6ece0ce18b6a0f866cceda415b1e5d8bbc933f0d8dd8302e4a4f5"
+      "normalized_sha256": "255d9b3d0cc2d8a258f973f0a353505fedc412a0d09786c24340c65a641ea77a"
     },
     {
       "referrer_component_id": "plan-skill",
@@ -1838,17 +1971,24 @@
     },
     {
       "referrer_component_id": "plan-skill",
-      "target_component_id": "ref-task-template",
+      "target_component_id": "ref-risk-map",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "1d18bf85daebe5d2fa0e8a9e757c3ec1231537c5c61659cc0baacbada52516ee"
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
     },
     {
       "referrer_component_id": "plan-skill",
-      "target_component_id": "ref-test-rubric",
+      "target_component_id": "ref-risk-map",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
+    },
+    {
+      "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-task-template",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "eb896b8250f4fe67c13715cc6947414cf2243fc3f12519ed52b5607a10810046"
+      "normalized_sha256": "054cd99fca1d8444d4572fcc201e68d8fe7a0b0b2e83e3aafce607a98033a03a"
     },
     {
       "referrer_component_id": "plugin-docs",
@@ -1883,14 +2023,14 @@
       "target_component_id": "ref-docs-policy",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "601cb4914909b478751cf89a43e34b64e6a6f934c559c44410272606b5c1f7d7"
+      "normalized_sha256": "8e54761a9e46e1e6b466285a05f6f027cf15e0e075ab7ee3fc9af5baf23f9b8f"
     },
     {
       "referrer_component_id": "plugin-docs",
       "target_component_id": "ref-docs-policy",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "601cb4914909b478751cf89a43e34b64e6a6f934c559c44410272606b5c1f7d7"
+      "normalized_sha256": "8e54761a9e46e1e6b466285a05f6f027cf15e0e075ab7ee3fc9af5baf23f9b8f"
     },
     {
       "referrer_component_id": "plugin-docs",
@@ -1925,21 +2065,21 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "plugin-docs",
       "target_component_id": "ref-journaling",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "plugin-docs",
       "target_component_id": "ref-journaling",
       "ordinal": 2,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "plugin-docs",
@@ -1947,6 +2087,20 @@
       "ordinal": 0,
       "class": "real",
       "normalized_sha256": "ca857314259785ff47342120d21d3872fb62072536888f77ba76b5f282b4ac4c"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-risk-map",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
+    },
+    {
+      "referrer_component_id": "plugin-docs",
+      "target_component_id": "ref-risk-map",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
     },
     {
       "referrer_component_id": "processing-reliability-reviewer-agent",
@@ -1960,7 +2114,7 @@
       "target_component_id": "ref-bdd-scenarios",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+      "normalized_sha256": "dcbbb35beaf437fd7411b13cc946839214aa94e66d34336f2a856d78b6153403"
     },
     {
       "referrer_component_id": "product-contract-reviewer-agent",
@@ -1975,6 +2129,27 @@
       "ordinal": 0,
       "class": "real",
       "normalized_sha256": "0e2d555e7c4887b75b473a6fb76940b217eedee5574bc3556c9e5af7db2c94c4"
+    },
+    {
+      "referrer_component_id": "ref-bdd-scenarios",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
+    },
+    {
+      "referrer_component_id": "ref-bdd-scenarios",
+      "target_component_id": "ref-operation-first-move",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "2f47bc2ff53c03bc9588e2616f14c76dc5b11a2c31d4782e70f926a5683f5262"
+    },
+    {
+      "referrer_component_id": "ref-bdd-scenarios",
+      "target_component_id": "ref-risk-map",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
     },
     {
       "referrer_component_id": "ref-eval-harness",
@@ -2044,7 +2219,7 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "ref-eval-harness",
@@ -2068,6 +2243,13 @@
       "normalized_sha256": "7a16f5819fbc79eb080e31fba8b6310e95abf8b0e038480c9397d9f373a864ae"
     },
     {
+      "referrer_component_id": "ref-evidence-portfolio",
+      "target_component_id": "ref-test-rubric",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "9e54b4f860f2e9344482a7e3a53a8edb1af6265764d76df36a4d49dc7a8f3186"
+    },
+    {
       "referrer_component_id": "ref-finding-validation",
       "target_component_id": "ref-finding-author-decision-rule",
       "ordinal": 0,
@@ -2086,14 +2268,28 @@
       "target_component_id": "ref-machine-plan-schema",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "2b8af04058a6ece0ce18b6a0f866cceda415b1e5d8bbc933f0d8dd8302e4a4f5"
+      "normalized_sha256": "255d9b3d0cc2d8a258f973f0a353505fedc412a0d09786c24340c65a641ea77a"
+    },
+    {
+      "referrer_component_id": "ref-machine-plan-schema",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
+    },
+    {
+      "referrer_component_id": "ref-machine-plan-schema",
+      "target_component_id": "ref-risk-map",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
     },
     {
       "referrer_component_id": "ref-machine-plan-schema",
       "target_component_id": "ref-task-template",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "1d18bf85daebe5d2fa0e8a9e757c3ec1231537c5c61659cc0baacbada52516ee"
+      "normalized_sha256": "054cd99fca1d8444d4572fcc201e68d8fe7a0b0b2e83e3aafce607a98033a03a"
     },
     {
       "referrer_component_id": "ref-persona-multi-user-concurrency-reviewer",
@@ -2107,14 +2303,14 @@
       "target_component_id": "ref-optional-reviewers",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "36ab7824ddf3b8746590e8e7938dee57b050b40d2862f41f33179d17dfd272e5"
+      "normalized_sha256": "7f81b231227f773abea34d288842c6f47225b9f52782b20d3ec4ca9e62f4e36b"
     },
     {
       "referrer_component_id": "ref-persona-product-contract-reviewer",
       "target_component_id": "ref-bdd-scenarios",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+      "normalized_sha256": "dcbbb35beaf437fd7411b13cc946839214aa94e66d34336f2a856d78b6153403"
     },
     {
       "referrer_component_id": "ref-pr-spec",
@@ -2150,6 +2346,55 @@
       "ordinal": 0,
       "class": "real",
       "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "ref-risk-map",
+      "target_component_id": "ref-clean-architecture",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "d554d6dcb4f72048965246667e96122753b28dd9bba819b404217a6109cbde2d"
+    },
+    {
+      "referrer_component_id": "ref-risk-map",
+      "target_component_id": "ref-contract-spec",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "6e95071cd1c78b67d4d5e5782cf28e27f3df457f890632fe2589a24013b9dd1e"
+    },
+    {
+      "referrer_component_id": "ref-risk-map",
+      "target_component_id": "ref-verify-triage",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "bda869d235a539c8a01532e0c2613a1cdbb7dae8bb4565daf7162954df44ae38"
+    },
+    {
+      "referrer_component_id": "ref-task-template",
+      "target_component_id": "ref-bdd-scenarios",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "dcbbb35beaf437fd7411b13cc946839214aa94e66d34336f2a856d78b6153403"
+    },
+    {
+      "referrer_component_id": "ref-task-template",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
+    },
+    {
+      "referrer_component_id": "ref-task-template",
+      "target_component_id": "ref-machine-plan-schema",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "255d9b3d0cc2d8a258f973f0a353505fedc412a0d09786c24340c65a641ea77a"
+    },
+    {
+      "referrer_component_id": "ref-test-rubric",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
     },
     {
       "referrer_component_id": "registry-compiler-tests",
@@ -2219,21 +2464,21 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "repo-docs",
       "target_component_id": "ref-journaling",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "repo-docs",
       "target_component_id": "ref-machine-plan-schema",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "2b8af04058a6ece0ce18b6a0f866cceda415b1e5d8bbc933f0d8dd8302e4a4f5"
+      "normalized_sha256": "255d9b3d0cc2d8a258f973f0a353505fedc412a0d09786c24340c65a641ea77a"
     },
     {
       "referrer_component_id": "reviewer-generator",
@@ -2281,13 +2526,6 @@
       "referrer_component_id": "scaffold-fullstack-skill",
       "target_component_id": null,
       "ordinal": 0,
-      "class": "skill-local",
-      "normalized_sha256": null
-    },
-    {
-      "referrer_component_id": "scaffold-fullstack-skill",
-      "target_component_id": null,
-      "ordinal": 1,
       "class": "skill-local",
       "normalized_sha256": null
     },
@@ -2366,7 +2604,7 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "skill-lint-tests",
@@ -2534,77 +2772,77 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 1,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 2,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 3,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 4,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 5,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 6,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 7,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 8,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 9,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 10,
       "class": "fixture",
-      "normalized_sha256": "c629922a83feec21408113c4486f705a41cd20fa013e78504d0ded18eb5469ab"
+      "normalized_sha256": "5c42ece5649d27fbce1d926e8e3882651524cc5a681b89bc31c9829bf069e0a6"
     },
     {
       "referrer_component_id": "skill-usage-tests",
@@ -2674,7 +2912,7 @@
       "target_component_id": "ref-bdd-scenarios",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
+      "normalized_sha256": "dcbbb35beaf437fd7411b13cc946839214aa94e66d34336f2a856d78b6153403"
     },
     {
       "referrer_component_id": "tests-reviewer-agent",
@@ -2682,6 +2920,13 @@
       "ordinal": 0,
       "class": "real",
       "normalized_sha256": "4cc2f4809c3c238c77a80f17a9d3f73d27a6e4bff66b91fcedd26ea2b3ee46b3"
+    },
+    {
+      "referrer_component_id": "validate-plan",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
     },
     {
       "referrer_component_id": "verify-skill",
@@ -2696,13 +2941,6 @@
       "ordinal": 1,
       "class": "real",
       "normalized_sha256": "bd2448848ec772f723b4b9779f62cb268af135d7822d0defdec2ec552b48d3ac"
-    },
-    {
-      "referrer_component_id": "verify-skill",
-      "target_component_id": "ref-bdd-scenarios",
-      "ordinal": 0,
-      "class": "real",
-      "normalized_sha256": "96b1a233a41de00debfd9d155431ad1978a8fce3f714ba4dbb27d06bf3e8bc91"
     },
     {
       "referrer_component_id": "verify-skill",
@@ -2744,7 +2982,14 @@
       "target_component_id": "ref-docs-devex-review",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "56923d0b307c88763bd2ebd861eaa8b05c8830598f5b4169c1af52c27bff6e3c"
+      "normalized_sha256": "9b46ea89569729b1df1a607b51f0cb4c35cef586e8b3e52de739ac00cd604f58"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-evidence-portfolio",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "a3d0d56a197c5499d2724571a27b3b97387815803df959b718c48e4d95391466"
     },
     {
       "referrer_component_id": "verify-skill",
@@ -2779,21 +3024,21 @@
       "target_component_id": "ref-optional-reviewers",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "36ab7824ddf3b8746590e8e7938dee57b050b40d2862f41f33179d17dfd272e5"
+      "normalized_sha256": "7f81b231227f773abea34d288842c6f47225b9f52782b20d3ec4ca9e62f4e36b"
     },
     {
       "referrer_component_id": "verify-skill",
       "target_component_id": "ref-optional-reviewers",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "36ab7824ddf3b8746590e8e7938dee57b050b40d2862f41f33179d17dfd272e5"
+      "normalized_sha256": "7f81b231227f773abea34d288842c6f47225b9f52782b20d3ec4ca9e62f4e36b"
     },
     {
       "referrer_component_id": "verify-skill",
       "target_component_id": "ref-optional-reviewers",
       "ordinal": 2,
       "class": "real",
-      "normalized_sha256": "36ab7824ddf3b8746590e8e7938dee57b050b40d2862f41f33179d17dfd272e5"
+      "normalized_sha256": "7f81b231227f773abea34d288842c6f47225b9f52782b20d3ec4ca9e62f4e36b"
     },
     {
       "referrer_component_id": "verify-skill",
@@ -2846,6 +3091,20 @@
     },
     {
       "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-risk-map",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-risk-map",
+      "ordinal": 1,
+      "class": "real",
+      "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
+    },
+    {
+      "referrer_component_id": "verify-skill",
       "target_component_id": "ref-ui-interaction-review",
       "ordinal": 0,
       "class": "real",
@@ -2856,7 +3115,7 @@
       "target_component_id": "ref-verify-triage",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "3ef57ecfdbabd917716cbb9e37f1d7a09e898fc03cafdf19968b3f86c439e11f"
+      "normalized_sha256": "bda869d235a539c8a01532e0c2613a1cdbb7dae8bb4565daf7162954df44ae38"
     },
     {
       "referrer_component_id": "web-performance-reviewer-agent",

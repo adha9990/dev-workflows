@@ -1,7 +1,7 @@
 {
   "name": "loops-workflow",
-  "version": "0.59.0",
-  "description": "7 階段閉環開發工作流：dispatch 決策樹分流（視情況先走 clarify/define/scaffold 前置）→ goal/explore/plan/build/verify/iterate，階段間 human gate，build 紅綠分離，verify 多 reviewer fan-out + validator 二輪。兩個公開入口：dispatch 開始／接續一條 loop、setup 安裝與對帳外部來源。規則依可判定性分四級執行；loop 記憶體以 append-only 事件流為唯一真相源，人讀快照與工作圖由它重建。",
+  "version": "0.60.0",
+  "description": "7 階段閉環開發工作流：dispatch 決策樹分流（視情況先走 clarify/define/scaffold 前置）→ goal/explore/plan/build/verify/iterate，階段間 human gate。canonical 方法論＝Feature-oriented SDD 主幹＋每個行為一份主證據（evidence portfolio）＋風險式選擇性 TDD：DDD／Contract-First／test-first／額外 reviewer 由機械可讀 predicate 觸發，未命中就不加 ceremony。兩個公開入口：dispatch 開始／接續一條 loop、setup 安裝與對帳外部來源。規則依可判定性分四級執行；loop 記憶體以 append-only 事件流為唯一真相源，人讀快照與工作圖由它重建。",
   "author": {
     "name": "陳駿騰",
     "url": "https://github.com/adha9990"

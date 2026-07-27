@@ -1139,6 +1139,105 @@ try {
       assert(safe(m?.verifyReportSkipsValidation, 42) === false, '[VN11b] verifyReportSkipsValidation：非字串 → false');
     }
   }
+
+  // ── W 系列：閘⑧ 未說明的 footprint drift（#215）──────────────────────────────────
+  // 這道閘的存在理由是「範圍與證據要跟計畫對得上」，**不是**「測試不准多」。所以每一條 deny 都配
+  // 一條反向 allow，特別釘死 `status=warn`（比例超標）必須放行——用固定 ratio 擋掉正當的測試，正是
+  // 這條規則明列的非目標。
+  {
+    const READY = '# verify\n判定：Ready\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 findings=0 validated=0 -->\n';
+    const fp = (s) => `${READY}${s}\n`;
+    const MK_FP_OK = fp('<!-- loops-footprint status=ok prod=120 test=60 newtests=1 unslotted=0 unexplained=0 -->');
+    const MK_FP_WARN = fp('<!-- loops-footprint status=warn prod=100 test=400 newtests=3 unslotted=0 unexplained=0 -->');
+    const MK_FP_UNSLOTTED = fp('<!-- loops-footprint status=blocked prod=300 test=0 newtests=0 unslotted=2 unexplained=0 -->');
+    const MK_FP_OVERRUN = fp('<!-- loops-footprint status=blocked prod=900 test=20 newtests=1 unslotted=0 unexplained=1 -->');
+
+    {
+      const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g8-unslotted', 'w-unslotted', MK_FP_UNSLOTTED) });
+      assert(isDeny(res), '[W1] create：status=blocked（範圍外施工）→ 閘⑧ deny');
+      assert(reasonOf(res).includes('slice'), '[W1-2] reason 指名該回 plan 把改動納入某個 slice（living plan）');
+      assert(reasonOf(res).includes('LOOPS_PR_FOOTPRINT_GATE'), '[W1-3] reason 附閘⑧ 專屬逃生口');
+      assert(reasonOf(res).includes('unslotted=2'), '[W1-4] reason 帶實際計數（哪一項爆掉看得出來）');
+    }
+    {
+      const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g8-overrun', 'w-overrun', MK_FP_OVERRUN) });
+      assert(isDeny(res), '[W2] create：status=blocked（未說明的 budget drift）→ deny');
+      assert(reasonOf(res).includes('budget_overrun_reason'), '[W2-2] reason 指名補理由的欄位，不是叫人少寫 code');
+      assert(/比例/.test(reasonOf(res)) && /不會擋你|只是|warning/.test(reasonOf(res)),
+        '[W2-3] reason 明講比例本身不擋（避免被讀成「測試寫太多被擋」）');
+    }
+
+    // 反向：三種「不該擋」的情形。
+    assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g8-ok', 'w-ok', MK_FP_OK) })),
+      '[W3] create：status=ok → allow');
+    assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g8-warn', 'w-warn', MK_FP_WARN) })),
+      '[W4] create：status=warn（測試 400 行 vs 功能 100 行）→ **allow** —— 不以固定 test:production ratio 擋正當測試');
+    assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g8-none', 'w-none', READY) })),
+      '[W5] create：報告沒有 footprint marker（舊 loop）→ allow（fail-open，缺席 ≠ 違規）');
+
+    assert(isDeny(runHook({ command: 'gh pr ready', cwd: mkG6('g8-ready', 'w-ready', MK_FP_UNSLOTTED) })),
+      '[W6] ready：閘⑧ 在 ready 也 deny（作用範圍同閘⑥⑦）');
+    assert(isAllow(runHook({ command: 'gh pr comment --body "近況"', cwd: mkG6('g8-cm', 'w-comment', MK_FP_UNSLOTTED) })),
+      '[W7] comment：閘⑧ 不套 comment → allow');
+    assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g8-off', 'w-off', MK_FP_UNSLOTTED), env: { LOOPS_PR_FOOTPRINT_GATE: '0' } })),
+      '[W8] create：LOOPS_PR_FOOTPRINT_GATE=0 → 閘⑧ 關（逃生口）');
+    assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g8-indep', 'w-indep', MK_FP_UNSLOTTED), env: { LOOPS_PR_BLOCKING_GATE: '0', LOOPS_PR_VALIDATION_GATE: '0' } })),
+      '[W9] create：關掉閘⑥⑦ 不影響閘⑧（獨立 flag、互不牽連）');
+    assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g8-indep2', 'w-indep2', MK_FP_OK), env: { LOOPS_PR_FOOTPRINT_GATE: '0' } })),
+      '[W9b] create：關掉閘⑧ 不影響其餘閘（乾淨報告仍放行、無副作用）');
+
+    // waiver 不是 footprint 的出口——那份豁免的語意是「知情接受這些 P0/P1」，跟「範圍/證據對不上」無關。
+    assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g8-wv', 'w-waiver', MK_FP_UNSLOTTED, { waiver: '使用者知情' }) })),
+      '[W10] create：blocked + 非空 waiver → 仍 deny（閘⑧ 不認 blocking-waiver）');
+
+    // 閘⑥ 優先：更根本的先講。
+    {
+      const both = '# verify\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=1 p1=0 round=1 findings=1 validated=1 -->\n'
+        + '<!-- loops-footprint status=blocked prod=300 test=0 newtests=0 unslotted=2 unexplained=0 -->\n';
+      const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g8-both', 'w-both', both) });
+      assert(isDeny(res), '[W11] create：同時 not-ready 與 footprint blocked → deny');
+      assert(reasonOf(res).includes('未修的 P0') && !reasonOf(res).includes('footprint'),
+        '[W11-2] 先報閘⑥ 的理由（P0 未清更根本），不是把兩條訊息混在一起');
+    }
+
+    // 純函式層直測（含 fence-robust 兩視圖）。
+    {
+      const m = prGateModule;
+      const safe = (fn, ...a) => { try { return fn(...a); } catch { return '__throw__'; } };
+      const one = '<!-- loops-footprint status=blocked prod=1 test=2 newtests=3 unslotted=4 unexplained=5 -->';
+      const parsed = safe(m?.extractLatestFootprintMarker, one);
+      assert(parsed && parsed.status === 'blocked' && parsed.prod === 1 && parsed.unexplained === 5,
+        '[WN1] extractLatestFootprintMarker：六個欄位都解得出來');
+      assert(safe(m?.extractLatestFootprintMarker,
+        '<!-- loops-footprint status=blocked prod=1 test=0 newtests=0 unslotted=1 unexplained=0 -->\n'
+        + '<!-- loops-footprint status=ok prod=9 test=0 newtests=0 unslotted=0 unexplained=0 -->')?.status === 'ok',
+        '[WN2] extractLatestFootprintMarker：多輪取最後一個（最近一輪 wins）');
+      assert(safe(m?.extractLatestFootprintMarker, '<!-- loops-footprint status=ok -->')?.prod === undefined,
+        '[WN3] extractLatestFootprintMarker：缺欄位 → undefined（**不補 0**）');
+      assert(safe(m?.extractLatestFootprintMarker, '完全沒有 marker') === null, '[WN4] extractLatestFootprintMarker：無 marker → null');
+      assert(safe(m?.extractLatestFootprintMarker, 42) === null, '[WN4b] extractLatestFootprintMarker：非字串 → null');
+
+      assert(safe(m?.footprintBlocked, { status: 'blocked' }) === true, '[WN5] footprintBlocked：blocked → true');
+      assert(safe(m?.footprintBlocked, { status: 'warn' }) === false, '[WN6] footprintBlocked：warn → false（比例只是提醒）');
+      assert(safe(m?.footprintBlocked, { status: 'ok' }) === false, '[WN7] footprintBlocked：ok → false');
+      assert(safe(m?.footprintBlocked, null) === false, '[WN8] footprintBlocked：null → false（fail-open）');
+      assert(safe(m?.footprintBlocked, { status: 'BLOCKED' }) === false, '[WN8b] footprintBlocked：嚴格全等小寫字面（大寫非契約值）');
+
+      assert(safe(m?.verifyReportFootprintBlocks,
+        'x\n```\n<!-- loops-footprint status=ok prod=0 test=0 newtests=0 unslotted=0 unexplained=0 -->\n```\n'
+        + '<!-- loops-footprint status=blocked prod=1 test=0 newtests=0 unslotted=1 unexplained=0 -->') === true,
+        '[WN9] verifyReportFootprintBlocks：fenced 示範 ok marker 蓋不掉真的 blocked → true');
+      assert(safe(m?.verifyReportFootprintBlocks,
+        '真的\n<!-- loops-footprint status=blocked prod=1 test=0 newtests=0 unslotted=1 unexplained=0 -->\n```text\n'
+        + '<!-- loops-footprint status=ok prod=0 test=0 newtests=0 unslotted=0 unexplained=0 -->\n```') === true,
+        '[WN10] verifyReportFootprintBlocks：真 blocked 在前、fenced 示範 ok 在後 → stripped 視圖擋住 → true');
+      assert(safe(m?.verifyReportFootprintBlocks,
+        '```\nx\n<!-- loops-footprint status=blocked prod=1 test=0 newtests=0 unslotted=1 unexplained=0 -->') === true,
+        '[WN11] verifyReportFootprintBlocks：未閉合 fence 藏住真 marker → raw 視圖仍擋住 → true');
+      assert(safe(m?.verifyReportFootprintBlocks, '完全沒有 marker') === false, '[WN12] verifyReportFootprintBlocks：無 marker → false（fail-open）');
+      assert(safe(m?.verifyReportFootprintBlocks, 42) === false, '[WN12b] verifyReportFootprintBlocks：非字串 → false');
+    }
+  }
 } finally {
   rmSync(SANDBOX, { recursive: true, force: true });
 }
@@ -1149,6 +1248,7 @@ console.log(`(共 ${total} 條斷言：P1–P8／EXTRA／WIN＝#132 三閘與接
   + `R＝#152 閘④ real-run receipt、C＝#152 閘⑤ 合併衝突、N＝#152 新純函式直測、`
   + `F5＝三 flag 互不牽連、G＝閘⑤ 真 gh spawn 端到端（假 gh，POSIX/CI）、`
   + `B／BN＝#188/#211 閘⑥ P0 未清不准收圈（marker 契約 + 知情豁免 + auto 不繞過 + 純函式；#211 起 p1 不再參與判定）、`
-  + `V／VN＝#209 閘⑦ 第二輪確認沒跑不准收圈（findings/validated 欄位 + 缺席 fail-open + 不認 waiver + 純函式）；`
+  + `V／VN＝#209 閘⑦ 第二輪確認沒跑不准收圈（findings/validated 欄位 + 缺席 fail-open + 不認 waiver + 純函式）、`
+  + `W／WN＝#215 閘⑧ 未說明的 footprint drift（只擋 blocked、warn 一律放行、marker 契約 + 純函式）；`
   + `R5b/c·N9–N11·C10/11·F5·G＝#152 verify/wiring 修正輪)`);
 process.exit(failed.length > 0 ? 1 : 0);

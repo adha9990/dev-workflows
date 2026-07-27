@@ -320,6 +320,7 @@
         "ref-commit-spec",
         "ref-context-diet",
         "ref-docs-policy",
+        "ref-evidence-portfolio",
         "ref-interaction-adapter",
         "ref-journaling",
         "ref-model-effort-policy",
@@ -327,6 +328,7 @@
         "ref-quality-gate-schema",
         "ref-refactoring",
         "ref-reuse-check",
+        "ref-risk-map",
         "ref-security-checklist",
         "ref-task-template",
         "ref-test-rubric"
@@ -734,47 +736,37 @@
       "target_path": "plugins/loops-workflow/scripts/compat-lint.mjs",
       "user_invocable": false,
       "dependencies": [
-        "agents-constitution",
-        "capability-registry",
-        "policy-registry",
-        "plugin-docs",
-        "repo-docs",
-        "build-skill",
-        "clarify-skill",
-        "define-skill",
-        "dispatch-skill",
-        "explain-skill",
-        "explore-skill",
-        "goal-skill",
-        "iterate-skill",
-        "plan-skill",
-        "scaffold-fullstack-skill",
-        "verify-skill",
         "accessibility-reviewer-agent",
+        "agents-constitution",
         "architecture-reviewer-agent",
         "architecture-reviewer-deep-agent",
+        "build-skill",
+        "capability-registry",
         "ci-cd-reviewer-agent",
+        "clarify-skill",
         "code-quality-reviewer-agent",
         "code-quality-reviewer-deep-agent",
+        "define-skill",
+        "dispatch-skill",
         "docs-devex-reviewer-agent",
         "eval-judge-agent",
+        "explain-skill",
+        "explore-skill",
         "finding-validator-agent",
         "finding-validator-deep-agent",
         "frontend-ui-reviewer-agent",
+        "goal-skill",
         "impl-author-agent",
+        "iterate-skill",
         "migration-reviewer-agent",
         "multi-user-concurrency-reviewer-agent",
         "observability-reviewer-agent",
         "performance-reviewer-agent",
+        "plan-skill",
+        "plugin-docs",
+        "policy-registry",
         "processing-reliability-reviewer-agent",
         "product-contract-reviewer-agent",
-        "referee-agent",
-        "root-cause-reviewer-agent",
-        "security-reviewer-agent",
-        "security-reviewer-deep-agent",
-        "test-author-agent",
-        "tests-reviewer-agent",
-        "web-performance-reviewer-agent",
         "ref-acceptance-review",
         "ref-adr-template",
         "ref-architecture-review",
@@ -801,6 +793,7 @@
         "ref-eval-judge-panel",
         "ref-eval-judge-rubric",
         "ref-eval-live-candidate",
+        "ref-evidence-portfolio",
         "ref-finding-author-decision-rule",
         "ref-finding-validation",
         "ref-fleet",
@@ -826,12 +819,23 @@
         "ref-review-dispositions",
         "ref-reviewer-severity",
         "ref-reviewer-shared",
+        "ref-risk-map",
         "ref-root-cause-review",
         "ref-security-checklist",
         "ref-task-template",
         "ref-test-rubric",
         "ref-ui-interaction-review",
-        "ref-verify-triage"
+        "ref-verify-triage",
+        "referee-agent",
+        "repo-docs",
+        "root-cause-reviewer-agent",
+        "scaffold-fullstack-skill",
+        "security-reviewer-agent",
+        "security-reviewer-deep-agent",
+        "test-author-agent",
+        "tests-reviewer-agent",
+        "verify-skill",
+        "web-performance-reviewer-agent"
       ],
       "consumers": [
         "registry-compiler",
@@ -1057,6 +1061,36 @@
         "evals": [],
         "docs": [
           "AGENTS.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "diff-footprint",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/diff-footprint.mjs"
+      ],
+      "stage_role": "verify",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/diff-footprint.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "ref-evidence-portfolio",
+        "ref-machine-plan-schema",
+        "validate-plan"
+      ],
+      "consumers": [
+        "verify-skill"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/pr-gate.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/references/stages/evidence-portfolio.md"
         ],
         "integrations": []
       }
@@ -1462,7 +1496,8 @@
         "ref-fleet",
         "ref-interaction-adapter",
         "ref-onboarding",
-        "ref-reuse-check"
+        "ref-reuse-check",
+        "ref-risk-map"
       ],
       "consumers": [
         "skill-lint",
@@ -1637,6 +1672,7 @@
         "agents-constitution",
         "capability-registry",
         "ref-bdd-scenarios",
+        "ref-evidence-portfolio",
         "ref-goal-restate-schema",
         "ref-interaction-adapter",
         "ref-operation-first-move",
@@ -1863,6 +1899,7 @@
         "ref-context-diet",
         "ref-cross-model-review",
         "ref-docs-policy",
+        "ref-evidence-portfolio",
         "ref-interaction-adapter",
         "ref-journaling",
         "ref-pr-feedback-sources",
@@ -2512,14 +2549,17 @@
         "ref-contract-spec",
         "ref-design-patterns",
         "ref-design-plan-schema",
+        "ref-evidence-portfolio",
         "ref-fleet",
         "ref-interaction-adapter",
         "ref-machine-plan-schema",
         "ref-pr-spec",
         "ref-project-conventions",
         "ref-reuse-check",
+        "ref-risk-map",
         "ref-task-template",
-        "ref-test-rubric"
+        "ref-test-rubric",
+        "validate-plan"
       ],
       "consumers": [
         "skill-lint",
@@ -3760,6 +3800,39 @@
       }
     },
     {
+      "id": "ref-evidence-portfolio",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/stages/evidence-portfolio.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/references/stages/evidence-portfolio.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "validate-plan",
+        "diff-footprint",
+        "goal-skill",
+        "plan-skill",
+        "build-skill",
+        "verify-skill",
+        "iterate-skill",
+        "test-author-agent"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
       "id": "ref-finding-author-decision-rule",
       "kind": "reference",
       "paths": [
@@ -3944,10 +4017,11 @@
       "user_invocable": false,
       "dependencies": [],
       "consumers": [
-        "validate-plan",
-        "skill-lint",
         "compat-lint",
-        "plan-skill"
+        "diff-footprint",
+        "plan-skill",
+        "skill-lint",
+        "validate-plan"
       ],
       "required_checks": {
         "hooks": [],
@@ -4883,6 +4957,35 @@
       }
     },
     {
+      "id": "ref-risk-map",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/stages/risk-map.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/references/stages/risk-map.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "skill-lint",
+        "compat-lint",
+        "explore-skill",
+        "plan-skill",
+        "build-skill",
+        "verify-skill"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
       "id": "ref-root-cause-review",
       "kind": "reference",
       "paths": [
@@ -5582,44 +5685,35 @@
       "target_path": "plugins/loops-workflow/scripts/skill-lint.mjs",
       "user_invocable": false,
       "dependencies": [
-        "agents-constitution",
-        "plugin-docs",
-        "build-skill",
-        "clarify-skill",
-        "define-skill",
-        "dispatch-skill",
-        "explain-skill",
-        "explore-skill",
-        "goal-skill",
-        "iterate-skill",
-        "plan-skill",
-        "scaffold-fullstack-skill",
-        "verify-skill",
         "accessibility-reviewer-agent",
+        "agents-constitution",
         "architecture-reviewer-agent",
         "architecture-reviewer-deep-agent",
+        "build-skill",
         "ci-cd-reviewer-agent",
+        "clarify-skill",
         "code-quality-reviewer-agent",
         "code-quality-reviewer-deep-agent",
+        "define-skill",
+        "dispatch-skill",
         "docs-devex-reviewer-agent",
         "eval-judge-agent",
+        "explain-skill",
+        "explore-skill",
         "finding-validator-agent",
         "finding-validator-deep-agent",
         "frontend-ui-reviewer-agent",
+        "goal-skill",
         "impl-author-agent",
+        "iterate-skill",
         "migration-reviewer-agent",
         "multi-user-concurrency-reviewer-agent",
         "observability-reviewer-agent",
         "performance-reviewer-agent",
+        "plan-skill",
+        "plugin-docs",
         "processing-reliability-reviewer-agent",
         "product-contract-reviewer-agent",
-        "referee-agent",
-        "root-cause-reviewer-agent",
-        "security-reviewer-agent",
-        "security-reviewer-deep-agent",
-        "test-author-agent",
-        "tests-reviewer-agent",
-        "web-performance-reviewer-agent",
         "ref-acceptance-review",
         "ref-adr-template",
         "ref-architecture-review",
@@ -5646,6 +5740,7 @@
         "ref-eval-judge-panel",
         "ref-eval-judge-rubric",
         "ref-eval-live-candidate",
+        "ref-evidence-portfolio",
         "ref-finding-author-decision-rule",
         "ref-finding-validation",
         "ref-fleet",
@@ -5661,22 +5756,6 @@
         "ref-optional-reviewers",
         "ref-outbound-templates",
         "ref-performance-review",
-        "ref-pr-feedback-sources",
-        "ref-pr-spec",
-        "ref-preflight",
-        "ref-project-conventions",
-        "ref-quality-gate-schema",
-        "ref-refactoring",
-        "ref-reuse-check",
-        "ref-review-dispositions",
-        "ref-reviewer-severity",
-        "ref-reviewer-shared",
-        "ref-root-cause-review",
-        "ref-security-checklist",
-        "ref-task-template",
-        "ref-test-rubric",
-        "ref-ui-interaction-review",
-        "ref-verify-triage",
         "ref-persona-accessibility-reviewer",
         "ref-persona-architecture-reviewer",
         "ref-persona-ci-cd-reviewer",
@@ -5693,7 +5772,33 @@
         "ref-persona-root-cause-reviewer",
         "ref-persona-security-reviewer",
         "ref-persona-tests-reviewer",
-        "ref-persona-web-performance-reviewer"
+        "ref-persona-web-performance-reviewer",
+        "ref-pr-feedback-sources",
+        "ref-pr-spec",
+        "ref-preflight",
+        "ref-project-conventions",
+        "ref-quality-gate-schema",
+        "ref-refactoring",
+        "ref-reuse-check",
+        "ref-review-dispositions",
+        "ref-reviewer-severity",
+        "ref-reviewer-shared",
+        "ref-risk-map",
+        "ref-root-cause-review",
+        "ref-security-checklist",
+        "ref-task-template",
+        "ref-test-rubric",
+        "ref-ui-interaction-review",
+        "ref-verify-triage",
+        "referee-agent",
+        "root-cause-reviewer-agent",
+        "scaffold-fullstack-skill",
+        "security-reviewer-agent",
+        "security-reviewer-deep-agent",
+        "test-author-agent",
+        "tests-reviewer-agent",
+        "verify-skill",
+        "web-performance-reviewer-agent"
       ],
       "consumers": [
         "skill-lint-tests",
@@ -5857,6 +5962,7 @@
         "capability-registry",
         "ref-bdd-scenarios",
         "ref-context-diet",
+        "ref-evidence-portfolio",
         "ref-test-rubric"
       ],
       "consumers": [
@@ -6010,9 +6116,14 @@
       "target_path": "plugins/loops-workflow/scripts/validate-plan.mjs",
       "user_invocable": false,
       "dependencies": [
+        "ref-evidence-portfolio",
         "ref-machine-plan-schema"
       ],
-      "consumers": [],
+      "consumers": [
+        "diff-footprint",
+        "plan-skill",
+        "verify-skill"
+      ],
       "required_checks": {
         "hooks": [],
         "evals": [],
@@ -6036,6 +6147,7 @@
       "dependencies": [
         "agents-constitution",
         "capability-registry",
+        "diff-footprint",
         "ref-acceptance-review",
         "ref-architecture-review",
         "ref-bdd-scenarios",
@@ -6048,6 +6160,7 @@
         "ref-correctness-review",
         "ref-design-patterns",
         "ref-docs-devex-review",
+        "ref-evidence-portfolio",
         "ref-finding-author-decision-rule",
         "ref-finding-validation",
         "ref-interaction-adapter",
@@ -6061,11 +6174,13 @@
         "ref-reuse-check",
         "ref-review-dispositions",
         "ref-reviewer-severity",
+        "ref-risk-map",
         "ref-root-cause-review",
         "ref-security-checklist",
         "ref-test-rubric",
         "ref-ui-interaction-review",
-        "ref-verify-triage"
+        "ref-verify-triage",
+        "validate-plan"
       ],
       "consumers": [
         "skill-lint",

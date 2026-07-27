@@ -922,6 +922,271 @@
         "plugins/loops-workflow/references/shared/runtime/auto-mode.md",
         "plugins/loops-workflow/docs/settings.md"
       ]
+    },
+    {
+      "id": "feature-sdd-spine",
+      "title": "canonical 流程是 Feature-oriented SDD 主幹＋ATDD evidence portfolio＋風險式選擇性 TDD",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "converge-behaviors",
+          "plan-change",
+          "choose-methodology"
+        ],
+        "stages": [
+          "goal",
+          "explore",
+          "plan"
+        ]
+      },
+      "enforcement": "require",
+      "tier": "advisory",
+      "runtime": null,
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": [
+        "每張-issue-收斂成少量-behavior",
+        "方法論鏡片由-risk-map-predicate-觸發"
+      ],
+      "forbids": [
+        "讓需求數量隨句子數線性放大",
+        "predicate-未命中仍建-glossary-或-contract-ceremony",
+        "讓使用者選方法論"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "Feature-oriented SDD 主幹",
+      "tests": [
+        "plugins/loops-workflow/scripts/test-validate-plan.mjs",
+        "plugins/loops-workflow/scripts/test-skill-lint.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/stages/risk-map.md",
+        "plugins/loops-workflow/references/stages/evidence-portfolio.md"
+      ]
+    },
+    {
+      "id": "one-primary-evidence-per-behavior",
+      "title": "每個承諾的行為恰有一份 primary evidence，重複證據要寫得出 distinct_risk",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "plan-evidence",
+          "enter-build"
+        ],
+        "stages": [
+          "plan",
+          "build"
+        ]
+      },
+      "enforcement": "require",
+      "tier": "workflow-invariant",
+      "runtime": {
+        "guard": "validate-plan",
+        "protected_actions": [
+          "enter-build"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": true,
+      "requires": [
+        "每個-behavior-恰一份-primary-evidence",
+        "new_test-為真時要有-new_test_reason",
+        "第二層證據要有-distinct_risk",
+        "每個-slice-要有可驗證的-change-budget"
+      ],
+      "forbids": [
+        "沒有-evidence-portfolio-就進-build",
+        "同一行為留兩份未說明的證據",
+        "用-legacy-tasks-形繞過證據規則"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "一個行為一份主證據",
+      "tests": [
+        "plugins/loops-workflow/scripts/test-validate-plan.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/stages/evidence-portfolio.md",
+        "plugins/loops-workflow/references/stages/machine-plan-schema.md"
+      ]
+    },
+    {
+      "id": "risk-triggered-tdd",
+      "title": "TDD 是高風險邏輯的實作手法，由 risk_triggers 觸發、不是所有工作的固定控制面",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "choose-build-path",
+          "author-test"
+        ],
+        "stages": [
+          "build"
+        ]
+      },
+      "enforcement": "require",
+      "tier": "advisory",
+      "runtime": null,
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": [
+        "risk_triggers-命中才走-test-first",
+        "未命中走最低有效證據"
+      ],
+      "forbids": [
+        "所有-slice-一律套完整-TDD",
+        "把-NO_NEW_TEST_REQUIRED-當成失敗回報",
+        "為了有紅燈可跑而硬寫測試"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "風險觸發的選擇性 TDD",
+      "tests": [
+        "plugins/loops-workflow/scripts/test-validate-plan.mjs",
+        "plugins/loops-workflow/scripts/test-skill-usage.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/stages/risk-map.md",
+        "plugins/loops-workflow/references/shared/quality/test-rubric.md"
+      ]
+    },
+    {
+      "id": "risk-selected-reviewers",
+      "title": "verify 固定只派兩軸，其餘依 risk map 觸發；高風險硬閘與缺表退路是不可縮的上界",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "select-review-axes",
+          "dispatch-reviewer"
+        ],
+        "stages": [
+          "verify"
+        ]
+      },
+      "enforcement": "require",
+      "tier": "advisory",
+      "runtime": null,
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": [
+        "固定派-product-contract-與-code-quality",
+        "其餘核心軸依-risk-map-觸發",
+        "高風險硬閘一律滿軸",
+        "沒有-risk-map-退回既有風險梯"
+      ],
+      "forbids": [
+        "一般-code-固定派滿六軸",
+        "碰高風險硬閘仍縮軸",
+        "因為缺-risk-map-而少派"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "風險式選派 reviewer",
+      "tests": [
+        "plugins/loops-workflow/scripts/test-verify-dispatch.mjs",
+        "plugins/loops-workflow/scripts/test-skill-lint.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/stages/risk-map.md",
+        "plugins/loops-workflow/references/stages/verify-triage.md"
+      ]
+    },
+    {
+      "id": "unexplained-footprint-drift",
+      "title": "未說明的 footprint drift 不得收圈；比例本身永遠不當阻擋理由",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "pr-create",
+          "pr-ready"
+        ],
+        "stages": [
+          "verify",
+          "iterate"
+        ]
+      },
+      "enforcement": "require",
+      "tier": "workflow-invariant",
+      "runtime": {
+        "guard": "pr-gate",
+        "protected_actions": [
+          "pr-create",
+          "pr-ready"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": [
+        "footprint-對帳結果寫成機械-marker",
+        "超出-budget-要補可稽核理由",
+        "改動檔要屬於核准的-slice"
+      ],
+      "forbids": [
+        "以固定測試對功能比例阻擋",
+        "範圍外施工直接收圈",
+        "新測試沒有理由就進-PR"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "未說明的 footprint drift",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-pr-gate.mjs",
+        "plugins/loops-workflow/scripts/test-diff-footprint.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/stages/evidence-portfolio.md",
+        "plugins/loops-workflow/references/shared/runtime/journaling.md"
+      ]
     }
   ]
 }

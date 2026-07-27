@@ -8,15 +8,17 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 ## Overview
 
-`plan` 在動任何 code 之前，把設計決策**拍板留痕**，並把工作拆成「每一個都能獨立 verify」的任務。產出 `stages/02-plan.md` —— 一份施工圖：決策紀錄 + 機制圖 + 任務清單（每任務帶驗證指令）。
+`plan` 在動任何 code 之前，把設計決策**拍板留痕**，把工作拆成「每一個都能獨立 verify」的 **vertical behavior slice**，並為每個 `behavior_id` **指定一份主證據**。產出 `stages/02-plan.md` —— 一份施工圖：決策紀錄 + 機制圖 + slice 清單（每個帶驗證指令與 change budget）+ **evidence portfolio**。
 
 > `stages/02-plan.md` 文件本體的**完整 §0–§9 施工圖骨架**（系統全貌 + **檔案落點與職責表** + 機制圖 + 名詞說明 + 決策含**具名 OSS 背書** + 三角驗證附錄 + 成果展示）見 `references/stages/design-plan-schema.md` —— 下面 Process 各步驟的產出即歸位到該骨架（決策留痕→§6、機制圖→§2、品質維度→§4）。
 
-做法：先把設計決策留痕、為每個關鍵機制畫圖、對新套件做選型評估，再把工作拆成每個都能獨立 verify 的任務。
+做法：先把設計決策留痕、為每個關鍵機制畫圖、對新套件做選型評估，再把工作拆成每個都能獨立 verify 的 slice，並指定每個行為要拿什麼證明。
+
+> **這一階段是實作與驗收成本的閘門**：evidence portfolio 決定「哪些行為要新增測試、哪些沿用既有證據」，change budget 決定「這次改動該多大」。兩者都在 code 之前定案，之後由 `validate-plan.mjs` 與 footprint 對帳機械核。
 
 ## When to Use
 
-**Use when**：explore 已選定方法、要把它變成 task-by-task 的施工計畫；或需求清楚、直接要拆可驗證任務。
+**Use when**：explore 已選定方法、要把它變成 slice-by-slice 的施工計畫；或需求清楚、直接要拆可驗證 slice。
 
 **NOT for**：
 - 方法還沒定 —— 回 explore。
@@ -36,9 +38,16 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 對每個關鍵機制，寫「一段白話 + 兩張 mermaid」：一張**運作流程圖**（資料 / 控制怎麼跑）、一張**注入 / 接線圖**（誰被注入到誰、怎麼接線）（只有文字敘述不算數）。寫進 `stages/02-plan.md`，**而且第 6 步拍板 gate 一定要把這些圖直接渲染給使用者看** —— 圖是給使用者審「怎麼跑 + 怎麼接線」用的，不能只躺在 `stages/02-plan.md`、也不能只塞進精煉版 alignment comment。
 
-### 3.5 契約規格（跨介面才寫）
+### 3.5 契約規格（`external_or_cross_module_contract=true` 才寫）
 
-feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用介面** → 在 `stages/02-plan.md` 拉一段**契約規格**（依 `references/shared/quality/contract-spec.md`）：API request / response / 錯誤形狀、資料 schema + 約束 + migration 可逆性、事件 payload + 保證，以及**每條契約對到哪一層測試**（對齊 `references/shared/quality/test-rubric.md`）。契約是 **build 的輸入、verify 的驗收基準**。純內部重構（不動對外形狀）免寫。
+**由 explore 的 risk map predicate 決定，不憑感覺加**（判準正本見 `references/stages/risk-map.md`）：`external_or_cross_module_contract=true` → 在 `stages/02-plan.md` 拉一段**契約規格**（依 `references/shared/quality/contract-spec.md`）：API request / response / 錯誤形狀、資料 schema + 約束 + migration 可逆性、事件 payload + 保證。契約是 **build 的輸入、verify 的驗收基準**。
+
+- **契約的證據是「最小 contract test」**：對外形狀一條、錯誤形狀一條，**不逐分支鋪**；它就是該 behavior 的一份 evidence（或第二層證據，要填 `distinct_risk`）。
+- **predicate 未命中就不寫這一段**，也不因此新建 port / adapter（純內部重構、不動對外形狀者屬此類）。
+
+### 3.6 領域建模（`domain_complexity=true` 才做）
+
+同樣由 risk map predicate 決定：`domain_complexity=true` → 才寫 ubiquitous language glossary、invariant 清單與 aggregate 邊界（依 `references/shared/quality/clean-architecture.md`）。**未命中就不建 glossary / aggregate / bounded context 圖** —— 多數落在既有領域內的功能改動不需要這一層。
 
 ### 4. 品質維度過一遍
 
@@ -46,24 +55,38 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 - **設計品質六維度**（簡潔 / 可維護 / 可靠 / 可擴展 / 安全 / 高併發高流量效能）+ **clean architecture 結構標準**（依賴向內 / 分層邊界 / port + 注入 / 落點對齊，見 `references/shared/quality/clean-architecture.md`）：in-scope 實作不以 MVP 設計，對可預見的規模退化預先用對的演算法**與結構**。
 - **設計模式對症選型**（見 `references/shared/quality/design-patterns.md`）：設計某機制時，若問題本來就是某模式的經典形狀（多變體 / 可替換演算法 / 解耦通知…）就用對的模式 —— **對症才用、不為套而套**（YAGNI）。
 - **重用檢查**（判準見 `references/shared/quality/reuse-check.md`）：拆任務前先確認沒有重複造輪子（含跨入口 / 跨 session 的隱蔽重複；稍異 ≠ 另造，優先參數化既有方法）。
-- **設計品質審查（plan 前先 verify —— 一律必派，對齊 verify 的「寫 code 前縮小版」）**：**每一次 plan 都必派 read-only agent 審 `stages/02-plan.md` —— 不看風險高低、沒有 trivial 免派例外**（硬規矩，不准「這題很簡單 / 一目了然」就跳過；跳過設計審查、憑未查證的假設就拍板，正是過去反覆出包的根因）。審查對設計做「六維度 + 落點對齊（對照實檔 file:line）+ 契約」，出「方向可行 / 要修 / 資訊不足」判定 —— 把方向 / 落點錯擋在 code 之前，別等 build 完才在 verify 發現方向就錯。**風險顯著時（新基建 / 新架構接縫（新服務·port·跨層機制）/ 跨切面影響 / 動到資料模型或對外契約 / 方向沒把握）額外拉高審查強度**（更徹底 / 換更強的 model·effort），但**低風險也照樣要派、不得省**。
-  - **判定「要修」→ 必修項折回 `stages/02-plan.md`，折回後一律再審一輪才可進 gate**（逐條核對、非盲收，附 file:line 證據）。
-  - **折回後一律再審一輪 —— 像 build 的 verify 一樣「修完再 verify」，不准自我認證後直接進 gate**：審出「要修」→ 折回 → **再派一輪複審**確認修對了、且折回沒引入新問題 / 殘留矛盾。**不因「純機械折回（改個值 / 補一句 / 改文案）」就跳過複審**——改個值也可能改錯、或連帶漏改別處，由**獨立複審**把關、不自己說了算。複審用 **fresh context**（避免原 reviewer 為自己前一輪背書）、聚焦「必修項是否正確折回 + 有無新問題」，不必重審全案；小型 / 純文檔折回可用較輕的 reviewer，但**那一輪確認不得省**。
-  - **圈數上限＝3（比照 build 後的 verify / iterate 閉環）**：「審→修→再審」每循環一次算一圈；每圈都要再審，直到某圈**乾淨無必修**才進 gate。到第 3 圈仍出必修且仍動核心設計 = 收斂有問題 → **停下 escalate 給使用者**（別無限複審）。plan-verify 與 build-verify 抓的東西不同（前者審設計文件的方向 / 落點 / 契約，後者審 code 的實作 bug），但**閉環紀律相同**：都是修完要再 verify。**圈數語意兩邊不同、別互推**：plan 這裡是**硬上限**（到頂即 escalate，設計還沒定案、繼續複審的邊際效益低）；`iterate` 的回環圈數是**軟上限**（到頂只觸發回報，**未修的 P0 不得因圈數收圈**，見 `iterate` §5）。
+- **設計品質審查（plan 前先 verify）—— 一律必派，但強度依風險分級**：**每一次 plan 都必派 read-only agent 審 `stages/02-plan.md`**（跳過設計審查、憑未查證的假設就拍板，正是過去反覆出包的根因；**必派這件事沒有例外**）。審查對設計做「六維度 + 落點對齊（對照實檔 file:line）+ 契約」，出「方向可行 / 要修 / 資訊不足」判定 —— 把方向 / 落點錯擋在 code 之前，別等 build 完才在 verify 發現方向就錯。
+  - **強度依 risk map 分級（改的是「多深、審幾輪」，不是「派不派」）**：
+    - **高風險**（任一 behavior `risk=high`、或 `domain_complexity` / `external_or_cross_module_contract` 命中、或新基建 / 新架構接縫 / 跨切面影響 / 動到資料模型）→ **更徹底的審查（更強的 model·effort）＋ 折回後一律再審一輪**，循環到某圈乾淨無必修才進 gate，**圈數硬上限 3**、到頂不收斂 escalate。
+    - **一般 / 低風險**（無 high behavior、兩個 predicate 皆未命中）→ **一輪審查**即可；判「要修」→ 折回後**由主線逐條核對必修項是否落實**（附 file:line）即可進 gate，**不強制再派一輪複審**。但只要折回**動到方向、落點或契約**（不只是措辭 / 數值），就升級成高風險路徑再審一輪。
+  - **判定「要修」→ 必修項一律折回 `stages/02-plan.md`**（逐條核對、非盲收，附 file:line 證據）。
+  - 高風險路徑的複審用 **fresh context**（避免原 reviewer 為自己前一輪背書）、聚焦「必修項是否正確折回 + 有無新問題」，不必重審全案。**圈數語意**：plan 這裡是**硬上限**（到頂即 escalate，設計還沒定案、繼續複審的邊際效益低）；`iterate` 的回環圈數是**軟上限**（到頂只觸發回報，**未修的 P0 不得因圈數收圈**，見 `iterate` §5）。
 
-### 5. 拆成可驗證任務
+### 5. 拆成 vertical behavior slice ＋ 指定 evidence portfolio
 
-每個任務用模板（見 `references/stages/task-template.md`）：**Description / Acceptance / Verification（具體指令）/ Dependencies / Files / Scope**。其中 **Verification 欄必須是能實際跑的指令**（不是「測一下」）。
+**施工單位是 vertical behavior slice，不是 task**：一個 slice 交付 ≥1 個 `behavior_id` 的**端到端可跑**改動（做完系統還是 runnable），帶自己的檔案清單與 change budget。欄位與「該再拆」訊號見 `references/stages/task-template.md`。
 
-「**該再拆**」四訊號 —— 命中任一就再切小：
-- 預估 > 2 小時
-- Acceptance 條件 > 3 條
-- 跨 2+ 子系統
-- 標題裡有 "and"
+**同時為每個 behavior 指定一份主證據 —— 這是本階段最重要的產出**（規則正本見 `references/stages/evidence-portfolio.md`，此處不重抄）：
 
-畫依賴圖；每 2–3 個任務插一個 checkpoint。
+| 要決定的事 | 怎麼決定 |
+|---|---|
+| 這個 behavior 已經有東西守著嗎？ | 先找 `existing_guard`（指名 `檔案:案例`）。**有就 `new_test=false`，不新增。** |
+| 沒有的話，最低有效證據是哪一階？ | 依證據階梯挑：`existing-test` → `static` → `smoke` → `unit-test` → `contract-test` → `integration-test` → `acceptance-test` → `manual-evidence`。**能用上面那階就別用下面的。** |
+| 要走 test-first 嗎？ | 看 risk map：該 behavior 的 `risk_triggers` 非空（bug / core-invariant / algorithm / security / concurrency / data-consistency）→ **是**；全未命中 → 否。 |
+| 要不要第二層證據？ | 只有寫得出 `distinct_risk`（第二份守的是第一份守不到的**哪個**風險）才加。寫不出＝重複證據，不加。 |
+| 這個 slice 要多大？ | 抓 `production_change_budget` 與 `test_change_budget`（各 `files` / `lines`）。**這是可稽核的預估，不是禁止超出**——超了在 living plan 補 `budget_overrun_reason` 即可。 |
 
-**機器可驗證計畫塊（machine-plan）**：**有跨介面 contract-spec 時預設開**（task 有可執行 verification、acceptance ≤3、deps 無環，進 build 前 `validate-plan.mjs` 驗）；純內部 / 無對外契約的改動維持選用。作法：在 `stages/02-plan.md` 內嵌一塊 `loops-plan` JSON（見 `references/stages/machine-plan-schema.md`），跑 `node scripts/validate-plan.mjs <stages/02-plan.md>` 檢查。
+**低風險類別預設不新增測試**：wiring、config、metadata、docs、低風險 refactor → `existing-test` / `static` / `smoke` / 可重跑的 `manual-evidence`。
+
+畫依賴圖；每 2–3 個 slice 插一個 checkpoint。
+
+**機器可驗證計畫塊（machine-plan）—— 有 behavior 的功能工作一律開**（不再只在有跨介面契約時才開）：在 `stages/02-plan.md` 內嵌一塊 `loops-plan` JSON（欄位正本見 `references/stages/machine-plan-schema.md`），跑
+
+```bash
+node {loops-workflow-plugin-root}/scripts/validate-plan.mjs <stages/02-plan.md>
+```
+
+**通過才進 build**。它機械擋下：behavior 沒有 primary evidence / 有兩份 primary 卻沒填 `distinct_risk` / `new_test=true` 沒寫 `new_test_reason` / slice 缺 change budget / 同一檔跨兩個 slice / deps 成環 / verification 不可執行。純內部、無 behavior 的瑣碎改動可用 legacy `tasks` 形（免 behaviors 與 budget）。
 
 ### 5.5 （可選）Fleet 方案發想
 
@@ -71,7 +94,7 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 
 ### 5.9 Unknowns gate（拍板前）
 
-拍板前確認**四象限 Unknowns Register 沒有未解決的 blocking 項**（影響 scope／UX／data／security／architecture／acceptance 任一面向者為 blocking）。還有就回去解——必要時走 `skills/decision-interview` 補訪談或做 blind-spot pass；**帶著未解決的 blocking unknown 進 build 是違規**（`AGENTS.md` 規則 17，policy `unknowns-before-build` 為 tier-2 機械閘）。
+拍板前確認**四象限 Unknowns Register 沒有未解決的 blocking 項**（影響 scope／UX／data／security／architecture／acceptance 任一面向者為 blocking）。還有就回去解——必要時走 `skills/decision-interview` 補訪談或做 blind-spot pass；**帶著未解決的 blocking unknown 進 build 是違規**（`AGENTS.md` 規則 18，policy `unknowns-before-build` 為 tier-2 機械閘）。
 
 ### 6. 送出計畫 + 拍板 gate
 
@@ -94,15 +117,24 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 | 「決策理由我記得，不用寫」 | 不留痕，build / verify / 之後的你都得重新推一遍，還可能推出不同結論。 |
 | 「直接用最多人用的套件就好」 | 沒評估就引入，等於把選型風險留給未來。≥3 候選比較是硬規矩。 |
 | 「Verification 欄寫『跑測試』就好」 | 「跑測試」不可執行。要寫到能複製貼上去跑的指令，否則 build 沒法自證。 |
-| 「任務有點大但還好」 | 命中四訊號就是該拆。大任務沒法獨立 verify，reviewer 也沒法乾淨地接受或退回。 |
+| 「任務有點大但還好」 | 命中訊號就是該拆。大 slice 沒法獨立 verify，reviewer 也沒法乾淨地接受或退回。 |
+| 「每個 slice 都補一條新測試比較安全」 | 安全的是**守到不同風險**，不是多一份。既有證據夠就 `new_test=false`；要新增就寫得出「既有證據缺哪個觀察點」。寫不出＝這條測試不守任何新東西。 |
+| 「多一層測試（unit + integration + e2e）比較保險」 | 同一件事守三次不會更安全，只會讓維護面、跑套時間、審查負擔一起漲。第二層以上要填 `distinct_risk`，寫不出就刪。 |
+| 「budget 抓不準，先空著」 | 空著就沒有 drift 可判，footprint 閘等於關閉、validate-plan 也會擋。抓一個**可稽核的預估**即可，超了補理由，不是禁止超。 |
+| 「這題不複雜，risk map 我心裡有數」 | DDD / Contract-First / test-first 由 predicate 觸發，不由感覺觸發。沒有 risk map 就回 explore 補，不要在 plan 憑印象決定要不要加那幾層。 |
 | 「審查抓到的問題完整處理太貴，推薦只修最糟的那半」 | 「只修一半、剩下的接受」會讓某個原本正常的行為壞著出廠＝行為債（AGENTS 規則 10 客觀判準）。推薦以根本解決為先；治標選項把回歸明標在代價面、不得預設標推薦，讓使用者知情拍板。 |
 
 ## Red Flags
 
 - 有設計決策沒記 decision record。
 - 引入新套件沒有 ≥3 候選比較表。
-- 任務的 Verification 欄不是可執行指令。
-- 任務命中「該再拆」訊號卻沒拆。
+- slice 的 Verification 欄不是可執行指令。
+- slice 命中「該再拆」訊號卻沒拆。
+- **有 behavior 卻沒有 evidence portfolio**，或某個 behavior 沒有主證據 / 有兩份主證據（`validate-plan.mjs` 會擋）。
+- **`new_test=true` 卻寫不出 `new_test_reason`**（既有證據缺哪個觀察點）；或第二層證據寫不出 `distinct_risk` 還留著。
+- **slice 沒抓 change budget** 就進 build（缺少可驗證的 budget＝footprint 閘無從判定）。
+- **predicate 未命中卻照樣寫契約規格 / 建 glossary / aggregate**（那兩段由 risk map 觸發，見 §3.5／§3.6）。
+- 一般 / 低風險的 plan **硬跑三輪設計複審**（強度依風險分級；必派沒有例外，但輪數不是）。
 - 對齊 comment **沒用完整版樣板**（缺套件清單 / ADR / 機制圖 / 施工圖）、或機制圖沒放進 comment —— 等於要使用者盲拍設計。
 - **沒在 `plan → build` gate 問使用者就自行跨入 build**（即使 routine 轉場也要在此停下問）。
 - **新增套件沒逐一列出（名稱+版本+用途）+ 標推薦 + 等使用者核可就先裝**；或 build 中途冒出計畫外套件/決策卻沒停下回 gate 問。
@@ -114,9 +146,13 @@ feature 一旦動到 **API / 資料模型 / 事件 / 跨模組或前後端共用
 - [ ] `stages/02-plan.md` 有 decision record（§6 欄位集：選擇 / 為什麼 / 背書 / 未採用 / 拍板人，背書不可空）+ 機制圖（白話 + 兩圖）。
 - [ ] 拍板 gate 已把每機制的**運作流程圖 + 注入 / 接線圖渲染在 chat 給使用者看**（不只躺在 `stages/02-plan.md` / 不只給精煉 comment）。
 - [ ] 新套件（若有）附 ≥3 候選比較 + 拍板結論。
-- [ ] 每個任務有可執行的 Verification 指令。
-- [ ] 沒有任務命中「該再拆」四訊號還未拆。
-- [ ] **設計審查已派**（plan 前先 verify —— 一律必派、不論風險高低，無 trivial 免派例外），判定『要修』的**必修項已折回 `stages/02-plan.md`**；**折回後已再審一輪**（fresh context，不論折回多機械），循環到某圈乾淨無必修才進 gate，**圈數上限 3**、到頂不收斂則 escalate（比照 build verify）。
+- [ ] 每個 slice 有可執行的 Verification 指令、明確 `files`，且**同一檔不跨兩個 slice**。
+- [ ] 沒有 slice 命中「該再拆」訊號還未拆。
+- [ ] **每個 `behavior_id` 恰有一份 primary evidence**；`new_test=true` 都寫得出 `new_test_reason`；第二層證據都寫得出 `distinct_risk`（規則見 `references/stages/evidence-portfolio.md`）。
+- [ ] **每個 slice 有 production 與 test 兩份 change budget**。
+- [ ] 有 behavior 的計畫已內嵌 `loops-plan` 區塊，且 `node {loops-workflow-plugin-root}/scripts/validate-plan.mjs <stages/02-plan.md>` **通過**才進 build。
+- [ ] 契約規格 / 領域建模這兩段**只在對應 predicate 命中時**才寫（`external_or_cross_module_contract` / `domain_complexity`，見 `references/stages/risk-map.md`）。
+- [ ] **設計審查已派**（plan 前先 verify —— 必派沒有例外），判定『要修』的**必修項已折回 `stages/02-plan.md`**；**高風險路徑**（有 `risk=high` behavior／predicate 命中／新架構接縫／折回動到方向·落點·契約）已再審一輪（fresh context），循環到某圈乾淨無必修才進 gate、圈數上限 3、到頂不收斂則 escalate；一般 / 低風險一輪審查 + 主線逐條核對必修項即可。
 - [ ] 計畫草稿已在 **plan 階段送出**（issue→post 對齊 comment / 否則呈現），不是留到 loop 結束。
 - [ ] 對齊 comment 是**無條件先 post**（issue→post／非 issue→呈現；送出前仍走 `references/shared/delivery/comment-policy.md` §5 tmp 草稿校稿）、**沒有**被當成 `plan → build` gate 的條件選項；gate 只問方案／任務／新套件／新決策。
 - [ ] 對齊 comment 用**完整版樣板**（`skills/plan/references/plan-comment-template.md`：系統全貌+套件清單+ADR+機制圖+施工圖+契約+out-of-scope），機制圖直接放進 comment。

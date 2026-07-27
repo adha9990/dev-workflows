@@ -199,8 +199,9 @@ console.log('\n[B] AGENTS.md 的每一條 Operating Rule 都有非空的 policy 
 const rules = readOperatingRules();
 // 16 條：#173 把三條原本只寫在 flag 表裡的擋人規則（合併回主幹要人按／draft→ready 是 owner 動作／
 // 不得放寬 linter 設定）補進 §2 —— 它們本來就有 hook 在擋，卻沒有 canonical 正文，正是「多份文件
-// 各寫一份、互相漂移」要治的形狀。改這個數字是刻意的一次提交，不是意外漂移。
-assert(rules.length === 17, `AGENTS.md §2 解析出 ${rules.length} 條 Operating Rule（預期 17 條）`);
+// 各寫一份、互相漂移」要治的形狀。#215 再補一條「一個行為一份主證據」（evidence portfolio 主幹，
+// 一條規則承載五個 policy marker）。改這個數字是刻意的一次提交，不是意外漂移。
+assert(rules.length === 18, `AGENTS.md §2 解析出 ${rules.length} 條 Operating Rule（預期 18 條）`);
 assert(
   rules.every((rule, index) => rule.number === index + 1),
   '規則編號連續、無跳號（解析沒漏塊）',

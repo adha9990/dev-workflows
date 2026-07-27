@@ -24,9 +24,17 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 
 ## Process
 
-### 1. 逐句掃 issue，抽出每個 requirement
+### 1. 逐句掃 issue，抽出每個 requirement → **收斂成少量 behavior**
 
-先讀 dispatch 建的 `loop.md` 與 issue / 描述。**逐句掃過整張 issue** —— 描述、背景、舉例、邊界說明、留言、甚至順帶一句的補充 —— **把每個 requirement-bearing 句子抽成一條清單**，**不是只看「驗收標準 / Acceptance Criteria」那一段**：需求常散在 prose、舉例、非目標裡（例：一句「排序要 score ASC」藏在敘述中段，不在任何 AC 清單）。抽出的每一條後面都要落到第 3 步六欄某處。
+先讀 dispatch 建的 `loop.md` 與 issue / 描述。**逐句掃過整張 issue** —— 描述、背景、舉例、邊界說明、留言、甚至順帶一句的補充 —— **把每個 requirement-bearing 句子抽成一條清單**，**不是只看「驗收標準 / Acceptance Criteria」那一段**：需求常散在 prose、舉例、非目標裡（例：一句「排序要 score ASC」藏在敘述中段，不在任何 AC 清單）。
+
+**抽完立刻收斂（這一步是成本控制的源頭）**：把講**同一件可觀察行為**的多條 requirement 合併成一個 `behavior_id`（`B1`、`B2`…，見 `references/stages/evidence-portfolio.md`）。一張 issue 通常收斂到 **1–5 個 behavior**。
+
+- **behavior ＝ 使用者眼中不同的一件事**，不是一個句子、不是一個欄位、不是一個函式。「顯示數量」與「數量會即時更新」是兩個 behavior；「顯示數量」與「數量要對齊右側」是同一個。
+- **逐句抽出的每條 requirement 都要歸進某個 behavior**（或明確落到 Constraint / Out of scope）—— 沒歸屬的，不是漏抽就是該回去問。收斂是**合併**，不是丟掉。
+- 這串 `behavior_id` 之後一路被沿用：`explore` 給它們評風險、`plan` 給每個一份主證據、`verify` 逐個回核。**編號從此不重編。**
+
+> **為什麼要收斂**：不收斂的話，需求數量會被 GWT → task → 測試層 → finding → 回歸測試連續放大，實作與驗收成本失控。收斂在這裡做最便宜。
 
 > **補寫 `operation`（讀到無欄就補、不綁成因）**：goal step 1 讀 `loop.md` 時，**若無 `operation` 欄**——任何成因（goal 被單獨呼叫、未經 dispatch、經 `define` 建 loop.md 時未寫、升級前的舊 loop）——就順手依 issue 性質判定補寫（`new-feature` / `change-behavior` / `bug-fix` / `refactor`，見 `references/stages/operation-first-move.md`；拿不準向嚴 `new-feature` 並在 Journal 註明）。這是**兜底**：確保走到 build 前 operation 一定有著落（這欄決定 build 紅燈第一步；萬一仍缺，build 會 fail-safe 退到 `new-feature`）。
 
@@ -45,7 +53,7 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 
 ### 3. Restate 六欄（完工定義）
 
-訪談到信心足夠，把理解寫成 `stages/00-goal.md`，固定六欄（schema 見 `references/stages/goal-restate-schema.md`）。**第 1 步逐句抽出的每條 requirement 都要在六欄裡有著落**（沒著落的，不是漏抽就是該回去問）：
+訪談到信心足夠，把理解寫成 `stages/00-goal.md`，固定六欄（schema 見 `references/stages/goal-restate-schema.md`）+ 一張 **behavior 清單**。**第 1 步逐句抽出的每條 requirement 都要在六欄或某個 behavior 裡有著落**（沒著落的，不是漏抽就是該回去問）：
 
 | 欄 | 內容 |
 |------|------|
@@ -56,7 +64,11 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 | Constraint | 邊界 / 不可違反的限制 |
 | Out of scope | 明確不做什麼（防範圍蔓延） |
 
-DoD 的「Success / 停止條件」用 **GWT 場景（帶 ID `S1…`，見 `references/stages/bdd-scenarios.md`）** 表達，讓完工定義可被 verify 逐條回核；沿用 issue 既有場景 ID、不重新編號。右尺寸同 `bdd-scenarios.md`（小任務不堆場景）。
+六欄之後另附一張 **behavior 清單**（`B1 | 一句可觀察的行為 | 對到哪幾條 requirement`）—— 它是 `Success` 欄的骨幹，也是後面每一階段的核對單位。
+
+**GWT 場景是選用的加強說明，不是每個 behavior 的義務**：只有**重要、非直觀、跨角色、或有重要例外**的 behavior 才寫 Given-When-Then（帶 ID `S1…`，見 `references/stages/bdd-scenarios.md`）；一般直觀行為寫一句 behavior 敘述就夠。沿用 issue 既有場景 ID、不重新編號。
+
+> **一條 GWT ≠ 一條新測試**。場景是把行為講清楚，它對到的是**該 behavior 的一份主證據**（可能是既有測試），由 `plan` 的 evidence portfolio 指定。別在這裡預先承諾要寫幾條測試。
 
 ### 4. 停止條件 + 直接進 explore（不問 DoD 確認）
 
@@ -74,13 +86,17 @@ DoD 的「Success / 停止條件」用 **GWT 場景（帶 ID `S1…`，見 `refe
 | 「一次把問題全部問完比較有效率」 | 一次多問會讓使用者跳著答、漏答；一次一問才能用前一答收斂後一問。 |
 | 「使用者說『你決定』，那就當 yes」 | 「你決定」是把判斷丟回給你，不是確認。重大且沒推薦的選項，要主動給意見再確認。 |
 | 「Out of scope 先空著」 | 不寫不做什麼，範圍就會在 build 階段悄悄膨脹。 |
+| 「issue 有 12 條需求，就開 12 個 behavior」 | behavior 是**使用者眼中不同的一件事**，不是句子數。逐句抽是為了不漏，收斂才是目的——不收斂，後面每一層都會照著句子數放大。 |
+| 「每個 behavior 都補一條 GWT 比較完整」 | 直觀行為寫 GWT 只是把同一句話換個排版。場景留給重要、非直觀、跨角色或有重要例外的行為。 |
 | 「closed 模式要先讓使用者鎖定 DoD 才能進 explore」 | 鎖定 DoD + 進 explore 是 routine 轉場，不是決策點。restate 給使用者看就往下、有錯他會插話；只有「具體 scope 取捨 / 內容型交付的載體 / 需求講不清」才停下問。 |
 
 ## Red Flags
 
 - 一則訊息塞了好幾個問題。
 - **只讀「驗收標準」段就定完工定義**，沒逐句掃完整 issue（漏掉散在描述 / 舉例 / 非目標裡的隱含需求）。
-- 第 1 步抽的 requirement 有條沒落到六欄、就直接往下。
+- 第 1 步抽的 requirement 有條沒落到六欄或某個 behavior、就直接往下。
+- **behavior 清單照著 issue 的句子數線性長出來**（12 條需求 → 12 個 behavior）—— 那是沒收斂，成本會一路放大到 plan / build / verify。
+- 為每個 behavior 都硬寫一條 GWT（直觀行為不需要）；或在 goal 就先承諾「這條要寫幾個測試」（那是 plan 的 evidence portfolio 決定的）。
 - 六欄有欄位空著就產 `stages/00-goal.md`。
 - 有真正的 scope 取捨**或內容型交付的載體選擇**卻沒開決策點問就逕自決定。
 - **把「DoD 正確嗎 / 可以鎖定進 explore 嗎」當 gate 停下問** —— 那是 routine 轉場，restate 給使用者看就直接進 explore（只有具體 scope 取捨 / 內容型交付的載體 / 需求講不清才問）。
@@ -88,7 +104,9 @@ DoD 的「Success / 停止條件」用 **GWT 場景（帶 ID `S1…`，見 `refe
 
 ## Verification
 
-- [ ] 已**逐句掃過整張 issue**抽 requirement（不只 AC 段），每條都落到六欄某處。
+- [ ] 已**逐句掃過整張 issue**抽 requirement（不只 AC 段），每條都落到六欄或某個 behavior。
+- [ ] requirement 已**收斂成少量 `behavior_id`**（一般 1–5 個，非逐句一條），清單寫進 `stages/00-goal.md`，編號之後不重編。
+- [ ] GWT 場景只寫給**重要 / 非直觀 / 跨角色 / 有重要例外**的 behavior，沒有為每個 behavior 硬湊場景，也沒有在此承諾測試數量。
 - [ ] 已讀**專案 root + 就近 `CLAUDE.md`/`AGENTS.md`**，把這次改動觸及的**跨切面約定**（i18n / logging / a11y…）折進 Constraint 欄（見 `references/shared/docs/project-conventions.md`）。
 - [ ] `stages/00-goal.md` 六欄齊全，每欄有實質內容。
 - [ ] Success 欄 = 可驗證的停止條件（不是「做得好」這種無法驗的話）。
