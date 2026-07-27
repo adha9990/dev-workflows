@@ -347,6 +347,11 @@ export function hasBlockingFindings(parsed) {
   if (!parsed) return false;
   // `>= 0` 而非只判 `typeof`：負數（與 NaN）是**壞資料、不是「零條」**，當成合法計數會靜默放行，
   // 而且連下面那條 verdict fail-safe 都問不到——舊實作正是靠 verdict 擋住這格的。
+  //
+  // ⚠️ **刻意不用 `Number.isInteger` / `Number.isSafeInteger` 收得更緊**（已評估、別「順手」改）：
+  // 極大的 `p0`（例如 400 位數字）`parseInt` 會回 `Infinity`——`>= 0` 成立 ⇒ `Infinity > 0` ⇒ **擋**，
+  // 方向是安全的；換成 `isInteger` 會讓 `Infinity` 落到下面的 verdict 兜底，於是
+  // `verdict=ready p0=<400 位數>` 變成**放行**，比現在更糟。`>= 0` 是刻意讓 Infinity 留在擋的那側。
   if (typeof parsed.p0 === 'number' && parsed.p0 >= 0) return parsed.p0 > 0;
   return parsed.verdict === 'not-ready';
 }
@@ -457,6 +462,16 @@ function buildConflictDenyReason(slug, info) {
 
 function buildBlockingDenyReason(slug, parsed, auto) {
   const counts = `p0=${parsed?.p0 ?? '?'} p1=${parsed?.p1 ?? '?'}` + (parsed?.verdict ? ` verdict=${parsed.verdict}` : '');
+  // 這次擋下來，是「p0 真的 >0」還是「p0 讀不出來 / 是壞資料，退回看 verdict」？兩種要講不同的話：
+  // 對 `p0=-1` 這種輸入印「這道閘只看 p0，p0=0 就不擋」，跟並排顯示的 `p0=-1` 讀起來會自相矛盾。
+  const byCount = typeof parsed?.p0 === 'number' && parsed.p0 >= 0;
+  const whyBlocked = byCount
+    ? `P0 不再和 P1 混算：這道閘只看 p0，p0=0 就不擋，即使 verdict 仍寫 \`not-ready\` 或 p1 還有殘留也一樣` +
+      `——但這只是收圈的**下界**、不代表 P1 可以不修，仍請比照 P0 一併處理。` +
+      `請先把未修的 P0 修完、再跑一輪 verify 到 Ready 再重試。`
+    : `**這次不是因為 p0 的數字擋的**：marker 的 \`p0\` 讀不出合法的條數（欄位缺、不是數字、或寫成負數這種壞資料），` +
+      `本閘於是退回看 \`verdict\`，而它寫的是 \`not-ready\` ⇒ 保守擋下。修法是**把 marker 的 \`p0\` 寫成正確的非負條數**` +
+      `（真的清零就寫 \`p0=0\`），不是改 verdict。`;
   const exemptionLine = auto
     ? `auto 模式**不得**帶著未修的 P0 收圈（auto 硬煞車 #4）——請停下讓使用者接手（attended）決定；` +
       `此時 waiver 不被認可（防 auto 用豁免繞過）。`
@@ -464,9 +479,8 @@ function buildBlockingDenyReason(slug, parsed, auto) {
       `＋理由（非空檔）並同步 issue / PR 留痕，再重試（此知情豁免僅 attended 生效、auto 不認）。`;
   return (
     `這是 loop \`${slug}\` 的分支，最近一輪 verify 仍有未修的 P0（${counts}）——收圈（開 / 轉正 PR）的` +
-    `硬條件是 P0 清零（見 iterate §5）。P0 不再和 P1 混算：這道閘只看 p0，p0=0 就不擋，即使 verdict 仍寫` +
-    `\`not-ready\` 或 p1 還有殘留也一樣——但這只是收圈的**下界**、不代表 P1 可以不修，仍請比照 P0 一併處理。` +
-    `請先把未修的 P0 修完、再跑一輪 verify 到 Ready 再重試。` +
+    `硬條件是 P0 清零（見 iterate §5）。` +
+    whyBlocked +
     exemptionLine +
     `確需繞過本閘：設 LOOPS_PR_BLOCKING_GATE=0。`
   );

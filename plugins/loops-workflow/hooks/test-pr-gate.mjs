@@ -954,6 +954,15 @@ try {
   const MK_READY_BUT_P0 = '# verify\n判定：Ready\n<!-- loops-verify verdict=ready p0=2 p1=0 round=3 -->\n';
   assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g6-readyp0', 'block-readyp0', MK_READY_BUT_P0) })),
     '[B28] create：verdict=ready 但 p0=2（自相矛盾）→ deny（端到端：p0 是權威欄位、贏過 verdict；對照 B3 的 p0=0 p1=1 放行）');
+  // #211 verify 第 2 輪：負數 p0 的守衛原本只有純函式層（BN34/BN34c）測到，沒有真的啟動 hook 的
+  // 端到端案例——補一條，證明「壞資料退回 verdict 兜底」在真 spawn 路徑上也成立。
+  const MK_NEG_P0 = '# verify\n判定：Not ready\n<!-- loops-verify verdict=not-ready p0=-1 p1=0 round=1 -->\n';
+  {
+    const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g6-negp0', 'block-negp0', MK_NEG_P0) });
+    assert(isDeny(res), '[B29] create：p0=-1（壞資料）+ verdict=not-ready → deny（端到端：負數不算計數、退回 verdict 兜底，不靜默放行）');
+    assert(reasonOf(res).includes('讀不出合法的條數'),
+      '[B29-2] reason 說明「這次不是因為 p0 的數字擋的」——並排印出 p0=-1 時不再自稱「p0=0 就不擋」（避免訊息自相矛盾）');
+  }
 
   // ── BN 純函式直測（動態 import，仿 N/Q 系列）──────────────────────────────────────
   {
@@ -1033,8 +1042,10 @@ try {
     // （小數不必測：`num()` 走 parseInt，`p0=1.5` 只會解成 1，永遠到不了這個函式。）
     assert(safe(m?.hasBlockingFindings, { verdict: 'not-ready', p0: -1 }) === true,
       '[BN34] hasBlocking：p0=-1（壞資料）+ verdict=not-ready → true（負數不算合法計數，退回 verdict fail-safe；舊實作靠 verdict 擋住，放寬時不得漏掉這格）');
+    // BN34b 是**控制組、不是判別性案例**（新舊實作都回 false）：BN34 才是扛證明的那條。它存在是為了
+    // 排除另一種錯誤實作——「看到負數就無條件擋」。有它，BN34 的 true 才能被歸因到 verdict 兜底。
     assert(safe(m?.hasBlockingFindings, { verdict: 'ready', p0: -1 }) === false,
-      '[BN34b] hasBlocking：p0=-1 + verdict=ready → false（退回 verdict 後 ready 就是放行，不無條件擋——證明 BN34 擋的是 verdict、不是「負數一律擋」）');
+      '[BN34b] hasBlocking：p0=-1 + verdict=ready → false（**控制組**：退回 verdict 後 ready 就是放行，證明 BN34 擋的是 verdict、不是「負數一律擋」）');
     assert(safe(m?.verifyReportBlocks, '<!-- loops-verify verdict=not-ready p0=-1 p1=0 round=1 -->') === true,
       '[BN34c] verifyReportBlocks：marker 層 p0=-1 + verdict=not-ready → true（對應 BN34 的真實 marker 形狀，端到端）');
   }
