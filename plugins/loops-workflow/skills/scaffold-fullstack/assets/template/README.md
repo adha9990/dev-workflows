@@ -58,7 +58,7 @@ cd backend && pnpm dev         # server 在同一個 port 同時提供 SPA 與 A
 - `backend/` 與 `frontend/` 是兩個獨立 package,**不在彼此的相對路徑內**,只透過 HTTP 溝通 ——
   這道前後端牆由 workspace 的 package 邊界保證。
 
-完整的理由,以及照著 `Note` 切片新增實體的食譜,請見技能的 `references/architecture.md`。
+完整的分層地圖,以及照著 `Note` 切片新增實體的食譜,請見 [`docs/architecture.md`](./docs/architecture.md)。
 
 ## 資料庫流程
 
