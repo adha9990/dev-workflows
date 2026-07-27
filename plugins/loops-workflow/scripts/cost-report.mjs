@@ -240,32 +240,44 @@ function renderIterationSection(events) {
   return table(['Iteration', '觸發原因', ...BUCKET_HEADER.slice(1)], rows);
 }
 
+/**
+ * 逐 agent 明細。**分組鍵是 (agent × iteration × phase × activity)，不只是 agent**——
+ * 主線 agent 一定會跨多個階段，只用 agent 分組的話，這一列的 Phase／Activity 欄就會停在
+ * 它第一次出現的地方，把「3 個回合分散在 build 與 verify」顯示成「3 個回合都在 build」。
+ * 數字加總仍然正確，但歸屬欄會誤導讀報表的人——而那正是這張表存在的理由。
+ */
 function renderAgentDetail(events) {
-  const byAgent = new Map();
+  const byRow = new Map();
   for (const e of events) {
     if (typeOf(e) !== 'usage.turn') continue;
     const p = payloadOf(e);
     const id = String(p.agent_id ?? NOT_MEASURED);
-    if (!byAgent.has(id)) {
-      byAgent.set(id, {
+    const node = p.workflow_node ?? NOT_MEASURED;
+    const activity = p.activity ?? NOT_MEASURED;
+    const iteration = Number.isInteger(p.iteration) ? p.iteration : 0;
+    const key = `${id} ${iteration} ${node} ${activity}`;
+    if (!byRow.has(key)) {
+      byRow.set(key, {
+        key,
         bucket: makeBucket(id),
+        id,
         role: p.agent_role ?? NOT_MEASURED,
         taskId: p.task_id ?? '—',
         taskSummary: p.task_summary ?? '—',
-        iteration: p.iteration,
-        node: p.workflow_node ?? NOT_MEASURED,
-        activity: p.activity ?? NOT_MEASURED,
+        iteration,
+        node,
+        activity,
         reason: p.evidence?.reason ?? '',
       });
     }
-    accumulate(byAgent.get(id).bucket, p);
+    accumulate(byRow.get(key).bucket, p);
   }
 
-  const rows = [...byAgent.keys()].sort().map((id) => {
-    const a = byAgent.get(id);
+  const rows = [...byRow.keys()].sort().map((key) => {
+    const a = byRow.get(key);
     const b = a.bucket;
     return [
-      id, a.role, `${a.taskId}｜${a.taskSummary}`, String(a.iteration),
+      a.id, a.role, `${a.taskId}｜${a.taskSummary}`, String(a.iteration),
       `${a.node} / ${a.activity}`, String(b.turns),
       num(b.tokens.input_tokens), num(b.tokens.output_tokens),
       num(b.tokens.cache_creation_tokens), num(b.tokens.cache_read_tokens),

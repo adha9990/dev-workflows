@@ -220,6 +220,21 @@ testCase('A-1', '每個 agent 逐列帶真實 role 與 task', () => {
   assert(detail.includes('審查安全性'), 'task summary 可見');
 });
 
+testCase('A-4', '跨階段的 agent 逐階段分列，不把後面的回合算到第一個階段名下', () => {
+  // 主線 agent 一定會跨階段。只用 agent 分組的話，Phase／Activity 欄會停在它第一次出現的地方，
+  // 把「3 個回合分散在 build 與 verify」顯示成「3 個回合都在 build」——數字對、歸屬錯。
+  const events = [
+    turn({ turn_id: 'm1', phase: 'build', workflow_node: 'build', activity: 'implement' }),
+    turn({ turn_id: 'm2', phase: 'verify', workflow_node: 'verify', activity: 'review' }),
+    turn({ turn_id: 'm3', phase: 'verify', workflow_node: 'verify', activity: 'review' }),
+  ];
+  const detail = M.sectionOf(M.renderCostReport(events, { slug: 'demo' }), 'Agent & Task Detail');
+  const rows = detail.split('\n').filter((l) => l.startsWith('| main '));
+  assert(rows.length === 2, `main 分成兩列（build 一列、verify 一列；實際 ${rows.length} 列）`);
+  assert(rows.some((r) => r.includes('build / implement') && /\|\s*1\s*\|/.test(r)), 'build 那列是 1 個回合');
+  assert(rows.some((r) => r.includes('verify / review') && /\|\s*2\s*\|/.test(r)), 'verify 那列是 2 個回合');
+});
+
 testCase('A-2', '永遠不出現 other-subagent', () => {
   const md = M.renderCostReport(sampleEvents(), { slug: 'demo' });
   assert(!md.includes('other-subagent'), '整份報告不含 other-subagent');
