@@ -134,7 +134,7 @@ pr-gate 閘⑧ 讀 footprint marker：未說明的 drift 不得收圈
 
 | 要的數字 | 從哪裡來 |
 |---|---|
-| subagent 數 / token / duration | `node plugins/loops-workflow/scripts/baseline-trace.mjs --loop <slug> --loops-root <path>`（從 `.loops/.metrics/costs.jsonl` 機械加總，**不要用 Journal 的人工概估**） |
+| subagent 數 / token / duration | `node plugins/loops-workflow/scripts/baseline-trace.mjs --loop <slug> --loops-root <path>`（從 loop 的成本帳本機械加總，**不要用 Journal 的人工概估** —— 實測過的落差：build 階段人工估約 28、機械實測 54） |
 | production / test LOC、新測試檔與案例數 | `node plugins/loops-workflow/scripts/diff-footprint.mjs --base <base> --plan <02-plan.md> --json` |
 | 階段序列 / 有沒有跳關 | corpus fixture + `scripts/eval-trajectory.mjs` |
 | 彙整成報告 | `node plugins/loops-workflow/scripts/baseline-report.mjs --corpus <dir> --traces-dir <dir> --repo-sha <sha> --out-dir <dir>` |
