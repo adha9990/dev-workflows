@@ -4,7 +4,7 @@
 // （worktree 路徑段或 `.git/HEAD` 反查 `.loops/<slug>/loop.md` 存在）時生效。
 //
 // 依指令型別分派各自適用的閘（`classifyPrCommand` → create / ready / comment），依序、命中即擋：
-//   `gh pr create` → 閘①②③⑥⑦④⑤；`gh pr ready` → 閘⑥⑦④⑤；`gh pr comment` → 閘⑤。
+//   `gh pr create` → 閘①②③⑥⑦⑧④⑤；`gh pr ready` → 閘⑥⑦⑧④⑤；`gh pr comment` → 閘⑤。
 //   （既有三閘①②③ 維持只作用於 `gh pr create`，不套到 ready/comment，避免誤擋。）
 //
 //   ① `stages/04-verify.md` 不存在 → deny（build 完必先過 verify，不能跳過直接送審）
@@ -41,6 +41,12 @@
 //     採用新契約、卻只寫一半」的報告（舊報告連 `findings` 都沒有、打不到），且修法就是補上那個數字。
 //     **本閘不認 `blocking-waiver.md`**——那份豁免的語意是「知情接受這些風險」，但二輪確認沒跑時
 //     風險根本還沒被評估過，沒有東西可以知情接受。確需繞過只有 `LOOPS_PR_VALIDATION_GATE=0`。
+//   ⑧ 未說明的 footprint drift（#215，create + ready）：讀同一份報告裡的第二種 marker
+//     `<!-- loops-footprint status=ok|warn|blocked prod=<n> test=<n> newtests=<n> unslotted=<n> unexplained=<n> -->`
+//     （由 `scripts/diff-footprint.mjs` 產出）。**只擋 `status=blocked` 一格**——範圍外施工（改動檔
+//     不屬於任何核准 slice）／新測試沒有 `new_test_reason`／重複證據沒有 `distinct_risk`／超出 budget
+//     又沒有 `budget_overrun_reason`。`status=warn`（測試／功能行數比例超標）**一律放行**：比例是提醒、
+//     不是品質標準，本閘絕不以固定 ratio 擋掉正當的測試。marker 缺席 / 無法解析 → fail-open 放行。
 //
 // 非 loop 分支／非受管 gh pr 指令／任何判不出的情況（含 detached HEAD）一律放行——這是提醒型
 // 守衛，不能因為自己判斷不出來就卡住人。
@@ -56,11 +62,12 @@
 // （重用 worktree-guard.mjs 的 findLoopRoot——它的祖先上溯天然涵蓋 worktree cwd 剝
 // `.claude/worktrees/<slug>` 後綴的那幾層，不必另外維護一條「捷徑」路徑）。
 //
-// 五個獨立 flag（皆 defaultOn，僅字面 '0' 關；各守一組行為、逃生口互不牽連）：
+// 六個獨立 flag（皆 defaultOn，僅字面 '0' 關；各守一組行為、逃生口互不牽連）：
 //   LOOPS_PR_GATE           → 閘①②③（build 完先 verify／draft+assignee／Closes 開法，只作用 create）
 //   LOOPS_PR_REALRUN_GATE   → 閘④（真機截圖 receipt，作用 create + ready）
 //   LOOPS_PR_BLOCKING_GATE  → 閘⑥（P0 未清不准收圈，作用 create + ready；純讀檔；#211 起只認 p0）
 //   LOOPS_PR_VALIDATION_GATE→ 閘⑦（第二輪確認沒跑不准收圈，作用 create + ready；純讀檔）
+//   LOOPS_PR_FOOTPRINT_GATE → 閘⑧（未說明的 footprint drift，作用 create + ready；純讀檔）
 //   LOOPS_PR_CONFLICT_GATE  → 閘⑤（合併衝突，作用 create + ready + comment；唯一 spawn gh）
 // fail-open：payload 壞 / 讀檔失敗 / 判不出分支 / gh 錯誤一律放行 exit 0，永不因 hook 故障卡住使用者。
 //
@@ -389,6 +396,55 @@ export function verifyReportSkipsValidation(text) {
 }
 
 /**
+ * 閘⑧（#215）：取最後一個 footprint marker，回 `{ status, prod, test, newtests, unslotted,
+ * unexplained }` 或 null。契約：
+ * `<!-- loops-footprint status=ok|warn|blocked prod=<n> test=<n> newtests=<n> unslotted=<n> unexplained=<n> -->`
+ * 由 `scripts/diff-footprint.mjs` 產出、verify 貼進 `stages/04-verify.md`。取**最後一個**（多輪
+ * append 最近一輪 wins）；缺欄位回 `undefined`（不補 0，理由同 `extractLatestMarker`）。
+ */
+export function extractLatestFootprintMarker(text) {
+  if (typeof text !== 'string') return null;
+  const ms = [...text.matchAll(/<!--\s*loops-footprint\s+([^>]*?)\s*-->/g)];
+  if (ms.length === 0) return null;
+  const body = ms[ms.length - 1][1];
+  const field = (k) => {
+    const m = new RegExp(String.raw`(?:^|\s)${k}=(\S+)`).exec(body);
+    return m ? m[1] : undefined;
+  };
+  const num = (v) => {
+    const n = Number.parseInt(v, 10);
+    return Number.isNaN(n) ? undefined : n;
+  };
+  return {
+    status: field('status'),
+    prod: num(field('prod')),
+    test: num(field('test')),
+    newtests: num(field('newtests')),
+    unslotted: num(field('unslotted')),
+    unexplained: num(field('unexplained')),
+  };
+}
+
+/**
+ * 閘⑧：這份 footprint marker 是否代表「有未說明的 drift」。**只擋 `status=blocked` 一格**——
+ * `ok` / `warn` / 缺席 / 無法解析一律放行。特別是 `warn`：測試／功能行數比例超標只是提醒，
+ * **本閘絕不以固定 ratio 擋掉正當的測試**（那正是這條規則要避免的反效果）。
+ */
+export function footprintBlocked(parsed) {
+  return parsed?.status === 'blocked';
+}
+
+/**
+ * 閘⑧：verify 報告是否代表「footprint 有未說明的 drift」。與閘⑥⑦ 同一套 raw + fence-robust
+ * 兩視圖聯合、任一命中即擋（fail-safe 方向一致）。
+ */
+export function verifyReportFootprintBlocks(text) {
+  if (typeof text !== 'string') return false;
+  return footprintBlocked(extractLatestFootprintMarker(text))
+    || footprintBlocked(extractLatestFootprintMarker(stripCodeForMarker(text)));
+}
+
+/**
  * 閘⑥：目前是不是 auto 推進模式（決定豁免 waiver 認不認）。兩訊號：
  *   ①`env.LOOPS_AUTO === '1'`——**唯一防竄改的權威訊號**（hook 讀 session env、agent 動不了；對齊
  *     loop-driver 直讀慣例）；
@@ -501,6 +557,24 @@ function buildValidationDenyReason(slug, parsed) {
     body +
     `\n\n本閘**不認 \`blocking-waiver.md\`**：那份豁免的語意是「知情接受這些風險」，但二輪確認沒跑時` +
     `風險還沒被評估過，沒有東西可以知情接受。確需繞過：設 LOOPS_PR_VALIDATION_GATE=0。`
+  );
+}
+
+function buildFootprintDenyReason(slug, parsed) {
+  const counts = `prod=${parsed?.prod ?? '?'} test=${parsed?.test ?? '?'}`
+    + ` unslotted=${parsed?.unslotted ?? '?'} unexplained=${parsed?.unexplained ?? '?'}`;
+  return (
+    `這是 loop \`${slug}\` 的分支，最近一輪 footprint 對帳判 blocked（${counts}）——這次改動的規模或` +
+    `證據與 \`stages/02-plan.md\` 的 evidence portfolio 對不上。三種原因擇一處理：` +
+    `①**範圍外施工**（\`unslotted>0\`）：有功能檔不屬於任何核准 slice —— 回 plan 把它納入某個 slice` +
+    `（living plan），或確認它根本不該改；` +
+    `②**新測試沒有理由**：evidence portfolio 缺 \`new_test=true\` 的條目或缺 \`new_test_reason\`` +
+    `（既有證據缺哪個觀察點）／**重複證據**沒填 \`distinct_risk\`；` +
+    `③**未說明的 budget drift**（\`unexplained>0\`）：超出 budget 不是禁止，但要在 living plan 的該 slice` +
+    `補一句可稽核的 \`budget_overrun_reason\`。` +
+    `\n\n改完重跑 \`node <plugin-root>/scripts/diff-footprint.mjs --base <base> --plan <02-plan.md>\`，` +
+    `把新的 marker 寫回 \`stages/04-verify.md\` 再重試。**測試／功能行數比例本身不會擋你**（那只是 ` +
+    `warning）。確需繞過本閘：設 LOOPS_PR_FOOTPRINT_GATE=0。`
   );
 }
 
@@ -695,8 +769,9 @@ function main() {
   const runRealRun = flagEnabled('LOOPS_PR_REALRUN_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ④
   const runBlocking = flagEnabled('LOOPS_PR_BLOCKING_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ⑥
   const runValidation = flagEnabled('LOOPS_PR_VALIDATION_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ⑦
+  const runFootprint = flagEnabled('LOOPS_PR_FOOTPRINT_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ⑧
   const runConflict = flagEnabled('LOOPS_PR_CONFLICT_GATE', process.env); // ⑤（三型皆可能）
-  if (!runClosesGates && !runRealRun && !runBlocking && !runValidation && !runConflict) return;
+  if (!runClosesGates && !runRealRun && !runBlocking && !runValidation && !runFootprint && !runConflict) return;
 
   const cwd = typeof payload?.cwd === 'string' ? payload.cwd : process.cwd();
 
@@ -742,7 +817,7 @@ function main() {
   // 閘⑥⑦ 共讀同一份 verify 報告：兩閘都是純讀檔、判的是**同一個 marker 的不同欄位**（⑥ 看 p0/p1
   // ＝仍未修的 blocking 條數，⑦ 看 findings/validated ＝這一輪有幾條候選、確認了幾條），沒有理由
   // 讀兩次。⑥ 排在 ⑦ 前：還有未修 P0/P1 時，先講那件更根本的事。
-  if (runBlocking || runValidation) {
+  if (runBlocking || runValidation || runFootprint) {
     const verifyText = readVerifyText(loopRoot, slug);
 
     if (runBlocking && verifyReportBlocks(verifyText)) {
@@ -762,6 +837,15 @@ function main() {
       const strM = parseLatestVerifyVerdict(verifyText);
       const parsed = validationSkipped(strM) ? strM : extractLatestMarker(verifyText);
       denyWith(buildValidationDenyReason(slug, parsed));
+      return;
+    }
+
+    // 閘⑧（#215）：footprint 對帳判 blocked → 不准收圈。同樣純讀檔、共用同一份報告；排在 ⑦ 後——
+    // 先確認「該修的修了、確認過了」，再問「這次改動的規模與證據跟計畫對不對得上」。
+    if (runFootprint && verifyReportFootprintBlocks(verifyText)) {
+      const rawM = extractLatestFootprintMarker(verifyText);
+      const parsed = footprintBlocked(rawM) ? rawM : extractLatestFootprintMarker(stripCodeForMarker(verifyText));
+      denyWith(buildFootprintDenyReason(slug, parsed));
       return;
     }
   }

@@ -9,13 +9,13 @@
 // 這就是 TDD 的紅燈起點。實作補齊後，下方斷言才有機會逐條轉綠。
 //
 // 對外契約（拍板後，見 issue #87 討論；#99 loop-driver 併入後追加 LOOPS_LOOP_DRIVER）：
-//   FLAG_DEFAULTS：18 個 flag 的分類表（defaultOn / optIn）。
+//   FLAG_DEFAULTS：19 個 flag 的分類表（defaultOn / optIn）。
 //   flagEnabled(name, env)：純函式，env 物件參數（非直接讀 process.env）。
 //   - defaultOn 類（LOOPS_PATH_CONTAINMENT / LOOPS_WORKTREE_GUARD / LOOPS_COST_TRACKER /
 //     LOOPS_EVAL_GATE / LOOPS_EVAL_TAGS_GATE / LOOPS_EVAL_POLL_GATE /
 //     LOOPS_CONFIG_PROTECTION / LOOPS_COMMENT_GUARD / LOOPS_PR_GATE / LOOPS_PR_REALRUN_GATE /
-//     LOOPS_PR_BLOCKING_GATE / LOOPS_PR_VALIDATION_GATE / LOOPS_PR_CONFLICT_GATE / LOOPS_MERGE_GUARD /
-//     LOOPS_PR_OWNER_GUARD）：
+//     LOOPS_PR_BLOCKING_GATE / LOOPS_PR_VALIDATION_GATE / LOOPS_PR_FOOTPRINT_GATE /
+//     LOOPS_PR_CONFLICT_GATE / LOOPS_MERGE_GUARD / LOOPS_PR_OWNER_GUARD）：
 //     僅字面 '0' 關；'1' / '' / 未設 / 'true' / 'off' / '2' 等怪值皆開（不會關）。
 //   - optIn 類（LOOPS_STOP_GATE / LOOPS_COMPACT_HINT / LOOPS_LOOP_DRIVER）：
 //     僅字面 '1' 開；其餘（未設 / '' / '0' / 'true' / 'yes' 等）皆關。
@@ -45,7 +45,7 @@ function callSafe(fn) {
 // （#188：清單原缺 pr-gate 家族 5 枚〔已存在卻沒被 A1/A2 覆蓋的漂移〕，本輪一併補齊 + 加
 //   LOOPS_PR_BLOCKING_GATE，並在 A1 加反向完整性斷言，防後續新增 flag 又被漏測。
 //   #209：那條反向完整性斷言**真的接住了** LOOPS_PR_VALIDATION_GATE——新 flag 加進 FLAG_DEFAULTS
-//   當下就紅，不是等到某天有人發現它沒被測到。）
+//   當下就紅，不是等到某天有人發現它沒被測到。#215 的 LOOPS_PR_FOOTPRINT_GATE 同樣被它接住。）
 const DEFAULT_ON_FLAGS = [
   'LOOPS_PATH_CONTAINMENT',
   'LOOPS_WORKTREE_GUARD',
@@ -59,6 +59,7 @@ const DEFAULT_ON_FLAGS = [
   'LOOPS_PR_REALRUN_GATE',
   'LOOPS_PR_BLOCKING_GATE',
   'LOOPS_PR_VALIDATION_GATE',
+  'LOOPS_PR_FOOTPRINT_GATE',
   'LOOPS_PR_CONFLICT_GATE',
   'LOOPS_MERGE_GUARD',
   'LOOPS_PR_OWNER_GUARD',
