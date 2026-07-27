@@ -1196,7 +1196,8 @@ try {
         + '<!-- loops-footprint status=blocked prod=300 test=0 newtests=0 unslotted=2 unexplained=0 -->\n';
       const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g8-both', 'w-both', both) });
       assert(isDeny(res), '[W11] create：同時 not-ready 與 footprint blocked → deny');
-      assert(reasonOf(res).includes('P0/P1'), '[W11-2] 先報閘⑥ 的理由（P0/P1 未清更根本）');
+      assert(reasonOf(res).includes('未修的 P0') && !reasonOf(res).includes('footprint'),
+        '[W11-2] 先報閘⑥ 的理由（P0 未清更根本），不是把兩條訊息混在一起');
     }
 
     // 純函式層直測（含 fence-robust 兩視圖）。
@@ -1247,6 +1248,7 @@ console.log(`(共 ${total} 條斷言：P1–P8／EXTRA／WIN＝#132 三閘與接
   + `R＝#152 閘④ real-run receipt、C＝#152 閘⑤ 合併衝突、N＝#152 新純函式直測、`
   + `F5＝三 flag 互不牽連、G＝閘⑤ 真 gh spawn 端到端（假 gh，POSIX/CI）、`
   + `B／BN＝#188/#211 閘⑥ P0 未清不准收圈（marker 契約 + 知情豁免 + auto 不繞過 + 純函式；#211 起 p1 不再參與判定）、`
-  + `V／VN＝#209 閘⑦ 第二輪確認沒跑不准收圈（findings/validated 欄位 + 缺席 fail-open + 不認 waiver + 純函式）；`
+  + `V／VN＝#209 閘⑦ 第二輪確認沒跑不准收圈（findings/validated 欄位 + 缺席 fail-open + 不認 waiver + 純函式）、`
+  + `W／WN＝#215 閘⑧ 未說明的 footprint drift（只擋 blocked、warn 一律放行、marker 契約 + 純函式）；`
   + `R5b/c·N9–N11·C10/11·F5·G＝#152 verify/wiring 修正輪)`);
 process.exit(failed.length > 0 ? 1 : 0);
