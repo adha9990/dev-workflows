@@ -16,8 +16,8 @@
 flowchart LR
     A["你：一句話 / issue 號"] --> B["dispatch 判斷類型"]
     B --> C["定目標 → 研究 → 提計畫（你拍板）"]
-    C --> D["寫測試 → 寫實作（紅綠分離）"]
-    D --> E["多位 reviewer 並行驗收"]
+    C --> D["依風險選路徑施工（高風險才紅綠分離）"]
+    D --> E["機械閘 + 依風險選的 reviewer 驗收"]
     E --> F["開 PR（你核可才合）"]
 ```
 
@@ -135,9 +135,9 @@ flowchart TD
 | 項目 | 內容 |
 |---|---|
 | **skill** | `goal`（1）｜**agent** 0（主線一次一問訪談） |
-| **處理什麼** | 把模糊需求逼成「明確完工定義 + 可驗證停止條件」 |
-| **機制** | **逐句掃整張 issue**抽每個 requirement（不只看驗收標準段）→ **一次一問**訪談（記 HYPOTHESIS+CONFIDENCE、should-want 偵測）→ restate **六欄 DoD**（Outcome / User / Why now / Success / Constraint / Out of scope）+ 停止條件 |
-| **策略** | 95% 信心就停；restate 六欄給使用者看後**直接進 explore**（routine 轉場、非 gate；只有具體 scope 取捨 / 內容型交付的載體 / 需求講不清才停下問）。**issue 寫的實作做法 / 套件記成「建議」不是「需求」**，留給 explore 評估 |
+| **處理什麼** | 把模糊需求逼成「明確完工定義 + 可驗證停止條件」，並**收斂成少量 `behavior_id`** |
+| **機制** | **逐句掃整張 issue**抽每個 requirement（不只看驗收標準段）→ **收斂成 1–5 個 `behavior_id`**（使用者眼中不同的一件事，不是句子數）→ **一次一問**訪談 → restate **六欄 DoD** + behavior 清單 + 停止條件。GWT 場景只寫給**重要 / 非直觀 / 跨角色 / 有重要例外**的 behavior |
+| **策略** | 95% 信心就停；restate 後**直接進 explore**（routine 轉場、非 gate）。**issue 寫的實作做法 / 套件記成「建議」不是「需求」**，留給 explore 評估。**收斂是成本控制的源頭**——不收斂，後面 GWT / slice / 測試層 / finding / 迴歸測試會照句子數連續放大 |
 
 ---
 
@@ -146,10 +146,11 @@ flowchart TD
 | 項目 | 內容 |
 |---|---|
 | **skill** | `explore`（1）｜**agent** **1 掃描**（`Explore` read-only 摸 codebase）**＋ N 評估**（≥2 個可行方法時、一候選一個 read-only agent）；發想新方案才 opt-in Fleet |
-| **處理什麼** | 先找內部可重用的，不夠才看外部；**收斂式**：方法有競爭時做多維評估、攤開比較矩陣給推薦；**發散式**：把設計空間盤整成待解問題 backlog |
+| **處理什麼** | 先找內部可重用的，不夠才看外部；**收斂式**：方法有競爭時做多維評估、攤開比較矩陣給推薦；**發散式**：把設計空間盤整成待解問題 backlog。**固定產出 reuse map / impact surface / risk map 三張表** |
 | **機制** | 摸架構（文檔優先）→ 掃內部找可重用 → **夠了沒判斷** → 不夠才外搜（便宜 WebSearch → gate deep-research）→ 框架 API 查證（DETECT→FETCH→**CITE**）→ **≥2 方法時多維評估 fan-out** → 比較矩陣 → 推薦 |
 | **8 評估維度** | 效能（複雜度 + 接近真實/極端規模 benchmark）· 記憶體/體積 · 可維護 · 可擴展 · 安全 · 複雜度 · 重用 · 適配 |
 | **策略** | **重用優先** · **外搜條件式**（省成本）· **方法不是「能用就用」**：① issue 的方法只是候選不是定案、贏家不同就換 ② 在接近真實/極端規模 benchmark 不憑感覺（能用 ≠ 好用，小樣本看不出、大規模才見真章）③ 推薦不以代價最小為主軸——長期正確性優先，「便宜但留債」候選（含行為債：既有行為變差且不修）明標債、不得預設標推薦 · 不只 MVP |
+| **風險判定** | `loops-risk-map` 區塊（正本 `references/stages/risk-map.md`）：`domain_complexity` 才開 DDD、`external_or_cross_module_contract` 才開 Contract-First、六個 `risk_triggers` 才走 test-first、reviewer 依風險選派。**使用者不選方法論**；predicate 拿不準一律向嚴 |
 | **gate** | ✋ **收斂式**→ 選哪個方法（進 plan）／**發散式**→ 確認 backlog 範圍 + **基礎/獨立分層** + MVP 起點（進 define 開 issue backlog；薄基礎→寬平行，不開相依鏈） |
 
 ---
@@ -159,10 +160,10 @@ flowchart TD
 | 項目 | 內容 |
 |---|---|
 | **skill** | `plan`（1）｜**agent** **一律派 1 read-only 設計品質審查（plan 前先 verify、不論風險）**；發想多方案 opt-in Fleet |
-| **處理什麼** | 動 code 前把設計拍板留痕、拆成可獨立 verify 的任務 |
-| **機制** | 決策留痕（**ADR 五欄**）→ 套件評估（**≥3 候選**）→ **機制圖**（每機制：白話 + 運作流程圖 + 注入接線圖）→ **契約規格**（跨 API/資料/事件介面才寫，含 Hyrum's Law）→ 品質六維度 + 重用 + 設計模式對症 → **一律派設計品質審查（plan 前先 verify、不論風險，拿掉 trivial 免派）→ 折回後再審一輪（fresh context、不因機械折回跳過、設計層硬上限 3 圈、到頂不收斂 escalate；與 iterate 的軟上限語意不同）** → **拆可驗證任務**（垂直切片 / risk-first / XS–XL 尺寸）→ 送對齊 comment + 拍板 gate |
-| **產出** | `stages/02-plan.md` —— **§0–§9 完整施工圖**（系統全貌 + 檔案職責表 + 機制圖 + 名詞 + 決策含具名背書 + 三角驗證 + 成果展示） |
-| **策略** | **最高標準不以 MVP** · **living plan**（偏離回來改）· 拍板前**渲染機制圖 + 攤「我的假設」清單**給你看，不准盲拍 · **拍板前一律先過設計審查**（plan 前先 verify、不論風險高低、無 trivial 免派） |
+| **處理什麼** | 動 code 前把設計拍板留痕、拆成可獨立 verify 的 **vertical behavior slice**，並**為每個 behavior 指定一份主證據** |
+| **機制** | 決策留痕（**ADR 五欄**）→ 套件評估（**≥3 候選**）→ **機制圖**（每機制：白話 + 運作流程圖 + 注入接線圖）→ **契約規格**（跨 API/資料/事件介面才寫，含 Hyrum's Law）→ 品質六維度 + 重用 + 設計模式對症 → **一律派設計品質審查（plan 前先 verify、不論風險，拿掉 trivial 免派）→ 折回後再審一輪（fresh context、不因機械折回跳過、設計層硬上限 3 圈、到頂不收斂 escalate；與 iterate 的軟上限語意不同）** → **拆 vertical behavior slice**（risk-first / XS–XL 尺寸）→ **evidence portfolio ＋ change budget**（每 behavior 恰一份主證據；`new_test=true` 要有理由、第二層要有 `distinct_risk`）→ `validate-plan.mjs` 機械核 → 送對齊 comment + 拍板 gate |
+| **產出** | `stages/02-plan.md` —— **§0–§9 完整施工圖**（系統全貌 + 檔案職責表 + 機制圖 + 名詞 + 決策含具名背書 + 三角驗證 + 成果展示）＋內嵌 `loops-plan` 區塊（behaviors / slices / evidence_portfolio / budget） |
+| **策略** | **最高標準不以 MVP** · **living plan**（偏離回來改）· 拍板前**渲染機制圖 + 攤「我的假設」清單**給你看，不准盲拍 · **拍板前一律先過設計審查**（必派沒有例外；**強度依風險分級**——高風險才折回後再審一輪、圈數上限 3） |
 | **gate** | ✋ 拍板方案 |
 
 ---
@@ -171,9 +172,9 @@ flowchart TD
 
 | 項目 | 內容 |
 |---|---|
-| **skill** | `build`（1）｜**agent** **每任務 2 個**（`test-author` → `impl-author`）；衝突時 **+1**（`referee`） |
-| **處理什麼** | 逐任務把計畫變成 code，且測試不遷就實作、寫的當下就乾淨 |
-| **策略** | **紅綠分離**：寫測試的看不到實作 → 不會把測試寫成遷就實作；寫實作的不能改測試 → 不能讓測試將就自己。**平行 build 各 writer 隔離 worktree**、合併後主線在合併態重驗（不採信 subagent 自報綠） |
+| **skill** | `build`（1）｜**agent** **每 slice 1–2 個**：低風險 / 沿用既有證據＝1（`impl-author`）；風險命中 / 立契約 / journey 代表路徑＝2（`test-author` → `impl-author`）；衝突時 **+1**（`referee`） |
+| **處理什麼** | 逐 slice 把計畫變成 code；**先讀 evidence portfolio 選路徑**，該紅綠的才紅綠，且測試不遷就實作、寫的當下就乾淨 |
+| **策略** | **依證據選路徑**（`risk_triggers` 命中 → 紅綠分離；`existing-test`/`static`/`smoke` → 只派 impl-author、跑既有證據）。**紅綠分離**：寫測試的看不到實作、寫實作的不能改測試。`test-author` **可合法回 `NO_NEW_TEST_REQUIRED`**。**Refactor 條件式**（對得到具名 code smell 才做、範圍限該 slice）。**平行 build 各 writer 隔離 worktree**、合併後主線在合併態重驗 |
 | **寫碼標準（shift-left）** | impl-author **綠燈當下就照 verify 會查的同一套合併標準寫**：clean code + clean architecture + **安全**（輸入驗證 / authn-authz / 不洩敏感資料 / SQL 參數化）+ **重用**（寫前先確認沒有既有的）—— 標準在 build 與 verify 是**同一份 reference、兩處套用**；Refactor 是精修，不是補救爛 code（見 AGENTS 規則 11） |
 
 ```mermaid
@@ -195,8 +196,8 @@ flowchart LR
 
 | 項目 | 內容 |
 |---|---|
-| **skill** | `verify`（1）｜**agent** **依風險 0～6 核心（步驟 1 風險梯）+ 0～10 條件式（含專案宣告觸發的 multi-user）+ N 個 finding-validator**（同一回合並行） |
-| **處理什麼** | 合併前把關：多個獨立視角各審一軸，再二輪驗證 findings |
+| **skill** | `verify`（1）｜**agent** **固定 2 核心（product-contract + code-quality）+ 依 risk map 加派至多 4 核心 + 0～10 條件式（含專案宣告觸發的 multi-user）+ N 個 finding-validator**（同一回合並行；高風險硬閘一律 6 核心滿派、缺 risk map 退回既有風險梯） |
+| **處理什麼** | 合併前把關：**先跑不用派人的確定性閘**（quality-gate / validate-plan / diff-footprint），過了才依風險派獨立視角各審一軸，再對 blocking finding 二輪確認，最後**逐 behavior 核主證據** |
 | **策略** | **fresh-context 獨立性** · **反偏見**（不餵作者 rationale、rubber-stamp 自查）· **Metric-Honesty**（沒實跑標 `not measured`、狀態值只引用工具實際回傳）· **作者已留痕的決定不算 finding**（見 references/personas/finding-author-decision-rule.md）· **獨立安全網非第一道品質關**（標準已在 build shift-left 套用，verify 複查 + 抓盲點） |
 
 ```mermaid
@@ -215,7 +216,7 @@ flowchart TD
     S4 -.否·未收斂 / 確證根本做錯.-> ITER[Not ready → iterate 依錯在哪<br/>路由 goal / explore / plan / build]
 ```
 
-> **5 步**（詳見 `skills/verify/SKILL.md`）：**①選軸**——「fan-out」＝同一回合一次派出多審查員各審一軸並行；依風險定核心軸（0~6）：瑣碎 0 / 小孤立 3 / 一般·高風險 6（高風險一律滿、不准縮）；再依領域加派 10 個條件式（碰到才加；其中 multi-user-concurrency 由**專案在 AGENTS.md 宣告多人使用**觸發、非改動領域觸發）。非 code 實質文件→product-contract + docs-devex（不入 code 級梯）。**②並行審**——同一回合派出、各一軸、反偏見（只給 artifact+契約）、跑真 app。**③驗 findings**——coordinator 去重 + finding-validator 四問二輪。**④acceptance 閘（所有級通用）**——issue 每條 acceptance criterion 逐項列五態、收斂到 已滿足（有證據）/ 明確 descoped（留痕）才放行；任一條 partial 當完成在**任何級**都擋回 iterate；確證「根本做錯」（做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞）就**整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）、不逐條修**。**⑤判 Ready/退回**——P0–P3+Confidence+Route，出 P0 才停下問你、否則直接進 iterate。
+> **確定性閘 + 5 步**（詳見 `skills/verify/SKILL.md`）：**⓪確定性閘**——quality-gate（型別/lint/測試）+ `validate-plan.mjs`（計畫對帳）+ `diff-footprint.mjs`（範圍與證據對帳、吐 `loops-footprint` marker 給 pr-gate 閘⑧），**紅了直接退回、不燒一輪 fan-out**。**①選軸**——「fan-out」＝同一回合一次派出多審查員各審一軸並行；**固定派 `product-contract` + `code-quality`**，其餘核心軸依 risk map 觸發（`risk-map.md` §C）；**高風險硬閘一律滿 6、不准縮**；**沒有 risk map 就退回 `verify-triage.md` 既有風險梯、不得少派**；再依領域加派 10 個條件式（碰到才加；其中 multi-user-concurrency 由**專案在 AGENTS.md 宣告多人使用**觸發、非改動領域觸發）。非 code 實質文件→product-contract + docs-devex（不入 code 級梯）。**②並行審**——同一回合派出、各一軸、反偏見（只給 artifact+契約）、跑真 app。**③驗 findings**——coordinator 去重 + 對 **P0/P1 與低信心高影響的 P2** 派 finding-validator 四問二輪（其餘 P2 逐條在 `Validation coverage` 寫明憑什麼直接收下）。**④Evidence Portfolio acceptance（所有級通用）**——**逐 `behavior_id`** 核「做到了沒 / plan 指定的主證據是否實際跑過並成立 / 有沒有寫不出 `distinct_risk` 的重複證據」，收斂到 已滿足 / 明確 descoped（留痕）才放行；任一個 partial 當完成在**任何級**都擋回 iterate；確證「根本做錯」（做的不是 issue 要的 / 核心沒做到 / 最基本流程崩壞）就**整個退回（交 iterate 依錯在哪路由 goal/explore/plan/build）、不逐條修**。**⑤判 Ready/退回**——P0–P3+Confidence+Route，出 P0 才停下問你、否則直接進 iterate。
 
 > **reviewer code 探索**：各 reviewer 收到改動檔清單 + graph project id（若已索引）。改動檔（diff）一律直接 `Read`（審查對象、graph 對此最不可信）；「誰呼叫這個函式 / 它依賴誰 / 落在哪層」→ 用 codebase-memory-mcp 查穩定周邊（見 `references/shared/runtime/code-retrieval.md`）。
 
@@ -226,8 +227,8 @@ flowchart TD
 | 項目 | 內容 |
 |---|---|
 | **skill** | `iterate`（1）｜**agent** 0（修正回 build 用其 subagent）；卡關時 **opt-in cross-model**（換別的模型當對手 reviewer） |
-| **處理什麼** | 把 verify 缺口 / PR reviewer 回饋分類、修根因、決定回環或完工 |
-| **機制** | 收集回饋（`type=fix` 走 `pr-feedback-sources.md`：inline comment 要 `gh api`）→ **RECONCILE 四分類** → **Stop-the-Line 修**（DIAGNOSE 先定位失敗層 + `git bisect` → 修根因 → 每修加回歸測試）→ **修完一定再 verify** → 完工 or 回環（看收斂·圈數軟上限·同條復現即 escalate 換手法） |
+| **處理什麼** | 把 verify 缺口 / PR reviewer 回饋分類、修根因、決定回環或完工。**`actionable` 收緊為五類缺陷**（正確性 / 安全 / 資料 / 契約 / acceptance），其餘打磨建議歸 out-of-scope follow-up |
+| **機制** | 收集回饋（`type=fix` 走 `pr-feedback-sources.md`：inline comment 要 `gh api`）→ **RECONCILE 四分類** → **Stop-the-Line 修**（DIAGNOSE 先定位失敗層 + `git bisect` → 修根因 → **GUARD 條件式**：暴露新獨立風險才加最小回歸證據並回 plan 補 `distinct_risk`，否則沿用既有證據 + 撤掉修正驗一次它會紅）→ **修完一定再 verify**（單一 slice 小修走 targeted 再驗；跨切面 / 高風險完整重跑選軸） → 完工 or 回環（看收斂·圈數軟上限·同條復現即 escalate 換手法） |
 | **完工交接物（依類型）** | **修正型**＝一份修正回覆 comment（`comment-policy` §8 版型：工程角度根因/怎麼修/怎麼驗＋客戶角度修正前→後；**不@reviewer**）；**完整迴圈**＝PR 收尾 comment ＋**三份 loop 收尾檔 `deliverables/{explain,checklist,cost}.md`（一律產、無編號）**。follow-up 留當前 issue 不另開。PR body 放 `Closes #issue`、指派 `@me`、與 master 衝突自動合併 |
 | **收尾清理（兩時機）** | ① **loop 結束時**清掉臨時 scratch：刪草稿/截圖/gif/scratch（**有開著的 PR 時 worktree 不清**——保留給人工驗收；只有沒交 PR 的純中止才在此連 worktree 一起 `git worktree remove`/`prune`）· ② **PR merge / close 後**（solo 自己合併→自己清，**使用者核可後才 merge**）刪分支 + 清 worktree（`gh pr merge <PR#> --squash --delete-branch` ＋ `git worktree remove`/`prune`，**一律 squash 單一 commit**、策略見 `pr-spec`〈merge 策略 / worktree 清理時機〉，只留 `main`+進行中）· loop 暫存一律不入庫（`.loops`/`.claude/worktrees`/`data`/`dev.json`/截圖 未追蹤 / `.gitignore` 涵蓋，`git ls-files` 掃一遍確認） |
 | **策略** | **交 reviewer 前把問題解到最少**（actionable 一律自動全修、不問「修多少」）· severity 只決定停不停、不決定修不修 · **回環看收斂**（同條復現 / 修出新問題就 escalate 換手法；findings 沒變少先歸因「驗證手段變深」還是「修壞了」）· **圈數＝軟上限（回報檢查點）非停損閥**：到頂回報現況後繼續修，**未修的 P0 不得因圈數收圈**（帶著已知 P0 進 PR 只能由你知情豁免 + 留痕）；已無 P0、只剩 P1/P2/P3 才當停損點停下問你（回頭重想 / 換跨模型 / 授權再繞重置計數 / 收圈）· **P1 不再機械擋收圈、但照樣全修**（要留著它進 PR 得你拍板 + 留痕） |
@@ -260,7 +261,7 @@ flowchart TD
 **兩座標 + 一總綱**（見 `AGENTS.md`）：
 - **類型**：Closed Loop（預設，人類框架內把關）/ opt-in Open（`auto` 連跑）。
 - **規模**：單一迴圈（預設）/ opt-in **Fleet** 編隊。
-- **方法論鏈（§1）**：各階段被哪個方法論強化見 `AGENTS.md §1` 方法論鏈框定。
+- **方法論分工（§1）**：canonical＝**Feature-oriented SDD 主幹 ＋ ATDD evidence portfolio ＋ 風險式選擇性 TDD**；DDD / Contract-First / TDD / 額外 reviewer 由 `references/stages/risk-map.md` 的機械 predicate 觸發，使用者不選方法論。見 `AGENTS.md §1`。
 - **★ 成本意識（規則 10）**：迴圈很貴 → 全程**高上下文效率**、**便宜的先·貴的 gate**、**不重複勞動**、**fail-fast**。**carve-out：只砍非必要貴動作（deep-research/Fleet/真機/多餘 reviewer）+ 浪費,絕不砍 mandatory 流程（define/issue-first/human gate/verify）—— 跳流程的 rework 才最貴。便宜的先只管資訊蒐集 / 驗證的執行順序，不外溢到方案取捨——推薦與拍板以長期正確性與風險消除為先，「代價小」只當同等正確間 tie-breaker，便宜但留債選項明標、不得預設標推薦。**
 
 ### 9.1 規則怎麼被執行（四級模型，#173）
@@ -292,8 +293,7 @@ flowchart TD
 | **skill** | 14（dispatch / **clarify** 釐清模糊需求 / define / goal / explore / plan / build / verify / iterate / explain / **scaffold-fullstack** 內建 greenfield 骨架 / **decision-interview** 四象限 Unknowns Register，由 clarify·define·plan 依風險內部調用 / **agents-md-maintainer** 規則變更閉環，由 dispatch 判 policy-change intent 時內部調用 / **setup** 外部來源安裝與對帳，第二個公開入口） |
 | **agent** | 21（+ 4 個 opt-in 高風險 -deep 變體：security-reviewer-deep / architecture-reviewer-deep / code-quality-reviewer-deep / finding-validator-deep，`referee` tier）= build 3（test-author / impl-author / referee）+ verify 6 核心 + finding-validator + eval-judge（eval E4，無 oracle 維度評分、主迴圈/Workflow 派）+ 10 條件式領域 reviewer（accessibility / ci-cd / docs-devex / frontend-ui / migration / observability / processing-reliability / root-cause / web-performance / **multi-user-concurrency〔專案宣告多人使用才派，非改動領域觸發〕**，視改動面 / 專案宣告加派）。explore 多維評估 / plan 設計審查用內建 `Explore` / general-purpose（不計入此數）。全 25 個（含 4 個 -deep 變體）frontmatter 各帶 `model`+`effort` tier（`model-effort-policy.md`：多為 `broad-review`/`implementation` tier，窄任務 `fast-readonly` tier，最高判斷責任 `referee` tier） |
 | **單一迴圈最多同時 agent** | verify 那一回合：6 核心 +（最多 10 條件式）+ N validator |
-| **reference** | 74 份（＝ `references/` 樹全體：57 份主題文件＋`reviewers/` 底下 17 份 reviewer 人設模板〔由 `gen-reviewers.mjs` 從 `reviewer-shared.md` 生成，不逐份列在 REFERENCES.md 的 6 類裡〕；主題文件含 interaction-adapter 決策點平台中立表述＋映射契約 + clean-code / clean-architecture / design-patterns / refactoring / code-simplification / minimalism-ladder 寫碼六標準 + finding-author-decision-rule finding 判準硬規則 + edd-comment-template 研究/提案 EDD 版型 + bdd-scenarios / code-retrieval / context-diet 輸出瘦身 / model-effort-policy + project-conventions 專案跨切面約定 + 9 份 per-axis 審查判準（含 multi-user-review）+ verify-triage 風險分級 + operation-first-move + eval-judge-rubric 無 oracle 維度評分卡 + eval-judge-panel / eval-live-candidate Phase 3 活流程 recipe）｜**command** 0（slash 入口＝`dispatch` 與 `setup` 兩個 skill；resume＝`dispatch <slug>`、查進度＝讀 `PROGRESS.md`）｜**hook** 17 個 / 4 事件（本欄＝hooks.json 掛載數；distinct 檔案 16 支——pr-owner-guard 一支掛 shell＋MCP 兩個 matcher 群組故 +2；三類：SessionStart 與 progress-render **恆跑**；**預設開 14 枚**〔#85 loops-path-guard＋#87 cost-tracker／eval-gate×3／config-protection（loops-scoped）＋worktree-guard／outbound-comment-guard／pr-gate（#152 起拆多 flag：LOOPS_PR_GATE／LOOPS_PR_REALRUN_GATE／LOOPS_PR_BLOCKING_GATE〔#188〕／LOOPS_PR_CONFLICT_GATE）／merge-guard／pr-owner-guard，僅字面 `'0'` 關〕；**opt-in 3 枚**〔stop-gate＝RCE 面、compact-hint＝中性、loop-driver＝#99 build 階段自動續跑——#87 逐枚留痕，見 journaling 決策表〕；另有 2 個非 flag 的 accumulator（edit-accumulator／read-accumulator，各隨其消費端 flag 開關）。除 deny 類與 loop-driver 的 opt-in 續跑 block 外皆永不擋路）：SessionStart(浮 active 迴圈) + Stop(cost-tracker 估成本〔預設開〕 + eval-gate 改檔回合多訊號注入〔三 flag 獨立、預設開〕 + stop-gate 改檔回合自動跑 quality-gate〔opt-in＋發現性提示〕 + progress-render（恆跑，每回合對本 session active loop 重生 PROGRESS.md、不注入、永不擋路） + loop-driver（末位掛載，build 階段自動驅動迴圈續跑〔opt-in LOOPS_LOOP_DRIVER=1；家族首支 decision:block hook；防重入／保險絲／fail-open／完工雙帳本〕）) + <!-- adapter-projection -->PostToolUse<!-- /adapter-projection -->(edit-accumulator 累積改檔〔.loops 存在且任一消費 flag 啟用才記〕 + read-accumulator 記錄本 session 讀過的對外規範檔〔comment-policy.md／outbound-templates.md，basename 精確比對；供 outbound-comment-guard read-gate 消費，#131〕) + <!-- adapter-projection -->PreToolUse<!-- /adapter-projection -->(suggest-compact compact 提醒〔opt-in〕 + config-protection 擋弱化 linter 設定〔預設開、loops-scoped〕 + loops-path-guard 擋 .loops 寫進 worktree〔預設開，AGENTS 規則 9 機械化〕 +（Bash|PowerShell）outbound-comment-guard 擋對外訊息〔comment/issue-create/pr-create/issue-edit/pr-edit 五型；預設開；read-gate 未讀對應規範檔即擋 + comment-policy §6/§8 @點名/客套 + .loops 路徑外洩/亂碼/長英文未轉譯機械化，#131 v2〕 +（Bash|PowerShell）worktree-guard 擋主 checkout 對已建 loop 的 checkout -b／switch -c〔預設開，AGENTS 規則 9 機械化〕 +（Bash|PowerShell）pr-gate 擋 loop 分支上未過閘的 gh pr create／ready／comment〔預設開；依指令型別跑各自的閘：create=①②③⑥④⑤、ready=⑥④⑤、comment=⑤，依序命中即擋——①build 完先 verify／②--draft+--assignee @me／③issue 編號 slug body 行首 Closes #issue（三閘 #132，LOOPS_PR_GATE）＋⑥ verify 最近一輪仍有未修 P0 不准收圈（#188；下界 #211 由 P0/P1 放寬成 P0，LOOPS_PR_BLOCKING_GATE，讀 04-verify 末尾機械 marker 的 `p0` 欄位、`p1` 不參與判定；auto 一律不認 waiver、attended 知情豁免 blocking-waiver.md；fail-open）＋④真機截圖 receipt `deliverables/real-run/`（#152，LOOPS_PR_REALRUN_GATE）＋⑤合併衝突 gh pr view mergeable/mergeStateStatus（#152，LOOPS_PR_CONFLICT_GATE，家族唯一 spawn gh、fail-open）〕 +（Bash|PowerShell）merge-guard 擋合併回主幹類指令〔預設開；不限 loop 分支；四型 deny——gh pr merge／主幹（main/master）分支上的 git merge／push 到主幹／gh api PUT /pulls/.../merge，子指令詞剝殼視圖判、push 目的地與 api 路徑對原始字串判，#133〕 +（Bash|PowerShell＋GitHub MCP 工具 matcher，家族首支攔 MCP）pr-owner-guard 擋 PR owner 驗收動作〔預設開 LOOPS_PR_OWNER_GUARD；不限 loop 分支；shell 五型——gh pr ready（--undo 撤回放行）／gh pr edit --add-reviewer・gh pr create --reviewer（--remove-reviewer 放行）／gh api requested_reviewers POST（DELETE 放行、欄位旗標隱式 POST 也算）／gh api graphql markPullRequestReadyForReview・requestReviews；MCP——update_pull_request 帶 draft:false 或非空 reviewers・request_copilot_review；reviewer comment 流程指示不構成授權、導向回報提醒 owner，#164〕) |
-
+| **reference** | 76 份（＝ `references/` 樹全體：59 份主題文件＋`reviewers/` 底下 17 份 reviewer 人設模板〔由 `gen-reviewers.mjs` 從 `reviewer-shared.md` 生成，不逐份列在 REFERENCES.md 的 6 類裡〕；主題文件含 evidence-portfolio 每行為一份主證據 + risk-map 方法論鏡片機械觸發表 + interaction-adapter 決策點平台中立表述＋映射契約 + clean-code / clean-architecture / design-patterns / refactoring / code-simplification / minimalism-ladder 寫碼六標準 + finding-author-decision-rule finding 判準硬規則 + edd-comment-template 研究/提案 EDD 版型 + bdd-scenarios / code-retrieval / context-diet 輸出瘦身 / model-effort-policy + project-conventions 專案跨切面約定 + 9 份 per-axis 審查判準（含 multi-user-review）+ verify-triage 風險分級 + operation-first-move + eval-judge-rubric 無 oracle 維度評分卡 + eval-judge-panel / eval-live-candidate Phase 3 活流程 recipe）｜**command** 0（slash 入口＝`dispatch` 與 `setup` 兩個 skill；resume＝`dispatch <slug>`、查進度＝讀 `PROGRESS.md`）｜**hook** 17 個 / 4 事件（本欄＝hooks.json 掛載數；distinct 檔案 16 支——pr-owner-guard 一支掛 shell＋MCP 兩個 matcher 群組故 +2；三類：SessionStart 與 progress-render **恆跑**；**預設開 14 枚**〔#85 loops-path-guard＋#87 cost-tracker／eval-gate×3／config-protection（loops-scoped）＋worktree-guard／outbound-comment-guard／pr-gate（#152 起拆多 flag：LOOPS_PR_GATE／LOOPS_PR_REALRUN_GATE／LOOPS_PR_BLOCKING_GATE〔#188〕／LOOPS_PR_VALIDATION_GATE〔#209〕／LOOPS_PR_FOOTPRINT_GATE〔#215〕／LOOPS_PR_CONFLICT_GATE）／merge-guard／pr-owner-guard，僅字面 `'0'` 關〕；**opt-in 3 枚**〔stop-gate＝RCE 面、compact-hint＝中性、loop-driver＝#99 build 階段自動續跑——#87 逐枚留痕，見 journaling 決策表〕；另有 2 個非 flag 的 accumulator（edit-accumulator／read-accumulator，各隨其消費端 flag 開關）。除 deny 類與 loop-driver 的 opt-in 續跑 block 外皆永不擋路）：SessionStart(浮 active 迴圈) + Stop(cost-tracker 估成本〔預設開〕 + eval-gate 改檔回合多訊號注入〔三 flag 獨立、預設開〕 + stop-gate 改檔回合自動跑 quality-gate〔opt-in＋發現性提示〕 + progress-render（恆跑，每回合對本 session active loop 重生 PROGRESS.md、不注入、永不擋路） + loop-driver（末位掛載，build 階段自動驅動迴圈續跑〔opt-in LOOPS_LOOP_DRIVER=1；家族首支 decision:block hook；防重入／保險絲／fail-open／完工雙帳本〕）) + <!-- adapter-projection -->PostToolUse<!-- /adapter-projection -->(edit-accumulator 累積改檔〔.loops 存在且任一消費 flag 啟用才記〕 + read-accumulator 記錄本 session 讀過的對外規範檔〔comment-policy.md／outbound-templates.md，basename 精確比對；供 outbound-comment-guard read-gate 消費，#131〕) + <!-- adapter-projection -->PreToolUse<!-- /adapter-projection -->(suggest-compact compact 提醒〔opt-in〕 + config-protection 擋弱化 linter 設定〔預設開、loops-scoped〕 + loops-path-guard 擋 .loops 寫進 worktree〔預設開，AGENTS 規則 9 機械化〕 +（Bash|PowerShell）outbound-comment-guard 擋對外訊息〔comment/issue-create/pr-create/issue-edit/pr-edit 五型；預設開；read-gate 未讀對應規範檔即擋 + comment-policy §6/§8 @點名/客套 + .loops 路徑外洩/亂碼/長英文未轉譯機械化，#131 v2〕 +（Bash|PowerShell）worktree-guard 擋主 checkout 對已建 loop 的 checkout -b／switch -c〔預設開，AGENTS 規則 9 機械化〕 +（Bash|PowerShell）pr-gate 擋 loop 分支上未過閘的 gh pr create／ready／comment〔預設開；依指令型別跑各自的閘：create=①②③⑥⑦⑧④⑤、ready=⑥⑦⑧④⑤、comment=⑤，依序命中即擋——①build 完先 verify／②--draft+--assignee @me／③issue 編號 slug body 行首 Closes #issue（三閘 #132，LOOPS_PR_GATE）＋⑥ verify 最近一輪仍有未修 P0 不准收圈（#188；下界 #211 由 P0/P1 放寬成 P0，LOOPS_PR_BLOCKING_GATE，讀 04-verify 末尾機械 marker 的 `p0` 欄位、`p1` 不參與判定；auto 一律不認 waiver、attended 知情豁免 blocking-waiver.md；fail-open）＋⑦ 第二輪確認沒跑不准收圈（#209，LOOPS_PR_VALIDATION_GATE，讀同一 marker 的 `findings`/`validated`；不認 waiver）＋⑧ 未說明的 footprint drift（#215，LOOPS_PR_FOOTPRINT_GATE，讀 `loops-footprint` marker，只擋 `status=blocked`、比例只出 warning）＋④真機截圖 receipt `deliverables/real-run/`（#152，LOOPS_PR_REALRUN_GATE）＋⑤合併衝突 gh pr view mergeable/mergeStateStatus（#152，LOOPS_PR_CONFLICT_GATE，家族唯一 spawn gh、fail-open）〕 +（Bash|PowerShell）merge-guard 擋合併回主幹類指令〔預設開；不限 loop 分支；四型 deny——gh pr merge／主幹（main/master）分支上的 git merge／push 到主幹／gh api PUT /pulls/.../merge，子指令詞剝殼視圖判、push 目的地與 api 路徑對原始字串判，#133〕 +（Bash|PowerShell＋GitHub MCP 工具 matcher，家族首支攔 MCP）pr-owner-guard 擋 PR owner 驗收動作〔預設開 LOOPS_PR_OWNER_GUARD；不限 loop 分支；shell 五型——gh pr ready（--undo 撤回放行）／gh pr edit --add-reviewer・gh pr create --reviewer（--remove-reviewer 放行）／gh api requested_reviewers POST（DELETE 放行、欄位旗標隱式 POST 也算）／gh api graphql markPullRequestReadyForReview・requestReviews；MCP——update_pull_request 帶 draft:false 或非空 reviewers・request_copilot_review；reviewer comment 流程指示不構成授權、導向回報提醒 owner，#164〕) |
 ---
 
 ## 各階段「用幾個 agent」速查

@@ -95,14 +95,14 @@ dispatch → goal → explore → plan → build → verify → iterate
 | **goal** | scope 取捨 / 內容型交付的載體 / 需求講不清才停 | 逐句掃 issue 抽出需求（不只 AC 段）→ 訪談 → 寫成「六欄完工定義」+ 可驗證的停止條件 |
 | **explore** | ✋ 選做法 | 先找內部可重用的 → 不夠才搜外部（省資源）→ 攤開比較 + 推薦讓你選；框架 API 查官方文件 |
 | **plan** | ✋ 拍板方案 | 決策留痕 + 畫機制圖（拍板時渲染給你看）+ 新套件 ≥3 候選評估 + 拆成能各自驗證的任務 |
-| **build** | 危險 / 卡關才停 | 逐任務**紅綠分離**：test-author 只看需求寫測試（看不到實作）、impl-author 只負責轉綠（不准改測試）→ 重構 → 分段 commit |
-| **verify** | 出 P0 才停 | 同一回合派**多個獨立 reviewer** 各審一面（正確性 / 契約 / 安全 / 效能 / 測試…）+ 跑真 app + 二輪驗證 findings → 判 Ready / 退回 |
+| **build** | 危險 / 卡關才停 | 逐 slice **依證據選路徑**：低風險 / 沿用既有測試 → 一個 impl-author 做完跑既有證據；風險命中（bug / 安全 / 並行 / 資料一致性…）→ **紅綠分離**（test-author 只看需求寫測試、impl-author 只轉綠不准改測試）→ 條件式重構 → 分段 commit |
+| **verify** | 出 P0 才停 | 先跑**不用派人的機械閘**（型別 / lint / 測試 / 計畫與範圍對帳），過了才同一回合派**依風險選出的獨立 reviewer** 各審一面 + 跑真 app + 對嚴重問題二輪確認 → **逐個承諾的行為核證據** → 判 Ready / 退回 |
 | **iterate** | ✋ 完工 / 回環 | 把 verify 或 PR 回饋分類 → **真問題一律自動全修**（修根因 + 加回歸測試）→ 修完再驗一輪 → 乾淨才收尾開 PR。回環圈數（預設 3）是**軟上限**：到頂只會回報現況給你，**還有沒修完的問題就繼續修**，不會因為「圈數用完」就帶著問題進 PR；要帶著已知問題進 PR 得由你明講。**只有最嚴重的一級（P0）是誰都不能繞過的底線**——次一級（P1）照樣會被修完，只是它不再由機械閘擋住收尾，剩下要不要先進 PR 由你決定。**自動連跑（auto）時另有一個絕對上界（預設 6 圈、`LOOPS_AUTO_MAX_ROUNDS` 可調）**：撞到就停下來交你決定，避免沒人看管時一直繞下去燒 token。而「還有最嚴重的問題就不准收尾開 PR」這條，有一道機械閘（pr-gate）真的會擋住 |
 
 ## 兩個引擎
 
-- **build 紅綠分離**：`test-author`（只看需求、看不到 impl）→ `impl-author`（只轉綠、不准改 test）→ Refactor → 衝突派 `referee` 裁決。讓測試不會遷就實作。
-- **verify fan-out**：主線同回合派最多 6 個核心 reviewer（依風險 0~6；product-contract / architecture / security / performance / code-quality / tests）各審一軸 + 條件式領域 reviewer + `finding-validator` 二輪，輸出 Ready / Not ready。
+- **build 依證據選路徑**：計畫先為每個行為指定**一份**主證據；風險命中的才走紅綠分離（`test-author` 只看需求、看不到 impl → `impl-author` 只轉綠、不准改 test → 條件式 Refactor → 衝突派 `referee` 裁決），其餘沿用既有測試 / 型別 / smoke。讓測試不會遷就實作，也不會為了「有紅燈可跑」而多寫。
+- **verify fan-out**：先跑三道確定性閘，再同回合派 reviewer——**固定 product-contract + code-quality**，其餘（architecture / security / performance / tests）依風險觸發，高風險一律滿 6 軸 + 條件式領域 reviewer + `finding-validator` 二輪，輸出 Ready / Not ready。
 
 ## 看進度（直接讀 `.loops/`）
 

@@ -1,6 +1,6 @@
 # references 目錄（幫你找到「該讀哪份規範」）
 
-> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。`references/` 樹全體共 **74 份 reference**：其中 57 份主題文件在這頁**依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」；另 17 份是 `reviewers/` 底下的 reviewer 人設模板（由 `gen-reviewers.mjs` 從 `reviewer-shared.md` 生成，不逐份列在下面 6 類裡）。
+> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。`references/` 樹全體共 **76 份 reference**：其中 59 份主題文件在這頁**依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」；另 17 份是 `reviewers/` 底下的 reviewer 人設模板（由 `gen-reviewers.mjs` 從 `reviewer-shared.md` 生成，不逐份列在下面 6 類裡）。
 >
 > 想看**流程全貌**（每階段怎麼跑）→ [`FLOW.md`](FLOW.md)；想看**可設定的參數** → [`settings.md`](settings.md)；這份是「規範字典」。（技術註：subagent 讀不到相對路徑，orchestrator 會把絕對路徑塞進 prompt——見 `AGENTS.md`〈參考檔路徑解析〉。）
 
@@ -28,9 +28,11 @@
 | reference | 它管什麼 | 主要用在 |
 |---|---|---|
 | `goal-restate-schema` | 完工定義六欄格式（Outcome / User / Why now / Success / Constraint / Out of scope）；可附 BDD 場景 ID（S1…）綁 acceptance criterion | goal（`stages/00-goal.md`） |
-| `bdd-scenarios` | 用 Given-When-Then 把需求寫成可驗證的行為情境（連接 SDD↔TDD）、場景 ID 慣例、依風險縮放（小事免寫·高風險才完整） | define · goal（寫場景）· build（test-author）· verify（product-contract · acceptance） |
+| `bdd-scenarios` | 用 Given-When-Then 把**重要且非直觀**的行為寫清楚、場景 ID 慣例、依風險縮放（直觀行為免寫；**一條場景不等於一條新測試**） | define · goal（寫場景）· build（test-author）· verify（product-contract · acceptance） |
+| `evidence-portfolio` | **每個承諾的行為恰一份主證據**：behavior 收斂、證據型別階梯（既有測試 / static / smoke / unit / contract / integration / acceptance / manual）、`new_test_reason` 與 `distinct_risk` 兩條硬規則、vertical slice 的 change budget | goal（收斂 behavior）· plan（產 portfolio）· build（選路徑）· verify（逐 behavior 回核）· iterate |
+| `risk-map` | **方法論鏡片與驗收強度的機械觸發表**：`domain_complexity` 才開 DDD、`external_or_cross_module_contract` 才開 Contract-First、六個 `risk_triggers` 才走 test-first、reviewer 依風險選派；三條 fail-safe 上界 | explore（產表）· plan · build · verify（選軸） |
 | `design-plan-schema` | 設計書 §0–§9 骨架：系統全貌 / 檔案職責表 / 機制圖 / 具名背書 / 三角驗證 / 成果展示；§3 含 glossary | plan（`stages/02-plan.md`）· iterate（提煉 PR body） |
-| `machine-plan-schema` | 機器可驗證的 `loops-plan` JSON 塊格式（每任務可執行 verification、acceptance ≤3、依賴無環） | plan（可選）+ `validate-plan.mjs` |
+| `machine-plan-schema` | 機器可驗證的 `loops-plan` JSON 塊格式（behaviors / slices / evidence_portfolio / change budget、可執行 verification、依賴無環） | plan（有 behavior 一律開）+ `validate-plan.mjs` |
 | `change-summaries` | build 產出的 Change Summaries 三段式格式 | build（`stages/03-build.md`） |
 | `operation-first-move` | 依任務性質（new-feature/change-behavior/bug-fix/refactor）決定「紅燈第一步」怎麼起手＋fail-safe（單一來源） | dispatch（寫 `operation` 欄）· build（讀欄派 test-author） |
 | `quality-gate-schema` | quality-gate 腳本輸出 / failures 結構化契約（`file:line [code\|ruleId] message`） | build（派 fixer 帶 failures）· verify（gate 摘要） |
@@ -48,7 +50,7 @@
 | `finding-author-decision-rule` | finding 判準硬規則：作者已留痕的決定不算 finding（含 durability 取捨不自動免審、三類回報）——reviewer 與自檢共用單源 | verify（全 reviewer prompt）＋ preflight |
 | `optional-reviewers` | 哪種改動要加派哪個領域 reviewer（前端 / a11y / 可觀測性 / CI-CD / migration / bug-fix / docs…）＋專案宣告條件（宣告多人使用→併發審查） | verify（1.5 加派） |
 | `project-conventions` | **專案 CLAUDE.md/AGENTS.md 宣告的跨切面約定**（i18n / logging / a11y / 錯誤處理 / 安全…）是每條 loop 的隱含 DoD + verify 檢查項（issue 沒寫也要做）；通過機械 gate ≠ 滿足約定；完工交付列出「除 issue 外依約定額外做的事」 | goal（折 DoD）· plan（設計輸入）· verify（逐條核）· iterate（交付列出） |
-| `verify-triage` | 這次改動風險多大、該派幾軸審查（0~6）：高風險硬閘清單 / 小事從簡的判準 / 夾帶無關改動就否決從簡（tangling veto）/ 「做錯東西就整個退回」判準 | verify（步驟 1 選軸判級） |
+| `verify-triage` | 選軸的**上界與退路**：高風險硬閘清單（一律滿軸）/ 沒有 risk map 時的 0~6 風險梯 / 夾帶無關改動就否決從簡（tangling veto）/ 「做錯東西就整個退回」判準 | verify（步驟 1 選軸判級） |
 | `cross-model-review` | 卡關時換一個不同的模型當對手 reviewer（opt-in 對抗審查） | iterate（卡關）· verify（可選） |
 | `model-effort-policy` | 成本控管：每個 agent 依角色配多大的模型／多深的思考，高風險任務才升級（表末附每個 agent 各配哪個 model 的逐一對照） | 全 agent（frontmatter）· verify · build |
 
@@ -94,7 +96,7 @@
 |---|---|---|
 | `onboarding` | 動手前先讀 repo 自己的上手文檔 | explore（第 0 步摸架構） |
 | `adr-template` | 決策留痕 ADR 五欄模板：情境 / 選項 / 決定 / 理由 / 後果 | plan（決策留痕） |
-| `task-template` | 可驗證的任務怎麼拆：Description / Acceptance / Verification / Deps / Files / Scope＋「該再拆」四訊號＋XS–XL 尺寸 | plan（拆任務） |
+| `task-template` | vertical behavior slice 怎麼拆：Behaviors / Evidence / Verification / Deps / Files / Budget / Scope＋「該再拆」訊號（**改看承諾了幾個 behavior**）＋XS–XL 尺寸 | plan（拆 slice） |
 | `eval-harness` | 評測 harness 五路：scenario-checklist（`run-eval.mjs`，人工勾）＋ 確定性 oracle runner（`eval-oracle.mjs`，走 quality-gate 比對 failToPass/passToPass、positive-presence 永不假綠）＋ 跨 run 聚合/回歸 gate（`eval-metrics.mjs` record/check，含 `versions` 子命令依 scenario 版本分組追溯）＋ trajectory/process 規則比對（`eval-trajectory.mjs`，superset/subset/unordered/order，零 judge）＋ rubric judge（`eval-judge.mjs`，只評無 oracle 維度、judge-estimate 分軌不污染回歸曲線、不 spawn agent；**其校準/投票延伸** `eval-poll.mjs`＝Cohen κ 對人工金標 + PoLL 多 judge 投票聚合，純函式、不 spawn）。**橫切**：`eval-tags.mjs`＝tag 分組聚合 + eval↔verify 雙向互指（tags 為連結脊椎、task 加 version/verifyAxes、純函式）；`eval-passk.mjs`＝live-candidate 真 pass^k（無偏估計 C(c,k)/C(N,k)、候選重生留上層、純函式不 spawn、附協定 + 成本/沙箱邊界文件 `evals/live/README-protocol.md`）。**活流程**：`eval-panel.mjs`＝judge panel 組合膠水（import 組合 eval-judge+eval-poll，N verdict→PoLL 共識+金標 agreement、不 spawn）；`eval-runs.mjs`＝live-candidate spawn-oracle 膠水（spawn eval-oracle 評當前候選→append 一行 run，候選重生留上層、不 spawn workflow）；`eval-sandbox.mjs`＝live-candidate 容器化沙箱（第一層詞法 containment + 第二層容器隔離 policy/指令建構器〔network none/read-only/資源上限/cap-drop/no-new-privileges〕，CLI check/plan 建構+驗證不執行容器、真跑容器留 CI runtime、純函式不 spawn） | plugin 自評 |
 | `eval-judge-rubric` | eval-judge 的鎖死評分卡（G-Eval 式）：無 oracle 維度的 1–5 刻度 / threshold / 鎖死步驟＋反偏誤紀律＋verdict 輸出格式 | eval-judge agent（無 oracle 維度評分） |
 | `eval-judge-panel` | judge panel 怎麼編排：同回合派 N 個異質 judge（反偏誤）→ 共識；累積後 `eval-poll kappa` 校準。派 judge 留上層、膠水不 spawn | eval Phase 3 活流程 |

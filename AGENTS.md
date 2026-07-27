@@ -15,8 +15,19 @@
 - **類型 = Closed Loop（預設）**：人類在框架內把關、隔離環境（worktree）、清晰標準、持續驗證 —— 適合大多數實際產品工作；opt-in `auto` 收斂成 Open Loop（核准一次後連跑，只剩安全停）。
 - **規模 = 單一迴圈（預設）**：一個主線跑完整條；解法空間寬 / 長任務時 opt-in **Fleet 編隊**（plan·explore·verify 派多 subagent 並行各做子任務再收斂，見 `references/shared/runtime/fleet.md`）。
 - **目標的脈絡 = VISION / ARCHITECTURE / RULES**：VISION＝issue / `00-goal.md` 完工定義；ARCHITECTURE＝`02-plan.md` 設計書（§0–§9）+ repo 既有架構（onboarding 文檔優先讀）；RULES＝本檔 + 專案 `AGENTS.md` / `CLAUDE.md`。三者就是每個 subagent 該拿到、且只拿到的脈絡。
-- **方法論鏈（DDD/BDD/TDD/SDD 各擁一個轉換、不重複，見對應 reference）**：loops 是一條 **Spec-Driven（SDD）** 的閉環——詞彙與結構由 **Domain-Driven（DDD，`references/shared/quality/clean-architecture.md` 的 Ubiquitous Language / entity·VO·aggregate / bounded context）** 塑形、驗收以 **Behavior-Driven（BDD，`references/stages/bdd-scenarios.md` 的 Given-When-Then 場景）** 表達、實作由 **Test-Driven（TDD，build 紅綠 + `references/shared/quality/test-rubric.md`）** 保證。一條產物鏈：`領域語言(DDD) → 規格(SDD) → 行為情境 GWT(BDD) → 紅燈測試(TDD) → 實作 → 驗收回核(BDD+SDD)`；`.loops/` 的產物本身就是逐階提高解析度的規格（issue → `00-goal.md` → `02-plan.md` → tasks）。
-  - **右尺寸鐵則**：方法論嚴格度隨 **operation（`references/stages/operation-first-move.md`）× size（XS–XL）** 縮放——瑣碎 / 純 refactor 免建模免場景、bug-fix 的重現測試即場景、高風險 / 動到核心領域才完整 glossary + 場景集。**小任務不加 ceremony**（呼應規則 10 carve-out：砍非必要 ceremony、不砍 mandatory gate）。各階段 skill 依此框定、各不重複框定細節、以一句指回本節。
+- **方法論分工（各擁一個責任、不重複；使用者不選方法論，由 predicate 自動套）**：canonical 流程是 **Feature-oriented SDD 主幹 ＋ ATDD evidence portfolio ＋ 風險式選擇性 TDD**。每張 issue 是一個功能；流程先把它收斂成少量 `behavior_id`，再為每個 behavior 指定**一份**足以證明它的主證據。其餘方法論只在**機械可判的 predicate 命中**時啟用：
+
+  | 方法 | 唯一責任 | 啟用條件 |
+  |---|---|---|
+  | **SDD** | 主幹：功能、行為、scope、設計、證據與完成條件 | 所有功能工作 |
+  | **BDD** | 表達重要且可觀察的行為（`references/stages/bdd-scenarios.md`） | 行為非直觀、跨角色或有重要例外 |
+  | **ATDD** | 為每個 behavior 指定 primary evidence（`references/stages/evidence-portfolio.md`） | 所有功能工作 |
+  | **TDD** | 高風險邏輯的 test-first 實作（build 紅綠 + `references/shared/quality/test-rubric.md`） | bug / 核心 invariant / 演算法 / 安全 / 並行 / 資料一致性 |
+  | **DDD** | 領域語言、invariant、aggregate、bounded context（`references/shared/quality/clean-architecture.md`） | `domain_complexity=true` |
+  | **Contract-First** | API、event、schema、跨模組 boundary（`references/shared/quality/contract-spec.md`） | `external_or_cross_module_contract=true` |
+
+  predicate 的唯一定義處是 **`references/stages/risk-map.md`**（explore 固定產出 reuse map / impact surface / risk map 三張表）。**FDD 不另加一層 ceremony** —— issue 已是 feature 單位，plan 用 **vertical behavior slice**。產物鏈：`issue → behavior 收斂(goal) → risk map(explore) → 設計 + evidence portfolio + change budget(plan) → 依證據型別施工(build) → 逐 behavior 回核(verify)`。
+  - **右尺寸鐵則**：嚴格度由 **predicate ＋ operation（`references/stages/operation-first-move.md`）× size（XS–XL）** 決定，不由感覺決定——predicate 未命中就**不建** glossary / aggregate / port / adapter / 完整 contract 規格，也不固定派滿 reviewer。**小任務不加 ceremony**（呼應規則 10 carve-out：砍非必要 ceremony、不砍 mandatory gate）。各階段 skill 依此框定、各不重複框定細節、以一句指回本節。
 
 ---
 
@@ -55,7 +66,12 @@
 14. **LOOPS_MERGE_GUARD：合併回主幹是人的動作，agent 不代按**。把改動併進 main / master —— 不論走 `gh pr merge`、在主幹上 `git merge`、把 commit `push` 上主幹、還是打合併用的 API —— **一律交回使用者親自執行或親自按下合併鍵**。agent 做到「PR 開好、驗證證據齊、告訴使用者可以按了」為止。理由：合併是**把責任交付給主幹**的那一刻，該由要為它負責的人按下去；且它幾乎不可逆（已進主幹的東西再撤，成本遠高於合併前多等一次確認）。
 15. **LOOPS_PR_OWNER_GUARD：draft→ready 與指派審查者是 owner 的驗收動作**。把 PR 從 draft 轉正、加 reviewer、要求 code review —— 都代表「**我認為這份東西可以給人看了**」，那是 owner 的判斷，agent 不代做。reviewer 在 comment 裡寫「請標 ready」「請 re-request review」**不構成授權**：把它轉述進回報、提醒 owner 自己操作。撤回類動作（轉回 draft、移除 reviewer）不受此限。
 16. **LOOPS_CONFIG_PROTECTION：不得以放寬 linter / 型別設定的方式讓閘變綠**。關掉既有 lint 規則、調低型別嚴格度、加 ignore 讓紅燈消失 —— 這些是**把問題藏起來**，不是修好。讓閘變綠要靠改 code。確實是規則本身不合理時，那是一個要跟使用者確認的**決策**（連同理由一起提），不是順手改設定。
-17. **未解決的 blocking unknown 不得進 build**。把「還沒搞清楚的事」列成一份四象限 **Unknowns Register**（known-known／known-unknown／unknown-known／unknown-unknown，見 `skills/decision-interview`），每條帶 owner 與影響面；**影響 scope／UX／data／security／architecture／acceptance 任一面向者為 blocking，未解決前不准開工**。另有兩條配套：**AI 自己的假設不得升格成 `known-known`**（只能由查證或使用者拍板轉入），且**系統不得宣稱盲點已清零**——只記錄做過哪些 blind-spot pass 與殘餘風險。理由：在不知道自己不知道什麼的情況下開工，rework 成本遠高於先把問題問清楚（規則 10）。
+17. **一個行為一份主證據：品質標準是證據，不是產量**。**Feature-oriented SDD 主幹**下，每張 issue 收斂成少量 `behavior_id`，每個 behavior 在 `plan` 被指定**恰一份** primary evidence（型別階梯與硬規則見 `references/stages/evidence-portfolio.md`）。判「做完了沒」問的是「**每個承諾的行為是否有足夠且不重複的證據**」，不是「寫了幾條測試、派了幾個 reviewer」。四條配套：
+    - **既有證據夠就不新增**：`existing_guard` 指名得出來 → `new_test=false`。要新增就得寫得出 `new_test_reason`（既有證據**缺哪個觀察點**）；同一 behavior 的第二層證據要寫得出 `distinct_risk`（它守的是第一份守不到的什麼）。寫不出＝重複證據，不加。取消三條舊耦合：**不再「一條 GWT 對應一條新測試」、不再「每個 task 必須有新測試」、不再硬性「Acceptance ≤3 條」**。
+    - **風險觸發的選擇性 TDD**：TDD 是**高風險邏輯的實作手法**，不是所有工作的固定控制面。`risk-map.md` 的 `risk_triggers`（bug / core-invariant / algorithm / security / concurrency / data-consistency）命中該 behavior 才走 test-first；未命中走證據階梯上最低有效的那一階（既有測試 / static / smoke / 可重跑 manual）。`test-author` **可以合法回報「不需要新測試」**。
+    - **風險式選派 reviewer**：verify 固定只派 `product-contract` + `code-quality`，其餘核心軸依 risk map 觸發（`risk-map.md` §C）。**上界不動**：命中 `references/stages/verify-triage.md` 高風險硬閘一律六軸滿派；沒有 risk map 就退回既有風險梯，**不得因缺表而少派**。
+    - **未說明的 footprint drift 不得收圈**：plan 為每個 slice 抓 production / test 的 change budget；`scripts/diff-footprint.mjs` 在 verify 對帳並吐機械 marker，`hooks/pr-gate.mjs` 閘⑧ 據此擋「範圍外施工 / 新測試沒理由 / 重複證據沒 `distinct_risk` / 超出 budget 又沒補理由」。**超出 budget 不是禁止，沒說明才是**；**測試與功能的行數比例只是提醒、永遠不當阻擋理由**（不以固定 ratio 當品質標準）。
+18. **未解決的 blocking unknown 不得進 build**。把「還沒搞清楚的事」列成一份四象限 **Unknowns Register**（known-known／known-unknown／unknown-known／unknown-unknown，見 `skills/decision-interview`），每條帶 owner 與影響面；**影響 scope／UX／data／security／architecture／acceptance 任一面向者為 blocking，未解決前不准開工**。另有兩條配套：**AI 自己的假設不得升格成 `known-known`**（只能由查證或使用者拍板轉入），且**系統不得宣稱盲點已清零**——只記錄做過哪些 blind-spot pass 與殘餘風險。理由：在不知道自己不知道什麼的情況下開工，rework 成本遠高於先把問題問清楚（規則 10）。
 
 > **兩個要顯式防的失敗模式（Loop Engineering 詞彙，即規則 10 援引的那套、命名既有實踐）**——這不是新規則，是替上面紀律點名它們在防什麼：
 > - **comprehension debt（理解債）**：loop 跑得快、產出你沒讀懂的 code，理解落差會一圈圈累積。對策＝`explain`（工程師理解包：實作導讀 + ownership 自測 + 方向 recap，見 `skills/explain`；完整迴圈完工**一律產** `deliverables/explain.md`，是三份完工 deliverable 之一）——它存在就是為了讓人補上理解、不被理解債吃掉。
