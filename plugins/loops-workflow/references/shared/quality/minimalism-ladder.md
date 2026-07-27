@@ -1,6 +1,8 @@
 # minimalism-ladder — 動手前的最小主義階梯（單一正本）
 
 > impl-author 動手加任何新東西（方法 / 檔案 / 抽象 / 欄位 / 依賴）前，**依序爬這條階梯**，停在最早能滿足需求的那一階——author-time 就砍掉不必要的，不留給 verify 抓。核心紀律：**能不做就不做、能用既有的就不新造、能少寫就少寫。**
+>
+> **注入方式（別靠記得）**：`build` 每次派 impl-author 都由 orchestrator **確定性地**把本檔絕對路徑寫進 prompt（同其他 per-axis reference 的做法）——不是「impl-author 自己記得要爬階梯」。
 
 1. **這東西真的需要做嗎？** 你要加的每一項，對應得到 `stages/00-goal.md` 哪一條需求 / 驗收？答不出就別加。（**逐動作問**：這不同於 `clean-architecture.md` YAGNI 的 scope 層——那管「整體功能要不要做」、一次性判斷；這裡是每個新方法 / 檔案 / 欄位都單獨答。）
 2. **codebase 已經有能複用的嗎？** 見 `reuse-check.md`（同方法不同入口、跨 session / 跨層的隱蔽重複）。

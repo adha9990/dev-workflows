@@ -1,6 +1,10 @@
 # verify triage — 改動風險分級 rubric（定 0~6 核心軸）
 
 > verify 步驟 1（選軸）用的明文判準：orchestrator 看 build 的 Change Summaries + 改動檔案清單，定**核心 reviewer 的下界（0~6 軸）**。**判準可逐條核對，存疑一律向上升級**（fail-safe 向嚴）。這份只定「核心軸下界」；領域 reviewer（conditional）由 `optional-reviewers.md` 觸及才加派、去重疊加。
+>
+> **本檔與 `risk-map.md` 的分工（別互推）**：`risk-map.md` §C 是**日常路徑** —— 有 risk map 時，固定派 `product-contract` + `code-quality`，其餘核心軸依 predicate 觸發。本檔是**上界與退路**：
+> - **上界**：下面〈高風險硬閘清單〉命中 → **一律六核心滿派**，risk map 縮不了它。
+> - **退路**：`stages/01-explore.md` **沒有** `loops-risk-map` 區塊時（舊 loop / 直接進 plan / explore 略過），**退回本檔的 0~6 風險梯**判級，一般 code 六軸——**不得因「沒有 risk map」而少派**。
 
 ## 判定順序（命中即定級）
 
