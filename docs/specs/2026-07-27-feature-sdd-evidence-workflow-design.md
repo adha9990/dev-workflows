@@ -1,3 +1,4 @@
+<!-- loops-artifact: design-spec@1 -->
 # Feature-oriented SDD ＋ evidence portfolio ＋ 風險式選擇性 TDD（設計）
 
 > 2026-07-27 拍板（issue #215）。目標：把 canonical workflow 從「每個 task 固定跑完整 TDD」改成

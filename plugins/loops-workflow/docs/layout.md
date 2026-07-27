@@ -1,3 +1,4 @@
+<!-- loops-artifact: concept-doc@1 -->
 # 目錄結構：agents／references 分類、skills 為何維持平鋪
 
 `agents/` 與 `references/` 依角色分了子目錄；`skills/` 沒有——這份文件說清楚三件事：現在的樹長怎樣、

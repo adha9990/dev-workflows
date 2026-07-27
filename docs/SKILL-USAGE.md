@@ -1,3 +1,4 @@
+<!-- loops-artifact: validation-report@1 -->
 # skill／reference 實際載入度（逐版本）
 
 > **這份是某一次量測的紀錄，不是永久說明。** 它回答一句話：規則寫在 skill 裡，實際跑的時候**有沒有被載入**。

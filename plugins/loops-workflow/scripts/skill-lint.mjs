@@ -740,6 +740,9 @@ const NON_HOOK_LEAF_FILES = new Set([
   'hook-input-normalize.mjs',
   'hook-decision-emit.mjs',
   'atomic-write.mjs',
+  // loop-context.mjs 同類（#217）：解「這次呼叫屬於哪條 loop」的純函式葉節點，
+  // 被 agent-trace-guard／telemetry-recorder import，自己不是 hooks.json 的 entry。
+  'loop-context.mjs',
 ]);
 
 function isHookWiringExempt(relPath) {

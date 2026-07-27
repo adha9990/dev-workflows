@@ -1,3 +1,4 @@
+<!-- loops-artifact: docs-index@1 -->
 # 文件索引
 
 人真正會讀的文件都在這裡。`AGENTS.md` 與 `plugins/**/skills`、`plugins/**/references` 是**給 AI 執行的契約**，不是給人的教學——不必從那裡開始讀。

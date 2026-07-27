@@ -1,3 +1,4 @@
+<!-- loops-artifact: concept-doc@1 -->
 # Registry 三件套：規則、元件、外部工具
 
 `references/` 底下有三份機器可讀的登記表，各自回答一個問題：

@@ -1,3 +1,4 @@
+<!-- loops-artifact: validation-report@1 -->
 # Codex Preview — Smoke Test 紀錄
 
 > 日期：2026-07-24。在隔離 `CODEX_HOME` 下實際執行真的 Codex CLI，對 dev-workflows 本身的 canonical 內容（`plugins/loops-workflow/.codex-plugin/plugin.json`＋`.agents/plugins/marketplace.json`）驗證安裝生命週期與環境隔離完整性。需要已認證 Codex session 才能繼續的步驟不在本篇驗證範圍內，一律標 `not measured`——本篇不借用真實 auth、不登入隔離環境去補測這批步驟；同時保留這幾步「日後有認證環境時」的可重跑指令，供之後真的量測時直接照抄，不必重新設計。

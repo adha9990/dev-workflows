@@ -1,3 +1,4 @@
+<!-- loops-artifact: validation-report@1 -->
 # verify 派工觀測：第二輪確認到底有沒有跑
 
 > 重現：`node plugins/loops-workflow/scripts/verify-dispatch.mjs`

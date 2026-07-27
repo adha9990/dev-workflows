@@ -1,3 +1,4 @@
+<!-- loops-artifact: howto-guide@1 -->
 # Codex Preview 快速開始
 
 > 這份文件教你在 **Codex**（desktop app 或 CLI）裡裝好、信任、跑起這個 marketplace。目前是 **Preview**：能裝、能跑最基本的一條路，但不是每項能力都跟 Claude Code 上一樣，誠實的落差列在下方「Preview 能力矩陣」。

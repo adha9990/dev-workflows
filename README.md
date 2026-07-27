@@ -1,3 +1,4 @@
+<!-- loops-artifact: readme@1 -->
 # dev-workflows
 
 > 個人開發工作流 plugin marketplace（測試性）。目前 **1 個 plugin**：

@@ -26,6 +26,10 @@
           },
           {
             "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/telemetry-recorder.mjs\""
+          },
+          {
+            "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/eval-gate.mjs\""
           },
           {
@@ -61,6 +65,15 @@
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/read-accumulator.mjs\""
           }
         ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/telemetry-recorder.mjs\""
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -83,6 +96,10 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/loops-path-guard.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/artifact-creation-guard.mjs\""
           }
         ]
       },
@@ -117,6 +134,15 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pr-owner-guard.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/agent-trace-guard.mjs\""
           }
         ]
       }

@@ -63,6 +63,11 @@ const DEFAULT_ON_FLAGS = [
   'LOOPS_PR_CONFLICT_GATE',
   'LOOPS_MERGE_GUARD',
   'LOOPS_PR_OWNER_GUARD',
+  // #217：telemetry 觀測與 Agent Gate。兩者都有「該 loop 已有 telemetry/」前置，
+  // 所以預設開也不會影響舊 loop——deny 型的 AGENT_TRACE_GATE 對舊 loop 完全 no-op。
+  'LOOPS_TELEMETRY',
+  'LOOPS_AGENT_TRACE_GATE',
+  'LOOPS_ARTIFACT_GATE',
 ];
 // optIn 類（3）：未設 / 怪值一律「關」，只有字面 '1' 才開。
 const OPT_IN_FLAGS = [

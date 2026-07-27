@@ -1,3 +1,4 @@
+<!-- loops-artifact: howto-guide@1 -->
 # 安裝與來源：`/setup` 怎麼用
 
 ## 什麼時候用
