@@ -26,6 +26,8 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 ## Process
 
+> **設計前先取 context pack**（`references/shared/runtime/shared-memory.md`）：explore 已驗證的架構、契約、invariant、reuse map 與波及面直接重用，**不重跑一次架構探索**；這一輪拍板出的契約與 invariant 補寫成 claim 給 build／verify 用。**決策與推薦不進共享記憶**（那是結論不是事實）；派 plan reviewer 時它拿得到同一批架構事實，但拿不到前一位 reviewer 的判定。
+
 ### 1. 決策留痕（decision record，欄位集＝design-plan-schema §6）
 
 每個設計決策記一筆，欄位集以 `references/stages/design-plan-schema.md` §6 為正本：**選擇 / 為什麼 / 背書 / 未採用 / 拍板人**（背書絕不可空）。涉及取捨的開一個決策點給使用者拍板（表述形狀與各平台互動能力的映射見 `references/shared/delivery/interaction-adapter.md`），每選項標推薦 + 理由。要另出**獨立 ADR 檔**時才用 `references/shared/docs/adr-template.md`（Context / Decision / Alternatives / Consequences 四段式）——plan 內嵌的決策留痕表用 §6 欄位集，兩者用途不同。

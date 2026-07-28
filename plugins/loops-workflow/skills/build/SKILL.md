@@ -56,6 +56,7 @@ description: Implements each planned task into working, test-protected code. Use
 | **`manual-evidence`** | **只派 impl-author** → 產出**可重跑**的手動證據（環境 / 步驟 / 預期 / 實際 / 前後對照），落進 `deliverables/` | 1 |
 
 - **預設是一個 implementation agent 完成一個 slice**；紅綠分離（兩個 agent）只在上表前三列啟用。
+- **派工前先產 context pack**（`references/shared/runtime/shared-memory.md`）：每個 slice 依角色各產一份——`test-author` 拿 behavior／契約／既有證據與範圍內的檔案清單，**拿不到檔案內容與實作事實**（隔離規則不因共享而放寬）；`impl-author` 拿架構、契約、reuse、約定與這輪要修的 finding。**架構事實不必每個 slice 重查一次**，來源沒變就直接重用。
 - **偏離 plan 的證據型別要回去改 plan**（living plan）—— 例如做到一半發現既有證據其實蓋不到，要回 `stages/02-plan.md` 把該條改成 `new_test=true` **並補 `new_test_reason`**，再往下。**不可以在 build 現場自行加測試而不更新計畫**：footprint 對帳（`scripts/diff-footprint.mjs`）會抓到「新測試沒有理由」。
 - **每個 slice 收尾比對 change budget**：實際改動明顯超出 plan 抓的 budget → 回 plan 補 `budget_overrun_reason`（超出不是禁止，沒說明才是）。
 

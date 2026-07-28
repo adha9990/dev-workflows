@@ -73,6 +73,7 @@ description: Turns a vague request or issue into an explicit definition-of-done 
 ### 4. 停止條件 + 直接進 explore（不問 DoD 確認）
 
 - **95% 信心**就停止訪談，不無止境追問。
+- **先取用、再補寫共享記憶**：`define` 已經查過的專案約定與既有功能事實直接重用（見 `references/shared/runtime/shared-memory.md`），不重讀一遍 repo；這一輪收斂出的 behavior 與跨切面約定補寫成 claim，讓 explore／plan 接手時不必重問。
 - restate 完工定義寫進 `stages/00-goal.md` + chat 摘要給使用者看，然後**直接進 explore**。
 - **不要停下問「DoD 正確嗎 / 可以鎖定嗎 / 要不要進 explore」** —— restate 出來就是給使用者看的，有錯他會插話改；「鎖定 DoD + 進 explore」是 **routine 轉場、不是決策點**（連 closed 模式也一樣，routine 轉場不問）。
 - **在 goal 停下開決策點問的情況只有三種**：**具體的 scope 取捨選擇**（像「行為 X 要不要納入範圍」這種有明確選項、會改變方向的決策）、**內容型交付的載體**（見步驟 1）、與下條的**需求講不清**。把「DoD 對不對」當成這種決策來問 = 誤用。

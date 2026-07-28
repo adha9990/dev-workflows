@@ -1,7 +1,7 @@
 <!-- loops-artifact: concept-doc@1 -->
 # references 目錄（幫你找到「該讀哪份規範」）
 
-> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。`references/` 樹全體共 **76 份 reference**：其中 59 份主題文件在這頁**依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」；另 17 份是 `reviewers/` 底下的 reviewer 人設模板（由 `gen-reviewers.mjs` 從 `reviewer-shared.md` 生成，不逐份列在下面 6 類裡）。
+> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。`references/` 樹全體共 **77 份 reference**：其中 60 份主題文件在這頁**依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」；另 17 份是 `reviewers/` 底下的 reviewer 人設模板（由 `gen-reviewers.mjs` 從 `reviewer-shared.md` 生成，不逐份列在下面 6 類裡）。
 >
 > 想看**流程全貌**（每階段怎麼跑）→ [`FLOW.md`](FLOW.md)；想看**可設定的參數** → [`settings.md`](settings.md)；這份是「規範字典」。（技術註：subagent 讀不到相對路徑，orchestrator 會把絕對路徑塞進 prompt——見 `AGENTS.md`〈參考檔路徑解析〉。）
 
@@ -90,6 +90,7 @@
 | `fleet` | 編隊模式：多 agent 各用不同策略並行 → 投票 / judge panel 綜合 | explore · plan · verify（可選） |
 | `automations` | `/loop` + `/schedule` 整合（背景連跑 / 排程觸發） | 進階自動化 |
 | `journaling` | `loop.md` 事件日誌格式＋斷線後怎麼接回（resume 協定）＋**全部 hook flag 的決策表** | 全程（進階段 append）· resume |
+| `shared-memory` | 跨階段共享的 agent 記憶：什麼可以共享（事實）／什麼不能（結論）、claim 怎麼寫、派工前怎麼拿 context pack、各角色的獨立性邊界、來源變了怎麼局部失效、續作只補差異 | define · goal · explore · plan · build · verify · iterate · explain（派 repo-aware subagent 前必讀） |
 
 ## 6. 工具 / 模板 / 上手
 

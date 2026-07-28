@@ -103,6 +103,7 @@ loop **完工（或中止）收尾時**，append 一筆 `loop-close` 事件，�
 > | `LOOPS_TELEMETRY` | 開（#217） | 觀測類、零 repo 命令執行；且有「該 loop 已有 `telemetry/`」前置 ⇒ 舊 loop 完全不受影響 |
 > | `LOOPS_AGENT_TRACE_GATE` | 開（#217） | deny 型，但同樣有 `telemetry/` 前置 ⇒ 只約束新制 loop；缺 trace envelope 的派工事後只能靠關鍵字猜身分（猜錯無訊號），事前補一行成本遠低於事後歸錯戶 |
 > | `LOOPS_ARTIFACT_GATE` | 開（#217） | deny 型，但只作用於「整檔寫入受管 Markdown」；`.loops/` 底下另有新制 loop 前置 ⇒ 舊 loop 不受影響。格式債寫的時候零成本、事後散落各處才發現，擋在寫入當下修正成本是一行 |
+> | `LOOPS_CONTEXT_PACK_GATE` | 開（#218） | deny 型，前置比 #217 那兩道更窄——除了 `telemetry/`，還要「這條 loop 真的用過共享記憶」（事件流裡有 knowledge 事件）⇒ 舊 loop 與尚未採用的 loop 完全不受影響。擋兩種可證明的形狀：repo-aware 派工沒帶 context pack 身分（事後查不出它拿到哪些事實，也擋不住「再把專案重新熟悉一遍」）、以及拿已失效的事實去派工（stale fact 看起來跟正確的事實一模一樣）。語意上的「好像又重查了一遍」只記觀測、不擋 |
 > | `LOOPS_STOP_GATE` | **opt-in**（#87 評估後維持） | 開＝自動執行 repo 的 gate.config 命令（#17 RCE 面）；補發現性提示消滅資訊差 |
 > | `LOOPS_LOOP_DRIVER` | **opt-in**（#99） | 家族首支 block hook——殺手鍵獨立性（要 auto 推進未必要機械續跑）；三層 opt-in（flag∧state∧auto 語意）為輔 |
 > | `LOOPS_COMPACT_HINT` | **opt-in**（#87 評估後維持） | 非已踩過坑對治、價值中性 |

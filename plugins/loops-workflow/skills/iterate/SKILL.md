@@ -60,6 +60,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
   - **否**（既有證據其實蓋得到這條路徑，只是實作寫錯了）→ **沿用既有證據**：跑它一次確認現在會綠、且**修之前會紅**（撤掉修正驗一次），不新增測試。
   - 判準來源：`references/shared/quality/test-rubric.md` §7 的**已出貨 / in-loop 分流** —— verify 抓到的是 **in-loop bug**（錯的 code 從未出貨），其回歸測試本來就不在「每 bug 恰留一條」的保留集裡。**每條 finding 無條件補一條回歸測試，是把鷹架當成資產在累積。**
 
+- **修完先跑一次失效判定**（`references/shared/runtime/shared-memory.md`）：改到的來源會讓依賴它的共同事實變 `invalid`／下游變 `uncertain`，其餘保持有效。**這輪只重查失效的那幾條**，沒被碰到的架構事實不重新探索；同一條 finding 的後續修正優先讓原 agent 續作，換人時只給 compact 前次狀態＋這次 delta。
+
 ### 4. 決定回環目標（修完一定再 verify）
 
 依問題性質決定回哪個階段：
