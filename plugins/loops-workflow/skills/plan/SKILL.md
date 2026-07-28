@@ -1,14 +1,16 @@
 ---
 name: plan
 user-invocable: false
-description: Locks design decisions and breaks work into independently verifiable tasks before any code. Use when starting the plan stage of a loops-workflow run, or when an explored approach needs to become a concrete, task-by-task implementation plan.
+description: Explores the repo, resolves the Goal Contract, locks design decisions one blocking question at a time, and breaks work into independently verifiable slices before any code. Also the entry for research work (plan(research)). Use when starting the plan phase of a loops-workflow run, or when an issue needs to become a concrete, slice-by-slice implementation plan.
 ---
 
-# plan — 規劃（拍板方案 + 可驗證任務拆解）
+# plan — 規劃（探索 → 拍板方案 → 可驗證任務拆解）
 
 ## Overview
 
-`plan` 在動任何 code 之前，把設計決策**拍板留痕**，把工作拆成「每一個都能獨立 verify」的 **vertical behavior slice**，並為每個 `behavior_id` **指定一份主證據**。產出 `stages/02-plan.md` —— 一份施工圖：決策紀錄 + 機制圖 + slice 清單（每個帶驗證指令與 change budget）+ **evidence portfolio**。
+`plan` 是 phase 2，也是**有 issue 的工作的預設起點**。它在動任何 code 之前先理解現況，把設計決策**拍板留痕**，把工作拆成「每一個都能獨立 verify」的 **vertical behavior slice**，並為每個 `behavior_id` **指定一份主證據**。產出 `stages/02-plan.md` —— 一份施工圖：決策紀錄 + 機制圖 + slice 清單（每個帶驗證指令與 change budget）+ **evidence portfolio** + **risk map**。
+
+**#219 起「先研究怎麼做」不再是獨立階段**：探索是 plan 隨手用的能力（`references/shared/capability/explore.md`），reuse map / impact surface / risk map 三張表由 plan 自己產出。研究型工作走 **`plan(research)`**（見 §0.5），停在 `research-finalized`。
 
 > `stages/02-plan.md` 文件本體的**完整 §0–§9 施工圖骨架**（系統全貌 + **檔案落點與職責表** + 機制圖 + 名詞說明 + 決策含**具名 OSS 背書** + 三角驗證附錄 + 成果展示）見 `references/stages/design-plan-schema.md` —— 下面 Process 各步驟的產出即歸位到該骨架（決策留痕→§6、機制圖→§2、品質維度→§4）。
 
@@ -18,15 +20,37 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 ## When to Use
 
-**Use when**：explore 已選定方法、要把它變成 slice-by-slice 的施工計畫；或需求清楚、直接要拆可驗證 slice。
+**Use when**：有一張合格 issue、要把它變成 slice-by-slice 的施工計畫；或做一份 bounded research（`plan(research)`）。
 
 **NOT for**：
-- 方法還沒定 —— 回 explore。
+- 還沒有 issue —— 先 `define`（規則 12）。
 - 已有拍板計畫、要開始寫 code —— 直接 build。
 
 ## Process
 
-> **設計前先取 context pack**（`references/shared/runtime/shared-memory.md`）：explore 已驗證的架構、契約、invariant、reuse map 與波及面直接重用，**不重跑一次架構探索**；這一輪拍板出的契約與 invariant 補寫成 claim 給 build／verify 用。**決策與推薦不進共享記憶**（那是結論不是事實）；派 plan reviewer 時它拿得到同一批架構事實，但拿不到前一位 reviewer 的判定。
+### 0. 先理解，再設計（Goal Contract ＋ Explore ＋ Decision Queue）
+
+三件事在提出任何設計問題**之前**做完：
+
+1. **解析 Goal Contract**（`references/shared/capability/goal-contract.md`）——從 issue、`goal-contract.md` 或上一份 handoff 載入目前有效的契約與 revision；缺欄位就地補齊，**不重跑一次完整訪談**。issue 裡寫的實作做法 / 指名的套件記成「建議」不是「需求」：需求是「要達成 X」，「用套件 Y」留給 §2 多方案評估。同時讀專案 root ＋ 就近的 `AGENTS.md`/`CLAUDE.md`，把這次會觸及的跨切面約定折進 Constraint（見 `references/shared/docs/project-conventions.md`）。
+2. **探索**（`references/shared/capability/explore.md`）——**先取 context pack**（`references/shared/runtime/shared-memory.md`）：define 已驗證的架構、契約、約定直接重用，**不重跑一次架構探索**；缺什麼補什麼。這一輪要產出的是 **reuse map / impact surface / risk map 三張表**（predicate 的唯一定義處是 `references/stages/risk-map.md`）——它們決定後面哪幾層 ceremony 會啟用，沒有它們就只能憑感覺加。
+3. **Decision Queue**（`references/shared/capability/decision-queue.md`）——設計問題**一次只問一個**，答完寫回 decision（含 provenance）再重算佇列。**`plan → build` 的核准是獨立的最後一題**（§6），不得和套件選型、scope 取捨綁在同一個問題裡。
+
+> 這一輪拍板出的契約與 invariant 補寫成 claim 給 build／verify 用。**決策與推薦不進共享記憶**（那是結論不是事實）；派 plan reviewer 時它拿得到同一批架構事實，但拿不到前一位 reviewer 的判定。
+
+### 0.5 `plan(research)`：研究型工作的規劃
+
+交付物是研究結論本身時，plan 的產出不是施工圖而是**研究計畫**，寫進 `stages/02-plan.md`（§0–§9 骨架依題目右尺寸取用）：
+
+| 要定的事 | 說明 |
+|---|---|
+| 研究問題 | 一句話講清楚要回答什麼；答不出來也是一種答案 |
+| 來源 | 查哪裡、為什麼那裡夠格（repo 內部優先，外搜先便宜再升級） |
+| 證據品質標準 | 什麼算「查到了」——可重現？有原始出處？有反例檢查？ |
+| 停止條件 | 什麼成立就停（不是「查到滿意為止」） |
+| 交付形式 | 結論放哪（issue comment／repo 文檔／獨立報告）——這是 blocking 決策，一定問 |
+
+研究的 slice 是 research task，不套 change budget 與 evidence portfolio（沒有 production code 要守）。驗證關注**來源品質、可重現性、假設、反例、未知與停止條件**，不套 production code 的完整 reviewer fan-out（見 `verify`）。
 
 ### 1. 決策留痕（decision record，欄位集＝design-plan-schema §6）
 
@@ -42,18 +66,18 @@ description: Locks design decisions and breaks work into independently verifiabl
 
 ### 3.5 契約規格（`external_or_cross_module_contract=true` 才寫）
 
-**由 explore 的 risk map predicate 決定，不憑感覺加**（判準正本見 `references/stages/risk-map.md`）：`external_or_cross_module_contract=true` → 在 `stages/02-plan.md` 拉一段**契約規格**（依 `references/shared/quality/contract-spec.md`）：API request / response / 錯誤形狀、資料 schema + 約束 + migration 可逆性、事件 payload + 保證。契約是 **build 的輸入、verify 的驗收基準**。
+**由 §0 產出的 risk map predicate 決定，不憑感覺加**（判準正本見 `references/stages/risk-map.md`）：`external_or_cross_module_contract=true` → 在 `stages/02-plan.md` 拉一段**契約規格**（依 `references/shared/quality/contract-spec.md`）：API request / response / 錯誤形狀、資料 schema + 約束 + migration 可逆性、事件 payload + 保證。契約是 **build 的輸入、verify 的驗收基準**。
 
 - **契約的證據是「最小 contract test」**：對外形狀一條、錯誤形狀一條，**不逐分支鋪**；它就是該 behavior 的一份 evidence（或第二層證據，要填 `distinct_risk`）。
 - **predicate 未命中就不寫這一段**，也不因此新建 port / adapter（純內部重構、不動對外形狀者屬此類）。
 
 ### 3.6 領域建模（`domain_complexity=true` 才做）
 
-同樣由 risk map predicate 決定：`domain_complexity=true` → 才寫 ubiquitous language glossary、invariant 清單與 aggregate 邊界（依 `references/shared/quality/clean-architecture.md`）。**未命中就不建 glossary / aggregate / bounded context 圖** —— 多數落在既有領域內的功能改動不需要這一層。
+同樣由 §0 的 risk map predicate 決定：`domain_complexity=true` → 才寫 ubiquitous language glossary、invariant 清單與 aggregate 邊界（依 `references/shared/quality/clean-architecture.md`）。**未命中就不建 glossary / aggregate / bounded context 圖** —— 多數落在既有領域內的功能改動不需要這一層。
 
 ### 4. 品質維度過一遍
 
-- **專案跨切面約定當設計輸入**（見 `references/shared/docs/project-conventions.md`）：goal 折進 DoD 的專案約定（i18n / logging / a11y…）在此當**設計輸入**、不事後補 —— 例：label 要 i18n → 設計就要決定 labelKey / t() 接線；新服務要 logging → 設計就含 logger 注入。命中約定的機制在任務裡明確帶出。
+- **專案跨切面約定當設計輸入**（見 `references/shared/docs/project-conventions.md`）：§0 折進 Goal Contract Constraint 的專案約定（i18n / logging / a11y…）在此當**設計輸入**、不事後補 —— 例：label 要 i18n → 設計就要決定 labelKey / t() 接線；新服務要 logging → 設計就含 logger 注入。命中約定的機制在任務裡明確帶出。
 - **設計品質六維度**（簡潔 / 可維護 / 可靠 / 可擴展 / 安全 / 高併發高流量效能）+ **clean architecture 結構標準**（依賴向內 / 分層邊界 / port + 注入 / 落點對齊，見 `references/shared/quality/clean-architecture.md`）：in-scope 實作不以 MVP 設計，對可預見的規模退化預先用對的演算法**與結構**。
 - **設計模式對症選型**（見 `references/shared/quality/design-patterns.md`）：設計某機制時，若問題本來就是某模式的經典形狀（多變體 / 可替換演算法 / 解耦通知…）就用對的模式 —— **對症才用、不為套而套**（YAGNI）。
 - **重用檢查**（判準見 `references/shared/quality/reuse-check.md`）：拆任務前先確認沒有重複造輪子（含跨入口 / 跨 session 的隱蔽重複；稍異 ≠ 另造，優先參數化既有方法）。
@@ -112,6 +136,13 @@ node {loops-workflow-plugin-root}/scripts/validate-plan.mjs <stages/02-plan.md>
 
 > **`stages/02-plan.md` 是 living source of truth**：實作階段若偏離（決策變、任務拆法變），**回去更新它**（並同步已 post 的版本），保持 as-built —— 不是放到 loop 結束才補。完工時這份 as-built plan 提煉成 PR body（見 `references/shared/delivery/pr-spec.md`）。
 
+### 7. H2 · Plan Ready（`stop_after=plan` 就停在這裡）
+
+使用者拍板後：
+
+- `stop_after=plan` ⇒ **停**。依 `references/shared/capability/handoff.md` 產 handoff（`handoff.created` → `.loops/<slug>/handoff/plan.md` → `workflow.paused`），內容要交代 approved plan 與 revision、architecture／data flow／contract、implementation slices 或 research tasks、evidence portfolio、risk／reuse／impact surface、change budget 與 package decisions、下一個 build／research task。**不得**因為 routine transition 就自動開 worktree 或開始 build。
+- 否則 ⇒ 直接進 `build`。
+
 ## Common Rationalizations
 
 | 藉口 | 反駁 |
@@ -123,7 +154,7 @@ node {loops-workflow-plugin-root}/scripts/validate-plan.mjs <stages/02-plan.md>
 | 「每個 slice 都補一條新測試比較安全」 | 安全的是**守到不同風險**，不是多一份。既有證據夠就 `new_test=false`；要新增就寫得出「既有證據缺哪個觀察點」。寫不出＝這條測試不守任何新東西。 |
 | 「多一層測試（unit + integration + e2e）比較保險」 | 同一件事守三次不會更安全，只會讓維護面、跑套時間、審查負擔一起漲。第二層以上要填 `distinct_risk`，寫不出就刪。 |
 | 「budget 抓不準，先空著」 | 空著就沒有 drift 可判，footprint 閘等於關閉、validate-plan 也會擋。抓一個**可稽核的預估**即可，超了補理由，不是禁止超。 |
-| 「這題不複雜，risk map 我心裡有數」 | DDD / Contract-First / test-first 由 predicate 觸發，不由感覺觸發。沒有 risk map 就回 explore 補，不要在 plan 憑印象決定要不要加那幾層。 |
+| 「這題不複雜，risk map 我心裡有數」 | DDD / Contract-First / test-first 由 predicate 觸發，不由感覺觸發。沒有 risk map 就在 §0 補一份，不要憑印象決定要不要加那幾層。 |
 | 「審查抓到的問題完整處理太貴，推薦只修最糟的那半」 | 「只修一半、剩下的接受」會讓某個原本正常的行為壞著出廠＝行為債（AGENTS 規則 10 客觀判準）。推薦以根本解決為先；治標選項把回歸明標在代價面、不得預設標推薦，讓使用者知情拍板。 |
 
 ## Red Flags
@@ -137,6 +168,8 @@ node {loops-workflow-plugin-root}/scripts/validate-plan.mjs <stages/02-plan.md>
 - **slice 沒抓 change budget** 就進 build（缺少可驗證的 budget＝footprint 閘無從判定）。
 - **predicate 未命中卻照樣寫契約規格 / 建 glossary / aggregate**（那兩段由 risk map 觸發，見 §3.5／§3.6）。
 - 一般 / 低風險的 plan **硬跑三輪設計複審**（強度依風險分級；必派沒有例外，但輪數不是）。
+- 還沒探索就開始設計 / 提問（沒有 risk map 就套 ceremony，或問了 code 裡就有答案的事）。
+- `stop_after=plan` 卻繼續開 worktree / 進 build。
 - 對齊 comment **沒用完整版樣板**（缺套件清單 / ADR / 機制圖 / 施工圖）、或機制圖沒放進 comment —— 等於要使用者盲拍設計。
 - **沒在 `plan → build` gate 問使用者就自行跨入 build**（即使 routine 轉場也要在此停下問）。
 - **新增套件沒逐一列出（名稱+版本+用途）+ 標推薦 + 等使用者核可就先裝**；或 build 中途冒出計畫外套件/決策卻沒停下回 gate 問。
@@ -145,6 +178,8 @@ node {loops-workflow-plugin-root}/scripts/validate-plan.mjs <stages/02-plan.md>
 
 ## Verification
 
+- [ ] **設計問題之前**已解析出目前有效的 Goal Contract（含 revision），並產出 reuse map / impact surface / risk map 三張表。
+- [ ] 決策訪談是**一次一個** blocking 問題；`plan → build` 的核准是**獨立的最後一題**（沒和套件／scope／架構綁在一起）。
 - [ ] `stages/02-plan.md` 有 decision record（§6 欄位集：選擇 / 為什麼 / 背書 / 未採用 / 拍板人，背書不可空）+ 機制圖（白話 + 兩圖）。
 - [ ] 拍板 gate 已把每機制的**運作流程圖 + 注入 / 接線圖渲染在 chat 給使用者看**（不只躺在 `stages/02-plan.md` / 不只給精煉 comment）。
 - [ ] 新套件（若有）附 ≥3 候選比較 + 拍板結論。
@@ -160,3 +195,5 @@ node {loops-workflow-plugin-root}/scripts/validate-plan.mjs <stages/02-plan.md>
 - [ ] 對齊 comment 用**完整版樣板**（`skills/plan/references/plan-comment-template.md`：系統全貌+套件清單+ADR+機制圖+施工圖+契約+out-of-scope），機制圖直接放進 comment。
 - [ ] **進 build 前在 gate 問了使用者**（沒自行跨入），且**所有新增套件已逐一列出+推薦+取得核可**，新決策已先問+推薦。
 - [ ] 使用者已拍板，停在 `plan → build` gate。
+- [ ] `stop_after=plan` ⇒ 已產 handoff（`handoff.created` → handoff note → `workflow.paused`）並**停住**；否則直接進 build。
+- [ ] 研究型工作走 `plan(research)`：研究問題／來源／證據品質／停止條件／交付形式都已定案（交付形式一定問過使用者）。

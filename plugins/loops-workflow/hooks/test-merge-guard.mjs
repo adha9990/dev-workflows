@@ -103,7 +103,7 @@ assert(existsSync(HOOK_SCRIPT), 'hooks/merge-guard.mjs 檔案存在（下面所�
     idxComment < idxWorktree && idxWorktree < idxPrGate && idxPrGate < idxMergeGuard,
     '[M1-6] 同 entry 內順序：outbound-comment-guard → worktree-guard → pr-gate → merge-guard（02-plan §1 拍板，#164 起 pr-owner-guard 掛其後，merge-guard 非最後一支）',
   );
-  assert(commands.length === 5, '[M1-7] 該 entry 恰好 5 支 hook（#164 新增 pr-owner-guard 掛載後）');
+  assert(commands.length === 6, '[M1-7] 該 entry 恰好 6 支 hook（#219 新增 handoff-stop-guard 掛載後）');
 }
 
 // =============================================================================

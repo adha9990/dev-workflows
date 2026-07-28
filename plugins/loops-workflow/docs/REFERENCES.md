@@ -1,9 +1,20 @@
 <!-- loops-artifact: concept-doc@1 -->
 # references 目錄（幫你找到「該讀哪份規範」）
 
-> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。`references/` 樹全體共 **77 份 reference**：其中 60 份主題文件在這頁**依功能分 6 類**——每份一句「它管什麼、什麼時候會用到你」；另 17 份是 `reviewers/` 底下的 reviewer 人設模板（由 `gen-reviewers.mjs` 從 `reviewer-shared.md` 生成，不逐份列在下面 6 類裡）。
+> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。`references/` 樹全體共 **81 份 reference**：其中 64 份主題文件在這頁**依功能分 7 類**——每份一句「它管什麼、什麼時候會用到你」；另 17 份是 `reviewers/` 底下的 reviewer 人設模板（由 `gen-reviewers.mjs` 從 `reviewer-shared.md` 生成，不逐份列在下面 6 類裡）。
 >
 > 想看**流程全貌**（每階段怎麼跑）→ [`FLOW.md`](FLOW.md)；想看**可設定的參數** → [`settings.md`](settings.md)；這份是「規範字典」。（技術註：subagent 讀不到相對路徑，orchestrator 會把絕對路徑塞進 prompt——見 `AGENTS.md`〈參考檔路徑解析〉。）
+
+---
+
+## 0. 跨階段能力（不屬於任何一個階段，任何階段都可能用到）
+
+| 檔 | 它管什麼 |
+|---|---|
+| `shared/capability/goal-contract.md` | 這條工作的契約：做完長什麼樣、誰受益、承諾哪些行為、什麼算做完。**任何入口都要解析得出來**；reviewer 的回饋不會自動變成新目標 |
+| `shared/capability/explore.md` | 什麼時候該去看現況、看多少。define 提問前先看、plan 產三張表、build/verify 只補缺口——不是每個階段把 repo 重新熟悉一遍 |
+| `shared/capability/decision-queue.md` | 怎麼問問題：一次一個、答完重算、被答案消除的不再問；「要不要開工」是獨立的最後一題 |
+| `shared/capability/handoff.md` | 停得下來也接得回去：六個交接點各要交代什麼、怎麼決定停在哪、接手時怎麼判斷哪些工作不必重跑 |
 
 ---
 
@@ -76,7 +87,7 @@
 | `outbound-templates` | 每型對外訊息（issue / plan 對齊 / 驗收 / 修正回覆 / 研究提案 EDD / PR body / 提問）對到哪個樣板＋共用 house-style | 經 `comment-policy` 委派（各階段先讀 comment-policy、由它指到本檔） |
 | `comment-policy` | 對外書面總綱：繁中白話、雙視角、標推薦選項、tmp 草稿送出後刪、去客套；§7 驗收報告版型 / §8 修正回覆版型 | 所有面向人的書面 |
 | `interaction-adapter` | 決策點的平台中立表述（觸發理由 / 選項優缺 / 推薦 / 一般決策 vs 安全停）＋映射到各平台互動能力的規則（含不可用時的單一 blocking question fallback）；平台工具名僅包在 adapter-projection 區塊 | 規則作者寫 / 改決策點段落時 · compat-lint 對照 |
-| `edd-comment-template` | 研究／提案 EDD comment 版型：研究票／提案的最終交付怎麼寫（📐 header、blockquote 定位、九個固定區塊、修訂發 vN 新 comment、與 §7/§8 文體分界） | explore · clarify（研究決策摘要）· iterate（提案修訂） |
+| `edd-comment-template` | 研究／提案 EDD comment 版型：研究票／提案的最終交付怎麼寫（📐 header、blockquote 定位、九個固定區塊、修訂發 vN 新 comment、與 §7/§8 文體分界） | plan(research)（研究決策摘要）· finalize（提案修訂） |
 | `commit-spec` | commit 怎麼寫：繁中 title / body、主動分段、type / scope / footer 留英文 | build · iterate（commit） |
 | `pr-spec` | PR body 怎麼寫：as-built 設計書、`Closes #issue`、指派 `@me`、自動併 master 進 branch 防落後、edit-first | iterate（開 / 改 PR） |
 | `pr-feedback-sources` | 收 PR 回饋別漏掉：inline comment 要走 `gh api`、resolved 的要過濾 | iterate（type=fix） |

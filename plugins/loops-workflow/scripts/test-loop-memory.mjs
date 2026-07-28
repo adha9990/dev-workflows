@@ -46,6 +46,11 @@ import { parseSessionId, extractOutcomeLine, parseTokenRange, parseSubagentCount
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(HERE, 'fixtures', 'loop-memory', 'real-loops');
+
+// #219：`goal`／`explore` 退出 phase 表之後，四條 fixture（都是舊制 loop）的那兩個階段會被
+// progress renderer 歸進「不在 phase 表、但仍讀得懂」的 preStages —— 這正是「舊 loop 不回填、
+// 只維持讀取相容」的可觀察樣子。期望值跟著現況更新，不是把檢查放寬。
+const LEGACY_PRE_STAGES = [{ name: 'goal', state: 'done' }, { name: 'explore', state: 'done' }];
 const SESSION_START = join(HERE, '..', 'hooks', 'session-start.mjs');
 const LEDGER = join(HERE, 'loop-ledger.mjs');
 
@@ -173,7 +178,7 @@ const EXPECTED = {
       maxRounds: 3,
       done: true,
       stopCondition: '',
-      stages: 'goal:done,explore:done,plan:done,build:done,verify:done,iterate:done',
+      stages: 'define:done,plan:done,build:done,verify:done,finalize:done',
       preStages: [],
       findings: '',
       head: '6a6c26a',
@@ -213,7 +218,7 @@ const EXPECTED = {
       maxRounds: 3,
       done: true,
       stopCondition: '',
-      stages: 'goal:done,explore:done,plan:done,build:done,verify:done,iterate:done',
+      stages: 'define:done,plan:done,build:done,verify:done,finalize:done',
       preStages: [],
       findings: '',
       head: '680293c',
@@ -253,7 +258,7 @@ const EXPECTED = {
       maxRounds: 3,
       done: false,
       stopCondition: '',
-      stages: 'goal:done,explore:done,plan:done,build:now,verify:pending,iterate:pending',
+      stages: 'define:done,plan:done,build:now,verify:pending,finalize:pending',
       preStages: [],
       findings: '',
       head: '',
@@ -293,8 +298,8 @@ const EXPECTED = {
       maxRounds: 3,
       done: true,
       stopCondition: '',
-      stages: 'goal:done,explore:done,plan:done,build:done,verify:done,iterate:done',
-      preStages: [],
+      stages: 'define:done,plan:done,build:done,verify:done,finalize:done',
+      preStages: LEGACY_PRE_STAGES,
       findings: '',
       head: '6a6c26a2',
       currentTask: 'build 完成：33/33 任務，145 檔 +10931/-395。合併態主線親跑 gate：47 支測試 0 fail、CI 的 8 個 step 本機逐一 exit 0、compat-lint 全庫由 152 筆清到 0、`.claude-plugin` 相對 master 零 diff（`--quiet` 斷言）。',

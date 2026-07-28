@@ -128,7 +128,7 @@ assert(existsSync(HOOK_SCRIPT_PATH), 'hooks/pr-owner-guard.mjs 檔案存在（�
     idxComment < idxWorktree && idxWorktree < idxPrGate && idxPrGate < idxMergeGuard && idxMergeGuard < idxPrOwnerGuard,
     '[M1-3] 同 entry 內順序：outbound-comment-guard → worktree-guard → pr-gate → merge-guard → pr-owner-guard（第五支、排最後）',
   );
-  assert(shellCommands.length === 5, '[M1-4] 該 entry 恰好 5 支 hook（不是掛到另開的新 entry）');
+  assert(shellCommands.length === 6, '[M1-4] 該 entry 恰好 6 支 hook（不是掛到另開的新 entry；#219 新增 handoff-stop-guard）');
 
   // (ii) MCP 群組：matcher 用 new RegExp(matcher).test(name) 對兩個 MCP 工具名都為 true，
   // 且該群組 hooks 含 pr-owner-guard.mjs（不釘死 matcher 字面）。

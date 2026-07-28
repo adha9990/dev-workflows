@@ -21,16 +21,19 @@ import { pathToFileURL } from 'node:url';
 
 import { readEvents } from './loop-ledger.mjs';
 import { emptyKnowledgeState, reduceKnowledgeEvent } from './knowledge-ledger.mjs';
+import { emptyHandoffState, reduceHandoffEvent } from './handoff-ledger.mjs';
 
 /**
- * node 種類（issue #172 資料模型 ＋ #218 的共享記憶）。
- * 後七種是 #218 加的：claim 依 kind 投影成不同節點（architecture→ArchitectureSlice、convention→
- * Convention、contract→Contract、invariant→Invariant，其餘→KnowledgeClaim），讓「這條 loop 認定的
- * 契約有哪些」這種問題查得出來，而不是把所有事實壓成同一種節點再回頭過濾。
+ * node 種類（issue #172 資料模型 ＋ #218 的共享記憶 ＋ #219 的 handoff）。
+ * KnowledgeClaim 之後那七種是 #218 加的：claim 依 kind 投影成不同節點（architecture→ArchitectureSlice、
+ * convention→Convention、contract→Contract、invariant→Invariant，其餘→KnowledgeClaim），讓「這條 loop
+ * 認定的契約有哪些」這種問題查得出來，而不是把所有事實壓成同一種節點再回頭過濾。
+ * `Handoff` 是 #219 加的：交接是**這條 loop 的成果狀態**，要查得出「停在哪個 checkpoint、誰接手、
+ * resume 憑什麼不重跑」，所以它是節點，不是某份文件的附註。
  */
-export const NODE_KINDS = Object.freeze(['Loop', 'Issue', 'Stage', 'Decision', 'Task', 'Artifact', 'Finding', 'Gate', 'Commit', 'PR', 'ToolRun', 'Unknown', 'KnowledgeClaim', 'Source', 'ContextPack', 'ArchitectureSlice', 'Convention', 'Contract', 'Invariant']);
-/** edge 種類（issue #172 資料模型 ＋ #218 的共享記憶）。 */
-export const EDGE_KINDS = Object.freeze(['HAS_STAGE', 'DEPENDS_ON', 'PRODUCED_BY', 'SUPERSEDES', 'ADDRESSES', 'VERIFIED_BY', 'IMPLEMENTS', 'DERIVED_FROM', 'APPLIES_TO', 'CONSUMED_BY', 'INVALIDATED_BY', 'REFRESHED_BY']);
+export const NODE_KINDS = Object.freeze(['Loop', 'Issue', 'Stage', 'Decision', 'Task', 'Artifact', 'Finding', 'Gate', 'Commit', 'PR', 'ToolRun', 'Unknown', 'KnowledgeClaim', 'Source', 'ContextPack', 'ArchitectureSlice', 'Convention', 'Contract', 'Invariant', 'Handoff']);
+/** edge 種類（issue #172 資料模型 ＋ #218 的共享記憶 ＋ #219 的 handoff）。 */
+export const EDGE_KINDS = Object.freeze(['HAS_STAGE', 'DEPENDS_ON', 'PRODUCED_BY', 'SUPERSEDES', 'ADDRESSES', 'VERIFIED_BY', 'IMPLEMENTS', 'DERIVED_FROM', 'APPLIES_TO', 'CONSUMED_BY', 'INVALIDATED_BY', 'REFRESHED_BY', 'HANDED_OFF']);
 
 /** claim kind → node kind（沒對到的一律 KnowledgeClaim；新增 kind 不必動這張表也不會消失）。 */
 export const CLAIM_NODE_KIND = Object.freeze({
@@ -51,6 +54,8 @@ export const PROJECTED_TYPES = Object.freeze({
   decision: 'Decision', task: 'Task', artifact: 'Artifact',
   finding: 'Finding', gate: 'Gate', commit: 'Commit', pr: 'PR', toolrun: 'ToolRun', note: null,
   unknown: 'Unknown',
+  'handoff.created': 'Handoff', 'handoff.accepted': 'Handoff',
+  'workflow.paused': 'Handoff', 'workflow.resumed': 'Handoff',
 });
 
 /**
@@ -88,6 +93,7 @@ function emptyState(slug) {
     unknowns: [],
     blindSpotPasses: [],
     knowledge: emptyKnowledgeState(),
+    handoff: emptyHandoffState(),
     eventCount: 0,
   };
 }
@@ -210,10 +216,11 @@ export function projectEvents(events, { slug = '' } = {}) {
         else if (typeof p.id === 'string' && p.id) upsert(state.unknowns, p.id, { at, ...p }, {});
         break;
       default:
-        // #218 的共享記憶事件（knowledge.* / context-pack.* / context-gap.*）由 knowledge-ledger
-        // 的**同一份 reducer** 處理——投影邏輯只留一份，兩處各寫一次遲早對「什麼叫仍然有效」分岔。
-        // 它也認不得的型別才是真的忽略（不丟例外、不猜語意）。
-        reduceKnowledgeEvent(state.knowledge, ev, at);
+        // #219 的 handoff 事件（handoff.* / workflow.paused / workflow.resumed）與 #218 的共享記憶事件
+        // （knowledge.* / context-pack.* / context-gap.*）各由**它自己那一份 reducer** 處理——投影邏輯
+        // 只留一份，兩處各寫一次遲早對「什麼叫仍然有效」「什麼叫已經交接」分岔。
+        // 兩支都認不得的型別才是真的忽略（不丟例外、不猜語意）。
+        if (!reduceHandoffEvent(state.handoff, ev, at)) reduceKnowledgeEvent(state.knowledge, ev, at);
         break;
     }
   }
@@ -317,6 +324,17 @@ export function toGraph(state) {
     const id = push('Unknown', u.id, `[${u.kind}] ${u.statement ?? ''}`, u, u.at);
     const st = stageAt(u.at);
     if (st) link(st, id, 'PRODUCED_BY', u.at); // 這條 unknown 是在哪個階段被挖出來的
+  }
+
+  // ── #219 handoff：停在哪個 checkpoint、誰接手、resume 憑什麼不重跑 ─────────
+  // 它掛在 Loop 上（HANDED_OFF）而不是掛在某個階段：交接是這條 loop 的成果狀態，
+  // 換人接手時要問的是「這條工作到哪了」，不是「哪個階段留下了一份檔案」。
+  // 同時掛回產出它的階段（PRODUCED_BY），讓「H3 是誰做出來的」也查得到。
+  for (const h of state.handoff?.handoffs ?? []) {
+    const id = push('Handoff', h.handoffId, `${h.checkpoint}${h.accepted ? '（已接手）' : ''}`, h, h.at);
+    link(loopId, id, 'HANDED_OFF', h.at);
+    const st = stageAt(h.at);
+    if (st) link(id, st, 'PRODUCED_BY', h.at);
   }
 
   // ── #218 共享記憶：claim／source／pack 與它們之間的關係 ────────────────────

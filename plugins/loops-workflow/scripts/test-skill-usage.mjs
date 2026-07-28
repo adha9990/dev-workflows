@@ -213,7 +213,7 @@ testCase('U9b', '專案標籤不把使用者的機器路徑寫進報告', () => 
 
 testCase('U10', '真 repo 的 plugin 目錄本身可以當快照（不必依賴已安裝的快取）', () => {
   const snap = loadSnapshot(REPO_PLUGIN);
-  assert(snap.skills.length >= 14, `repo 內的 skill 集合讀得到（${snap.skills.length} 個）`);
+  assert(snap.skills.length >= 11, `repo 內的 skill 集合讀得到（${snap.skills.length} 個）`);
   assert(snap.references.length > 50, `reference 遞迴收集得到（${snap.references.length} 份，含分類子目錄）`);
   const exp = expectedReferences(snap);
   assert(exp.size > 20, `有 ${exp.size} 份 reference 被至少一個 skill 正文指名`);

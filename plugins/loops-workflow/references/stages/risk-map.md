@@ -2,7 +2,7 @@
 
 > **使用者不選方法論。** `explore` 固定產出三張表——**reuse map**（可重用的既有實作）、**impact surface**（這次會動到誰）、**risk map**（本檔定義的機械可讀 predicate）。DDD、Contract-First、test-first（TDD）與額外 reviewer **只在 predicate 命中時啟用**；未命中就不做那層 ceremony（不建 glossary / aggregate / port / adapter / 完整 contract 規格，也不固定派滿 reviewer）。
 >
-> 這份是 **predicate 的唯一定義處**：`skills/explore`（產出）、`skills/plan`（決定要不要開 DDD / Contract-First 段落）、`skills/build`（決定哪些 behavior 走 test-first）、`skills/verify`（選 reviewer）都**引用本檔、不各自重述**。
+> 這份是 **predicate 的唯一定義處**：`skills/plan`（探索時產出，並決定要不要開 DDD / Contract-First 段落）、`skills/build`（決定哪些 behavior 走 test-first）、`skills/verify`（選 reviewer）都**引用本檔、不各自重述**。
 
 ## 產出落點與形狀
 

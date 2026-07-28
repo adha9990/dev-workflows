@@ -59,7 +59,9 @@ export function extractProgress(entry) {
   if (done) nextStep = '完工';
   else if (currentIdx >= 0 && currentIdx < STAGE_ORDER.length - 1) nextStep = STAGE_ORDER[currentIdx + 1];
   else if (currentIdx === STAGE_ORDER.length - 1) nextStep = '完工';
-  else if (stage !== '?') nextStep = 'goal';
+  // 認不得目前階段（舊 loop 的退場 phase、或前置動作）時退到第一個 canonical phase：
+  // 「下一步」是給人看的提示，指向流程的起點永遠比留白有用（#219）。
+  else if (stage !== '?') nextStep = STAGE_ORDER[0] ?? '';
 
   const outcome = (md.split('\n').map((l) => l.trim()).find((l) => l.includes('★[outcome]'))) || '';
   const unknowns = extractUnknownsSection(md);

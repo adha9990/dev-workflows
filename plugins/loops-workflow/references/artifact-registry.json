@@ -80,73 +80,51 @@
       "gate": "creation"
     },
     {
-      "artifact_id": "stage-clarify",
-      "audience": "engineer",
+      "artifact_id": "goal-contract",
+      "audience": "mixed",
       "channel": "local-loop",
-      "path_pattern": ".loops/<slug>/stages/00-clarify.md",
+      "path_pattern": ".loops/<slug>/goal-contract.md",
       "template_version": 1,
       "render_mode": "hybrid",
-      "template": "skills/clarify/SKILL.md",
+      "template": "references/shared/capability/goal-contract.md",
       "required_sections": [
-        "確認後的理解",
-        "選定方向"
+        "工作契約",
+        "行為",
+        "驗收與停止條件"
       ],
       "optional_sections": [
-        "待釐清"
+        "限制與不做什麼",
+        "revision 紀錄"
       ],
       "style_contract": "traditional-chinese-plain-language",
-      "producer": "clarify",
+      "producer": "create-goal",
       "data_source": [],
       "renderer": null,
       "validator": "required-sections",
-      "gate": "phase"
+      "gate": "phase",
+      "notes": "#219：Goal Contract 是**跨階段的工作契約**，不是某個階段的產物——所以它落在 loop 根、不在 stages/ 底下。舊 loop 的 stages/00-goal.md 不回填、不改寫，只是不再納管。"
     },
     {
-      "artifact_id": "stage-goal",
+      "artifact_id": "exploration-receipt",
       "audience": "engineer",
       "channel": "local-loop",
-      "path_pattern": ".loops/<slug>/stages/00-goal.md",
+      "path_pattern": ".loops/<slug>/explore/*.md",
       "template_version": 1,
       "render_mode": "hybrid",
-      "template": "references/stages/goal-restate-schema.md",
+      "template": "references/shared/capability/explore.md",
       "required_sections": [
-        "完工定義",
-        "停止條件"
+        "查到什麼",
+        "還缺什麼"
       ],
-      "optional_sections": [
-        "訪談軌跡",
-        "behavior 收斂"
-      ],
+      "optional_sections": [],
       "style_contract": "traditional-chinese-plain-language",
-      "producer": "goal",
+      "producer": "research",
       "data_source": [],
       "renderer": null,
       "validator": "required-sections",
-      "gate": "phase"
-    },
-    {
-      "artifact_id": "stage-explore",
-      "audience": "engineer",
-      "channel": "local-loop",
-      "path_pattern": ".loops/<slug>/stages/01-explore.md",
-      "template_version": 1,
-      "render_mode": "hybrid",
-      "template": "references/stages/risk-map.md",
-      "required_sections": [
-        "reuse map",
-        "impact surface",
-        "risk map"
-      ],
-      "optional_sections": [
-        "方案選項",
-        "推薦"
-      ],
-      "style_contract": "traditional-chinese-plain-language",
-      "producer": "explore",
-      "data_source": [],
-      "renderer": null,
-      "validator": "required-sections",
-      "gate": "phase"
+      "gate": "phase",
+      "optional": true,
+      "notes": "#219 Explore-before-question Gate 的**人讀版**。receipt 的機械真相源是事件流（knowledge.claimed／context-pack.built／context-gap.detected），Gate 讀的是那些事件、不是這份檔——所以本產物標 optional：需要留給人看時才寫，不得無條件要求它存在（規則 20 配套③）。要求長篇探索報告正是 #219 要消除的形狀。"
     },
     {
       "artifact_id": "stage-plan",
@@ -345,6 +323,32 @@
       "notes": "條件式產出：只有使用者知情決定帶著未修 P0 進 PR 時才寫。 Phase Gate 不得無條件要求它存在——那會逼人為了過閘生出一份沒有意義的文件。"
     },
     {
+      "artifact_id": "handoff-note",
+      "audience": "mixed",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/handoff/*.md",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "artifacts/templates/handoff-note.md",
+      "required_sections": [
+        "交接摘要",
+        "已完成",
+        "未完成",
+        "產出",
+        "接手須知"
+      ],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "handoff",
+      "data_source": [
+        "events.jsonl"
+      ],
+      "renderer": null,
+      "validator": "required-sections",
+      "gate": "phase",
+      "notes": "#219：到達 stop_after 時產出的交接文件，一個 checkpoint 一份（檔名＝checkpoint id）。**AI 不得各自自由撰寫格式**——固定骨架在 template，checkpoint 各自要交代哪些事的真相源是 workflow-vocabulary 的 handoff.checkpoints[].required_content，不在這裡複製第二份。render_mode 是 hybrid 而非 deterministic：摘要表的欄位由 handoff contract 決定，但「已完成／未完成／接手須知」是這次真的做了什麼，生不出來也不該生。"
+    },
+    {
       "artifact_id": "issue-body",
       "audience": "mixed",
       "channel": "github",
@@ -444,7 +448,7 @@
       "required_sections": [],
       "optional_sections": [],
       "style_contract": "traditional-chinese-plain-language",
-      "producer": "explore",
+      "producer": "research",
       "data_source": [],
       "renderer": null,
       "validator": "outbound-contract",

@@ -1,7 +1,7 @@
 {
   "name": "loops-workflow",
-  "version": "0.62.0",
-  "description": "7 階段閉環開發工作流：dispatch 決策樹分流（視情況先走 clarify/define/scaffold 前置）→ goal/explore/plan/build/verify/iterate，階段間 human gate。canonical 方法論＝Feature-oriented SDD 主幹＋每個行為一份主證據（evidence portfolio）＋風險式選擇性 TDD：DDD／Contract-First／test-first／額外 reviewer 由機械可讀 predicate 觸發，未命中就不加 ceremony。兩個公開入口：dispatch 開始／接續一條 loop、setup 安裝與對帳外部來源。規則依可判定性分四級執行；loop 記憶體以 append-only 事件流為唯一真相源，人讀快照與工作圖由它重建。",
+  "version": "0.63.0",
+  "description": "五階段閉環開發工作流：`define → plan → build → verify → finalize`，每個階段後面接一個可停可交接的 checkpoint（H1–H5）——只開 issue、只規劃、只施工交 QA、只驗一份 PR 都是完整交付，換人接手時先驗 freshness、不重跑已完成階段。dispatch 判入口與 stop_after（控制節點，不是階段）；Goal Contract／Explore／Decision Queue 是跨階段能力（不是階段）：先探索再提問、一次一個 blocking 決策。canonical 方法論＝Feature-oriented SDD 主幹＋每個行為一份主證據（evidence portfolio）＋風險式選擇性 TDD：DDD／Contract-First／test-first／額外 reviewer 由機械可讀 predicate 觸發，未命中就不加 ceremony。兩個公開入口：dispatch 開始／接續一條 loop、setup 安裝與對帳外部來源。規則依可判定性分四級執行；loop 記憶體以 append-only 事件流為唯一真相源，人讀快照、工作圖與交接文件都由它重建。",
   "author": {
     "name": "陳駿騰",
     "url": "https://github.com/adha9990"

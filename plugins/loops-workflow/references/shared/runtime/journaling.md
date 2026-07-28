@@ -14,9 +14,15 @@
 ├── loop.md                 # 由 events.jsonl 重生的人類快照（generated；手改會被下次重生蓋掉）
 ├── loop.md.legacy          # （遷移後才有）遷移前的舊 loop.md 逐字備份
 ├── blocking-waiver.md      # （選用）知情豁免留痕——僅在使用者知情帶未修 P0 進 PR 時才有；pr-gate 閘⑥ 認可的機械訊號
-├── stages/                 # 各階段的過程檔（帶編號、依流程順序）
-│   ├── 00-goal.md
-│   ├── 01-explore.md
+├── goal-contract.md        # 跨階段的工作契約（#219）——不屬於任何一個 phase，所以放 loop 根、不在 stages/ 底下
+├── handoff/                # 交接（#219）：一個 checkpoint 一份，檔名＝checkpoint id
+│   ├── issue.md            # H1 · Issue Ready
+│   ├── plan.md             # H2 · Plan Ready
+│   ├── build.md            # H3 · Build Ready
+│   ├── verified.md         # H4 · Verified
+│   └── finalized.md        # H5 · Delivery Ready（研究：research-finalized.md）
+├── explore/                # （選用）exploration receipt 的人讀版——機械真相源是事件流，不強制產
+├── stages/                 # 各 phase 的過程檔（帶編號、依流程順序）
 │   ├── 02-plan.md
 │   ├── 03-build.md
 │   └── 04-verify.md
@@ -103,6 +109,8 @@ loop **完工（或中止）收尾時**，append 一筆 `loop-close` 事件，�
 > | `LOOPS_TELEMETRY` | 開（#217） | 觀測類、零 repo 命令執行；且有「該 loop 已有 `telemetry/`」前置 ⇒ 舊 loop 完全不受影響 |
 > | `LOOPS_AGENT_TRACE_GATE` | 開（#217） | deny 型，但同樣有 `telemetry/` 前置 ⇒ 只約束新制 loop；缺 trace envelope 的派工事後只能靠關鍵字猜身分（猜錯無訊號），事前補一行成本遠低於事後歸錯戶 |
 > | `LOOPS_ARTIFACT_GATE` | 開（#217） | deny 型，但只作用於「整檔寫入受管 Markdown」；`.loops/` 底下另有新制 loop 前置 ⇒ 舊 loop 不受影響。格式債寫的時候零成本、事後散落各處才發現，擋在寫入當下修正成本是一行 |
+> | `LOOPS_HANDOFF_STOP_GATE` | 開（#219） | deny 型，前置最窄——只在「這條 loop 真的停在某個 handoff 上」時生效，沒有 handoff 事件的舊 loop 與正常推進中的 loop 完全不受影響。擋的是「使用者說先開 issue 就好，agent 卻順手建 worktree、進 plan、開始改 code」：跨過要求的停點在事後只看得到「這條 loop 比較貴」，沒有任何訊號。`.loops/` 底下的寫入一律放行——那正是交接本身要做的事 |
+> | `LOOPS_DECISION_GATE` | 開（#219） | deny 型，只作用於結構化提問、且只對已有 `telemetry/` 的新制 loop 生效。擋三種可證明的形狀：一次問多題（一個 turn 只能有一個 active blocking decision）、還有未收掉的 pending decision 就開下一個、以及 define／plan 沒有任何 exploration receipt 就提問。**不判斷問題問得好不好**——那不可機械判定 |
 > | `LOOPS_CONTEXT_PACK_GATE` | 開（#218） | deny 型，前置比 #217 那兩道更窄——除了 `telemetry/`，還要「這條 loop 真的用過共享記憶」（事件流裡有 knowledge 事件）⇒ 舊 loop 與尚未採用的 loop 完全不受影響。擋兩種可證明的形狀：repo-aware 派工沒帶 context pack 身分（事後查不出它拿到哪些事實，也擋不住「再把專案重新熟悉一遍」）、以及拿已失效的事實去派工（stale fact 看起來跟正確的事實一模一樣）。語意上的「好像又重查了一遍」只記觀測、不擋 |
 > | `LOOPS_STOP_GATE` | **opt-in**（#87 評估後維持） | 開＝自動執行 repo 的 gate.config 命令（#17 RCE 面）；補發現性提示消滅資訊差 |
 > | `LOOPS_LOOP_DRIVER` | **opt-in**（#99） | 家族首支 block hook——殺手鍵獨立性（要 auto 推進未必要機械續跑）；三層 opt-in（flag∧state∧auto 語意）為輔 |

@@ -1,7 +1,7 @@
 ---
 name: verify
 user-invocable: false
-description: Independently reviews built work for merge readiness — including whether the issue was actually done — and returns a Ready / Not ready verdict. Use when starting the verify stage of a loops-workflow run, or when completed work needs an independent review before iterate.
+description: Independently reviews built work for merge readiness — including whether the issue was actually done — returns a Ready / Not ready verdict, and hands off at H4 when the user only asked for verification. Use when starting the verify phase of a loops-workflow run, or when completed work needs an independent review before finalize.
 ---
 
 # verify — 驗證（確定性閘 + 5 步）
@@ -16,7 +16,7 @@ description: Independently reviews built work for merge readiness — including 
 
 ## When to Use
 
-build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/ 報告已出要決定回環（去 iterate）。
+build 完成、要 merge 前驗收；或只驗一份 PR／改動（入口 `verify-only`，停在 H4）。**不是**：還在寫 code（回 build）/ 報告已出要決定回環（那是 iteration-controller 的事）。
 
 ## Process
 
@@ -139,6 +139,16 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 
 > 要把結論 post 成 PR/issue comment（給人審）→ 套 `references/shared/delivery/comment-policy.md` §7 版型（tmp 草稿、送出後刪）。送審前自檢（單一送審判定 + 「作者已留痕的決定不算 finding」硬規則）見 `references/stages/preflight.md`。
 
+### 6. H4 · Verified（`stop_after=verified` 就停在這裡）
+
+QA / reviewer 只被要求「驗這一份」時，驗完就是完整交付。`stop_after=verified` ⇒ 依 `references/shared/capability/handoff.md` 產 handoff（`handoff.created` → `.loops/<slug>/handoff/verified.md` → `workflow.paused`），內容要交代：verdict、findings 與各自的處置、acceptance／risk 證據、`not_measured` 的項目、**Goal Contract conformance**（逐 behavior 對得上嗎、revision 幾）、以及**可不可以 finalize**。
+
+否則 ⇒ 有 actionable finding 就回 build 修（remediate → reverify），沒有就進 finalize。
+
+### 研究型工作的驗證（`plan(research)` 來的）
+
+研究的驗證關注**來源品質、可重現性、假設、反例、殘餘未知與停止條件是否真的達到**，**不套 production code 的完整 reviewer fan-out**——那些 lens（並發、migration、a11y…）對一份研究結論沒有對應的東西可看。確定性閘同樣只跑得動的那幾道；跑不動的照實標 `not_measured`。
+
 ## Red Flags
 
 - **沒跑步驟 0 的確定性閘就派 fan-out**（型別 / lint / 測試紅著、或計畫與實作對不上時，整輪 reviewer 都是白燒）。
@@ -176,3 +186,4 @@ build 完成、要 merge 前驗收。**不是**：還在寫 code（回 build）/
 - [ ] **步驟 5**：每條 finding 有 P0–P2（P3 落 Non-blocking notes）+ Confidence + Route + Metric-Honesty；結論 Ready / Not ready 進 iterate（只 P0 才停下問）；回環修完再驗一輪。
 - [ ] **步驟 5（機械 marker）**：`stages/04-verify.md` 判定段最末有一行 `<!-- loops-verify verdict=… p0=… p1=… round=… findings=… validated=… -->` 與一行 `<!-- loops-footprint status=… -->`（每輪都寫、不藏 code fence；`p0`/`p1`＝仍未修的條數，Ready ⟹ `p0=0 p1=0`；`findings`/`validated`＝步驟 3 要求二輪確認的條數與已確認條數，**與 `p0`/`p1` 是不同的量**）——pr-gate 閘⑥ 讀 `p0` 判收圈的機械下界（`p1` 不參與判定但仍要如實寫）、閘⑦ 讀 `findings`/`validated` 判第二輪有沒有跑、閘⑧ 讀 footprint marker 判未說明的 drift，缺了各自 fail-open 就形同關閉。
 - [ ] **步驟 5（delta re-verify 機械化）**：每輪再驗**在 fan-out 前**於 `stages/04-verify.md` 寫了選軸推導表（改動領域 / 簽名 → 核心軸 → conditional lens），且**實際派出的 reviewer 集合＝表推導出的集合**（非事後補、非手挑子集）；**上一輪被更深驗證手段第一次看見缺陷的那個手段，本輪仍在用**（沒退回淺驗證，見 `iterate` §5 歸因）。
+- [ ] **步驟 6**：`stop_after=verified` ⇒ 已產 H4 handoff（`handoff.created` → handoff note → `workflow.paused`）並**停住**，內容含 verdict／findings 處置／證據／`not_measured`／Goal Contract conformance／可不可以 finalize；否則有 actionable finding 回 build 修、沒有就進 finalize。

@@ -118,7 +118,7 @@ function singleEntrypointCheck(entries) {
 {
   const twoEntrypoints = [
     { dirName: 'dispatch', name: 'dispatch', userInvocable: undefined },
-    { dirName: 'goal', name: 'goal', userInvocable: undefined }, // 忘了標 false
+    { dirName: 'plan', name: 'plan', userInvocable: undefined }, // 忘了標 false
   ];
   const r1 = singleEntrypointCheck(twoEntrypoints);
   assert(r1.ok === false && r1.entrypoints.length === 2, '[A4-1] 負向：2 個 skill 都未標 false → singleEntrypointCheck.ok===false（抓到入口清單漂移）');
@@ -129,11 +129,11 @@ function singleEntrypointCheck(entries) {
   const r2 = singleEntrypointCheck(zeroEntrypoints);
   assert(r2.ok === false && r2.entrypoints.length === 0, '[A4-2] 負向：唯一入口被誤標 user-invocable:false → ok===false（0 個入口）');
 
-  const mismatchedName = [{ dirName: 'goal', name: 'goals', userInvocable: false }];
+  const mismatchedName = [{ dirName: 'plan', name: 'plans', userInvocable: false }];
   const r3 = skillNameConsistencyCheck(mismatchedName);
   assert(r3.length === 1, '[A4-3] 負向：frontmatter name 與目錄名不符 → skillNameConsistencyCheck 抓到 1 條 finding');
 
-  const missingName = [{ dirName: 'goal', name: null, userInvocable: false }];
+  const missingName = [{ dirName: 'plan', name: null, userInvocable: false }];
   const r4 = skillNameConsistencyCheck(missingName);
   assert(r4.length === 1 && r4[0].detail.includes('缺'), '[A4-4] 負向：SKILL.md 讀不到 name → skillNameConsistencyCheck 抓到 1 條 finding');
 }
@@ -389,7 +389,7 @@ function readComponentFrontmatter(components, root) {
 
   // C3 負向 fixture：把某支非入口 skill 的 registry 值改成 true（只改記憶體副本，不動版控內 registry）
   // → 必須紅，且指名該元件。
-  const tamperedId = 'goal-skill';
+  const tamperedId = 'plan-skill';
   const tampered = components.map((c) => (c.id === tamperedId ? { ...c, user_invocable: true } : c));
   const tamperedFindings = visibilityReconciliationCheck({ components: tampered, frontmatterById, manifestRoots });
   assert(tamperedFindings.some((f) => f.component === tamperedId && f.check === 'registry-vs-frontmatter'),

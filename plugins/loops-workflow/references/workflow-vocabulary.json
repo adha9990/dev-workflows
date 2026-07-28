@@ -1,63 +1,47 @@
 {
-  "schema_version": "1",
-  "notes": "canonical workflow vocabulary（#217）——Claude 與 Codex 共用的同一份工作流詞彙。artifact registry、telemetry ledger、cost renderer 與所有 gate 一律從這裡取值，不各自寫死字串清單。三件事在這裡定案：①哪些是 phase（工作階段）、②哪些是 control node（控制節點，不是 phase）、③成本歸因的維度順序。iterate 保留為相容的 skill 名，但語意是 iteration-controller、不是 phase——把它當 phase 會掩蓋『成本實際發生在 remediation 還是 reverify』。",
+  "schema_version": "2",
+  "notes": "canonical workflow vocabulary（#217 建立、#219 重構）——Claude 與 Codex 共用的同一份工作流詞彙。artifact registry、telemetry ledger、cost renderer、handoff ledger 與所有 gate 一律從這裡取值，不各自寫死字串清單。\n\n#219 把三件事分開，因為它們過去混在同一張 phase 表裡：①**phase**＝真正產生不同成果的工作階段，只有五個（define／plan／build／verify／finalize）；②**control node**＝決定要走哪個 phase 的控制點（dispatch、iteration-controller），不是工作階段；③**capability**＝跨階段按需使用的能力（Goal Contract、Explore、Decision Queue），任何 phase 都可能用到，因此不可能是其中某一個 phase。\n\n`clarify`／`goal`／`explore`／`iterate` 因此退出 phase 表（見 retired_phases）：goal 是所有入口都要維持的工作契約、explore 會在定義與規劃與修正時反覆使用、iterate 是 verify→build→verify 的迴圈控制、clarify 的責任由 repo-aware 的 define／plan 決策訪談吸收。把它們當 phase 會掩蓋『成本實際發生在 remediation 還是 reverify』，也會讓『先理解現況再提問』沒有落點。\n\n舊 loop 不回填、不改寫：retired_phases 提供**讀取相容**的對照（舊事件流仍讀得懂），但**寫入面一律用 canonical phase**——寫寬讀嚴會讓兩套詞彙長期並行，那正是本次要消除的形狀。",
 
   "phases": [
     {
-      "id": "clarify",
-      "order": 1,
-      "skill": "clarify",
-      "optional": true,
-      "description": "把模糊的一句話收斂成確認過的理解與方向"
-    },
-    {
       "id": "define",
-      "order": 2,
+      "order": 1,
       "skill": "define",
       "optional": true,
-      "description": "把已釐清的工作寫成 GitHub issue（建 issue 的唯一入口）"
-    },
-    {
-      "id": "goal",
-      "order": 3,
-      "skill": "goal",
-      "optional": false,
-      "description": "訂出完工定義與停止條件"
-    },
-    {
-      "id": "explore",
-      "order": 4,
-      "skill": "explore",
-      "optional": false,
-      "description": "研究怎麼做，產出有證據的選項與建議"
+      "handoff": "issue",
+      "description": "把還沒有 issue 的工作寫成 GitHub issue（建 issue 的唯一入口），並建立 Goal Contract。已有合格 issue 時可跳過"
     },
     {
       "id": "plan",
-      "order": 5,
+      "order": 2,
       "skill": "plan",
       "optional": false,
-      "description": "拍板設計並切成可獨立驗收的任務"
+      "handoff": "plan",
+      "description": "拍板設計並切成可獨立驗收的任務；研究型工作走 plan(research)，定義問題、來源、證據品質與停止條件"
     },
     {
       "id": "build",
-      "order": 6,
+      "order": 3,
       "skill": "build",
       "optional": false,
-      "description": "把計畫實作成有測試保護的程式碼"
+      "handoff": "build",
+      "description": "把計畫實作成有測試保護的程式碼；回環後的修正也記在這裡（remediate）"
     },
     {
       "id": "verify",
-      "order": 7,
+      "order": 4,
       "skill": "verify",
       "optional": false,
-      "description": "獨立複查合併就緒與否，回 Ready / Not ready"
+      "handoff": "verified",
+      "description": "獨立複查合併就緒與否，回 Ready / Not ready；修完的重驗也記在這裡（reverify）"
     },
     {
       "id": "finalize",
-      "order": 8,
+      "order": 5,
       "skill": "iterate",
       "optional": false,
-      "description": "收圈：產固定 deliverables、開 PR、收尾。skill 名沿用 iterate（相容），但這個 phase 只涵蓋『收圈與交付』那一段，回環控制屬 iteration-controller"
+      "handoff": "finalized",
+      "description": "收圈與交付：產固定 deliverables、開 PR、收尾。skill 名沿用 iterate（相容），但回環控制屬 iteration-controller、不屬這個 phase"
     }
   ],
 
@@ -65,21 +49,75 @@
     {
       "id": "dispatch",
       "skill": "dispatch",
-      "description": "路由：判類型、建 loop、決定起點 phase。它決定要走哪個 phase，本身不是工作階段"
+      "description": "路由：判入口、resume、決定起點 phase 與 stop_after。它決定要走哪個 phase，本身不是工作階段，也不出現在 phase 報表"
     },
     {
       "id": "iteration-controller",
       "skill": "iterate",
       "compat_skill_name": "iterate",
-      "description": "回環控制：讀 verify findings、決定回哪個 phase、遞增 iteration。成本要記在它驅動出來的 remediate／reverify activity 上，不是記成一個叫 iterate 的 phase"
+      "description": "回環控制：讀 verify findings、決定回哪個 phase、遞增 iteration。成本要記在它驅動出來的 remediate（build）／reverify（verify）activity 上，不是記成一個叫 iterate 的 phase"
+    }
+  ],
+
+  "capabilities": [
+    {
+      "id": "goal-contract",
+      "reference": "references/shared/capability/goal-contract.md",
+      "activities": ["create-goal", "resolve-goal", "reconcile-goal"],
+      "roles": ["goal-resolver"],
+      "description": "每條工作在任何入口都必須能解析出目前有效的 Goal Contract。新需求由 define 建立、既有 issue 由 resolver 載入或補齊、PR comment 與原 Goal Contract reconciliation。它不是某個階段，是所有階段共同維持的工作契約"
+    },
+    {
+      "id": "explore",
+      "reference": "references/shared/capability/explore.md",
+      "activities": ["research"],
+      "roles": ["explore"],
+      "description": "repo／外部資訊檢索能力。define 與 plan 在提問前先取得足以理解現況的 context；build／verify／PR fix 只補 context gap、delta 或失效範圍，不重新熟悉整個 repo。研究工作使用同一份能力，由 plan(research) 定義問題與停止條件"
+    },
+    {
+      "id": "decision-queue",
+      "reference": "references/shared/capability/decision-queue.md",
+      "activities": ["clarify"],
+      "roles": [],
+      "description": "define 與 plan 共用的可重算決策佇列：explore → 找出仍 blocking 的最高優先 decision → 一次只問一個 decision_id → 寫入答案與 provenance → 重新計算剩餘問題。被前一個答案消除的問題不得照舊詢問"
+    }
+  ],
+
+  "retired_phases": [
+    {
+      "id": "clarify",
+      "retired_in": "#219",
+      "successor": { "kind": "capability", "id": "decision-queue" },
+      "reason": "尚未理解現有實作就訪談，會把問題越問越偏。責任由 repo-aware 的 define／plan 決策訪談吸收"
+    },
+    {
+      "id": "goal",
+      "retired_in": "#219",
+      "successor": { "kind": "capability", "id": "goal-contract" },
+      "reason": "Goal 是所有入口都要維持的工作契約，不是只發生一次的階段"
+    },
+    {
+      "id": "explore",
+      "retired_in": "#219",
+      "successor": { "kind": "capability", "id": "explore" },
+      "reason": "探索會在定義、規劃、修正與驗收時反覆按需使用，不是只能執行一次的線性階段"
+    },
+    {
+      "id": "iterate",
+      "retired_in": "#219",
+      "successor": { "kind": "control_node", "id": "iteration-controller" },
+      "reason": "iterate 是 verify→build→verify 的迴圈控制，不是工作成果所屬的階段；成本要落在 remediate／reverify"
     }
   ],
 
   "activities": [
     { "id": "route", "repo_aware": false, "description": "分類與路由（dispatch 的主要動作）" },
-    { "id": "clarify", "repo_aware": false, "description": "向使用者釐清需求、確認理解" },
+    { "id": "clarify", "repo_aware": false, "description": "向使用者提出一個 blocking decision 並記錄答案（Decision Queue 的提問動作）" },
+    { "id": "create-goal", "repo_aware": false, "description": "為新需求建立 Goal Contract" },
+    { "id": "resolve-goal", "repo_aware": false, "description": "從既有 issue／handoff 載入或補齊 Goal Contract" },
+    { "id": "reconcile-goal", "repo_aware": false, "description": "把 PR comment／新回饋與原 Goal Contract 對帳，決定是否構成 goal revision" },
     { "id": "author-issue", "repo_aware": false, "description": "撰寫或更新 GitHub issue body" },
-    { "id": "research", "repo_aware": true, "description": "查既有實作、外部資料、方案調查" },
+    { "id": "research", "repo_aware": true, "description": "Explore capability 的執行動作：查既有實作、外部資料、方案調查、研究證據蒐集" },
     { "id": "design", "repo_aware": true, "description": "設計決策、方案取捨、切任務" },
     { "id": "implement", "repo_aware": true, "description": "寫或改實作程式碼" },
     { "id": "execute-test", "repo_aware": true, "description": "跑測試／lint／typecheck 等驗證命令" },
@@ -90,12 +128,201 @@
     { "id": "document", "repo_aware": false, "description": "寫或更新人類文件" },
     { "id": "render-artifact", "repo_aware": false, "description": "產生受管的人類可見 Markdown 產物" },
     { "id": "publish", "repo_aware": false, "description": "把內容送出到 GitHub（issue／PR／comment）" },
+    { "id": "handoff", "repo_aware": false, "description": "產生 handoff contract 並在使用者要求的 checkpoint 停止" },
+    { "id": "resume", "repo_aware": true, "description": "接手一份既有 handoff：驗 freshness、只重跑受影響的工作" },
     { "id": "cleanup", "repo_aware": false, "description": "收尾清理（worktree、暫存草稿）" }
   ],
 
+  "entries": [
+    { "id": "no-issue", "start_phase": "define", "default_stop_after": "finalized", "description": "還沒有 issue 的需求（含把點子寫成 ticket）" },
+    { "id": "issue", "start_phase": "plan", "default_stop_after": "finalized", "description": "已有合格 issue：載入 Goal Contract 後從 plan 開始" },
+    { "id": "approved-plan", "start_phase": "build", "default_stop_after": "finalized", "description": "已有核准的 plan：直接施工" },
+    { "id": "pr-comment", "start_phase": "build", "default_stop_after": "finalized", "description": "收到 PR／reviewer 回饋：先 reconcile Goal Contract，再只針對 delta 走 build／verify／finalize" },
+    { "id": "verify-only", "start_phase": "verify", "default_stop_after": "verified", "description": "只驗一份 PR／改動，驗完就交回" },
+    { "id": "research", "start_phase": "plan", "default_stop_after": "research-finalized", "description": "bounded research 或 research issue：走 plan(research)，停在研究交付" },
+    { "id": "resume", "start_phase": null, "default_stop_after": null, "description": "接續既有 loop／handoff：起點與終點由 handoff contract 與 freshness 決定" }
+  ],
+
+  "goal_contract": {
+    "contract_version": "1",
+    "notes": "Goal 仍是必要概念，但**不是 phase**。任何入口都要能解析出目前有效的 Goal Contract；改變時 revision +1，handoff 記錄自己對應的 goal_revision。reviewer comment **不得**自動升格成新的產品目標——那要走 reconcile-goal 並由使用者拍板。",
+    "fields": [
+      { "id": "outcome", "type": "string", "required": true, "description": "做完後世界有什麼不同（一句）" },
+      { "id": "user", "type": "string", "required": true, "description": "誰受益、在什麼情境" },
+      { "id": "why_now", "type": "string", "required": true, "description": "為什麼現在做" },
+      { "id": "behaviors", "type": "array", "required": true, "description": "收斂後的可觀察行為（behavior_id 清單，編號之後不重編）" },
+      { "id": "acceptance", "type": "array", "required": true, "description": "pass/fail 可驗證的驗收標準" },
+      { "id": "stop_conditions", "type": "array", "required": true, "description": "什麼成立就算做完" },
+      { "id": "constraints", "type": "array", "required": false, "description": "不可違反的限制（含專案跨切面約定）" },
+      { "id": "out_of_scope", "type": "array", "required": false, "description": "明確不做什麼" },
+      { "id": "conventions", "type": "array", "required": false, "description": "適用的 repo 約定（i18n／logging／a11y／分層…）" },
+      { "id": "source", "type": "string", "required": true, "description": "這份契約解析自哪裡（issue URL／handoff id／使用者拍板）" },
+      { "id": "revision", "type": "integer", "required": true, "description": "從 1 起算；goal 改變才 +1" }
+    ]
+  },
+
+  "handoff": {
+    "contract_version": "1",
+    "notes": "handoff 是「本次 requested scope 已完成」，**不是** error／cancelled／incomplete。到達使用者要求的 checkpoint 就停止，換 session／換人接手時由 freshness check 決定重跑哪一段——通過就不重跑已完成階段。事件先寫 canonical event ledger（#172），再投影 SQLite，最後依 #217 的 Artifact Contract 產固定格式的人類 Markdown；**不另建 handoff database，AI 也不得各自自由撰寫格式**。",
+
+    "checkpoints": [
+      {
+        "id": "issue",
+        "label": "H1 · Issue Ready",
+        "after_phase": "define",
+        "next_entry": "issue",
+        "suggested_owner": "pm",
+        "required_content": [
+          "issue URL／identity",
+          "Goal Contract",
+          "behaviors、驗收、限制與 out-of-scope",
+          "已決 decisions、known unknowns 與 owner",
+          "implementation 或 research 類型",
+          "下一個合法入口"
+        ],
+        "forbidden_next_actions": ["建立 worktree", "進入 plan", "開始 build"],
+        "description": "適合 PM、產品負責人或「先開 issue 就停」"
+      },
+      {
+        "id": "plan",
+        "label": "H2 · Plan Ready",
+        "after_phase": "plan",
+        "next_entry": "approved-plan",
+        "suggested_owner": "architect",
+        "required_content": [
+          "approved plan 與 revision",
+          "architecture／data flow／contract",
+          "implementation slices 或 research tasks",
+          "evidence portfolio",
+          "risk、reuse、impact surface",
+          "change budget 與 package decisions",
+          "下一個 build／research task"
+        ],
+        "description": "適合架構／規劃交接"
+      },
+      {
+        "id": "build",
+        "label": "H3 · Build Ready",
+        "after_phase": "build",
+        "next_entry": "verify-only",
+        "suggested_owner": "engineer",
+        "required_content": [
+          "branch／worktree／commit／diff identity",
+          "已執行 deterministic gates 與 not_measured",
+          "as-built deviations",
+          "open risks",
+          "verify 所需最小 context"
+        ],
+        "description": "適合工程師交給 QA 或 reviewer。H3 表示 build scope 已完成、verify 尚待執行——不得把「尚未 verify」寫成「已通過」"
+      },
+      {
+        "id": "verified",
+        "label": "H4 · Verified",
+        "after_phase": "verify",
+        "next_entry": "approved-plan",
+        "suggested_owner": "qa",
+        "required_content": [
+          "verdict",
+          "findings 與 disposition",
+          "acceptance／risk evidence",
+          "not_measured",
+          "Goal Contract conformance",
+          "是否可 finalize"
+        ],
+        "description": "適合 QA／reviewer 交回 repo owner"
+      },
+      {
+        "id": "finalized",
+        "label": "H5 · Delivery Ready",
+        "after_phase": "finalize",
+        "next_entry": null,
+        "suggested_owner": "repo-owner",
+        "required_content": [
+          "PR／delivery identity",
+          "explain、checklist、cost 等 required artifacts",
+          "owner actions",
+          "publication results",
+          "cleanup status"
+        ],
+        "description": "適合 PR／交付收尾"
+      },
+      {
+        "id": "research-finalized",
+        "label": "H5R · Research Finalized",
+        "after_phase": "finalize",
+        "next_entry": "no-issue",
+        "suggested_owner": "repo-owner",
+        "required_content": [
+          "研究問題與停止條件",
+          "來源品質與可重現性",
+          "假設、反例與殘餘未知",
+          "結論與它支撐／推翻了什麼",
+          "是否需要建立或更新功能 issue"
+        ],
+        "description": "研究本身即交付；產生實作需求時透過 define 建立／更新功能 issue，而不是直接無票開工"
+      }
+    ],
+
+    "statuses": [
+      { "id": "ready", "description": "requested scope 已完成、可交接" }
+    ],
+
+    "stop_reasons": [
+      { "id": "requested-scope", "description": "使用者只要求做到這個 checkpoint" },
+      { "id": "safety-stop", "description": "安全停：危險不可逆操作／規格講不清／P0——不是 requested scope 完成" },
+      { "id": "blocked", "description": "缺外部條件無法續跑（要指名缺什麼、誰能解）" }
+    ],
+
+    "owners": [
+      { "id": "pm", "description": "產品／需求負責人" },
+      { "id": "architect", "description": "設計／規劃負責人" },
+      { "id": "engineer", "description": "實作負責人" },
+      { "id": "qa", "description": "驗證負責人" },
+      { "id": "repo-owner", "description": "交付與合併負責人" }
+    ],
+
+    "contract_fields": [
+      { "id": "checkpoint", "required": true, "description": "checkpoints 之一" },
+      { "id": "status", "required": true, "description": "statuses 之一" },
+      { "id": "stop_reason", "required": true, "description": "stop_reasons 之一" },
+      { "id": "completed", "required": true, "description": "這次真的做完了什麼（陣列）" },
+      { "id": "pending", "required": true, "description": "還沒做、留給下一位的（陣列）" },
+      { "id": "artifacts", "required": true, "description": "產出的受管產物路徑或 URL（陣列）" },
+      { "id": "source_revision", "required": true, "description": "接手時要比對的來源版本；量不到就寫 not_measured" },
+      { "id": "goal_revision", "required": true, "description": "這份 handoff 對應的 Goal Contract revision" },
+      { "id": "next_entry", "required": true, "description": "下一個合法入口（終點 checkpoint 可為 null）" },
+      { "id": "suggested_owner", "required": true, "description": "owners 之一" }
+    ],
+
+    "events": [
+      { "id": "handoff.created", "description": "產生一份 handoff contract" },
+      { "id": "workflow.paused", "description": "到達 stop_after，停止推進（必須在 handoff.created 成功之後才寫）" },
+      { "id": "handoff.accepted", "description": "下一位接手這份 handoff" },
+      { "id": "workflow.resumed", "description": "freshness check 之後恢復推進" }
+    ],
+
+    "freshness_checks": [
+      { "id": "source-revision", "description": "handoff 記的來源版本與現況是否一致" },
+      { "id": "goal-revision", "description": "Goal Contract 有沒有在交接後改版" },
+      { "id": "artifact-validity", "description": "handoff 列出的產物是否仍存在且仍對應同一版" },
+      { "id": "pending-work", "description": "pending 清單是否仍成立" }
+    ],
+
+    "stop_after": ["issue", "plan", "build", "verified", "finalized", "research-finalized"],
+
+    "intent_map": [
+      { "intent": "先開 issue", "stop_after": "issue" },
+      { "intent": "規劃 issue", "stop_after": "plan" },
+      { "intent": "照 approved plan 實作、交 QA", "stop_after": "build" },
+      { "intent": "只驗 PR／改動", "stop_after": "verified" },
+      { "intent": "完成 issue／處理完 PR comment", "stop_after": "finalized" },
+      { "intent": "完成研究報告", "stop_after": "research-finalized" }
+    ]
+  },
+
   "knowledge": {
     "contract_version": "1",
-    "notes": "Shared Agent Memory 的 canonical 詞彙（#218）——同一條 loop 的共同事實只探索一次，後續 stage／agent 從 context broker 取自己需要的最小切片。三條邊界寫在資料形狀裡，不靠自律：①**只共享事實、不共享結論**——claim_kinds 是白名單，品質結論在這裡沒有可用的 kind（forbidden_claim_kinds 列出被明文擋掉的那幾種，錯誤訊息會指名）；②**沒有 provenance 就不是 valid**——來源缺 digest／graph revision 取不到時只能落到 uncertain／not_measured，不得猜成 valid；③**agent 記憶不寫成敘事 Markdown**——claim 是短 statement＋scope＋provenance＋validity，長內容留在 repo／code graph／既有 artifact，claim 只保留可追溯錨點。repo_aware 的 activity 才需要 context pack（Context Pack Gate 的判定依據就是這一欄，不另立第二份名單）。",
+    "notes": "Shared Agent Memory 的 canonical 詞彙（#218）——同一條 loop 的共同事實只探索一次，後續 stage／agent 從 context broker 取自己需要的最小切片。三條邊界寫在資料形狀裡，不靠自律：①**只共享事實、不共享結論**——claim_kinds 是白名單，品質結論在這裡沒有可用的 kind（forbidden_claim_kinds 列出被明文擋掉的那幾種，錯誤訊息會指名）；②**沒有 provenance 就不是 valid**——來源缺 digest／graph revision 取不到時只能落到 uncertain／not_measured，不得猜成 valid；③**agent 記憶不寫成敘事 Markdown**——claim 是「一句可查證的事實＋scope＋來源＋有效性」，長內容留在 repo／code graph／既有 artifact，claim 只保留可追溯錨點。repo_aware 的 activity 才需要 context pack（Context Pack Gate 的判定依據就是這一欄，不另立第二份名單）。\n\n#219：role 的 `phase` 欄位改用五階段詞彙；跨階段使用的角色（explore／goal-resolver）標 `any`——它們本來就不屬於某一個階段，硬綁一個 phase 會讓它們在別的階段變成認不得的角色。",
 
     "claim_kinds": [
       { "id": "architecture", "description": "模組職責、分層、落點" },
@@ -108,7 +335,7 @@
       { "id": "data-flow", "description": "資料流動路徑" },
       { "id": "reuse-candidate", "description": "可重用的既有實作" },
       { "id": "impact-surface", "description": "這次改動的波及面" },
-      { "id": "behavior", "description": "issue／完工定義承諾的可觀察行為" },
+      { "id": "behavior", "description": "issue／Goal Contract 承諾的可觀察行為" },
       { "id": "run-command", "description": "怎麼跑：test／lint／build／smoke／ready／cleanup" },
       { "id": "evidence", "description": "已跑過、且仍對同一 revision 有效的 deterministic 證據" },
       { "id": "risk", "description": "risk map predicate 命中的機械可判風險" },
@@ -166,9 +393,9 @@
 
     "roles": [
       { "id": "orchestrator", "phase": "any", "claim_kinds": "*", "excludes": [], "description": "主線自己（預設角色）——它要看得到還擋著完工的東西" },
-      { "id": "define", "phase": "define", "claim_kinds": ["convention", "architecture", "behavior", "contract"], "excludes": ["implementation", "quality-conclusion"] },
-      { "id": "goal", "phase": "goal", "claim_kinds": ["convention", "behavior", "contract", "invariant"], "excludes": ["implementation", "quality-conclusion"] },
-      { "id": "explore", "phase": "explore", "claim_kinds": ["architecture", "symbol-responsibility", "convention", "contract", "invariant", "dependency-rule", "caller-graph", "data-flow", "reuse-candidate", "impact-surface", "risk", "run-command"], "excludes": ["quality-conclusion"] },
+      { "id": "define", "phase": "define", "claim_kinds": ["convention", "architecture", "behavior", "contract", "reuse-candidate", "impact-surface"], "excludes": ["implementation", "quality-conclusion"], "description": "建立 issue 與 Goal Contract 的主線。#219 起它必須先探索現況才提問，所以拿得到 reuse／波及面事實" },
+      { "id": "goal-resolver", "phase": "any", "claim_kinds": ["convention", "behavior", "contract", "invariant"], "excludes": ["implementation", "quality-conclusion"], "description": "Goal Contract capability：任何入口載入／補齊／reconcile 目前有效的契約。跨階段，所以 phase 是 any" },
+      { "id": "explore", "phase": "any", "claim_kinds": ["architecture", "symbol-responsibility", "convention", "contract", "invariant", "dependency-rule", "caller-graph", "data-flow", "reuse-candidate", "impact-surface", "risk", "run-command"], "excludes": ["quality-conclusion"], "description": "Explore capability：define／plan／build／verify 都可能派它補事實。跨階段，所以 phase 是 any" },
       { "id": "plan", "phase": "plan", "claim_kinds": ["architecture", "contract", "invariant", "dependency-rule", "reuse-candidate", "impact-surface", "risk", "behavior", "run-command"], "excludes": ["quality-conclusion"], "description": "拍板設計的主線。回環後重新規劃時必須看得到還擋著完工的東西，所以不排除 peer-verdict——要獨立判斷的是 plan-reviewer，不是 plan 自己" },
       { "id": "plan-reviewer", "phase": "plan", "claim_kinds": ["architecture", "contract", "invariant", "dependency-rule", "reuse-candidate", "impact-surface", "risk", "behavior"], "excludes": ["author-defense", "peer-verdict", "quality-conclusion"] },
       { "id": "test-author", "phase": "build", "claim_kinds": ["behavior", "contract", "invariant", "evidence", "convention", "run-command"], "excludes": ["implementation", "author-defense", "quality-conclusion"] },

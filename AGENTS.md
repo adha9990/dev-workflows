@@ -1,6 +1,6 @@
 # loops-workflow — 操作規則與指令對照
 
-> 7 階段閉環開發工作流：`dispatch → goal → explore → plan → build → verify → iterate`（dispatch 視情況先走前置 `clarify` 釐清 / `scaffold` 骨架 / `define` 開 issue），階段間 human gate，`.loops/<slug>/` markdown 當階段記憶體。
+> 五階段閉環開發工作流：`define → plan → build → verify → finalize`，每個階段後面接一個**可停可交接的 checkpoint**（H1–H5）。`dispatch` 判入口與 `stop_after`（不是階段）；`Goal Contract`／`Explore`／`Decision Queue` 是**跨階段能力**（不是階段）。階段間 human gate，`.loops/<slug>/` 當記憶體。
 >
 > 這份檔案是 plugin 的「憲法層」：以下 Operating Rules 是**全程不變的共用紀律**，七個階段 skill 預設遵守、不各自重述。任一 skill 與這裡衝突時，以這裡為準。
 
@@ -61,7 +61,7 @@
 
     省 token 不是吝嗇，是讓迴圈**能負擔得起地跑到完成**。
 11. **品質前置（shift-left）：build 寫的當下就達到合併標準，不留給 verify 才抓**。impl-author 寫 code 時就套 verify 會查的**同一套品質標準** —— clean code / clean architecture / **安全（`references/shared/quality/security-checklist.md`）/ 重用（`references/shared/quality/reuse-check.md`）/ 設計模式（`references/shared/quality/design-patterns.md`）**。標準是**同一份 reference、兩處套用**：build 主動寫到位、verify 獨立複查。如此 verify 是「**獨立確認 + 抓盲點**」的安全網，不是第一道品質關 —— **寫對的成本遠低於寫錯被退回重修**（呼應規則 10「不重複勞動」、且減少漏檢風險：寫的人套標準 + 獨立的人複查，比只靠事後查更不會漏）。
-12. **每件工作都從一個 `define` 建立的 GitHub issue 起手（含研究）**：要動手 `plan` / `build` / **`explore` 研究** 的工作，**若還沒有對應 issue，一律先 `define` 建一個再進** —— 不從臨時想法、口頭描述、父 issue 子切片、或 **ad-hoc `gh issue create`** 直接動工。**issue 一律用 repo template 寫**。**沒有獨立的「研究 issue」** —— 研究永遠服務某功能：要嘛是某張**功能 issue 的 `explore` 階段**（功能 issue 標「實作待研究」，動工前先 explore 研究怎麼做），要嘛**先研究 / 討論定案再 `define` 開功能 issue**。已有 issue（issue# / 從 `define` 產生）才可用「直接 `plan` / `build` / `explore`」捷徑。發散式 `explore` 盤出的 backlog **也是逐條經 `define` 開功能 issue**（issue 一律由 define 建、非繞過）。理由：每段工作對得上一張 issue、可追溯、PR 有 `Closes #`、避免無票施工。`define` 是建 issue 的唯一入口。
+12. **每件工作都從一個 `define` 建立的 GitHub issue 起手（含研究）**：要動手 `plan` / `build` / **研究** 的工作，**若還沒有對應 issue，一律先 `define` 建一個再進** —— 不從臨時想法、口頭描述、父 issue 子切片、或 **ad-hoc `gh issue create`** 直接動工。**issue 一律用 repo template 寫**。**研究可以有自己的 issue**（#219）：研究若需要長時間、多來源、外部成本、會產正式決策、或要跨 session 交接，就 `define` 一張 **research 型 issue**，走 `plan(research)`、停在 `research-finalized`；產生實作需求時再 `define` 一張功能 issue，**不是直接無票開工**。做法不確定的功能則開 **implementation issue** 並標「實作方式待研究」，由該 issue 的 `plan` 先探索再設計。已有 issue（issue# / 從 `define` 產生）才可用「直接 `plan` / `build`」捷徑；盤出來的 backlog **也是逐條經 `define` 開 issue**（issue 一律由 define 建、非繞過）。理由：每段工作對得上一張 issue、可追溯、PR 有 `Closes #`、避免無票施工。`define` 是建 issue 的唯一入口。
 13. **canonical 規則文字守平台中立表面**：本檔與 `references/*.md` / `skills/**` / `plugins/loops-workflow/docs/**` 這些**規則文字**，不得寫死特定平台的**互動工具名**（例如結構化提問機制的實際函式名）、**廠商 model 名 / ID**、或**未標平台邊界的機制細節**（例如特定 hook 事件名、平台專屬環境變數）——一律改用平台中立的**能力描述**表達（決策點 / capability tier〔`fast-readonly`／`implementation`／`broad-review`／`referee`，定義見 `references/capability-registry.json`〕/ guard 機制的行為而非其事件名）。真正只在單一平台成立的差異，才用 `runtime: claude|codex` scoped override 表達（`<!-- runtime: claude|codex id=<slug> --> … <!-- /runtime -->`），且該 override 須在 `references/capability-registry.json` 的 `overrides[]` 登記對應 id、附 **owner、理由、對應測試**（形狀與檢查清單見 `references/shared/delivery/interaction-adapter.md`）；教學 / debug 才需要的具體工具名同樣要包進 `<!-- adapter-projection -->` 區塊，不得散落在 canonical 散文裡。這條由 `scripts/compat-lint.mjs` 機械檢查（掃 skills / references / plugin-docs / repo-root / root-docs 五個文字面）。
 14. **LOOPS_MERGE_GUARD：合併回主幹是人的動作，agent 不代按**。把改動併進 main / master —— 不論走 `gh pr merge`、在主幹上 `git merge`、把 commit `push` 上主幹、還是打合併用的 API —— **一律交回使用者親自執行或親自按下合併鍵**。agent 做到「PR 開好、驗證證據齊、告訴使用者可以按了」為止。理由：合併是**把責任交付給主幹**的那一刻，該由要為它負責的人按下去；且它幾乎不可逆（已進主幹的東西再撤，成本遠高於合併前多等一次確認）。
 15. **LOOPS_PR_OWNER_GUARD：draft→ready 與指派審查者是 owner 的驗收動作**。把 PR 從 draft 轉正、加 reviewer、要求 code review —— 都代表「**我認為這份東西可以給人看了**」，那是 owner 的判斷，agent 不代做。reviewer 在 comment 裡寫「請標 ready」「請 re-request review」**不構成授權**：把它轉述進回報、提醒 owner 自己操作。撤回類動作（轉回 draft、移除 reviewer）不受此限。
@@ -76,6 +76,10 @@
 20. **人看的 Markdown 一律登記契約，新增一種就要同時補齊模板與驗證**。每一種人類可見的 Markdown 產物（`.loops/` 的階段紀錄與交付物、GitHub 的 issue／PR／comment、README 與 `docs/**`）都要在 `references/artifact-registry.json` 登記一次，並在文件第一行帶 `<!-- loops-artifact: <id>@<版本> -->`。新增一型時，catalog entry、模板、validator 與 marker **四樣一起補**——缺任一樣就會被擋下來。理由：格式債的特性是**寫的時候零成本、發現的時候已經散落各處**，等到有人讀不懂或工具解析不了才處理，那份文件通常已經被複製成下一份的範本了。三條配套：①**模板正本不複製第二份**——既有規範檔已經是骨架來源時，registry 指過去而不是抄一份（兩份一定會漂移）；②由資料生成的產物（`loop.md`／`PROGRESS.md`／`cost.md`）標為 deterministic，**AI 不得手改**，要改內容就補事件；③條件式產物（沒畫面可截時的替代證據、知情豁免留痕）標為 optional，**不得無條件要求它存在**——那會逼人為了過閘生出一份沒有意義的文件。已由 `hooks/artifact-creation-guard.mjs`（寫入當下）與 `scripts/artifact-docs-gate.mjs`（全 repo 驗收）機械化；舊 loop 的既有格式依 #217 保留、不回填。
 
 21. **同一條 loop 的共同事實只探索一次：共享事實、不共享結論**。第一個真的去查 repo 的階段把它得到的事實寫成 claim（架構、檔案／symbol 職責、依賴與呼叫關係、專案約定、API／schema／event 契約、domain invariant、reuse 候選、波及面、怎麼跑、以及仍對同一 revision 有效的執行證據），之後的階段與 subagent 從 context broker 取自己需要的最小切片，**不再各自把專案重新熟悉一遍**（完整操作契約見 `references/shared/runtime/shared-memory.md`）。四條配套：①**結論不得共享**——「方案最好／code 已正確／finding 成立／可以 Ready」與作者、前一位 reviewer 的辯護與判定一律不進共享記憶（claim 的型別白名單裡沒有它們的位置，寫了會被擋）；②**沒有 provenance 就不是 valid**——來源缺 digest、code graph 取不到 revision 時只能是 `uncertain`／`not_measured`，不得猜成 `valid`，來源改變時只失效受波及的 claim 與其下游、其餘保持有效；③**agent 記憶不寫成敘事 Markdown**——claim 是「一句可查證的事實＋scope＋來源＋有效性」，長內容留在 repo／code graph／既有 artifact，人看的文件照規則 20 的 artifact contract 產，不為 agent 另寫一份；④**隔離規則不因共享而放寬**——`test-author` 仍看不到實作、reviewer 仍拿不到作者辯護與其他 reviewer 的判定，fresh 收尾稽核獨立下判定但**可以**重用有來源的架構事實（fresh ≠ 重學架構）。理由：重複理解在報表上只看得出「這個 agent 比較貴」，看不出原因；而 stale fact 比沒有事實更貴——它看起來跟正確的事實一模一樣。已由 `hooks/context-pack-guard.mjs` 機械化（deny 型；只對「已有 `telemetry/`」**且**「真的用過共享記憶」的 loop 生效，舊 loop 與尚未採用的 loop 完全不受影響）：repo-aware 派工沒帶 context pack 身分、或拿已失效的事實去派工才擋；語意上的「好像又重查了一遍」只記觀測、不擋。
+
+22. **到達使用者要求的 checkpoint 就停止，而且交接得出去**。PM 可能只要開好 issue、架構師可能只要完成 plan、工程師可能只交 build 給 QA、QA 也可能只完成 verify——這些都是**完整的交付**，不是半成品。`dispatch` 從意圖解析 `stop_after`（明講的 > 意圖字面 > 入口預設），到達就停：先寫 handoff contract（`handoff.created`）、產固定格式的交接文件、才記 `workflow.paused`（順序不可換——反過來崩掉會留下「停住了、但沒有交接內容」的狀態）。停下之後，下一階段的任何 mutating action 都被擋住，直到明確 resume；**`auto` 模式也不得跨越使用者指定的 handoff**。接手時先跑 freshness（來源版本／Goal Contract revision／產物是否還在／pending 是否仍成立）：通過就**不重跑已完成階段**，失敗只回到**最早受影響的那一個階段**、不整條重跑——**「換了一個 session」本身不是重跑的理由**。handoff 是「本次 requested scope 已完成」，不是 error／cancelled／incomplete；事件寫既有 canonical event ledger、再投影 SQLite、人看的 Markdown 依規則 20 的 artifact contract 產，**不另建 handoff database、AI 也不得各自寫格式**。已由 `hooks/handoff-stop-guard.mjs` 機械化（deny 型；只對真的停在 handoff 上的 loop 生效，`.loops/` 底下的寫入一律放行）。完整契約見 `references/shared/capability/handoff.md`。
+23. **先探索再提問，而且一次只問一個 blocking 決策**。`define` 與 `plan` 在**第一次向使用者提問之前**，必須已經有 exploration receipt（事件流裡的 `knowledge.claimed`／`context-pack.built`／`context-gap.detected`——**不要求另外生一份長篇探索報告**）。理由：尚未理解現有實作就訪談，會把問題越問越偏，而且很容易問出「查 code 就有答案」的題目，把 agent 該做的事推回給人。提問本身走 Decision Queue：**一個 user turn 只能有一個 active blocking `decision_id`**，答完先寫回 decision（含 provenance）、重算佇列，被答案消除的問題不得照舊再問；**`plan → build` 的核准是獨立的最後一題**，不得和套件、scope 或架構選擇綁在同一個問題裡。已由 `hooks/decision-gate.mjs` 機械化（deny 型；只對已有 `telemetry/` 的新制 loop 生效，**不判斷問題問得好不好**——那不可機械判定）。細節見 `references/shared/capability/decision-queue.md` 與 `references/shared/capability/explore.md`。
+24. **canonical phase 只有五個，退場的名字不得重新變成 phase**。`define`／`plan`／`build`／`verify`／`finalize` 是唯一的 phase 集合；`dispatch` 與 `iteration-controller` 是 control node；`Goal Contract`／`Explore`／`Decision Queue` 是跨階段 capability。`clarify`／`goal`／`explore`／`iterate` 已於 #219 退場，**不得重新出現在 phase telemetry、cost report 或主流程圖**（成本要落在對應的 activity 上：goal → `create-goal`／`resolve-goal`／`reconcile-goal`；iterate → `remediate`／`reverify`）。所有 phase 值域一律取自 `references/workflow-vocabulary.json`，**不在程式碼裡寫死第二份 stage 清單**——第二份一定會落後，而落後的那份看起來跟正確的一模一樣。舊 `.loops` 不回填、不改寫，只維持讀取與 resume 相容。已由 `scripts/phase-vocabulary-gate.mjs`（文字面與程式碼面）與 `scripts/telemetry-ledger.mjs`（寫入面拒收退場 phase）機械化。
 
 > **兩個要顯式防的失敗模式（Loop Engineering 詞彙，即規則 10 援引的那套、命名既有實踐）**——這不是新規則，是替上面紀律點名它們在防什麼：
 > - **comprehension debt（理解債）**：loop 跑得快、產出你沒讀懂的 code，理解落差會一圈圈累積。對策＝`explain`（工程師理解包：實作導讀 + ownership 自測 + 方向 recap，見 `skills/explain`；完整迴圈完工**一律產** `deliverables/explain.md`，是三份完工 deliverable 之一）——它存在就是為了讓人補上理解、不被理解債吃掉。
@@ -97,35 +101,42 @@
 
 **使用者唯一的 slash 入口是 `/loops-workflow:dispatch`** —— 它判類型、分流到對的起點階段；**輸入是既有 loop 的 slug 時自動走 resume 協定**（dispatch 步驟 0）。其餘 skill（含階段與側用）全部 `user-invocable: false`、由 dispatch（及階段彼此）用 Skill tool 內部驅動：`explain`＝完整迴圈完工**一律自動產**（`deliverables/explain.md`，三份 deliverable 之一）、`scaffold-fullstack`＝dispatch 對乾淨空專案路由——兩者也可用自然語言請 Claude 執行（repo 的 `AGENTS.md` 維護＝iterate 命中維護時機時主線依 docs-policy 直接編輯）。**查進度直接讀 `.loops/<slug>/`**（`PROGRESS.md` 由恆開 hook 每回合自動重生）。opt-in 模式一律環境變數：auto 連跑＝`LOOPS_AUTO=1`（見 `references/shared/runtime/auto-mode.md`），其餘 flag 目錄見 `references/shared/runtime/journaling.md`（使用者導向的「怎麼設定」總覽見 `docs/settings.md`）。
 
-| 你想做的事 | 怎麼做 | 起點階段 |
+| 你想做的事 | 怎麼做 | 入口 → 起點 phase |
 |------|------|------|
-| 有 issue 號 / 「做這個 issue」（意圖明確，完整迴圈） | `/loops-workflow:dispatch <issue# / 描述>` | goal |
-| 丟一個**模糊想法 / 含糊一句話**（還不確定要實作還是研究、範圍不清） | `/loops-workflow:dispatch <描述>` | clarify → define/goal · explore · iterate |
-| 想解決 / 實作**還沒開 issue** 的問題（含把點子寫成 ticket） | `/loops-workflow:dispatch <描述>` | define → goal |
-| 從零開一個**全新空專案**（無 code / 空目錄） | `/loops-workflow:dispatch <描述>` | scaffold → define → goal |
-| 純設計 / 研究 / 技術評估（無 issue） | `/loops-workflow:dispatch <描述>` | explore |
-| 收到 PR / reviewer 回饋要修正 | `/loops-workflow:dispatch <PR#>` | iterate |
-| 接續一條中途的 loop（跨 session；含要繼續到 plan / build / verify） | `/loops-workflow:dispatch <slug>`（自動偵測既有 loop.md → resume） | 該 loop 停在的階段 |
-| 不確定該從哪開始 | `/loops-workflow:dispatch <描述>`（會幫你判類型 + 建 loop.md） | dispatch 判斷 |
+| 想解決 / 實作**還沒開 issue** 的問題（含**模糊的一句話**、把點子寫成 ticket） | `/loops-workflow:dispatch <描述>` | `no-issue` → define |
+| 有 issue 號 / 「做這個 issue」 | `/loops-workflow:dispatch <issue# / 描述>` | `issue` → plan |
+| 已有核准的 plan、要開工 | `/loops-workflow:dispatch <slug / 描述>` | `approved-plan` → build |
+| 收到 PR / reviewer 回饋要修正 | `/loops-workflow:dispatch <PR#>` | `pr-comment` → build（先 reconcile Goal Contract） |
+| 只要驗一份 PR / 改動 | `/loops-workflow:dispatch verify <PR#>` | `verify-only` → verify（停在 H4） |
+| 研究 / 技術評估 | `/loops-workflow:dispatch <題目>` | `research` → plan(research)（停在 research-finalized） |
+| 從零開一個**全新空專案**（無 code / 空目錄） | `/loops-workflow:dispatch <描述>` | scaffold → define |
+| 接續一條中途的 loop（跨 session / 換人接手） | `/loops-workflow:dispatch <slug>`（自動偵測 → freshness → 續跑） | `resume` → 由 handoff 與 freshness 決定 |
+| 只做其中一段就停 | 在描述裡講明（「先開 issue 就好」「只要規劃」「只驗這份 PR」） | dispatch 解析成 `stop_after` |
+| 不確定該從哪開始 | `/loops-workflow:dispatch <描述>` | dispatch 判斷 |
 | 想看懂一份改動 / 產理解包 | 完整迴圈完工一律產 `deliverables/explain.md`；其他情境自然語言請 Claude 跑 `explain` skill | 側用（唯讀，不進迴圈） |
-| 維護 repo 的 agent-facing 文檔（`AGENTS.md`） | iterate 完工命中維護時機由主線依 docs-policy 直接編輯；或自然語言請求 | 側用（documentation-only，不進迴圈） |
+| 維護 repo 的 agent-facing 文檔（`AGENTS.md`） | finalize 命中維護時機由主線依 docs-policy 直接編輯；或自然語言請求 | 側用（documentation-only） |
 | 想看單條 loop 的完整進度 | 直接讀 `.loops/<slug>/PROGRESS.md`（恆開 hook 自動重生） | —（唯讀） |
 
-> `dispatch` 很薄：只做「resume 偵測 + 分類 + 建 `.loops/<slug>/loop.md`（+ 對 issue/fix 開 worktree）+ 進起點階段」，routine 轉場不問，但不替你把整條 loop 自動跑完。
+**`stop_after`（走多遠）**：`issue`（H1）／`plan`（H2）／`build`（H3）／`verified`（H4）／`finalized`（H5）／`research-finalized`（H5R）。優先序＝**使用者明講的 > 意圖字面 > 入口預設**；到達就停、`auto` 也不例外，續跑要明確 resume。完整規則見 `references/shared/capability/handoff.md`。
+
+> `dispatch` 很薄：只做「resume 偵測 + 判入口 + 解析 `stop_after` + 建 `.loops/<slug>/loop.md`（+ 會走到 build 才開 worktree）+ 進起點 phase」，routine 轉場不問，但不替你把整條 loop 自動跑完，**也不會跨過你要求的停點**。
 
 ---
 
-## 4. 階段順序與回環
+## 4. 階段順序、交接與回環
 
 ```
-前置（dispatch 視情況路由）：clarify 釐清模糊需求｜scaffold 建骨架｜define 開 issue
-        │
-dispatch → goal → explore → plan → build → verify → iterate
-                                                        │
-                  回 goal / explore / plan / build ◀────┤（看收斂·圈數軟上限）
-                                                        └──▶ 完工（交 PR / 收尾）
+控制節點（不是 phase）：dispatch 判入口 + stop_after｜iteration-controller 決定回哪個 phase
+跨階段能力（不是 phase）：Goal Contract｜Explore｜Decision Queue
+前置（dispatch 視情況路由，不在圈內）：scaffold 建骨架
+
+define ─H1─▶ plan ─H2─▶ build ─H3─▶ verify ─H4─▶ finalize ─H5─▶（交付）
+                          ▲            │
+                          └────────────┘（有 finding：remediate → reverify）
 ```
 
-> 起跑前的前置（dispatch 內、不在迴圈圈內）：**模糊想法 / 含糊一句話** → 先 `clarify` 釐清 + 確認理解 + 判方向（不確定要實作還是研究就在這裡定）；**完全乾淨的空專案** → 先 `scaffold-fullstack` 建骨架（loops-workflow 內建 skill，確認後才跑）；**已釐清的待解決問題** → 先 `define` 建 issue。都收斂到 `goal`（或 explore）進迴圈。dispatch 自己只分流、不做需求訪談。
+> **H1–H5 是 handoff checkpoint**：到達使用者要求的那個就停、產交接文件、等明確 resume。**這張圖不要求每次都從最左跑到最右**——已有 issue 從 plan 起、已有核准 plan 從 build 起、只驗 PR 從 verify 起並停在 H4。研究走 `plan(research)`，停在 `research-finalized`。
+>
+> **前置**：**完全乾淨的空專案** → 先 `scaffold-fullstack` 建骨架（確認後才跑）。**模糊的一句話不再有獨立的釐清階段**——直接進 `define`，由它先探索再一次一問（規則 22）。
 
 只在真正要選的決策點停（見 §2 規則 2，routine 轉場不問）。`iterate` 回環**看收斂不看次數**（findings 沒變少先歸因：驗證手段變深挖出既有問題＝進展、續修；同條復現 / 修出新問題＝沒收斂、當下 escalate 換手法）、**且修完一定再 verify**（完工只在 verify 乾淨那輪可達）。圈數（預設 3）是**軟上限＝回報檢查點**：到頂只觸發「回報現況並繼續修」，**未修的 P0 不得因圈數收圈**（要帶著已知 P0 進 PR 只能由**使用者知情豁免**＋留痕，agent 不得代決）；已無 P0、只剩 P1/P2/P3 時才當停損檢查點（讓使用者選回頭重想 / 換跨模型 / 授權再繞〔計數重置〕 / 收圈，不是放棄）。**P1 不再是機械下界，但也不是「可以不修」**——actionable 一律全修的紀律沒變，帶著未修的 P1 收圈同樣要使用者拍板 ＋ 同步 issue/PR 留痕。**auto 模式另有硬性總圈數天花板 `LOOPS_AUTO_MAX_ROUNDS`（預設 6、可設定）**：無人監管的 auto 撞頂即使有未修 P0 也 escalate 停下交人（attended 不受影響）；且「未清 P0 不准收圈」由 `hooks/pr-gate.mjs` 閘⑥ 機械化（`LOOPS_PR_BLOCKING_GATE`，讀 verify marker 的 `p0` 欄位；auto 不認知情豁免 waiver）。每次回環在 `loop.md` 記一筆（含這輪 findings 數與歸因）。

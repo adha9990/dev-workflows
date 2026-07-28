@@ -4,10 +4,38 @@
 // 純函式無 IO（測試直接 import）；IO 邊界容錯不丟。僅 node 內建。
 
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-export const STAGE_ORDER = ['goal', 'explore', 'plan', 'build', 'verify', 'iterate'];
-export const PRE_STAGES = ['clarify', 'scaffold', 'define'];
+/**
+ * 階段值域一律從 canonical vocabulary 取（#219）——這裡曾經寫死一份六階段清單，
+ * 於是 registry 一改它就落後，而落後的那份看起來跟正確的一模一樣。
+ * 讀不到就給空清單：**不退回一份寫死的備份**，那等於在 registry 之外留第二份真相源。
+ * 空清單只會讓進度列少顯示「下一步」，不會讓 hook 掛掉（呼叫端一律容錯）。
+ */
+function loadPhaseOrder() {
+  try {
+    const path = join(dirname(fileURLToPath(import.meta.url)), '..', 'references', 'workflow-vocabulary.json');
+    const vocabulary = JSON.parse(readFileSync(path, 'utf8'));
+    const phases = [...(vocabulary.phases ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const retired = (vocabulary.retired_phases ?? []).map((r) => r.id);
+    return { order: phases.map((p) => p.id), retired };
+  } catch {
+    return { order: [], retired: [] };
+  }
+}
+
+const VOCABULARY = loadPhaseOrder();
+
+/** canonical phase 的順序（define → plan → build → verify → finalize）。 */
+export const STAGE_ORDER = VOCABULARY.order;
+
+/**
+ * 不在 phase 表、但仍可能出現在 `loop.md` 的「當前階段」欄位的名字：
+ * `scaffold` 是 dispatch 的前置動作（建骨架，不是工作階段），其餘是**舊 loop 的退場 phase**——
+ * 讀得懂它們是 #219 承諾的「舊 loop 維持讀取相容」，不是把它們當成還活著的階段。
+ */
+export const PRE_STAGES = ['scaffold', ...VOCABULARY.retired];
 export const MAX_ROUNDS = 3;
 const FALLBACK_WINDOW_MS = 4 * 60 * 60 * 1000; // 無 session id 時的「近期活躍」窗
 

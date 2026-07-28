@@ -110,12 +110,11 @@
         "activities": [],
         "stages": [
           "dispatch",
-          "goal",
-          "explore",
+          "define",
           "plan",
           "build",
           "verify",
-          "iterate"
+          "finalize"
         ]
       },
       "enforcement": "require",
@@ -308,7 +307,7 @@
         ],
         "activities": [],
         "stages": [
-          "iterate"
+          "finalize"
         ]
       },
       "enforcement": "require",
@@ -363,7 +362,7 @@
         ],
         "stages": [
           "verify",
-          "iterate"
+          "finalize"
         ]
       },
       "enforcement": "require",
@@ -419,7 +418,7 @@
           "dispatch",
           "build",
           "verify",
-          "iterate"
+          "finalize"
         ]
       },
       "enforcement": "forbid",
@@ -573,8 +572,7 @@
         ],
         "stages": [
           "dispatch",
-          "goal",
-          "explore",
+          "define",
           "plan",
           "build"
         ]
@@ -607,7 +605,7 @@
       "projection": [
         "AGENTS.md"
       ],
-      "projection_marker": "沒有獨立的「研究 issue」",
+      "projection_marker": "研究可以有自己的 issue",
       "tests": [
         "plugins/loops-workflow/hooks/test-pr-gate.mjs",
         "plugins/loops-workflow/hooks/test-pr-owner-guard.mjs"
@@ -878,7 +876,7 @@
           "close-round"
         ],
         "stages": [
-          "iterate"
+          "finalize"
         ]
       },
       "enforcement": "require",
@@ -935,8 +933,7 @@
           "choose-methodology"
         ],
         "stages": [
-          "goal",
-          "explore",
+          "define",
           "plan"
         ]
       },
@@ -1143,7 +1140,7 @@
         ],
         "stages": [
           "verify",
-          "iterate"
+          "finalize"
         ]
       },
       "enforcement": "require",
@@ -1356,6 +1353,190 @@
         "plugins/loops-workflow/references/shared/runtime/shared-memory.md",
         "plugins/loops-workflow/docs/settings.md",
         "plugins/loops-workflow/references/shared/runtime/journaling.md"
+      ]
+    },
+    {
+      "id": "handoff-stop-boundary",
+      "title": "到達使用者要求的 checkpoint 就停止，下一階段的動作要等明確 resume",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "stage-transition",
+          "create-issue",
+          "create-loop-branch",
+          "write-implementation",
+          "pr-create",
+          "author-outbound-comment"
+        ],
+        "stages": [
+          "define",
+          "plan",
+          "build",
+          "verify",
+          "finalize"
+        ]
+      },
+      "enforcement": "require",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "handoff-stop-guard",
+        "protected_actions": [
+          "write-file",
+          "create-loop-branch",
+          "pr-create",
+          "outbound-message"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": [
+        "到達-stop_after-先寫-handoff.created-再寫-workflow.paused",
+        "resume-前先跑-freshness-check",
+        "freshness-失敗只回到最早受影響的階段"
+      ],
+      "forbids": [
+        "到達-stop_after-後繼續做下一階段的-mutating-action",
+        "auto-模式跨越使用者指定的-handoff",
+        "以新-session-為理由重跑已完成階段",
+        "在每個-checkpoint-重問要不要繼續"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "到達使用者要求的 checkpoint 就停止",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-handoff-stop-guard.mjs",
+        "plugins/loops-workflow/scripts/test-handoff-ledger.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/capability/handoff.md",
+        "plugins/loops-workflow/docs/settings.md"
+      ]
+    },
+    {
+      "id": "single-blocking-decision",
+      "title": "先探索再提問，而且一次只問一個 blocking 決策",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "open-decision-point",
+          "interpret-requirement",
+          "plan-change"
+        ],
+        "stages": [
+          "define",
+          "plan"
+        ]
+      },
+      "enforcement": "require",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "decision-gate",
+        "protected_actions": [
+          "open-decision-point"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": [
+        "define-與-plan-第一次提問前有-exploration-receipt",
+        "一個-user-turn-只有一個-active-blocking-decision",
+        "答案寫回-decision-後重算佇列"
+      ],
+      "forbids": [
+        "一次問多個問題",
+        "還有未收掉的-pending-decision-就開下一個",
+        "沒探索就問-code-或-docs-查得到的事",
+        "把-plan-to-build-的核准和其他未決事項綁成同一題"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "一次只問一個 blocking 決策",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-decision-gate.mjs",
+        "plugins/loops-workflow/scripts/test-decision-gate.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/capability/decision-queue.md",
+        "plugins/loops-workflow/references/shared/capability/explore.md"
+      ]
+    },
+    {
+      "id": "canonical-phase-vocabulary",
+      "title": "canonical phase 只有五個，退場的名字不得重新變成 phase",
+      "scope": {
+        "kind": "path-based",
+        "paths": [
+          "AGENTS.md",
+          "README.md",
+          "docs/**",
+          "plugins/loops-workflow/references/**",
+          "plugins/loops-workflow/skills/**",
+          "plugins/loops-workflow/docs/**",
+          "plugins/loops-workflow/scripts/**",
+          "plugins/loops-workflow/hooks/**"
+        ],
+        "activities": [],
+        "stages": []
+      },
+      "enforcement": "forbid",
+      "tier": "workflow-invariant",
+      "runtime": {
+        "guard": "phase-vocabulary-gate",
+        "protected_actions": [
+          "edit-canonical-text",
+          "record-telemetry"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": true,
+      "requires": [
+        "phase-值域一律取自-workflow-vocabulary.json",
+        "goal-explore-clarify-iterate-以-capability-或-control-node-表達"
+      ],
+      "forbids": [
+        "把已退場的-phase-寫進-phase-telemetry",
+        "在主流程圖或-phase-表串著已退場的-phase",
+        "在程式碼裡寫死第二份-stage-清單"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "canonical phase 只有五個",
+      "tests": [
+        "plugins/loops-workflow/scripts/test-phase-vocabulary-gate.mjs",
+        "plugins/loops-workflow/scripts/test-telemetry-ledger.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/workflow-vocabulary.json",
+        "plugins/loops-workflow/docs/FLOW.md"
       ]
     }
   ]

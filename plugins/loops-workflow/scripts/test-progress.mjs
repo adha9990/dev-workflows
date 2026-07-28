@@ -62,10 +62,10 @@ function seedLoop(cwd, slug, md) {
 
 // ── A1 常數契約 ──
 {
-  assert(JSON.stringify(STAGE_ORDER) === JSON.stringify(['goal','explore','plan','build','verify','iterate']),
-    'STAGE_ORDER 六階段順序固定 [A1]');
-  assert(JSON.stringify(PRE_STAGES) === JSON.stringify(['clarify','scaffold','define']),
-    'PRE_STAGES = clarify/scaffold/define [A1]');
+  assert(JSON.stringify(STAGE_ORDER) === JSON.stringify(['define','plan','build','verify','finalize']),
+    'STAGE_ORDER ＝五個 canonical phase，順序取自 vocabulary [A1]');
+  assert(PRE_STAGES[0] === 'scaffold' && ['clarify','goal','explore','iterate'].every((s) => PRE_STAGES.includes(s)),
+    'PRE_STAGES ＝ scaffold ＋ 舊 loop 的退場 phase（讀取相容，不是還活著的階段）[A1]');
   assert(MAX_ROUNDS === 3, 'MAX_ROUNDS === 3 [A1]');
 }
 
@@ -175,12 +175,12 @@ function seedLoop(cwd, slug, md) {
 
 // ── B4 extractProgress：缺欄不編造（無 findings / 無回環 → 空字串 / round 0）──
 {
-  const lean = `| 類型 | design |\n| 當前階段 | explore |\n\n## Journal\n- [E1] 進入 explore\n`;
+  const lean = `| 類型 | issue |\n| 當前階段 | build |\n\n## Journal\n- [E1] 進入 build\n`;
   const p = extractProgress({ slug: 's', dir: '', md: lean, mtime: 1 });
   assert(p.findings === '' && p.head === '', 'extractProgress：無 findings/commit → 空字串 [B4]');
   assert(p.round === 0, 'extractProgress：無回環 → round 0 [B4]');
   const byName = Object.fromEntries(p.stages.map((s) => [s.name, s.state]));
-  assert(byName.explore === 'now' && byName.goal === 'done' && byName.plan === 'pending', 'extractProgress：explore=now [B4]');
+  assert(byName.build === 'now' && byName.plan === 'done' && byName.verify === 'pending', 'extractProgress：build=now [B4]');
 }
 
 // ── B5 renderChat：含 slug、階段符號、圈數、下一步 ──

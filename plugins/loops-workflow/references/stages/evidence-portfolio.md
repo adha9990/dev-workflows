@@ -2,7 +2,7 @@
 
 > **品質標準＝「每個承諾的行為是否有足夠且不重複的證據」，不是「寫了多少測試、派了多少 reviewer」。**
 >
-> 這份是 evidence portfolio 的唯一定義處：`skills/goal`（收斂 behavior）、`skills/plan`（產出 portfolio）、`skills/build`（照 primary evidence 執行）、`skills/verify`（逐 behavior 驗收）、`scripts/validate-plan.mjs` 與 `scripts/diff-footprint.mjs`（機械核）都**引用本檔、不各自重述**。
+> 這份是 evidence portfolio 的唯一定義處：`skills/define`（收斂 behavior 進 Goal Contract）、`skills/plan`（產出 portfolio）、`skills/build`（照 primary evidence 執行）、`skills/verify`（逐 behavior 驗收）、`scripts/validate-plan.mjs` 與 `scripts/diff-footprint.mjs`（機械核）都**引用本檔、不各自重述**。
 
 ## 為什麼要有這張表
 

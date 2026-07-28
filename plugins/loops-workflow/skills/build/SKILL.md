@@ -1,7 +1,7 @@
 ---
 name: build
 user-invocable: false
-description: Implements each planned task into working, test-protected code. Use when starting the build stage of a loops-workflow run, or when a confirmed plan is ready to be coded task by task.
+description: Implements each planned slice into working, test-protected code, and hands off at H3 when the user only asked for the build. Also where post-verify remediation happens. Use when starting the build phase of a loops-workflow run, or when a confirmed plan is ready to be coded slice by slice.
 ---
 
 # build — 執行（依證據選路徑；風險命中才紅綠分離）
@@ -16,7 +16,7 @@ description: Implements each planned task into working, test-protected code. Use
 
 ## When to Use
 
-**Use when**：`stages/02-plan.md` 已拍板（含 evidence portfolio 與 change budget、`validate-plan.mjs` 已通過）、要逐 slice 實作。
+**Use when**：`stages/02-plan.md` 已拍板（含 evidence portfolio 與 change budget、`validate-plan.mjs` 已通過）、要逐 slice 實作；或 verify 出了 finding 要**修正**（remediate——回環後的修記在 build，不記成一個叫 iterate 的階段）。
 
 **NOT for**：
 - 計畫還沒拍板 —— 回 plan。
@@ -76,6 +76,14 @@ description: Implements each planned task into working, test-protected code. Use
 
 **內部紅綠不每單位停**；整個 build 做完寫 `stages/03-build.md` + 摘要，**直接進 verify**（routine 轉場不問）。只有碰到危險 / 不可逆操作、或測試怎樣都弄不綠時才停下**開一個決策點**問（給選項、逐項列優缺、標一個推薦；表述形狀與各平台互動能力的映射見 `references/shared/delivery/interaction-adapter.md`）。
 
+### 步驟 C：H3 · Build Ready（`stop_after=build` 就停在這裡）
+
+工程師把實作交給 QA / reviewer 是一個**完整的交付**，不是半成品。`stop_after=build` 時依 `references/shared/capability/handoff.md` 產 handoff（`handoff.created` → `.loops/<slug>/handoff/build.md` → `workflow.paused`），內容要交代：branch／worktree／commit／diff identity、**已實際執行的 deterministic gate 與各自結果**（沒跑的標 `not_measured`）、as-built 與 plan 的偏離、還開著的風險、以及 verify 需要的最小 context。
+
+**H3 的語意是「build scope 已完成、verify 尚待執行」**——不得把「尚未 verify」寫成「已通過」。這是交接文件裡最容易寫錯的一句話，而下一位會直接照著它決定要驗什麼。
+
+否則（沒指定 `stop_after=build`）⇒ 直接進 verify。
+
 ## Common Rationalizations
 
 | 藉口 | 反駁 |
@@ -115,6 +123,7 @@ description: Implements each planned task into working, test-protected code. Use
 - [ ] test 由 test-author 在無 impl context 下產出；impl 由 impl-author 產出且未改 test。
 - [ ] author 回報符合其〈輸出協定〉（sentinel 起頭、key:value、無 code 全文）；`deviation` 非 none 已同步 living plan；`BLOCKED` 依來源路由（test-author→安全停、impl-author→仲裁）。
 - [ ] 若有平行 fan-out 寫檔 agent：各自隔離 worktree，且合併後**主線在合併態跑 quality-gate（讀精簡摘要、確認預期 gate 皆 `passed` 非 `not-run`）確認綠**（沒採信各 agent 自報）。
+- [ ] `stop_after=build` ⇒ 已產 H3 handoff（`handoff.created` → handoff note → `workflow.paused`）並**停住**，且交接文件寫的是「build 已完成、verify 尚待執行」而非「已通過」；否則直接進 verify。
 - [ ] Refactor **只在對得到具名 code smell 時才做**、範圍限於該 slice 動到的 code，且做完測試行為未變（仍綠）。
 - [ ] 分段 commit（繁中）對應各 Save Point。
 - [ ] `stages/03-build.md` 有 Change Summaries 三段式。
