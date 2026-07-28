@@ -330,6 +330,7 @@
         "ref-reuse-check",
         "ref-risk-map",
         "ref-security-checklist",
+        "ref-shared-memory",
         "ref-task-template",
         "ref-test-rubric"
       ],
@@ -822,6 +823,7 @@
         "ref-risk-map",
         "ref-root-cause-review",
         "ref-security-checklist",
+        "ref-shared-memory",
         "ref-task-template",
         "ref-test-rubric",
         "ref-ui-interaction-review",
@@ -939,9 +941,11 @@
       "target_path": "plugins/loops-workflow/scripts/context-pack.mjs",
       "user_invocable": false,
       "dependencies": [
+        "knowledge-ledger",
         "loop-graph",
         "loop-ledger",
-        "loop-snapshot"
+        "loop-snapshot",
+        "registry-compiler"
       ],
       "consumers": [
         "context-pack-tests"
@@ -966,6 +970,7 @@
       "user_invocable": false,
       "dependencies": [
         "context-pack",
+        "knowledge-ledger",
         "loop-graph"
       ],
       "consumers": [],
@@ -1049,7 +1054,8 @@
         "agents-constitution",
         "ref-bdd-scenarios",
         "ref-comment-policy",
-        "ref-operation-first-move"
+        "ref-operation-first-move",
+        "ref-shared-memory"
       ],
       "consumers": [
         "canonical-contracts-tests",
@@ -1459,7 +1465,8 @@
       "target_path": "plugins/loops-workflow/skills/explain",
       "user_invocable": false,
       "dependencies": [
-        "agents-constitution"
+        "agents-constitution",
+        "ref-shared-memory"
       ],
       "consumers": [
         "canonical-contracts-tests",
@@ -1497,7 +1504,8 @@
         "ref-interaction-adapter",
         "ref-onboarding",
         "ref-reuse-check",
-        "ref-risk-map"
+        "ref-risk-map",
+        "ref-shared-memory"
       ],
       "consumers": [
         "canonical-contracts-tests",
@@ -1676,7 +1684,8 @@
         "ref-goal-restate-schema",
         "ref-interaction-adapter",
         "ref-operation-first-move",
-        "ref-project-conventions"
+        "ref-project-conventions",
+        "ref-shared-memory"
       ],
       "consumers": [
         "canonical-contracts-tests",
@@ -1718,6 +1727,7 @@
         "agent-trace-guard",
         "artifact-creation-guard",
         "config-protection",
+        "context-pack-guard",
         "cost-tracker",
         "edit-accumulator",
         "eval-gate",
@@ -1769,6 +1779,7 @@
         "agent-trace-guard",
         "artifact-creation-guard",
         "config-protection",
+        "context-pack-guard",
         "cost-tracker",
         "edit-accumulator",
         "eval-gate",
@@ -1815,6 +1826,7 @@
       "user_invocable": false,
       "dependencies": [
         "capability-registry",
+        "context-pack-guard",
         "hook-wiring"
       ],
       "consumers": [],
@@ -1912,6 +1924,7 @@
         "ref-pr-feedback-sources",
         "ref-pr-spec",
         "ref-reviewer-severity",
+        "ref-shared-memory",
         "ref-test-rubric"
       ],
       "consumers": [
@@ -1979,6 +1992,7 @@
       "target_path": "plugins/loops-workflow/scripts/loop-graph.mjs",
       "user_invocable": false,
       "dependencies": [
+        "knowledge-ledger",
         "loop-ledger",
         "ref-reviewer-severity"
       ],
@@ -2037,6 +2051,7 @@
       "consumers": [
         "agent-trace",
         "context-pack",
+        "knowledge-ledger",
         "loop-graph",
         "loop-graph-tests",
         "loop-ledger-tests",
@@ -2566,6 +2581,7 @@
         "ref-project-conventions",
         "ref-reuse-check",
         "ref-risk-map",
+        "ref-shared-memory",
         "ref-task-template",
         "ref-test-rubric",
         "validate-plan"
@@ -2708,6 +2724,7 @@
         "agent-trace-guard",
         "artifact-creation-guard",
         "compat-lint",
+        "context-pack-guard",
         "loops-path-guard",
         "policy-change",
         "policy-runtime",
@@ -2793,6 +2810,7 @@
         "worktree-guard"
       ],
       "consumers": [
+        "context-pack-guard",
         "hook-wiring",
         "merge-guard",
         "pr-owner-guard"
@@ -5211,6 +5229,7 @@
         "policy-runtime"
       ],
       "consumers": [
+        "context-pack",
         "policy-change",
         "registry-compiler-tests",
         "registry-coverage-tests"
@@ -5797,6 +5816,7 @@
         "ref-risk-map",
         "ref-root-cause-review",
         "ref-security-checklist",
+        "ref-shared-memory",
         "ref-task-template",
         "ref-test-rubric",
         "ref-ui-interaction-review",
@@ -6188,6 +6208,7 @@
         "ref-risk-map",
         "ref-root-cause-review",
         "ref-security-checklist",
+        "ref-shared-memory",
         "ref-test-rubric",
         "ref-ui-interaction-review",
         "ref-verify-triage",
@@ -6295,6 +6316,7 @@
       ],
       "consumers": [
         "agent-trace-guard",
+        "context-pack-guard",
         "telemetry-recorder"
       ],
       "required_checks": {
@@ -6325,6 +6347,7 @@
         "telemetry-ledger"
       ],
       "consumers": [
+        "context-pack-guard",
         "hook-wiring"
       ],
       "required_checks": {
@@ -6390,6 +6413,8 @@
         "agent-trace-guard",
         "codex-telemetry",
         "cost-report",
+        "knowledge-metrics",
+        "knowledge-metrics-tests",
         "telemetry-ledger-tests",
         "telemetry-recorder"
       ],
@@ -6419,6 +6444,7 @@
       "consumers": [
         "agent-trace-guard",
         "agent-trace-tests",
+        "context-gate",
         "telemetry-recorder"
       ],
       "required_checks": {
@@ -6447,7 +6473,8 @@
         "artifact-docs-gate",
         "artifact-phase-gate",
         "codex-telemetry",
-        "cost-report"
+        "cost-report",
+        "knowledge-ledger"
       ],
       "required_checks": {
         "hooks": [],
@@ -6715,6 +6742,278 @@
         "hooks": [],
         "evals": [],
         "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "knowledge-ledger",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/knowledge-ledger.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/knowledge-ledger.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "artifact-contract",
+        "loop-ledger"
+      ],
+      "consumers": [
+        "context-gate",
+        "context-gate-tests",
+        "context-pack",
+        "context-pack-guard",
+        "context-pack-tests",
+        "knowledge-invalidation",
+        "knowledge-invalidation-tests",
+        "knowledge-ledger-tests",
+        "knowledge-metrics",
+        "knowledge-metrics-tests",
+        "loop-graph"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "knowledge-ledger-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-knowledge-ledger.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-knowledge-ledger.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "knowledge-ledger"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "knowledge-invalidation",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/knowledge-invalidation.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/knowledge-invalidation.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "knowledge-ledger"
+      ],
+      "consumers": [
+        "knowledge-invalidation-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "knowledge-invalidation-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-knowledge-invalidation.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-knowledge-invalidation.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "knowledge-invalidation",
+        "knowledge-ledger"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "context-gate",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/context-gate.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/context-gate.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "agent-trace",
+        "knowledge-ledger"
+      ],
+      "consumers": [
+        "context-gate-tests",
+        "context-pack-guard"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "context-gate-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-context-gate.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-context-gate.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "context-gate",
+        "knowledge-ledger"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "knowledge-metrics",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/knowledge-metrics.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/knowledge-metrics.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "knowledge-ledger",
+        "telemetry-ledger"
+      ],
+      "consumers": [
+        "knowledge-metrics-tests"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "knowledge-metrics-tests",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/test-knowledge-metrics.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/test-knowledge-metrics.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "knowledge-ledger",
+        "knowledge-metrics",
+        "telemetry-ledger"
+      ],
+      "consumers": [],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "context-pack-guard",
+      "kind": "hook",
+      "paths": [
+        "plugins/loops-workflow/hooks/context-pack-guard.mjs"
+      ],
+      "stage_role": null,
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/hooks/context-pack-guard.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "agent-trace-guard",
+        "context-gate",
+        "hook-shared-runtime",
+        "knowledge-ledger",
+        "loop-context",
+        "policy-registry",
+        "pr-gate"
+      ],
+      "consumers": [
+        "hook-wiring",
+        "hooks-codex-generator"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/test-context-pack-guard.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "AGENTS.md",
+          "plugins/loops-workflow/docs/settings.md",
+          "plugins/loops-workflow/references/shared/runtime/journaling.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
+      "id": "ref-shared-memory",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/shared/runtime/shared-memory.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "shared-runtime",
+      "target_path": "plugins/loops-workflow/references/shared/runtime/shared-memory.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "build-skill",
+        "compat-lint",
+        "define-skill",
+        "explain-skill",
+        "explore-skill",
+        "goal-skill",
+        "iterate-skill",
+        "plan-skill",
+        "skill-lint",
+        "verify-skill"
+      ],
+      "required_checks": {
+        "hooks": [],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
         "integrations": []
       }
     }

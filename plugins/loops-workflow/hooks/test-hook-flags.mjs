@@ -68,6 +68,9 @@ const DEFAULT_ON_FLAGS = [
   'LOOPS_TELEMETRY',
   'LOOPS_AGENT_TRACE_GATE',
   'LOOPS_ARTIFACT_GATE',
+  // #218：Context Pack Gate。前置比 #217 那兩道更窄——除了「該 loop 已有 telemetry/」，
+  // 還要「這條 loop 真的用過共享記憶」，所以預設開對舊 loop 與尚未採用的 loop 都完全 no-op。
+  'LOOPS_CONTEXT_PACK_GATE',
 ];
 // optIn 類（3）：未設 / 怪值一律「關」，只有字面 '1' 才開。
 const OPT_IN_FLAGS = [

@@ -20,11 +20,25 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { readEvents } from './loop-ledger.mjs';
+import { emptyKnowledgeState, reduceKnowledgeEvent } from './knowledge-ledger.mjs';
 
-/** node 種類（issue #172 資料模型）。 */
-export const NODE_KINDS = Object.freeze(['Loop', 'Issue', 'Stage', 'Decision', 'Task', 'Artifact', 'Finding', 'Gate', 'Commit', 'PR', 'ToolRun', 'Unknown']);
-/** edge 種類（issue #172 資料模型）。 */
-export const EDGE_KINDS = Object.freeze(['HAS_STAGE', 'DEPENDS_ON', 'PRODUCED_BY', 'SUPERSEDES', 'ADDRESSES', 'VERIFIED_BY', 'IMPLEMENTS']);
+/**
+ * node 種類（issue #172 資料模型 ＋ #218 的共享記憶）。
+ * 後七種是 #218 加的：claim 依 kind 投影成不同節點（architecture→ArchitectureSlice、convention→
+ * Convention、contract→Contract、invariant→Invariant，其餘→KnowledgeClaim），讓「這條 loop 認定的
+ * 契約有哪些」這種問題查得出來，而不是把所有事實壓成同一種節點再回頭過濾。
+ */
+export const NODE_KINDS = Object.freeze(['Loop', 'Issue', 'Stage', 'Decision', 'Task', 'Artifact', 'Finding', 'Gate', 'Commit', 'PR', 'ToolRun', 'Unknown', 'KnowledgeClaim', 'Source', 'ContextPack', 'ArchitectureSlice', 'Convention', 'Contract', 'Invariant']);
+/** edge 種類（issue #172 資料模型 ＋ #218 的共享記憶）。 */
+export const EDGE_KINDS = Object.freeze(['HAS_STAGE', 'DEPENDS_ON', 'PRODUCED_BY', 'SUPERSEDES', 'ADDRESSES', 'VERIFIED_BY', 'IMPLEMENTS', 'DERIVED_FROM', 'APPLIES_TO', 'CONSUMED_BY', 'INVALIDATED_BY', 'REFRESHED_BY']);
+
+/** claim kind → node kind（沒對到的一律 KnowledgeClaim；新增 kind 不必動這張表也不會消失）。 */
+export const CLAIM_NODE_KIND = Object.freeze({
+  architecture: 'ArchitectureSlice',
+  convention: 'Convention',
+  contract: 'Contract',
+  invariant: 'Invariant',
+});
 
 /**
  * 本投影認得的事件型別 → 語意。ledger 層刻意讓 `type` 是自由字串（schema 演進靠 `v`），
@@ -73,6 +87,7 @@ function emptyState(slug) {
     notes: [],
     unknowns: [],
     blindSpotPasses: [],
+    knowledge: emptyKnowledgeState(),
     eventCount: 0,
   };
 }
@@ -195,7 +210,11 @@ export function projectEvents(events, { slug = '' } = {}) {
         else if (typeof p.id === 'string' && p.id) upsert(state.unknowns, p.id, { at, ...p }, {});
         break;
       default:
-        break; // 認不得的型別：忽略，不猜語意
+        // #218 的共享記憶事件（knowledge.* / context-pack.* / context-gap.*）由 knowledge-ledger
+        // 的**同一份 reducer** 處理——投影邏輯只留一份，兩處各寫一次遲早對「什麼叫仍然有效」分岔。
+        // 它也認不得的型別才是真的忽略（不丟例外、不猜語意）。
+        reduceKnowledgeEvent(state.knowledge, ev, at);
+        break;
     }
   }
   return state;
@@ -298,6 +317,60 @@ export function toGraph(state) {
     const id = push('Unknown', u.id, `[${u.kind}] ${u.statement ?? ''}`, u, u.at);
     const st = stageAt(u.at);
     if (st) link(st, id, 'PRODUCED_BY', u.at); // 這條 unknown 是在哪個階段被挖出來的
+  }
+
+  // ── #218 共享記憶：claim／source／pack 與它們之間的關係 ────────────────────
+  // 這一段就是 S6（SQLite 可完整重建）的實體：刪掉整個 index 再 rebuild，claim 的 validity、
+  // provenance 與 pack metadata 全部從同一份事件流重新長回來，沒有第二個資料來源。
+  const K = state.knowledge ?? { claims: [], packs: [], consumption: [], gaps: [] };
+  const claimNodeId = (claim) => nid(CLAIM_NODE_KIND[claim.kind] ?? 'KnowledgeClaim', claim.claimId);
+  const sourceKey = (s) => `${s.type}:${s.locator}`;
+  const sourceIds = new Map();
+  const ensureSource = (s, at) => {
+    const key = sourceKey(s);
+    if (!sourceIds.has(key)) sourceIds.set(key, push('Source', key, s.locator, { ...s }, at));
+    return sourceIds.get(key);
+  };
+
+  for (const c of K.claims ?? []) {
+    const kind = CLAIM_NODE_KIND[c.kind] ?? 'KnowledgeClaim';
+    const id = push(kind, c.claimId, `[${c.validity}] ${c.statement}`, c, c.at);
+
+    for (const s of c.sources ?? []) {
+      const sid = ensureSource(s, c.at);
+      link(id, sid, 'DERIVED_FROM', c.at);
+      // 執行證據型 claim 與它的命令輸出之間是「被這次執行驗證過」，不只是「衍生自」。
+      if (c.kind === 'evidence' && s.type === 'command-output') link(id, sid, 'VERIFIED_BY', c.at);
+      // 失效時記下是哪個來源動的——事後要查得出「這條為什麼被判失效」。
+      if ((c.changedSources ?? []).includes(s.locator)) link(id, sid, 'INVALIDATED_BY', c.at);
+      if ((c.refreshCount ?? 0) > 0) link(id, sid, 'REFRESHED_BY', c.refreshedAt ?? c.at);
+    }
+
+    for (const parent of c.derivedFrom ?? []) {
+      const p = (K.claims ?? []).find((x) => x.claimId === parent);
+      if (p) link(id, claimNodeId(p), 'DERIVED_FROM', c.at);
+    }
+    if (c.supersedes) {
+      const prev = (K.claims ?? []).find((x) => x.claimId === c.supersedes);
+      if (prev) link(id, claimNodeId(prev), 'SUPERSEDES', c.at);
+    }
+    // APPLIES_TO ＝「這條事實是為哪個工作單位成立的」：有 task 就掛 task，否則掛建立它的階段。
+    const taskId = c.createdBy?.task_id ?? null;
+    if (taskId && state.tasks.some((t) => t.id === taskId)) link(id, nid('Task', taskId), 'APPLIES_TO', c.at);
+    else {
+      const st = stageAt(c.at, c.createdBy?.phase);
+      if (st) link(id, st, 'APPLIES_TO', c.at);
+    }
+  }
+
+  for (const pack of K.packs ?? []) {
+    const id = push('ContextPack', pack.packId, `${pack.role}@${pack.phase}（${(pack.claimIds ?? []).length} claims）`, pack, pack.at);
+    const st = stageAt(pack.at, pack.phase);
+    if (st) link(id, st, 'PRODUCED_BY', pack.at);
+    for (const claimId of pack.claimIds ?? []) {
+      const c = (K.claims ?? []).find((x) => x.claimId === claimId);
+      if (c) link(claimNodeId(c), id, 'CONSUMED_BY', pack.at);
+    }
   }
 
   return { nodes, edges };

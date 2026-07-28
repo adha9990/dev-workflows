@@ -108,6 +108,10 @@ description: Researches how to build something before it gets planned, and lays 
 
 **使用者不選方法論** —— 這三個 predicate 由 explore 依證據判定，不開決策點問。**拿不準一律判 true（向嚴）**；`references/stages/verify-triage.md` 的高風險硬閘不受本表縮小。
 
+### 4.95 把查到的事實寫成共享記憶（後面每一階段都會重用）
+
+三張表與 §0–§1 查到的架構、約定、契約、caller 關係，**逐條寫成 knowledge claim**（帶來源與 digest），讓 plan／build／verify／iterate 不必再把同一件事查一遍。**只寫事實不寫結論**——「哪個方案最好」屬於 §5 的推薦與決策點，不進共享記憶。形狀、怎麼寫、失效怎麼判一律依 `references/shared/runtime/shared-memory.md`（此處不重抄）。
+
 ### 5. 攤開比較 + 推薦（依模式收斂）
 
 共通：**外部來源只有參考價值** —— 寫「參考 + 我的傾向（待你拍板）」，不寫「採用 / 已決定」；有搜外部就內外並排、附 CITE。停在 gate 時**一律開一個決策點給選項**（每個列優缺、恰一個標推薦 + 一句理由；表述形狀與各平台互動能力的映射見 `references/shared/delivery/interaction-adapter.md`），不要用純文字要使用者打字。

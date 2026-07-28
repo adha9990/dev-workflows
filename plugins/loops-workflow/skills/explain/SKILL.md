@@ -26,6 +26,8 @@ description: Produces an engineer understanding pack for a change — implementa
 
 `explain <target>`：target 可以是當前 build 成果（讀 `.loops/stages/03-build.md` + working tree diff）、PR 號、branch、或一段 diff。先確定要解釋哪一份改動。
 
+**先取這條 loop 的 as-built 共享記憶**（`references/shared/runtime/shared-memory.md`）：契約、invariant、決策錨點與證據都已經有帶來源的 claim，導讀直接接上去——**不必為了寫導讀把整個 repo 再讀一遍**（那正是這份產出最容易失控的成本）。共享記憶裡沒有的部分才回頭讀 diff 與實檔。
+
 ## 產出（三段，markdown）
 
 ### 1. 實作導讀（walkthrough）

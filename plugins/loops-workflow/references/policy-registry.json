@@ -1295,6 +1295,68 @@
         "AGENTS.md",
         "plugins/loops-workflow/docs/settings.md"
       ]
+    },
+    {
+      "id": "shared-agent-memory",
+      "title": "同一條 loop 的共同事實只探索一次：共享事實、不共享結論",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "dispatch-subagent",
+          "dispatch-reviewer",
+          "review-change",
+          "write-implementation",
+          "author-test",
+          "plan-change"
+        ],
+        "stages": []
+      },
+      "enforcement": "require",
+      "tier": "hard-invariant",
+      "runtime": {
+        "guard": "context-pack-guard",
+        "protected_actions": [
+          "dispatch-agent"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": [
+        "repo-aware-派工帶-context-pack-身分",
+        "claim-帶來源-digest-與-validity",
+        "來源改變時只失效受波及的-claim-與其下游"
+      ],
+      "forbids": [
+        "把品質結論寫進共享記憶",
+        "把-uncertain-或-invalid-的事實當成-valid-使用",
+        "為-agent-記憶另寫一份敘事-markdown",
+        "以先熟悉專案為由重跑完整架構探索"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "同一條 loop 的共同事實只探索一次",
+      "tests": [
+        "plugins/loops-workflow/hooks/test-context-pack-guard.mjs",
+        "plugins/loops-workflow/scripts/test-knowledge-ledger.mjs",
+        "plugins/loops-workflow/scripts/test-knowledge-invalidation.mjs",
+        "plugins/loops-workflow/scripts/test-context-gate.mjs",
+        "plugins/loops-workflow/scripts/test-context-pack.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/shared/runtime/shared-memory.md",
+        "plugins/loops-workflow/docs/settings.md",
+        "plugins/loops-workflow/references/shared/runtime/journaling.md"
+      ]
     }
   ]
 }

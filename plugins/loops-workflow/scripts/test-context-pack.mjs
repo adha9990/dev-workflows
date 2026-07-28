@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// test-context-pack.mjs —— context pack 的預算與受保護區段斷言（#172 AC-4）。
-// 核心兩條：① 非受保護內容**絕不**超出硬預算；② blocking（未修 P0/P1・沒過的閘・未決決策）
-// **永不**因預算被丟掉——後者是 #162/#188 反覆踩到的失效模式，這裡用機械斷言釘死。
+// test-context-pack.mjs —— context pack 的預算、受保護區段與**角色切片**斷言（#172 AC-4、#218 S2/S4/S5）。
+// 核心四條：① 非受保護內容**絕不**超出硬預算；② blocking（未修 P0/P1・沒過的閘・未決決策）
+// **永不**因預算被丟掉（#162/#188 反覆踩到的失效模式）；③ 獨立性邊界擋掉的東西與預算丟掉的東西
+// **分開列**；④ 共享事實只放 valid 的、且每條都是一行錨點（不是敘事）。
 // 用法：node test-context-pack.mjs [--filter <case-prefix>] [--min-cases <n>]
 
 import { projectEvents } from './loop-graph.mjs';
-import { estimateTokens, truncateToTokens, buildSections, packSections, buildContextPack, renderPack, STAGE_FOCUS, DEFAULT_BUDGET } from './context-pack.mjs';
+import { digestOf, STATEMENT_MAX_CHARS } from './knowledge-ledger.mjs';
+import { estimateTokens, truncateToTokens, buildSections, packSections, buildContextPack, renderPack, selectClaims, computePackId, excludedChannels, STAGE_FOCUS, DEFAULT_BUDGET } from './context-pack.mjs';
 
 let passed = 0;
 const failed = [];
@@ -90,30 +92,30 @@ testCase('P5', '不做靜默截斷：被截斷 / 被丟掉的區段都出現在 
   const truncated = pack.sections.filter((s) => s.truncated).map((s) => s.id);
   for (const id of truncated) assert(pack.dropped.some((d) => d.id === id && d.reason === 'truncated'), `被截斷的 ${id} 出現在 dropped`);
   const kept = new Set(pack.sections.map((s) => s.id));
-  const all = buildSections({ state, events, stage: 'verify' }).map((s) => s.id);
+  const all = buildSections({ state, events, stage: 'verify' }).sections.map((s) => s.id);
   for (const id of all) assert(kept.has(id) || pack.dropped.some((d) => d.id === id), `${id} 不是被留下就是被列進 dropped（沒有第三種：靜默消失）`);
   assert(renderPack(pack).includes('誠實揭露'), '渲染出的 pack 明寫哪些內容因預算沒放進來');
 });
 
 testCase('P6', 'stage focus：不同階段挑不同節點', () => {
   const { state, events } = blockedState(2);
-  const verify = buildSections({ state, events, stage: 'verify' }).find((s) => s.id === 'stage-focus');
-  const build2 = buildSections({ state, events, stage: 'build' }).find((s) => s.id === 'stage-focus');
+  const verify = buildSections({ state, events, stage: 'verify' }).sections.find((s) => s.id === 'stage-focus');
+  const build2 = buildSections({ state, events, stage: 'build' }).sections.find((s) => s.id === 'stage-focus');
   assert(verify && verify.text.includes('finding'), 'verify 階段的 focus 帶 finding');
   assert(!build2 || !build2.text.includes('finding'), 'build 階段的 focus 不塞 finding（不同階段看不同東西）');
   assert(Object.keys(STAGE_FOCUS).join(',') === 'goal,explore,plan,build,verify,iterate', 'STAGE_FOCUS 覆蓋六個主階段');
   const none = buildSections({ state, events, stage: null });
-  assert(!none.some((s) => s.id === 'stage-focus'), '沒指定階段 → 不產 stage-focus 區段');
+  assert(!none.sections.some((s) => s.id === 'stage-focus'), '沒指定階段 → 不產 stage-focus 區段');
 });
 
 testCase('P7', 'affected：變更範圍可注入來源內容、也可只列清單', () => {
   const { state, events } = blockedState(1);
   const withBody = buildSections({ state, events, stage: 'build', affected: ['a.mjs'], readSource: () => 'const x = 1;' })
-    .find((s) => s.id === 'affected');
+    .sections.find((s) => s.id === 'affected');
   assert(withBody.text.includes('const x = 1;'), '有 readSource → 內容被帶進來');
-  const listOnly = buildSections({ state, events, stage: 'build', affected: ['a.mjs'] }).find((s) => s.id === 'affected');
+  const listOnly = buildSections({ state, events, stage: 'build', affected: ['a.mjs'] }).sections.find((s) => s.id === 'affected');
   assert(listOnly.text.includes('a.mjs') && !listOnly.text.includes('const x'), '沒 readSource → 只列路徑（不假造內容）');
-  assert(!buildSections({ state, events, stage: 'build' }).some((s) => s.id === 'affected'), '沒有 affected → 不產該區段');
+  assert(!buildSections({ state, events, stage: 'build' }).sections.some((s) => s.id === 'affected'), '沒有 affected → 不產該區段');
 });
 
 testCase('P8', 'packSections：受保護區段永遠排在最前、優先序穩定', () => {
@@ -134,6 +136,121 @@ testCase('P9', '預設預算存在且為正數（呼叫端沒傳時仍有硬上�
   const pack = buildContextPack({ state, events });
   assert(pack.budget === DEFAULT_BUDGET, '沒傳 budget → 套預設值（不是無上限）');
   assert(pack.estimateMethod.includes('估算'), 'pack 自帶「這是估算值」的誠實標註（Metric-Honesty）');
+});
+
+// ── #218 Context Broker：角色切片、獨立性邊界、pack 身分 ────────────────────
+
+/** 一條已經累積了共享事實的 loop（涵蓋四種 kind，scope 分別落在不同模組）。 */
+function knowledgeState(findingCount = 2) {
+  const { state, events } = blockedState(findingCount);
+  const claim = (id, kind, statement, files, validity = 'valid') => ({
+    claimId: id, at: 0, kind, statement,
+    scope: { files, symbols: [] },
+    sources: [{ type: 'repo-file', locator: files[0].replace('/**', '/AGENTS.md'), digest: digestOf(id) }],
+    derivedFrom: [], graphProject: null, graphRevision: null,
+    confidence: 'verified', validity,
+    createdBy: { phase: 'explore', agent_role: 'explore' }, createdAtRevision: 'sha1', refreshCount: 0,
+  });
+  state.knowledge = {
+    enabled: true, contractVersion: 1, packs: [], consumption: [], gaps: [],
+    claims: [
+      claim('C-ARCH', 'architecture', 'route 只透過 viewmodel 取資料', ['client/src/**']),
+      claim('C-IMPL', 'implementation-detail', 'useLibrary 以 useMemo 快取 rows', ['client/src/**']),
+      claim('C-BEHAV', 'behavior', '刪除後清單立即少一列', ['client/src/**']),
+      claim('C-OTHER', 'contract', 'DELETE /items/:id 回 204', ['server/src/**']),
+      claim('C-STALE', 'architecture', '這條的來源已經改過了', ['client/src/**'], 'invalid'),
+    ],
+  };
+  return { state, events };
+}
+const packFor = (role, extra = {}) => {
+  const { state, events } = knowledgeState();
+  return buildContextPack({
+    state, events, stage: 'build', role, taskId: 'T1',
+    affected: ['client/src/routes/library.tsx'], sourceRevision: 'sha1', budget: 4000,
+    readSource: () => 'const 實作內容 = 1;', ...extra,
+  });
+};
+
+testCase('P10', 'S2：同一個 behavior 的不同角色拿到不同 pack（隔離規則寫在資料裡）', () => {
+  const testAuthor = packFor('test-author');
+  assert(!testAuthor.claimIds.includes('C-IMPL'), 'test-author 拿不到 implementation-detail 事實');
+  assert(testAuthor.excludedClaims.some((e) => e.claimId === 'C-IMPL' && e.reason === 'independence:implementation'), '而且說得出是被隔離規則擋的');
+  const affected = testAuthor.sections.find((s) => s.id === 'affected');
+  assert(affected.text.includes('client/src/routes/library.tsx'), 'test-author 仍知道範圍內有哪些檔');
+  assert(!affected.text.includes('實作內容'), '但拿不到檔案內容（看得到實作就寫得出遷就實作的測試）');
+  assert(testAuthor.excludedSections.some((e) => e.id === 'affected-bodies'), '內容被降級這件事有留痕');
+  assert(testAuthor.claimIds.includes('C-BEHAV'), 'behavior 與契約照給——它要靠這個寫測試');
+
+  const impl = packFor('impl-author');
+  assert(impl.claimIds.includes('C-IMPL') && impl.sections.find((s) => s.id === 'affected').text.includes('實作內容'), 'impl-author 拿得到實作');
+  assert(impl.sections.some((s) => s.id === 'blocking'), 'impl-author 看得到沒過的閘與要修的問題');
+
+  for (const pack of [testAuthor, impl]) {
+    assert(!pack.claimIds.includes('C-OTHER'), '不相干模組的事實不塞進來（沒有人收到整包 dump）');
+  }
+});
+
+testCase('P11', 'S4：獨立審查的角色重用架構事實，但拿不到別人的判定', () => {
+  for (const role of ['verify-reviewer', 'plan-reviewer', 'finding-validator', 'final-audit']) {
+    const pack = packFor(role);
+    assert(pack.claimIds.includes('C-ARCH'), `${role} 仍可重用有 provenance 的架構事實（不必重學架構）`);
+    assert(!pack.sections.some((s) => s.id === 'blocking'), `${role} 拿不到前一輪的 finding／判定`);
+    assert(pack.excludedSections.some((e) => e.id === 'blocking' && e.reason === 'independence:peer-verdict'), `${role} 的排除有明確理由`);
+    const recent = pack.sections.find((s) => s.id === 'recent');
+    assert(!recent || !recent.text.includes('finding'), `${role} 的最近事件也不夾帶 finding（否則等於從另一條路漏回去）`);
+  }
+  assert(excludedChannels('orchestrator').size === 0, '主線不受限');
+  let threw = false;
+  try { excludedChannels('test-authour'); } catch { threw = true; }
+  assert(threw, '打錯字的 role 直接拋出——不回「什麼都不擋」，否則隔離規則會被一個 typo 靜默繞過');
+});
+
+testCase('P12', 'S3 消費面：只有 valid 進 pack，失效的只留提醒、不當事實', () => {
+  const pack = packFor('impl-author');
+  assert(!pack.claimIds.includes('C-STALE'), '失效的事實不進 pack');
+  assert(pack.degradedClaims.some((d) => d.claimId === 'C-STALE' && d.validity === 'invalid'), '但它被列進 degraded（不是靜默消失）');
+  const claims = pack.sections.find((s) => s.id === 'claims');
+  assert(claims.text.includes('C-STALE') && claims.text.includes('不得當成仍然成立'), 'pack 內文明寫「這條要自己補查」');
+  const { state } = knowledgeState();
+  const selection = selectClaims({ claims: state.knowledge.claims, role: 'explore', affected: [] });
+  assert(selection.included.every((c) => c.validity === 'valid'), 'selectClaims 只回 valid');
+  assert(selection.degraded.length === 1 && selection.included.length + selection.excluded.length + selection.degraded.length === state.knowledge.claims.length,
+    '每條事實不是被納入、就是被列進 excluded／degraded（沒有第三種：靜默消失）');
+});
+
+testCase('P13', '獨立性排除與預算丟棄是兩件事，各自列在自己的欄位', () => {
+  const pack = packFor('verify-reviewer', { budget: 200 });
+  assert(pack.dropped.every((d) => ['truncated', 'no-room', 'protected-section-consumed-budget'].includes(d.reason)), 'dropped 只講預算');
+  assert(pack.excludedSections.every((e) => e.reason.startsWith('independence:')), 'excludedSections 只講獨立性');
+  assert(!pack.dropped.some((d) => d.id === 'blocking'), '被獨立性擋掉的區段不會被誤記成「預算不夠」');
+  const rendered = renderPack(pack);
+  assert(rendered.includes('因獨立性邊界不提供的內容'), '渲染出的 pack 分兩節說明，讀的人不會以為多給預算就拿得到');
+});
+
+testCase('P14', 'pack 身分是 content address：同輸入同 id、任一輸入變就換 id', () => {
+  const a = packFor('impl-author');
+  const b = packFor('impl-author');
+  assert(a.packId === b.packId, '同一組輸入 → 同一個 packId（deterministic）');
+  assert(a.packId.length === 32, 'packId 是固定長度的雜湊');
+  assert(packFor('verify-reviewer').packId !== a.packId, '換角色 → 換 id');
+  assert(packFor('impl-author', { taskId: 'T2' }).packId !== a.packId, '換任務 → 換 id');
+  assert(packFor('impl-author', { sourceRevision: 'sha2' }).packId !== a.packId, '換 revision → 換 id');
+  const base = { loop: 'x', stage: 'build', role: 'plan', taskId: 'T1', affected: ['b', 'a'], claimIds: ['z', 'y'], budget: 10, sourceRevision: 'r' };
+  assert(computePackId(base) === computePackId({ ...base, affected: ['a', 'b'], claimIds: ['y', 'z'] }), '順序不影響身分（排序後才算雜湊）');
+  assert(a.marker.includes(a.packId), 'marker 帶的就是這個 id');
+});
+
+testCase('P15', 'S5：共享記憶不長成敘事——每條事實一行錨點，且不寫任何額外 Markdown 檔', () => {
+  const pack = packFor('impl-author');
+  const claims = pack.sections.find((s) => s.id === 'claims');
+  const rows = claims.text.split('\n').filter((l) => l.startsWith('- '));
+  assert(rows.length === pack.claimIds.length, '事實區段一條事實一行');
+  for (const row of rows) {
+    assert([...row].length <= STATEMENT_MAX_CHARS + 160, '每行都是錨點長度（statement 上限 ＋ id／kind／來源），不是一段敘事');
+    assert(row.includes('來源：'), '每條都帶得回去查的來源');
+  }
+  assert(typeof pack.marker === 'string' && pack.marker.startsWith('<!-- loops-pack'), 'pack 的身分是一行註解，不是一份文件');
 });
 
 // ══════════════════════════════════════════════════════════════════════════
