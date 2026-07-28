@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "baseline_commit": "808ea87675d064045ba95ce39ea2ab72303df7ce",
+  "baseline_commit": "9789d64253469900872b656c86e67006526a0467",
   "entries": [
     {
       "referrer_component_id": "accessibility-reviewer-agent",
@@ -189,14 +189,14 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "agents-constitution",
       "target_component_id": "ref-journaling",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "agents-constitution",
@@ -246,6 +246,13 @@
       "ordinal": 0,
       "class": "real",
       "normalized_sha256": "27b41336f7d34129d8b2cbf00259490a42628647c7a5f060b11989a05bf34a31"
+    },
+    {
+      "referrer_component_id": "agents-constitution",
+      "target_component_id": "ref-shared-memory",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b204630439c5d40ab82e0a82ffca991e5348105b77fff6336fe7f974e93f1b63"
     },
     {
       "referrer_component_id": "agents-constitution",
@@ -385,7 +392,7 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "build-skill",
@@ -442,6 +449,13 @@
       "ordinal": 0,
       "class": "real",
       "normalized_sha256": "27b41336f7d34129d8b2cbf00259490a42628647c7a5f060b11989a05bf34a31"
+    },
+    {
+      "referrer_component_id": "build-skill",
+      "target_component_id": "ref-shared-memory",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b204630439c5d40ab82e0a82ffca991e5348105b77fff6336fe7f974e93f1b63"
     },
     {
       "referrer_component_id": "build-skill",
@@ -675,6 +689,13 @@
       "normalized_sha256": "2f47bc2ff53c03bc9588e2616f14c76dc5b11a2c31d4782e70f926a5683f5262"
     },
     {
+      "referrer_component_id": "define-skill",
+      "target_component_id": "ref-shared-memory",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b204630439c5d40ab82e0a82ffca991e5348105b77fff6336fe7f974e93f1b63"
+    },
+    {
       "referrer_component_id": "dispatch-skill",
       "target_component_id": "ref-auto-mode",
       "ordinal": 0,
@@ -693,28 +714,28 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "dispatch-skill",
       "target_component_id": "ref-journaling",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "dispatch-skill",
       "target_component_id": "ref-journaling",
       "ordinal": 2,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "dispatch-skill",
       "target_component_id": "ref-journaling",
       "ordinal": 3,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "dispatch-skill",
@@ -750,6 +771,13 @@
       "ordinal": 0,
       "class": "real",
       "normalized_sha256": "7a16f5819fbc79eb080e31fba8b6310e95abf8b0e038480c9397d9f373a864ae"
+    },
+    {
+      "referrer_component_id": "explain-skill",
+      "target_component_id": "ref-shared-memory",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b204630439c5d40ab82e0a82ffca991e5348105b77fff6336fe7f974e93f1b63"
     },
     {
       "referrer_component_id": "explore-skill",
@@ -837,6 +865,13 @@
     },
     {
       "referrer_component_id": "explore-skill",
+      "target_component_id": "ref-shared-memory",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b204630439c5d40ab82e0a82ffca991e5348105b77fff6336fe7f974e93f1b63"
+    },
+    {
+      "referrer_component_id": "explore-skill",
       "target_component_id": "ref-verify-triage",
       "ordinal": 0,
       "class": "real",
@@ -918,6 +953,13 @@
       "ordinal": 1,
       "class": "real",
       "normalized_sha256": "960bed36bb80a9def5f6d3bcd3570bad67f83455f76623e90152d0ce0a941b0b"
+    },
+    {
+      "referrer_component_id": "goal-skill",
+      "target_component_id": "ref-shared-memory",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b204630439c5d40ab82e0a82ffca991e5348105b77fff6336fe7f974e93f1b63"
     },
     {
       "referrer_component_id": "iterate-skill",
@@ -1008,21 +1050,21 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "iterate-skill",
       "target_component_id": "ref-journaling",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "iterate-skill",
       "target_component_id": "ref-journaling",
       "ordinal": 2,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "iterate-skill",
@@ -1110,6 +1152,13 @@
     },
     {
       "referrer_component_id": "iterate-skill",
+      "target_component_id": "ref-shared-memory",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b204630439c5d40ab82e0a82ffca991e5348105b77fff6336fe7f974e93f1b63"
+    },
+    {
+      "referrer_component_id": "iterate-skill",
       "target_component_id": "ref-test-rubric",
       "ordinal": 0,
       "class": "real",
@@ -1141,14 +1190,14 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "merge-guard",
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "migration-reviewer-agent",
@@ -1985,6 +2034,13 @@
     },
     {
       "referrer_component_id": "plan-skill",
+      "target_component_id": "ref-shared-memory",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b204630439c5d40ab82e0a82ffca991e5348105b77fff6336fe7f974e93f1b63"
+    },
+    {
+      "referrer_component_id": "plan-skill",
       "target_component_id": "ref-task-template",
       "ordinal": 0,
       "class": "real",
@@ -2065,21 +2121,21 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "plugin-docs",
       "target_component_id": "ref-journaling",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "plugin-docs",
       "target_component_id": "ref-journaling",
       "ordinal": 2,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "plugin-docs",
@@ -2219,7 +2275,7 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "ref-eval-harness",
@@ -2464,14 +2520,14 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "repo-docs",
       "target_component_id": "ref-journaling",
       "ordinal": 1,
       "class": "real",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "repo-docs",
@@ -2604,7 +2660,7 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "skill-lint-tests",
@@ -2772,77 +2828,77 @@
       "target_component_id": "ref-journaling",
       "ordinal": 0,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 1,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 2,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 3,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 4,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 5,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 6,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 7,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 8,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 9,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "skill-lint-tests",
       "target_component_id": "ref-journaling",
       "ordinal": 10,
       "class": "fixture",
-      "normalized_sha256": "d788df6cdb7491ed446d82ce4b75970f32ef0c07c3232ce41d8c42f7d3432da0"
+      "normalized_sha256": "b67b2f95dd7ab2c5962649d55824d9daeab19487d89bd12988e4ed0d3899e252"
     },
     {
       "referrer_component_id": "skill-usage-tests",
@@ -3102,6 +3158,13 @@
       "ordinal": 1,
       "class": "real",
       "normalized_sha256": "e2469b77d7eec3ca8c787419a8f096d15692a6e9000133e572400d0b8f987515"
+    },
+    {
+      "referrer_component_id": "verify-skill",
+      "target_component_id": "ref-shared-memory",
+      "ordinal": 0,
+      "class": "real",
+      "normalized_sha256": "b204630439c5d40ab82e0a82ffca991e5348105b77fff6336fe7f974e93f1b63"
     },
     {
       "referrer_component_id": "verify-skill",
