@@ -151,10 +151,19 @@ testCase('G6', 'replay determinism：任意前綴投影兩次結果逐欄位相�
   assert(prefix.stages.length <= full.stages.length, '前綴狀態是完整狀態的前綴（階段只增不減）');
 });
 
+// #219：交接素材。沒有它，`for (const k of EDGE_KINDS)` 那道守門對 HANDED_OFF 會永遠通過——
+// 「宣告了一種邊、卻沒有任何事件產得出來」正是那條斷言要抓的形狀。
+const HANDOFF_RUN = [
+  { type: 'handoff.created', payload: { handoffId: 'H-build-1', stopAfter: 'build', handoff: { checkpoint: 'build', status: 'ready', stop_reason: 'requested-scope', completed: ['做完 T1/T2'], pending: ['verify'], artifacts: ['.loops/demo/handoff/build.md'], source_revision: 'sha1', goal_revision: 1, next_entry: 'verify-only', suggested_owner: 'engineer' } } },
+  { type: 'workflow.paused', payload: { handoffId: 'H-build-1', stopAfter: 'build', reason: 'requested-scope' } },
+  { type: 'handoff.accepted', payload: { handoffId: 'H-build-1', owner: 'qa' } },
+  { type: 'workflow.resumed', payload: { handoffId: 'H-build-1', verdict: 'fresh', resumeFrom: 'verify', invalidated: [], stopAfter: 'finalized' } },
+];
+
 testCase('G7', 'toGraph：node/edge 種類都在模型內、關係方向正確', () => {
   // 用「完整流程 ＋ 共享記憶」兩段合起來當素材：下面那條 `for (const k of EDGE_KINDS)` 是在守
   // 「宣告了卻沒有人產生的 edge 種類」——素材少一段，那道守門就會退化成永遠通過。
-  const st = projectEvents(build([...FULL_RUN, ...KNOWLEDGE_RUN,
+  const st = projectEvents(build([...FULL_RUN, ...KNOWLEDGE_RUN, ...HANDOFF_RUN,
     { type: 'decision', payload: { decisionId: 'D2', question: '真相源放哪', choice: 'JSONL+SQLite', status: 'decided', supersedes: 'D1' } },
   ]), { slug: 'demo' });
   const { nodes, edges } = toGraph(st);

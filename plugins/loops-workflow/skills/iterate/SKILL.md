@@ -1,18 +1,23 @@
 ---
 name: iterate
 user-invocable: false
-description: Triages verify findings or PR feedback, decides which stage to loop back to (round count is a soft cap that triggers a status report — unfixed P0 still hard-blocks finishing), and finishes when the stop condition is met. Use when starting the iterate stage of a loops-workflow run, or when a PR has reviewer feedback to act on.
+description: Drives the iteration controller and the finalize phase — triages verify findings or PR feedback, decides which phase to loop back to (round count is a soft cap that triggers a status report — unfixed P0 still hard-blocks finishing), and finishes at H5 with the fixed deliverables and PR. Use when a verify report is out, or when a PR has reviewer feedback to act on.
 ---
 
-# iterate — 迭代（triage + 回環決策 + 收尾）
+# iterate — 迴圈控制 ＋ finalize（triage + 回環決策 + 收尾）
 
 ## Overview
 
-`iterate` 把 verify 的缺口 / PR reviewer 的回饋做 triage，決定**回哪個階段重來**（圈數是**軟上限**：到頂只觸發回報，**未修的 P0 仍硬擋收圈**，見 §5），或**完工收尾交 PR**。它是閉環的收口 —— 確保「錯的東西被修正、修正有回歸測試守住、**修完再驗一輪**」，而不是無限繞圈。
+這支 skill 承接**兩個不同的東西**（#219 起分開記帳）：
+
+- **iteration-controller（control node，不是 phase）**：把 verify 的缺口 / PR reviewer 的回饋做 triage，決定**回哪個 phase 重來**（圈數是**軟上限**：到頂只觸發回報，**未修的 P0 仍硬擋收圈**，見 §5）。它驅動出來的工作記在 `build` 的 `remediate` 與 `verify` 的 `reverify` 上——**成本不記成一個叫 iterate 的階段**，否則永遠問不出「這筆錢花在修還是花在重驗」。
+- **finalize（phase 5）**：收圈與交付——產固定 deliverables、開 PR、收尾清理，停在 H5。
+
+它是閉環的收口 —— 確保「錯的東西被修正、修正有回歸測試守住、**修完再驗一輪**」，而不是無限繞圈。
 
 **核心原則：交給其他（人類 / 外部）reviewer 前，先在內部 `verify ⇄ iterate` 迴圈把問題解到最少** —— 降低外部 reviewer 撞到問題的機率。所以**修完一定再跑一輪 verify**，不能用「測試綠」打發。
 
-做法：彙整三來源回饋 → 分四類 → 對真問題走 Stop-the-Line 修根因（每修加回歸測試）→ 決定回哪個階段或完工收尾。
+做法：彙整三來源回饋 → 分四類 → 對真問題走 Stop-the-Line 修根因 → 決定回哪個 phase 或完工收尾。
 
 ## When to Use
 
@@ -20,7 +25,7 @@ description: Triages verify findings or PR feedback, decides which stage to loop
 
 **NOT for**：
 - 還沒驗收 —— 去 verify。
-- 全新需求 —— 回 goal 開新迴圈。
+- 全新需求 —— 經 `define` 開一張新 issue、起一條新迴圈（規則 12）。
 
 ## Process
 
@@ -64,11 +69,16 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 ### 4. 決定回環目標（修完一定再 verify）
 
-依問題性質決定回哪個階段：
-- 需求理解錯 → 回 `goal`
-- 方法選錯 → 回 `explore`
-- 拆解 / 設計缺陷 → 回 `plan`
-- 實作 bug → 回 `build`
+依問題性質決定回哪個 phase（**只有五個 canonical phase 可回**）：
+
+| 問題出在哪 | 回哪 | 說明 |
+|---|---|---|
+| 需求理解錯、目標本身要改 | `plan`（＋ `reconcile-goal`） | Goal Contract 要不要改版由**使用者拍板**，不是 agent 自己升格；改版後 revision +1 |
+| 方法選錯 | `plan` | 重新探索（Explore capability）再設計——探索不是獨立階段，回 plan 就在裡面做 |
+| 拆解 / 設計缺陷 | `plan` | 同上 |
+| 實作 bug | `build` | 修正記成 `remediate` activity |
+
+**issue 本身寫錯、要改 ticket 內容** → 那是 `define` 的範圍，但只有在「問題根本不是原本那張票要解的」時才回去；一般的 scope 調整走 `reconcile-goal` 就夠。
 
 **修了任何 actionable（含 step 3 自己 Stop-the-Line 修的）→ 一定再過一輪 `verify`**（「再驗」永遠不可省；可以右尺寸化的是**再驗的範圍**，見下〈targeted 再驗〉）。「測試綠 / typecheck 0 / lint 0」**不能取代 verify** —— 綠燈只證明沒打破現有測試，證不了「修正 + 其波及面」對其他軸（契約 / 安全 / 既有 consumer 行為）安全。**改到共用元件 / 跨切面時，再 verify 要涵蓋波及面**（誰在用被改的東西），不是只看改的那幾行。
 
@@ -112,13 +122,13 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
   - **驗證手段變深、挖出既有問題**（這輪第一次真機驅動 / 第一次 scripted 量測 / 某個 lens 第一次看這塊 / 選軸依規則新增了軸）→ 那些缺陷**本來就在**、只是先前看不見。這是**進展**：把歸因記進 Journal，續修、**不當原地打轉、不因此 escalate**。
     - **歸因要指名、不是免死金牌**：寫明「**哪幾條 finding** 是被 **哪個具體新手段** 第一次看見的」；且**該手段一旦用過，就納入後續每輪再驗的下界**（不得退回淺驗證 —— 否則下一圈的「變少」是假的）。指不出手段 → 當沒收斂處理。
   - **修壞了 / 根因沒搆到**（同一條 finding 又冒出來、或修正引入新問題）→ 這才是沒收斂：**當下 escalate、不等圈數到頂**，帶著「上一圈的修法為什麼沒搆到根因」停下換手法。
-- **檢查點的選項**（軟上限、或沒收斂時停下問）：**回頭重想**（方向有更深問題：DoD 模糊 / 方法選錯 / 設計缺陷 → 回 goal / explore / plan）/ **換跨模型二審**（opt-in，抓同模型結構盲點，見 `references/stages/cross-model-review.md`）/ **繼續修**（**恆為推薦項**——不論還剩 P0 還是只剩 P1／P2／P3）/ **授權再繞**（使用者帶新判斷說繼續 → 計數重置）/ **收圈**（只剩 P1／P2／P3 時；**只有使用者能選**）/ **知情豁免收圈**（還有未修 P0 時的唯一出口；**只有使用者能選**）。escalate 是「這沒在收斂，你要鑽下去還是換路」的人類檢查點，不是放棄、也不是放行。
+- **檢查點的選項**（軟上限、或沒收斂時停下問）：**回頭重想**（方向有更深問題：Goal Contract 模糊 / 方法選錯 / 設計缺陷 → 回 plan 重新探索與設計；契約本身要改則走 reconcile-goal 由使用者拍板）/ **換跨模型二審**（opt-in，抓同模型結構盲點，見 `references/stages/cross-model-review.md`）/ **繼續修**（**恆為推薦項**——不論還剩 P0 還是只剩 P1／P2／P3）/ **授權再繞**（使用者帶新判斷說繼續 → 計數重置）/ **收圈**（只剩 P1／P2／P3 時；**只有使用者能選**）/ **知情豁免收圈**（還有未修 P0 時的唯一出口；**只有使用者能選**）。escalate 是「這沒在收斂，你要鑽下去還是換路」的人類檢查點，不是放棄、也不是放行。
 
 每次回環在 `loop.md` 記一筆（第幾圈、回哪、為什麼、**這輪 findings 數 vs 上輪 + 沒變少時的歸因**）—— 收斂軌跡是判斷「該換手法還是照原路修」的依據。
 
 ### 6. 完工收尾
 
-**前提：最近一輪 verify 無 actionable findings**（修完有再驗過，不是測試綠就收；**其中未修的 P0 是誰都不能繞過的機械下界——圈數到頂不是收圈理由，見 §5**）。對照 `stages/00-goal.md` 停止條件全部達成 → **先做收尾裁測 pass（見下）** → 過 `references/shared/docs/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
+**前提：最近一輪 verify 無 actionable findings**（修完有再驗過，不是測試綠就收；**其中未修的 P0 是誰都不能繞過的機械下界——圈數到頂不是收圈理由，見 §5**）。對照 Goal Contract 的停止條件全部達成 → **先做收尾裁測 pass（見下）** → 過 `references/shared/docs/docs-policy.md`（補 `docs/<topic>.md` + `docs/README.md` 索引、慣例 / 規則有變更才同步 `AGENTS.md` / `CLAUDE.md`）。
 
 **收尾裁測 pass（最後一道 audit，不是第一次控制重複的時間點；純文檔迴圈無測試增量免此步）**：重複與過量的第一道控制在 **plan 的 evidence portfolio**（每個 behavior 恰一份主證據、第二層要 `distinct_risk`）、第二道在 **build 的路徑選擇**（低風險不新增測試）、第三道在 **verify 步驟 0 的 footprint 對帳**。走到這裡時多數重複應該已經不存在——這一 pass 的價值是**最後一次獨立稽核**（撿前面三道漏掉的鷹架與 in-loop 迴歸）。派 `test-author` 執行 consolidation（prompt 帶 `references/shared/quality/test-rubric.md` 的**絕對路徑**＋本 PR 對 base 的 diff 範圍；留 / 砍判準與量級門檻**正本在其 §10、此處不重抄**；in-loop bug 迴歸的分流見其 §7）。主線收 `TESTS_PRUNED` 回報後：① 跑 quality-gate 確認**全綠**；② `git diff --numstat <base>..HEAD` 分測試檔 / 功能檔加總，確認增量比例過 §10 量級門檻——超標 → 按判多餘六型回 test-author 再裁（numstat 是量化上限、reviewer 判內容，衝突時 finding 優先）；③ **裁測是一次修，修完必再驗**：觸發 delta re-verify，選軸走 `verify` §5 推導表的**裁測 override**（強制核心軸＋tests、fresh——勿因「只動測試檔」套瑣碎 0 軸）。**完工 gate 讀的是「裁後那輪」re-verify**（它就是新的「最近一輪 verify」）：乾淨才往下走 docs-policy / 交 PR；報 finding（裁過頭）→ 恢復該測試 → 再驗。
 
@@ -153,7 +163,16 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 **loop 暫存一律不入庫**：worktree、草稿、截圖、`.loops/`、`data/`、`dev.json` 等都不該被 commit / push。repo `.gitignore` 要涵蓋 `.loops/`、`.claude/worktrees/`、`data/`、`dev.json`、截圖（缺就補）；`git ls-files` 掃一遍確認沒有暫存被追蹤。
 
-**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：開一個決策點確認**交 PR**（outward action 要你點頭）—— 核可後**一律 `gh pr create --draft --assignee @me`**（開 draft + 指派作者自己，見 `references/shared/delivery/pr-spec.md`〈開法〉；使用者要正式請 merge 時才由**使用者本人** `gh pr ready <PR#>` 轉 Ready——draft→ready／request review／merge 皆 owner 驗收動作，reviewer comment 的流程指示不構成授權，agent 只在回報中提醒 owner 自行操作，見 `references/shared/delivery/pr-spec.md`〈owner 驗收動作〉）/ 或還要再打磨。另外只有 **回環沒收斂 / 碰圈數軟上限的回報檢查點（見 §5 —— 推薦項一律＝繼續修，「收圈」與「知情豁免」只有使用者能選）、真正的 trade-off（修法與 `stages/00-goal.md` 衝突）、分類模糊** 才停下問。
+### 6.5 H5 · Delivery Ready（`stop_after=finalized` / `research-finalized`）
+
+收尾做完就是交付點：依 `references/shared/capability/handoff.md` 產 handoff（`handoff.created` → `.loops/<slug>/handoff/finalized.md`（研究：`research-finalized.md`）→ `workflow.paused`）。
+
+- **`finalized`（H5）**：交代 PR／delivery identity、三份必產 artifact（explain／checklist／cost）、**還需要 owner 親自做的動作**（draft→ready、指派 reviewer、按合併——這三件 agent 都不代做）、發布結果、清理狀態。
+- **`research-finalized`（H5R）**：交代研究問題與停止條件、來源品質與可重現性、假設／反例／殘餘未知、結論支撐或推翻了什麼、以及**要不要據此建立或更新一張功能 issue**。要實作就回 `define` 開票，**不是直接無票開工**。
+
+這一份 handoff 與「完工」不衝突：`loop.md` 的當前階段照樣設為「完工」、Journal 照樣 append outcome 度量。handoff 多做的一件事是**把「接下來輪到誰、要做什麼」寫成下一位讀得懂的形狀**。
+
+**有 actionable findings → 自動全修（不論 P2/P3）→ re-verify，這是 routine、不停下問使用者「修多少 / 要不要修 / 要不要再 verify」**。只有在「最近一輪 verify 已乾淨（無 actionable）」時，才停在**完工 gate**：開一個決策點確認**交 PR**（outward action 要你點頭）—— 核可後**一律 `gh pr create --draft --assignee @me`**（開 draft + 指派作者自己，見 `references/shared/delivery/pr-spec.md`〈開法〉；使用者要正式請 merge 時才由**使用者本人** `gh pr ready <PR#>` 轉 Ready——draft→ready／request review／merge 皆 owner 驗收動作，reviewer comment 的流程指示不構成授權，agent 只在回報中提醒 owner 自行操作，見 `references/shared/delivery/pr-spec.md`〈owner 驗收動作〉）/ 或還要再打磨。另外只有 **回環沒收斂 / 碰圈數軟上限的回報檢查點（見 §5 —— 推薦項一律＝繼續修，「收圈」與「知情豁免」只有使用者能選）、真正的 trade-off（修法與 Goal Contract 衝突）、分類模糊** 才停下問。
 
 ## Common Rationalizations
 
@@ -226,7 +245,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] **修了 actionable 後有再過一輪 verify**（涵蓋 fix delta + 波及面、fresh reviewer），不是測試綠就完工；**且再驗走 `verify` step-1 選軸（依領域自動派 conditional reviewer），不是臨場手挑 reviewer 子集**；**選軸推導寫成表落進 `stages/04-verify.md`、派出集合＝推導集合（單一真相源在 `verify` §5）**。
 - [ ] 完工前最近一輪 verify 無 actionable findings。
 - [ ] **完工前已做收尾裁測 pass**（test-author `TESTS_PRUNED` → quality-gate 全綠 → numstat 過 `test-rubric.md` §10 量級門檻 → 裁後 delta re-verify〔`verify` §5 裁測 override 選軸〕乾淨，完工 gate 讀裁後那輪）；純文檔迴圈（無測試增量）免。
-- [ ] 完工前對照 `stages/00-goal.md` 停止條件全達成。
+- [ ] 完工前對照 Goal Contract 停止條件全達成。
+- [ ] `stop_after=finalized`／`research-finalized` ⇒ 已產 H5 handoff（`handoff.created` → handoff note → `workflow.paused`），內含 owner 還要親自做的動作（draft→ready／指派 reviewer／按合併）。
 - [ ] **完工 / 中止已在 `loop.md` Journal append 一行 outcome 度量**（依 `references/shared/runtime/journaling.md`〈完工 outcome 度量〉，欄位齊全、token 帶 `est`／級距標粗估）。
 - [ ] 收尾交接物依迴圈類型：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」；完整迴圈產 PR 收尾 comment **＋三份 loop 收尾檔 `deliverables/{explain,checklist,cost}.md`（無編號、一律產）**；對外的 comment 經使用者確認才送、未自動 post、回環途中不產。
 - [ ] **AGENTS.md 同步已判**：docs-policy 檢查命中「慣例 / 規則改變」→ 主線已依 docs-policy（含〈怎麼寫〉守門）直接編輯對應段落；未命中 → 未動也未問（不對無關迴圈加噪音）。

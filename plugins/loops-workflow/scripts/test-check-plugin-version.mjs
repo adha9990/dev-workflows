@@ -31,7 +31,7 @@ function parseArgs(argv) {
   return opts;
 }
 
-const surface = (over = {}) => ({ skills: ['dispatch', 'goal'], publicEntries: ['dispatch'], hooks: ['pr-gate.mjs'], ...over });
+const surface = (over = {}) => ({ skills: ['dispatch', 'plan'], publicEntries: ['dispatch'], hooks: ['pr-gate.mjs'], ...over });
 
 /** 假 git 埠：以固定的樹內容回應，讓判定邏輯不必造一顆真 repo 就測得動。 */
 function stubGit({ head = 'HEAD-SHA', mergeBase = 'BASE-SHA', tree = {}, files = {} } = {}) {
@@ -65,11 +65,11 @@ testCase('V2', 'surfaceOf：公開入口靠 frontmatter 判、測試檔不算 ho
   assert(!isPublicEntry(null) && !isPublicEntry(''), '讀不到檔 → 不算公開（壞掉的 skill 目錄交給 skill-lint）');
 
   const s = surfaceOf({
-    skillDirs: ['goal', 'dispatch'],
+    skillDirs: ['plan', 'dispatch'],
     hookFiles: ['pr-gate.mjs', 'test-pr-gate.mjs', 'README.md'],
     readSkill: (n) => (n === 'dispatch' ? '---\nname: dispatch\n---' : '---\nuser-invocable: false\n---'),
   });
-  assert(s.skills.join(',') === 'dispatch,goal', 'skill 集合排序固定（比對才穩定）');
+  assert(s.skills.join(',') === 'dispatch,plan', 'skill 集合排序固定（比對才穩定）');
   assert(s.publicEntries.join(',') === 'dispatch', '只有標 true 的算公開入口');
   assert(s.hooks.join(',') === 'pr-gate.mjs', '測試檔與非 .mjs 都不算 hook（否則加個測試就要 bump）');
   assert(SURFACE_FACETS.join(',') === 'skills,publicEntries,hooks', '三個面向固定');
@@ -77,7 +77,7 @@ testCase('V2', 'surfaceOf：公開入口靠 frontmatter 判、測試檔不算 ho
 
 testCase('V3', 'diffSurface：逐面向指出多了什麼、少了什麼', () => {
   assert(diffSurface(surface(), surface()).changed === false, '一樣 → 沒變');
-  const added = diffSurface(surface(), surface({ skills: ['dispatch', 'goal', 'setup'] }));
+  const added = diffSurface(surface(), surface({ skills: ['dispatch', 'plan', 'setup'] }));
   assert(added.changed && added.changes[0].facet === 'skills' && added.changes[0].added.join(',') === 'setup', '新增 skill 被指名');
   const removed = diffSurface(surface(), surface({ hooks: [] }));
   assert(removed.changes[0].facet === 'hooks' && removed.changes[0].removed.join(',') === 'pr-gate.mjs', '移除 hook 也被指名');
@@ -90,7 +90,7 @@ testCase('V3', 'diffSurface：逐面向指出多了什麼、少了什麼', () =>
 testCase('V4', '表面變了但版本沒前進 → 紅，並指名是哪一類表面', () => {
   const r = checkVersionBump({
     baseVersion: '0.56.4', headVersion: '0.56.4',
-    baseSurface: surface(), headSurface: surface({ skills: ['dispatch', 'goal', 'setup'], publicEntries: ['dispatch', 'setup'] }),
+    baseSurface: surface(), headSurface: surface({ skills: ['dispatch', 'plan', 'setup'], publicEntries: ['dispatch', 'setup'] }),
   });
   assert(!r.ok && r.findings[0].check === 'plugin-version-bump', '判紅');
   assert(r.findings[0].detail.includes('skill 集合') && r.findings[0].detail.includes('setup'), '指名哪一類表面、多了什麼');
@@ -107,7 +107,7 @@ testCase('V5', '反向：表面沒變不要求 bump、有 bump 就過（不製�
   const same = checkVersionBump({ baseVersion: '0.56.4', headVersion: '0.56.4', baseSurface: surface(), headSurface: surface() });
   assert(same.ok && same.notes[0].check === 'surface-unchanged', '表面沒變 → 綠並說明');
   assert(same.findings.length === 0, '沒有 finding');
-  const bumped = checkVersionBump({ baseVersion: '0.56.4', headVersion: '0.57.0', baseSurface: surface(), headSurface: surface({ skills: ['dispatch', 'goal', 'setup'] }) });
+  const bumped = checkVersionBump({ baseVersion: '0.56.4', headVersion: '0.57.0', baseSurface: surface(), headSurface: surface({ skills: ['dispatch', 'plan', 'setup'] }) });
   assert(bumped.ok, '表面變了且版本前進 → 綠（殺掉「凡是表面變就擋」的實作）');
   const internalOnly = checkVersionBump({ baseVersion: '0.56.4', headVersion: '0.56.4', baseSurface: surface(), headSurface: surface({ hooks: ['pr-gate.mjs'] }) });
   assert(internalOnly.ok, '只改實作內容（集合沒變）不要求 bump');
@@ -132,18 +132,18 @@ testCase('V7', 'git 邊界：分歧點等於 HEAD（在主幹上）視為沒有�
 testCase('V8', 'readSurfaceAt：讀得出某個 commit 當下的表面', () => {
   const git = stubGit({
     tree: {
-      'BASE-SHA:plugins/loops-workflow/skills': 'dispatch\ngoal\n',
+      'BASE-SHA:plugins/loops-workflow/skills': 'dispatch\nplan\n',
       'BASE-SHA:plugins/loops-workflow/hooks': 'pr-gate.mjs\ntest-pr-gate.mjs\n',
     },
     files: {
       'BASE-SHA:plugins/loops-workflow/.claude-plugin/plugin.json': '{"version":"0.56.4"}',
       'BASE-SHA:plugins/loops-workflow/skills/dispatch/SKILL.md': '---\nuser-invocable: true\n---',
-      'BASE-SHA:plugins/loops-workflow/skills/goal/SKILL.md': '---\nuser-invocable: false\n---',
+      'BASE-SHA:plugins/loops-workflow/skills/plan/SKILL.md': '---\nuser-invocable: false\n---',
     },
   });
   const at = readSurfaceAt(git, 'BASE-SHA');
   assert(at.version === '0.56.4', '版本讀得到');
-  assert(at.surface.skills.join(',') === 'dispatch,goal', 'skill 集合讀得到');
+  assert(at.surface.skills.join(',') === 'dispatch,plan', 'skill 集合讀得到');
   assert(at.surface.publicEntries.join(',') === 'dispatch', '公開入口讀得到');
   assert(at.surface.hooks.join(',') === 'pr-gate.mjs', 'hook 集合讀得到、測試檔排除');
   assert(readSurfaceAt(git, null).surface === null, '沒給 sha → null');
@@ -153,7 +153,7 @@ testCase('V8', 'readSurfaceAt：讀得出某個 commit 當下的表面', () => {
 testCase('V9', '真 repo：現況讀得出來，且版本已反映新增的三個 skill', () => {
   const here = readSurfaceHere(REPO_ROOT);
   assert(here.version && here.version !== '0.56.4', `版本已前進（實際：${here.version}）——現代化那批新增了三個 skill 卻沒 bump，本票補上`);
-  assert(here.surface.skills.length >= 14, `skill 集合 ${here.surface.skills.length} 個`);
+  assert(here.surface.skills.length >= 11, `skill 集合 ${here.surface.skills.length} 個`);
   for (const s of ['setup', 'decision-interview', 'agents-md-maintainer']) {
     assert(here.surface.skills.includes(s), `新增的 ${s} 在 skill 集合裡`);
   }

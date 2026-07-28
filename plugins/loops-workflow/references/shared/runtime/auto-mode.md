@@ -6,12 +6,13 @@
 
 - **環境變數 `LOOPS_AUTO=1`**（與 `LOOPS_STOP_GATE` 等 opt-in flag 同慣例、手動設定）—— dispatch 建 loop.md 前用 Bash `echo "${LOOPS_AUTO:-}"` 檢查，輸出 `1` → 整個 run 走 auto。**注意（#99）**：`loop-driver` hook（`LOOPS_LOOP_DRIVER=1` 時的 build 機械續跑）在**每次 Stop 當下**也讀這個環境變數，且**會覆蓋 loop.md 記錄的 `closed`**——殘留的 `LOOPS_AUTO=1`（如上個 session 忘了 unset）會讓 closed loop 的 build 被意外續跑；詳見 `journaling.md` loop-driver 條目。
 - 或在 `loop.md` 把 `推進模式` 設為 `auto`（既有 loop 續跑時改）。
-- 也可只對某段開：plan 拍板時說「接下來 build→verify 走 auto」。
+- 也可只對某段開：plan 拍板時說「接下來 build 到 verify 走 auto」。
+- **`stop_after` 不受 auto 影響**（#219）：使用者要求「只做到 H3」時，auto 一樣停在那裡——auto 省的是 routine 轉場的等待，不是使用者指定的交接點。
 - **硬性總圈數天花板可調**：`LOOPS_AUTO_MAX_ROUNDS`（環境變數，未設＝**6**）—— auto 模式回環的絕對上界（見下方硬煞車 #4）。只約束 auto，attended 不受影響。
 
 ## auto 模式做什麼
 
-核准計畫後，主線自動依序跑 `build → verify → iterate`，**每階段照樣**：寫 `.loops/` 對應 markdown、分段 commit、紅綠分離、多 reviewer fan-out。只是**不在階段之間停下等人**。
+核准計畫後，主線自動依序跑 `build`、`verify`、必要時回環修正、`finalize`，**每階段照樣**：寫 `.loops/` 對應 markdown、分段 commit、紅綠分離、多 reviewer fan-out。只是**不在階段之間停下等人**。
 
 ## 但這些情況**一定停**（auto 的硬煞車）
 

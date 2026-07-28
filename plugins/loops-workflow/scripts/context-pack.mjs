@@ -80,14 +80,17 @@ export function truncateToTokens(text, maxTokens) {
   return s.slice(0, lo) + marker;
 }
 
-/** 每個階段最需要看的 node 種類（挑選器，不是硬性排除——只影響優先序）。 */
+/**
+ * 每個 canonical phase 最需要看的 node 種類（挑選器，不是硬性排除——只影響優先序）。
+ * #219：鍵是五個 canonical phase；`Handoff` 進 define／plan／finalize 的焦點，因為
+ * 「上一位停在哪、留了什麼沒做」正是這三處最需要先看到的東西。
+ */
 export const STAGE_FOCUS = Object.freeze({
-  goal: ['Issue', 'Decision'],
-  explore: ['Issue', 'Decision', 'Artifact'],
-  plan: ['Issue', 'Decision', 'Task'],
+  define: ['Issue', 'Decision', 'Handoff'],
+  plan: ['Issue', 'Decision', 'Task', 'Handoff'],
   build: ['Task', 'Artifact', 'Commit'],
   verify: ['Task', 'Artifact', 'Finding', 'Gate'],
-  iterate: ['Finding', 'Gate', 'Task', 'PR'],
+  finalize: ['Finding', 'Gate', 'Task', 'PR', 'Handoff'],
 });
 
 /**
@@ -275,6 +278,13 @@ export function buildSections({ state, events, stage = null, affected = [], read
     if (focus.includes('Commit')) for (const c of state.commits.slice(-6)) rows.push(`- commit \`${String(c.sha).slice(0, 8)}\` ${c.subject}`);
     if (focus.includes('PR')) for (const p of state.prs) rows.push(`- PR #${p.number}${p.merged ? '（已合併）' : ''} ${p.title}`);
     if (focus.includes('Issue') && state.issue != null) rows.push(`- issue #${state.issue}`);
+    // 上一位停在哪、留了什麼沒做——接手時最先要知道的事（#219）。
+    if (focus.includes('Handoff')) {
+      for (const h of state.handoff?.handoffs ?? []) {
+        const pending = (h.pending ?? []).length;
+        rows.push(`- handoff \`${h.handoffId}\`（${h.checkpoint}）→ ${h.nextEntry ?? '終點'}${pending ? `，${pending} 項未完成` : ''}`);
+      }
+    }
     if (rows.length) {
       emit({ id: 'stage-focus', title: `${stage} 階段相關節點`, priority: 3, protected: false, truncatable: true, channel: null, text: rows.join('\n') });
     }

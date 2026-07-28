@@ -103,7 +103,7 @@ testCase('P6', 'stage focus：不同階段挑不同節點', () => {
   const build2 = buildSections({ state, events, stage: 'build' }).sections.find((s) => s.id === 'stage-focus');
   assert(verify && verify.text.includes('finding'), 'verify 階段的 focus 帶 finding');
   assert(!build2 || !build2.text.includes('finding'), 'build 階段的 focus 不塞 finding（不同階段看不同東西）');
-  assert(Object.keys(STAGE_FOCUS).join(',') === 'goal,explore,plan,build,verify,iterate', 'STAGE_FOCUS 覆蓋六個主階段');
+  assert(Object.keys(STAGE_FOCUS).join(',') === 'define,plan,build,verify,finalize', 'STAGE_FOCUS 覆蓋五個 canonical phase（#219）');
   const none = buildSections({ state, events, stage: null });
   assert(!none.sections.some((s) => s.id === 'stage-focus'), '沒指定階段 → 不產 stage-focus 區段');
 });

@@ -70,20 +70,33 @@
 | 維護 repo 的 `AGENTS.md` | iterate 完工命中維護時機由主線依 docs-policy 直接編輯；或自然語言請求 |
 | 自動連跑（auto） | 環境變數 `LOOPS_AUTO=1`（見 `references/shared/runtime/auto-mode.md`） |
 
-## 內部怎麼跑（下面 7 個階段你不用打、dispatch 自動驅動）
+## 內部怎麼跑（下面這些你不用打、dispatch 自動驅動）
 
-這些階段全標了 **`user-invocable: false`——不會出現在 `/` 選單、你也不能直接 `/loops-workflow:<階段>` 呼叫**，一律由 dispatch 內部用 Skill tool 驅動：
+除了 `dispatch` 與 `setup`，其他 skill 全標了 **`user-invocable: false`——不會出現在 `/` 選單**，一律由 dispatch 內部驅動：
 
 ```
-前置（dispatch 視情況先走）：clarify 釐清模糊需求｜scaffold 建骨架｜define 開 issue
-        │
-dispatch → goal → explore → plan → build → verify → iterate
-                                                        │
-                  回 goal / explore / plan / build ◀────┤（圈數軟上限，修完一定再 verify）
-                                                        └──▶ 完工（交 PR / 收尾）
+前置（dispatch 視情況先走）：scaffold 建骨架
+
+define ─H1─▶ plan ─H2─▶ build ─H3─▶ verify ─H4─▶ finalize ─H5─▶（交付）
+                          ▲            │
+                          └────────────┘（有問題：修 → 再驗一輪）
 ```
 
-> **只在真正該你選的決策點才停**（結構化提問，見 `plugins/loops-workflow/references/shared/delivery/interaction-adapter.md`）：explore 選做法 / plan 拍板 / iterate 完工或回環 / 真正的 scope 取捨 / 內容型交付的載體 / 安全停（分類模糊·危險操作·P0·規格不清）。**其餘 routine 轉場直接往下**，產出寫進 `.loops/`。**修完一定再過一輪 verify**（不是「測試綠」就算完）。需要時設 `LOOPS_AUTO=1` 開 opt-in 自動連跑。
+**H1–H5 是「停得下來、也交得出去」的點**：你只要開 issue、只要規劃、只要施工交 QA、只要驗一份 PR——講明就會停在對應的那個點，並留下一份**交接文件**（做完了什麼、還沒做什麼、下一位從哪接）。換人、換機器、換 session 都接得回去：接手時會先確認來源版本、目標有沒有改、產出還在不在，**通過就不重跑已經做完的部分**。
+
+**這張圖不要求每次都從最左跑到最右**：已經有 issue 就從 plan 開始，已經有核准的計畫就從 build 開始，只要驗一份 PR 就從 verify 開始並停在 H4。
+
+> **只在真正該你選的決策點才停**（結構化提問，見 `plugins/loops-workflow/references/shared/delivery/interaction-adapter.md`）：plan 拍板 / 完工或回環 / 真正的 scope 取捨 / 內容型交付的載體 / 安全停（分類模糊·危險操作·P0·規格不清）。**其餘 routine 轉場直接往下**，產出寫進 `.loops/`。**修完一定再過一輪 verify**（不是「測試綠」就算完）。需要時設 `LOOPS_AUTO=1` 開 opt-in 自動連跑——但 auto **不會跨過你指定的停點**。
+
+### 三個「不是階段」的東西
+
+它們過去各佔流程圖上一格，結果是：從 plan 起跑的工作沒有目標可依據、規劃到一半要補查現況卻沒有落點、還沒理解現有實作就開始問問題。現在它們是**任何階段都能用的能力**：
+
+| | 是什麼 | 誰在用 |
+|---|---|---|
+| **工作契約**（Goal Contract） | 做完長什麼樣、誰受益、承諾哪些行為、什麼算做完 | define 建立、plan 載入、PR 回饋時對帳（**reviewer 講的話不會自動變成新目標**——要改目標得你拍板） |
+| **探索**（Explore） | 去看現況：現在怎麼運作、有什麼可重用、有什麼限制 | define 問第一個問題**之前**先看、plan 設計前看、build/verify 只補缺口 |
+| **決策佇列**（Decision Queue） | 一次只問一個問題，答完重算還要問什麼 | define、plan（「要不要開工」是獨立的最後一題） |
 
 ### 每個階段在做什麼
 
@@ -91,14 +104,12 @@ dispatch → goal → explore → plan → build → verify → iterate
 
 | 階段 | 停下問你？ | 做什麼 |
 |---|---|---|
-| **dispatch**（入口） | 僅分類模糊 / 要 scaffold 才停 | 判類型分流：乾淨空專案→scaffold / issue→goal / 沒 issue 的待辦→define / 純研究→explore / PR 回饋→iterate。建 `loop.md`、進起點階段 |
-| **define**（前置） | 有 blocking 決策才停 | 模糊點子 → 一次一問釐清 → 用 repo 的 issue 模板開一張 template-ready issue → 再進 goal |
-| **goal** | scope 取捨 / 內容型交付的載體 / 需求講不清才停 | 逐句掃 issue 抽出需求（不只 AC 段）→ 訪談 → 寫成「六欄完工定義」+ 可驗證的停止條件 |
-| **explore** | ✋ 選做法 | 先找內部可重用的 → 不夠才搜外部（省資源）→ 攤開比較 + 推薦讓你選；框架 API 查官方文件 |
-| **plan** | ✋ 拍板方案 | 決策留痕 + 畫機制圖（拍板時渲染給你看）+ 新套件 ≥3 候選評估 + 拆成能各自驗證的任務 |
-| **build** | 危險 / 卡關才停 | 逐 slice **依證據選路徑**：低風險 / 沿用既有測試 → 一個 impl-author 做完跑既有證據；風險命中（bug / 安全 / 並行 / 資料一致性…）→ **紅綠分離**（test-author 只看需求寫測試、impl-author 只轉綠不准改測試）→ 條件式重構 → 分段 commit |
-| **verify** | 出 P0 才停 | 先跑**不用派人的機械閘**（型別 / lint / 測試 / 計畫與範圍對帳），過了才同一回合派**依風險選出的獨立 reviewer** 各審一面 + 跑真 app + 對嚴重問題二輪確認 → **逐個承諾的行為核證據** → 判 Ready / 退回 |
-| **iterate** | ✋ 完工 / 回環 | 把 verify 或 PR 回饋分類 → **真問題一律自動全修**（修根因 + 加回歸測試）→ 修完再驗一輪 → 乾淨才收尾開 PR。回環圈數（預設 3）是**軟上限**：到頂只會回報現況給你，**還有沒修完的問題就繼續修**，不會因為「圈數用完」就帶著問題進 PR；要帶著已知問題進 PR 得由你明講。**只有最嚴重的一級（P0）是誰都不能繞過的底線**——次一級（P1）照樣會被修完，只是它不再由機械閘擋住收尾，剩下要不要先進 PR 由你決定。**自動連跑（auto）時另有一個絕對上界（預設 6 圈、`LOOPS_AUTO_MAX_ROUNDS` 可調）**：撞到就停下來交你決定，避免沒人看管時一直繞下去燒 token。而「還有最嚴重的問題就不准收尾開 PR」這條，有一道機械閘（pr-gate）真的會擋住 |
+| **dispatch**（入口，不是階段） | 僅分類衝突 / 要 scaffold 才停 | 判入口（沒 issue→define / 有 issue→plan / 有計畫→build / PR 回饋→build / 只驗→verify / 研究→plan(research)）＋**決定走多遠**（`stop_after`）＋建 `loop.md`；輸入是既有 slug 就走接續 |
+| **define** | 有 blocking 決策才停（一次一個） | **先去看現況**，再用 repo 的 issue 模板開一張 template-ready issue，同時寫下這條工作的**工作契約**（行為收斂成幾條、驗收、限制）→ H1 |
+| **plan** | ✋ 拍板方案 | 先讀契約與現況、產出「可重用什麼 / 會影響誰 / 哪裡有風險」三張表 → 決策留痕 + 畫機制圖（拍板時渲染給你看）+ 新套件 ≥3 候選評估 → 拆成能各自驗證的任務 → H2。研究型工作在這裡定研究問題、來源、證據標準與停止條件 |
+| **build** | 危險 / 卡關才停 | 逐 slice **依證據選路徑**：低風險 / 沿用既有測試 → 一個 impl-author 做完跑既有證據；風險命中（bug / 安全 / 並行 / 資料一致性…）→ **紅綠分離**（test-author 只看需求寫測試、impl-author 只轉綠不准改測試）→ 條件式重構 → 分段 commit → H3 |
+| **verify** | 出 P0 才停 | 先跑**不用派人的機械閘**（型別 / lint / 測試 / 計畫與範圍對帳），過了才同一回合派**依風險選出的獨立 reviewer** 各審一面 + 跑真 app + 對嚴重問題二輪確認 → **逐個承諾的行為核證據** → 判 Ready / 退回 → H4 |
+| **finalize** | ✋ 完工 / 回環 | 把 verify 或 PR 回饋分類 → **真問題一律自動全修**（修根因 + 加回歸測試）→ 修完再驗一輪 → 乾淨才收尾開 PR → H5。回環圈數（預設 3）是**軟上限**：到頂只會回報現況給你，**還有沒修完的問題就繼續修**，不會因為「圈數用完」就帶著問題進 PR。**只有最嚴重的一級（P0）是誰都不能繞過的底線**——次一級（P1）照樣會被修完，只是不再由機械閘擋住收尾。**自動連跑時另有絕對上界**（預設 6 圈、`LOOPS_AUTO_MAX_ROUNDS` 可調） |
 
 ## 兩個引擎
 

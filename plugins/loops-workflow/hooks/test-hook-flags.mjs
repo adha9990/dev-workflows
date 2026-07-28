@@ -71,6 +71,11 @@ const DEFAULT_ON_FLAGS = [
   // #218：Context Pack Gate。前置比 #217 那兩道更窄——除了「該 loop 已有 telemetry/」，
   // 還要「這條 loop 真的用過共享記憶」，所以預設開對舊 loop 與尚未採用的 loop 都完全 no-op。
   'LOOPS_CONTEXT_PACK_GATE',
+  // #219：Handoff Stop Gate 與 Decision Gate。前置一樣很窄——前者只在「這條 loop 真的停在某個
+  // handoff 上」時生效（沒有 handoff 事件的舊 loop 完全 no-op），後者只對已有 telemetry/ 的新制 loop
+  // 生效，且只作用於結構化提問。
+  'LOOPS_HANDOFF_STOP_GATE',
+  'LOOPS_DECISION_GATE',
 ];
 // optIn 類（3）：未設 / 怪值一律「關」，只有字面 '1' 才開。
 const OPT_IN_FLAGS = [
@@ -83,7 +88,7 @@ const OPT_IN_FLAGS = [
 // A) FLAG_DEFAULTS：分類表本身的契約（值即契約，逐欄釘死）
 // =============================================================================
 
-// ── A1：FLAG_DEFAULTS 是物件，含全部 18 個 flag 的分類 ────────────────────────
+// ── A1：FLAG_DEFAULTS 是物件，含全部 25 個 flag 的分類 ────────────────────────
 {
   assert(FLAG_DEFAULTS && typeof FLAG_DEFAULTS === 'object', 'FLAG_DEFAULTS：是物件 [A1]');
   for (const name of DEFAULT_ON_FLAGS) {

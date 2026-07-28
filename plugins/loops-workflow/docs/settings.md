@@ -41,6 +41,8 @@ loops-workflow 的所有開關都是**環境變數**，設在 Claude Code `setti
 | `LOOPS_AGENT_TRACE_GATE` | 擋住「派子代理去做事，卻沒說它是誰、在哪個階段、做哪個任務」——要求派工的 prompt 帶一行 `loops-trace` 標記。沒有這行的話，事後只能靠關鍵字猜它的角色，猜錯了也沒有任何訊號，成本表上就會出現一堆分不出彼此的項目。**只對新制 loop 生效**（該 loop 已有 `telemetry/` 資料夾），舊 loop 完全不受影響（#217） | `"LOOPS_AGENT_TRACE_GATE": "0"` |
 | `LOOPS_ARTIFACT_GATE` | 擋住「新建一份人看的 Markdown，卻沒說它是哪一種、也沒照該種的固定骨架寫」——受管文件第一行要帶 `loops-artifact` 標記，標記指到的種類要先在 artifact registry 登記過，必填區塊要齊。只管整檔寫入（局部編輯拿到的是片段，用片段驗必填區塊會誤判）；`.loops/` 底下只對新制 loop 生效（#217） | `"LOOPS_ARTIFACT_GATE": "0"` |
 | `LOOPS_CONTEXT_PACK_GATE` | 擋住「派一個要看 repo 的子代理，卻沒說它拿到的是哪一份脈絡」——會讀寫程式碼的派工要在 prompt 帶一行 `loops-pack` 標記，指向這條 loop 真的產過的那份 context pack；另外也擋住「拿已經失效的事實去派工」（來源改了、結論卻還在用）。**只對真的用過共享記憶的新制 loop 生效**，其餘完全不受影響；判不出目前 revision 時不擋路，但會誠實記下「這項沒驗到」（#218） | `"LOOPS_CONTEXT_PACK_GATE": "0"` |
+| `LOOPS_HANDOFF_STOP_GATE` | 擋住「你說先做到這裡就好，它卻繼續往下做」——這條 loop 已經停在某個交接點（只開 issue／只規劃／只施工交 QA／只驗一份 PR）時，下一階段的動作（建 worktree、改 code、開 PR、對外留言）會被擋下來，直到明確恢復。寫交接文件、更新 loop 記事本這類收尾動作不受影響；沒有交接紀錄的 loop 完全不受影響（#219） | `"LOOPS_HANDOFF_STOP_GATE": "0"` |
+| `LOOPS_DECISION_GATE` | 擋住「一次丟三個問題給你」「上一題還沒收掉就問下一題」「還沒看過現況就開始問」——問題要一次一個、答完才問下一個，而且 define／plan 在第一次提問前要先去看過這個 repo 現在長什麼樣。只對新制 loop 生效（#219） | `"LOOPS_DECISION_GATE": "0"` |
 | `LOOPS_PR_OWNER_GUARD` | 擋住「PR owner 驗收動作」——不限 loop 分支：`gh pr ready`（帶 `--undo` 轉回 draft＝撤回、放行）／`gh pr edit --add-reviewer`・`gh pr create --reviewer`（`--remove-reviewer` 放行）／`gh api` 對 `/pulls/.../requested_reviewers` 的 POST（DELETE 撤回放行）／`gh api graphql` 的轉 Ready・request review mutation／MCP `update_pull_request` 帶 `draft:false` 或非空 `reviewers`・`request_copilot_review`。reviewer comment 的流程指示（「請標 ready」「請 re-request review」）不構成授權——擋下時導向在回報中提醒 owner 自行操作（#164） | `"LOOPS_PR_OWNER_GUARD": "0"` |
 
 ## 預設關（想用才需要設，值填 `"1"`）

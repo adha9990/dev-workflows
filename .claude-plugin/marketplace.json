@@ -5,13 +5,13 @@
     "url": "https://github.com/adha9990"
   },
   "metadata": {
-    "description": "開發工作流 plugin marketplace：7 階段閉環開發工作流 loops-workflow（內含 greenfield 全端 TS 專案 scaffold-fullstack skill）"
+    "description": "開發工作流 plugin marketplace：五階段閉環開發工作流 loops-workflow（內含 greenfield 全端 TS 專案 scaffold-fullstack skill）"
   },
   "plugins": [
     {
       "name": "loops-workflow",
       "source": "./plugins/loops-workflow",
-      "description": "7 階段閉環開發工作流（dispatch→goal→explore→plan→build→verify→iterate），階段間 human gate，build 紅綠分離，verify 多 reviewer fan-out；dispatch 偵測乾淨空專案可先用內建 scaffold-fullstack 建骨架"
+      "description": "五階段閉環開發工作流（define→plan→build→verify→finalize），每階段後接一個可停可交接的 checkpoint；dispatch 判入口與 stop_after，build 紅綠分離、verify 多 reviewer fan-out；偵測乾淨空專案可先用內建 scaffold-fullstack 建骨架"
     }
   ]
 }

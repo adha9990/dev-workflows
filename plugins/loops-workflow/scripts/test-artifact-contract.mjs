@@ -279,14 +279,16 @@ testCase('V-8', 'authored-docs 不要求 required_sections', () => {
 
 // ── W-*：workflow vocabulary ─────────────────────────────────────────────────
 
-testCase('W-1', 'phase 清單固定為八個、且不含 iterate', () => {
+testCase('W-1', 'phase 清單固定為五個、退場的名字都不在裡面', () => {
   const { vocabulary } = M.loadWorkflowVocabulary(PLUGIN_ROOT);
   const ids = vocabulary.phases.map((p) => p.id);
-  assert(JSON.stringify(ids) === JSON.stringify(
-    ['clarify', 'define', 'goal', 'explore', 'plan', 'build', 'verify', 'finalize']),
-  'phase 順序恰為 clarify→define→goal→explore→plan→build→verify→finalize');
+  assert(JSON.stringify(ids) === JSON.stringify(['define', 'plan', 'build', 'verify', 'finalize']),
+    'phase 順序恰為 define→plan→build→verify→finalize（#219）');
   assert(!ids.includes('iterate'), 'iterate 不得是 phase（它是 iteration-controller）');
   assert(!ids.includes('dispatch'), 'dispatch 不得是 phase（它是 control node）');
+  for (const retired of ['clarify', 'goal', 'explore']) {
+    assert(!ids.includes(retired), `${retired} 不得是 phase（#219 起是 capability）`);
+  }
 });
 
 testCase('W-2', 'control node 含 dispatch 與 iteration-controller', () => {
