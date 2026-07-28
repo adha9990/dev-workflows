@@ -87,7 +87,7 @@
 | `outbound-templates` | 每型對外訊息（issue / plan 對齊 / 驗收 / 修正回覆 / 研究提案 EDD / PR body / 提問）對到哪個樣板＋共用 house-style | 經 `comment-policy` 委派（各階段先讀 comment-policy、由它指到本檔） |
 | `comment-policy` | 對外書面總綱：繁中白話、雙視角、標推薦選項、tmp 草稿送出後刪、去客套；§7 驗收報告版型 / §8 修正回覆版型 | 所有面向人的書面 |
 | `interaction-adapter` | 決策點的平台中立表述（觸發理由 / 選項優缺 / 推薦 / 一般決策 vs 安全停）＋映射到各平台互動能力的規則（含不可用時的單一 blocking question fallback）；平台工具名僅包在 adapter-projection 區塊 | 規則作者寫 / 改決策點段落時 · compat-lint 對照 |
-| `edd-comment-template` | 研究／提案 EDD comment 版型：研究票／提案的最終交付怎麼寫（📐 header、blockquote 定位、九個固定區塊、修訂發 vN 新 comment、與 §7/§8 文體分界） | explore · clarify（研究決策摘要）· iterate（提案修訂） |
+| `edd-comment-template` | 研究／提案 EDD comment 版型：研究票／提案的最終交付怎麼寫（📐 header、blockquote 定位、九個固定區塊、修訂發 vN 新 comment、與 §7/§8 文體分界） | plan(research)（研究決策摘要）· finalize（提案修訂） |
 | `commit-spec` | commit 怎麼寫：繁中 title / body、主動分段、type / scope / footer 留英文 | build · iterate（commit） |
 | `pr-spec` | PR body 怎麼寫：as-built 設計書、`Closes #issue`、指派 `@me`、自動併 master 進 branch 防落後、edit-first | iterate（開 / 改 PR） |
 | `pr-feedback-sources` | 收 PR 回饋別漏掉：inline comment 要走 `gh api`、resolved 的要過濾 | iterate（type=fix） |
