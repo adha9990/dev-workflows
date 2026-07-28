@@ -590,6 +590,20 @@ function buildFootprintDenyReason(slug, parsed) {
  * 由呼叫端決定放行）。
  */
 export function readGitBranch(cwd) {
+  const headContent = readGitHead(cwd);
+  if (headContent === null) return null;
+  const refMatch = headContent.match(/^ref:\s*refs\/heads\/(.+?)\s*$/m);
+  return refMatch ? refMatch[1] : null; // 裸 SHA（detached HEAD）→ null
+}
+
+/**
+ * 解出這個 cwd 對應的 git 目錄 → `{ gitDir, commonDir }`，判不出來回 null。
+ * `.git` 是檔案形（worktree）時跟著 `gitdir:` 指標走，並讀該 gitdir 下的 `commondir` 找回主 repo 的
+ * git 目錄——**worktree 的 `refs/heads/*` 存在 commonDir、不在自己的 gitdir**，少這一步就會在 worktree
+ * 裡查不到任何 ref。零 spawn、全部詞法讀檔（hook 路徑不得為了一個字串去 fork 一個 git）。
+ * export 給同 repo 內其他需要 git 身分的 guard 重用——`.git` 的尋找只留這一份實作。
+ */
+export function resolveGitDir(cwd) {
   let dir = resolve(cwd);
   let gitPath = null;
   let stat;
@@ -608,29 +622,71 @@ export function readGitBranch(cwd) {
   }
   if (!gitPath) return null;
 
-  let headPath;
-  if (stat.isDirectory()) {
-    headPath = join(gitPath, 'HEAD');
-  } else {
-    let pointer;
-    try {
-      pointer = readFileSync(gitPath, 'utf8');
-    } catch {
-      return null;
-    }
-    const gitdirMatch = pointer.match(/^gitdir:\s*(.+?)\s*$/m);
-    if (!gitdirMatch) return null;
-    headPath = join(resolve(dir, gitdirMatch[1]), 'HEAD');
-  }
+  if (stat.isDirectory()) return { gitDir: gitPath, commonDir: gitPath };
 
-  let headContent;
+  let pointer;
   try {
-    headContent = readFileSync(headPath, 'utf8');
+    pointer = readFileSync(gitPath, 'utf8');
   } catch {
     return null;
   }
-  const refMatch = headContent.match(/^ref:\s*refs\/heads\/(.+?)\s*$/m);
-  return refMatch ? refMatch[1] : null; // 裸 SHA（detached HEAD）→ null
+  const gitdirMatch = pointer.match(/^gitdir:\s*(.+?)\s*$/m);
+  if (!gitdirMatch) return null;
+  const gitDir = resolve(dir, gitdirMatch[1]);
+  let commonDir = gitDir;
+  try {
+    commonDir = resolve(gitDir, readFileSync(join(gitDir, 'commondir'), 'utf8').trim());
+  } catch {
+    // 沒有 commondir（不是 linked worktree）⇒ gitDir 自己就是 common dir
+  }
+  return { gitDir, commonDir };
+}
+
+/** 讀 HEAD 的原始內容（`ref: refs/heads/x` 或裸 SHA）；判不出來回 null。 */
+export function readGitHead(cwd) {
+  const dirs = resolveGitDir(cwd);
+  if (!dirs) return null;
+  try {
+    return readFileSync(join(dirs.gitDir, 'HEAD'), 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 目前 HEAD 的 commit sha（40 hex），判不出來回 null。
+ * 三條路徑都走：裸 SHA（detached）、`refs/heads/<branch>` 檔、以及 `packed-refs`
+ * （ref 被打包後那個檔就不存在了——少這一條會在打包過 ref 的 repo 上靜默回 null）。
+ */
+export function readGitRevision(cwd) {
+  const head = readGitHead(cwd);
+  if (head === null) return null;
+  const bare = head.trim();
+  if (/^[0-9a-f]{40}$/i.test(bare)) return bare.toLowerCase();
+
+  const refMatch = head.match(/^ref:\s*(refs\/[^\s]+)\s*$/m);
+  if (!refMatch) return null;
+  const ref = refMatch[1];
+  const dirs = resolveGitDir(cwd);
+  if (!dirs) return null;
+  for (const base of [dirs.gitDir, dirs.commonDir]) {
+    try {
+      const value = readFileSync(join(base, ...ref.split('/')), 'utf8').trim();
+      if (/^[0-9a-f]{40}$/i.test(value)) return value.toLowerCase();
+    } catch {
+      // 這層沒有這個 ref 檔，換下一個來源
+    }
+  }
+  try {
+    const packed = readFileSync(join(dirs.commonDir, 'packed-refs'), 'utf8');
+    for (const line of packed.split('\n')) {
+      const m = line.match(/^([0-9a-f]{40})\s+(.+?)\s*$/i);
+      if (m && m[2] === ref) return m[1].toLowerCase();
+    }
+  } catch {
+    // 沒有 packed-refs ⇒ 判不出來
+  }
+  return null;
 }
 
 /**

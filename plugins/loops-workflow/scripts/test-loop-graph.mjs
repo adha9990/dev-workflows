@@ -152,7 +152,9 @@ testCase('G6', 'replay determinism：任意前綴投影兩次結果逐欄位相�
 });
 
 testCase('G7', 'toGraph：node/edge 種類都在模型內、關係方向正確', () => {
-  const st = projectEvents(build([...FULL_RUN,
+  // 用「完整流程 ＋ 共享記憶」兩段合起來當素材：下面那條 `for (const k of EDGE_KINDS)` 是在守
+  // 「宣告了卻沒有人產生的 edge 種類」——素材少一段，那道守門就會退化成永遠通過。
+  const st = projectEvents(build([...FULL_RUN, ...KNOWLEDGE_RUN,
     { type: 'decision', payload: { decisionId: 'D2', question: '真相源放哪', choice: 'JSONL+SQLite', status: 'decided', supersedes: 'D1' } },
   ]), { slug: 'demo' });
   const { nodes, edges } = toGraph(st);
@@ -296,6 +298,94 @@ testCase('G14', 'GUARD：後續事件只覆蓋自己帶到的欄位，不得把�
   ]), { slug: 'demo' }).findings[0];
   assert(f.severity === 'P0' && f.title === '嚴重問題' && f.axis === 'security', 'finding 的部分更新同樣不抹掉既有欄位');
   assert(f.status === 'resolved', 'finding 狀態被更新');
+});
+
+// ── #218 共享記憶：claim／source／pack 的投影與重建 ──────────────────────────
+
+/** 一段帶共享記憶的事件序列（claim 依 kind 投影成不同節點、含失效與取代、含一份 pack）。 */
+const KNOWLEDGE_RUN = [
+  { type: 'loop-create', payload: { type: 'feature', operation: 'add', mode: 'closed' } },
+  { type: 'stage-enter', payload: { stage: 'explore' } },
+  { type: 'knowledge.claimed', payload: { claimId: 'K-ARCH', claim: { claim_id: 'K-ARCH', kind: 'architecture', statement: 'route 只透過 viewmodel 取資料', scope: { files: ['client/**'], symbols: [] }, sources: [{ type: 'repo-file', locator: 'client/AGENTS.md', digest: 'sha256:aa' }], confidence: 'verified', validity: 'valid', created_by: { phase: 'explore', agent_role: 'explore' }, created_at_revision: 'sha1' } } },
+  { type: 'knowledge.claimed', payload: { claimId: 'K-CONV', claim: { claim_id: 'K-CONV', kind: 'convention', statement: '對外敘述一律繁體中文', scope: { files: ['**'], symbols: [] }, sources: [{ type: 'repo-file', locator: 'AGENTS.md', digest: 'sha256:bb' }], confidence: 'verified', validity: 'valid', created_by: { phase: 'explore', agent_role: 'explore' }, created_at_revision: 'sha1' } } },
+  { type: 'knowledge.claimed', payload: { claimId: 'K-CONTRACT', claim: { claim_id: 'K-CONTRACT', kind: 'contract', statement: 'DELETE /items/:id 回 204', scope: { files: ['server/**'], symbols: [] }, sources: [{ type: 'repo-file', locator: 'server/http.ts', digest: 'sha256:cc' }], derived_from: ['K-ARCH'], confidence: 'verified', validity: 'valid', created_by: { phase: 'explore', agent_role: 'explore' }, created_at_revision: 'sha1' } } },
+  { type: 'knowledge.claimed', payload: { claimId: 'K-INV', claim: { claim_id: 'K-INV', kind: 'invariant', statement: '刪除後不得留下孤兒列', scope: { files: ['server/**'], symbols: [] }, sources: [{ type: 'command-output', locator: 'pnpm test', digest: 'sha256:dd' }], confidence: 'verified', validity: 'valid', created_by: { phase: 'explore', agent_role: 'explore' }, created_at_revision: 'sha1' } } },
+  { type: 'knowledge.claimed', payload: { claimId: 'K-EVID', claim: { claim_id: 'K-EVID', kind: 'evidence', statement: 'pnpm test 全綠（sha1）', scope: { files: ['**'], symbols: [] }, sources: [{ type: 'command-output', locator: 'pnpm test', digest: 'sha256:dd' }], confidence: 'verified', validity: 'valid', created_by: { phase: 'explore', agent_role: 'explore' }, created_at_revision: 'sha1' } } },
+  { type: 'stage-enter', payload: { stage: 'build' } },
+  { type: 'context-pack.built', payload: { packId: 'pack-1', role: 'impl-author', phase: 'build', taskId: 'T1', claimIds: ['K-ARCH', 'K-CONTRACT'], tokensEstimated: 120, budget: 4000, sourceRevision: 'sha1' } },
+  { type: 'context-pack.consumed', payload: { packId: 'pack-1', agentRole: 'impl-author', agentId: 'A1', dispatchId: 'd1' } },
+  { type: 'knowledge.consumed', payload: { claimId: 'K-ARCH', packId: 'pack-1', agentRole: 'impl-author', agentId: 'A1', phase: 'build' } },
+  { type: 'knowledge.invalidated', payload: { claimId: 'K-CONV', validity: 'invalid', reason: '來源改了', changedSources: ['AGENTS.md'], cause: 'source' } },
+  { type: 'knowledge.refreshed', payload: { claimId: 'K-EVID', reason: '同一個 revision 上重跑一次', claim: { claim_id: 'K-EVID', kind: 'evidence', statement: 'pnpm test 全綠（sha1，重跑）', scope: { files: ['**'], symbols: [] }, sources: [{ type: 'command-output', locator: 'pnpm test', digest: 'sha256:dd' }], confidence: 'verified', validity: 'valid', created_by: { phase: 'build', agent_role: 'impl-author' }, created_at_revision: 'sha1' } } },
+  { type: 'knowledge.claimed', payload: { claimId: 'K-ARCH2', claim: { claim_id: 'K-ARCH2', kind: 'architecture', statement: 'route 改走 loader', scope: { files: ['client/**'], symbols: [] }, sources: [{ type: 'repo-file', locator: 'client/AGENTS.md', digest: 'sha256:ee' }], supersedes: 'K-ARCH', confidence: 'verified', validity: 'valid', created_by: { phase: 'build', agent_role: 'impl-author' }, created_at_revision: 'sha2' } } },
+];
+
+testCase('G15', '#218：claim 依 kind 投影成不同節點，關係邊齊全', () => {
+  const st = projectEvents(build(KNOWLEDGE_RUN), { slug: 'demo' });
+  assert(st.knowledge.enabled === true && st.knowledge.claims.length === 6, '六條 claim 進了知識狀態');
+  assert(st.knowledge.claims.find((c) => c.claimId === 'K-CONV').validity === 'invalid', '失效事件生效');
+  assert(st.knowledge.claims.find((c) => c.claimId === 'K-ARCH').validity === 'superseded', '被取代的自動終態');
+
+  const { nodes, edges } = toGraph(st);
+  const kindsOf = (id) => nodes.find((n) => n.id.endsWith(`:${id}`))?.kind;
+  assert(kindsOf('K-ARCH') === 'ArchitectureSlice', 'architecture → ArchitectureSlice');
+  assert(kindsOf('K-CONV') === 'Convention', 'convention → Convention');
+  assert(kindsOf('K-CONTRACT') === 'Contract', 'contract → Contract');
+  assert(kindsOf('K-INV') === 'Invariant', 'invariant → Invariant');
+  assert(kindsOf('K-EVID') === 'KnowledgeClaim', '其餘 kind → KnowledgeClaim（新增 kind 不會消失）');
+  assert(nodes.some((n) => n.kind === 'Source' && n.label === 'client/AGENTS.md'), 'Source 節點成立');
+  assert(nodes.some((n) => n.kind === 'ContextPack'), 'ContextPack 節點成立');
+  assert(nodes.every((n) => NODE_KINDS.includes(n.kind)), '沒有模型外的 node 種類');
+  assert(edges.every((e) => EDGE_KINDS.includes(e.kind)), '沒有模型外的 edge 種類');
+
+  const has = (kind) => edges.some((e) => e.kind === kind);
+  for (const kind of ['DERIVED_FROM', 'APPLIES_TO', 'CONSUMED_BY', 'INVALIDATED_BY', 'SUPERSEDES', 'VERIFIED_BY']) {
+    assert(has(kind), `${kind} 邊有被建出來`);
+  }
+  const derived = edges.filter((e) => e.kind === 'DERIVED_FROM');
+  assert(derived.some((e) => e.from.includes('K-CONTRACT') && e.from.includes('Contract') && e.to.includes('K-ARCH')), 'claim → 上游 claim 的依賴邊在（失效傳播靠它）');
+  assert(edges.some((e) => e.kind === 'INVALIDATED_BY' && e.to.endsWith('repo-file:AGENTS.md')), '失效指得出是哪個來源動的');
+});
+
+testCase('G16', 'S6：刪掉整個 index，共享記憶只靠 events.jsonl 就重建得回來', async () => {
+  await withTmp(async (dir) => {
+    const loopsRoot = join(dir, '.loops');
+    seedLedger(join(loopsRoot, 'demo'), KNOWLEDGE_RUN);
+
+    const first = await rebuildAll(loopsRoot);
+    const claimsA = queryNodes(first.handle.db, { loop: 'demo', kind: 'ArchitectureSlice' });
+    const packsA = queryNodes(first.handle.db, { loop: 'demo', kind: 'ContextPack' });
+    const edgesA = queryEdges(first.handle.db, { loop: 'demo' }).filter((e) => e.kind === 'CONSUMED_BY');
+    first.handle.db.close();
+    rmSync(join(loopsRoot, '.index'), { recursive: true, force: true });
+
+    const second = await rebuildAll(loopsRoot);
+    const claimsB = queryNodes(second.handle.db, { loop: 'demo', kind: 'ArchitectureSlice' });
+    const packsB = queryNodes(second.handle.db, { loop: 'demo', kind: 'ContextPack' });
+    const edgesB = queryEdges(second.handle.db, { loop: 'demo' }).filter((e) => e.kind === 'CONSUMED_BY');
+    second.handle.db.close();
+
+    assert(JSON.stringify(claimsA) === JSON.stringify(claimsB), 'claim 節點逐欄位相同');
+    assert(JSON.stringify(packsA) === JSON.stringify(packsB), 'pack metadata 逐欄位相同');
+    assert(JSON.stringify(edgesA) === JSON.stringify(edgesB), '取用關係逐欄位相同');
+    assert(claimsB.some((n) => n.data.validity === 'superseded'), 'validity 也是重建出來的（不是另存一份狀態）');
+    assert(packsB[0].data.claimIds.length === 2, 'pack 帶了哪些事實查得回來');
+  });
+});
+
+testCase('G17', '#218：壞掉／殘缺的 knowledge 事件不丟例外（投影層一律降級不炸）', () => {
+  const st = projectEvents(build([
+    { type: 'knowledge.claimed', payload: {} },
+    { type: 'knowledge.claimed', payload: { claim: { claim_id: 'K1' } } },
+    { type: 'knowledge.invalidated', payload: { claimId: '不存在' } },
+    { type: 'knowledge.consumed', payload: {} },
+    { type: 'context-pack.consumed', payload: { packId: '不存在' } },
+    { type: 'context-pack.built', payload: {} },
+  ]), { slug: 'demo' });
+  assert(st.knowledge.claims.length === 1, '沒有 id 的 claim 不進狀態，但也不炸');
+  assert(st.knowledge.claims[0].sources.length === 0 && st.knowledge.claims[0].validity === 'uncertain', '缺來源的 claim 保守落到 uncertain（不預設 valid）');
+  assert(st.knowledge.packs.length === 0, '沒有 packId 的 pack 事件不進狀態');
+  assert(toGraph(st).nodes.every((n) => NODE_KINDS.includes(n.kind)), '殘缺資料照樣投影得出合法節點');
 });
 
 // ══════════════════════════════════════════════════════════════════════════

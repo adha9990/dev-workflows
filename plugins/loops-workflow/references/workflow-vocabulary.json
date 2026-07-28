@@ -76,22 +76,110 @@
   ],
 
   "activities": [
-    { "id": "route", "description": "分類與路由（dispatch 的主要動作）" },
-    { "id": "clarify", "description": "向使用者釐清需求、確認理解" },
-    { "id": "author-issue", "description": "撰寫或更新 GitHub issue body" },
-    { "id": "research", "description": "查既有實作、外部資料、方案調查" },
-    { "id": "design", "description": "設計決策、方案取捨、切任務" },
-    { "id": "implement", "description": "寫或改實作程式碼" },
-    { "id": "execute-test", "description": "跑測試／lint／typecheck 等驗證命令" },
-    { "id": "review", "description": "reviewer 審查（verify 的 fan-out）" },
-    { "id": "validate-finding", "description": "finding 的二輪確認（finding-validator）" },
-    { "id": "remediate", "description": "依 finding 修正（回環後的修）" },
-    { "id": "reverify", "description": "修完後重新驗證" },
-    { "id": "document", "description": "寫或更新人類文件" },
-    { "id": "render-artifact", "description": "產生受管的人類可見 Markdown 產物" },
-    { "id": "publish", "description": "把內容送出到 GitHub（issue／PR／comment）" },
-    { "id": "cleanup", "description": "收尾清理（worktree、暫存草稿）" }
+    { "id": "route", "repo_aware": false, "description": "分類與路由（dispatch 的主要動作）" },
+    { "id": "clarify", "repo_aware": false, "description": "向使用者釐清需求、確認理解" },
+    { "id": "author-issue", "repo_aware": false, "description": "撰寫或更新 GitHub issue body" },
+    { "id": "research", "repo_aware": true, "description": "查既有實作、外部資料、方案調查" },
+    { "id": "design", "repo_aware": true, "description": "設計決策、方案取捨、切任務" },
+    { "id": "implement", "repo_aware": true, "description": "寫或改實作程式碼" },
+    { "id": "execute-test", "repo_aware": true, "description": "跑測試／lint／typecheck 等驗證命令" },
+    { "id": "review", "repo_aware": true, "description": "reviewer 審查（verify 的 fan-out）" },
+    { "id": "validate-finding", "repo_aware": true, "description": "finding 的二輪確認（finding-validator）" },
+    { "id": "remediate", "repo_aware": true, "description": "依 finding 修正（回環後的修）" },
+    { "id": "reverify", "repo_aware": true, "description": "修完後重新驗證" },
+    { "id": "document", "repo_aware": false, "description": "寫或更新人類文件" },
+    { "id": "render-artifact", "repo_aware": false, "description": "產生受管的人類可見 Markdown 產物" },
+    { "id": "publish", "repo_aware": false, "description": "把內容送出到 GitHub（issue／PR／comment）" },
+    { "id": "cleanup", "repo_aware": false, "description": "收尾清理（worktree、暫存草稿）" }
   ],
+
+  "knowledge": {
+    "contract_version": "1",
+    "notes": "Shared Agent Memory 的 canonical 詞彙（#218）——同一條 loop 的共同事實只探索一次，後續 stage／agent 從 context broker 取自己需要的最小切片。三條邊界寫在資料形狀裡，不靠自律：①**只共享事實、不共享結論**——claim_kinds 是白名單，品質結論在這裡沒有可用的 kind（forbidden_claim_kinds 列出被明文擋掉的那幾種，錯誤訊息會指名）；②**沒有 provenance 就不是 valid**——來源缺 digest／graph revision 取不到時只能落到 uncertain／not_measured，不得猜成 valid；③**agent 記憶不寫成敘事 Markdown**——claim 是短 statement＋scope＋provenance＋validity，長內容留在 repo／code graph／既有 artifact，claim 只保留可追溯錨點。repo_aware 的 activity 才需要 context pack（Context Pack Gate 的判定依據就是這一欄，不另立第二份名單）。",
+
+    "claim_kinds": [
+      { "id": "architecture", "description": "模組職責、分層、落點" },
+      { "id": "symbol-responsibility", "description": "單一檔案／symbol 的職責" },
+      { "id": "convention", "description": "root／就近專案約定（AGENTS.md／CLAUDE.md、命名、目錄慣例）" },
+      { "id": "contract", "description": "API、schema、event 與跨模組介面" },
+      { "id": "invariant", "description": "領域不變式" },
+      { "id": "dependency-rule", "description": "依賴方向與允許／禁止的呼叫關係" },
+      { "id": "caller-graph", "description": "誰呼叫誰、consumer 清單" },
+      { "id": "data-flow", "description": "資料流動路徑" },
+      { "id": "reuse-candidate", "description": "可重用的既有實作" },
+      { "id": "impact-surface", "description": "這次改動的波及面" },
+      { "id": "behavior", "description": "issue／完工定義承諾的可觀察行為" },
+      { "id": "run-command", "description": "怎麼跑：test／lint／build／smoke／ready／cleanup" },
+      { "id": "evidence", "description": "已跑過、且仍對同一 revision 有效的 deterministic 證據" },
+      { "id": "risk", "description": "risk map predicate 命中的機械可判風險" },
+      { "id": "implementation-detail", "description": "實作怎麼寫的事實（隔離規則：test-author 一律取不到）" }
+    ],
+
+    "forbidden_claim_kinds": [
+      { "id": "quality-verdict", "reason": "「code 已正確」是結論不是事實——後續 agent 必須自己判" },
+      { "id": "review-conclusion", "reason": "前一位 reviewer 的判定會變成下一位的判斷框架，獨立性就沒了" },
+      { "id": "readiness", "reason": "「可以 Ready」是 verify 每輪自己要下的判斷，不得被繼承" },
+      { "id": "finding-status", "reason": "finding 成不成立／修好沒，真相源是 finding 事件與二輪確認，不是共享記憶" },
+      { "id": "recommendation", "reason": "「這個方案最好」是決策，決策點屬於人與 plan，不屬於事實池" },
+      { "id": "author-defense", "reason": "作者的辯護是立場不是證據——reviewer 拿到它就不再獨立" }
+    ],
+
+    "source_types": [
+      { "id": "repo-file", "digestable": true, "description": "repo 內檔案（digest＝內容 sha256）" },
+      { "id": "code-symbol", "digestable": true, "description": "檔案內的具名 symbol（locator 形如 path#symbol）。digest 的基準是**該 symbol 所在檔案的完整內容**——沒有 parser 就無法確定性地重算 symbol 粒度的 digest，用檔案粒度會多失效幾條，用猜的則會漏掉真正的變更" },
+      { "id": "code-graph", "digestable": false, "description": "code graph 查詢結果（真相由 graph_project＋graph_revision 錨定，不是檔案內容）" },
+      { "id": "command-output", "digestable": true, "description": "實際跑過的命令輸出（digest＝輸出內容）" },
+      { "id": "issue", "digestable": true, "description": "GitHub issue／PR body" },
+      { "id": "artifact", "digestable": true, "description": "本 loop 既有的受管產物" }
+    ],
+
+    "validity_states": [
+      { "id": "valid", "description": "來源與依賴未改，可重用" },
+      { "id": "invalid", "description": "已知來源、contract 或 dependency 改變，必須 refresh" },
+      { "id": "uncertain", "description": "無法證明仍有效——使用前保守補查，不得當 valid 偷渡" },
+      { "id": "superseded", "description": "已有新版 claim 取代" }
+    ],
+
+    "confidence_levels": [
+      { "id": "verified", "description": "每個來源都有 digest（graph 來源另需 graph_revision），可機械對帳" },
+      { "id": "reported", "description": "來源可追溯但拿不到 digest（例如人的口頭確認）——不得升格成 verified" },
+      { "id": "not_measured", "description": "runtime 取不到 provenance。依 Metric-Honesty 誠實標記，不猜" }
+    ],
+
+    "events": [
+      { "id": "knowledge.claimed", "description": "取得一條新的共同事實" },
+      { "id": "knowledge.consumed", "description": "某個 agent 透過 context pack 取用了某條 claim" },
+      { "id": "knowledge.invalidated", "description": "來源改變或無法證明仍有效 → 降級成 invalid／uncertain" },
+      { "id": "knowledge.refreshed", "description": "局部補查後重新取得同一範圍的事實" },
+      { "id": "knowledge.superseded", "description": "新 claim 取代舊 claim" },
+      { "id": "context-pack.built", "description": "為某個 stage×role×task 組出一份 deterministic 的 pack" },
+      { "id": "context-pack.consumed", "description": "該 pack 真的被派出去給某個 agent" },
+      { "id": "context-gap.detected", "description": "agent 發現具體缺口（只能指名缺什麼，不得以「先熟悉專案」重跑完整探索）" }
+    ],
+
+    "independence_channels": [
+      { "id": "implementation", "description": "實作內容與 implementation-detail claim" },
+      { "id": "author-defense", "description": "作者對自己產出的辯護" },
+      { "id": "peer-verdict", "description": "其他 reviewer 的判定與 finding 結論" },
+      { "id": "quality-conclusion", "description": "任何「已正確／可合併」型的品質結論" }
+    ],
+
+    "roles": [
+      { "id": "orchestrator", "phase": "any", "claim_kinds": "*", "excludes": [], "description": "主線自己（預設角色）——它要看得到還擋著完工的東西" },
+      { "id": "define", "phase": "define", "claim_kinds": ["convention", "architecture", "behavior", "contract"], "excludes": ["implementation", "quality-conclusion"] },
+      { "id": "goal", "phase": "goal", "claim_kinds": ["convention", "behavior", "contract", "invariant"], "excludes": ["implementation", "quality-conclusion"] },
+      { "id": "explore", "phase": "explore", "claim_kinds": ["architecture", "symbol-responsibility", "convention", "contract", "invariant", "dependency-rule", "caller-graph", "data-flow", "reuse-candidate", "impact-surface", "risk", "run-command"], "excludes": ["quality-conclusion"] },
+      { "id": "plan", "phase": "plan", "claim_kinds": ["architecture", "contract", "invariant", "dependency-rule", "reuse-candidate", "impact-surface", "risk", "behavior", "run-command"], "excludes": ["quality-conclusion"], "description": "拍板設計的主線。回環後重新規劃時必須看得到還擋著完工的東西，所以不排除 peer-verdict——要獨立判斷的是 plan-reviewer，不是 plan 自己" },
+      { "id": "plan-reviewer", "phase": "plan", "claim_kinds": ["architecture", "contract", "invariant", "dependency-rule", "reuse-candidate", "impact-surface", "risk", "behavior"], "excludes": ["author-defense", "peer-verdict", "quality-conclusion"] },
+      { "id": "test-author", "phase": "build", "claim_kinds": ["behavior", "contract", "invariant", "evidence", "convention", "run-command"], "excludes": ["implementation", "author-defense", "quality-conclusion"] },
+      { "id": "impl-author", "phase": "build", "claim_kinds": ["architecture", "symbol-responsibility", "contract", "invariant", "dependency-rule", "reuse-candidate", "convention", "behavior", "run-command", "risk", "impact-surface", "implementation-detail"], "excludes": ["quality-conclusion"], "description": "它要修的就是沒過的閘與 finding，所以不排除 peer-verdict——隔離規則管的是「寫測試的人不看實作」與「審的人不看辯護」，不是「修的人不看問題」" },
+      { "id": "verify-reviewer", "phase": "verify", "claim_kinds": ["architecture", "symbol-responsibility", "contract", "invariant", "dependency-rule", "caller-graph", "data-flow", "impact-surface", "convention", "behavior", "evidence", "run-command", "implementation-detail"], "excludes": ["author-defense", "peer-verdict", "quality-conclusion"] },
+      { "id": "finding-validator", "phase": "verify", "claim_kinds": ["architecture", "contract", "invariant", "dependency-rule", "caller-graph", "impact-surface", "behavior", "evidence", "implementation-detail"], "excludes": ["author-defense", "peer-verdict", "quality-conclusion"] },
+      { "id": "final-audit", "phase": "verify", "claim_kinds": ["architecture", "contract", "invariant", "dependency-rule", "impact-surface", "behavior", "evidence", "convention"], "excludes": ["author-defense", "peer-verdict", "quality-conclusion"], "description": "fresh 收尾稽核：可重用有 provenance 的架構事實，但獨立下自己的判定" },
+      { "id": "iteration-controller", "phase": "finalize", "claim_kinds": ["impact-surface", "behavior", "contract", "run-command", "risk"], "excludes": [] },
+      { "id": "explain", "phase": "finalize", "claim_kinds": ["architecture", "contract", "invariant", "behavior", "evidence", "impact-surface", "implementation-detail", "run-command"], "excludes": ["author-defense", "quality-conclusion"] }
+    ]
+  },
 
   "cost_dimensions": [
     "loop",
