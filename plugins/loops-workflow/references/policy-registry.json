@@ -1538,6 +1538,72 @@
         "plugins/loops-workflow/references/workflow-vocabulary.json",
         "plugins/loops-workflow/docs/FLOW.md"
       ]
+    },
+    {
+      "id": "adaptive-effort-profile",
+      "title": "投入隨任務調整，但檔位是預算不是豁免：地板不動、判不出來就從嚴、只升不降",
+      "scope": {
+        "kind": "activity-based",
+        "paths": [],
+        "activities": [
+          "route",
+          "design",
+          "implement",
+          "review",
+          "pr-create",
+          "pr-ready"
+        ],
+        "stages": [
+          "define",
+          "plan",
+          "build",
+          "verify",
+          "finalize"
+        ]
+      },
+      "enforcement": "require",
+      "tier": "workflow-invariant",
+      "runtime": {
+        "guard": "pr-gate",
+        "protected_actions": [
+          "pr-create",
+          "pr-ready"
+        ]
+      },
+      "evaluator": null,
+      "overridable": false,
+      "approval": {
+        "required": false,
+        "by": null
+      },
+      "precedence": null,
+      "fail_closed_on_missing_state": false,
+      "requires": [
+        "每條-loop-在入口判一次投入檔位並寫進-loop-md",
+        "判不出來一律落在-standard",
+        "升檔當下補做新檔位多出來的-ceremony",
+        "檔位與地板稽核結果寫成機械-marker"
+      ],
+      "forbids": [
+        "用檔位跳過地板列出的-mandatory-gate",
+        "宣稱-direct-卻改動高風險硬閘路徑",
+        "在同一條-loop-內把檔位往下調",
+        "拿檔位當少派-reviewer-或少寫證據的理由"
+      ],
+      "conflicts_with": [],
+      "projection": [
+        "AGENTS.md"
+      ],
+      "projection_marker": "投入隨任務調整",
+      "tests": [
+        "plugins/loops-workflow/scripts/test-effort-profile.mjs",
+        "plugins/loops-workflow/hooks/test-pr-gate.mjs"
+      ],
+      "docs": [
+        "AGENTS.md",
+        "plugins/loops-workflow/references/stages/effort-profile.md",
+        "plugins/loops-workflow/references/shared/runtime/journaling.md"
+      ]
     }
   ]
 }

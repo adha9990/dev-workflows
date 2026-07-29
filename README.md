@@ -66,7 +66,7 @@
 | 接續中途的 loop | `dispatch <slug>`（自動偵測 `.loops/<slug>/loop.md`） |
 | 看某條 loop 跑到哪 | 直接開 `.loops/<slug>/PROGRESS.md`（恆開 hook 每回合自動重生；開場也會自動浮出 active 迴圈） |
 | 空資料夾建全端 TS 骨架 | `dispatch` 偵測到乾淨專案、確認後自動走內建 scaffold |
-| 工程師理解包 | 完整迴圈完工**一律產** `deliverables/explain.md`（三份 deliverable 之一）；其他情境用自然語言請 Claude 跑 `explain` skill |
+| 工程師理解包 | 完整迴圈完工**一律產**（標準／加強檔位＝`deliverables/explain.md`，三份 deliverable 之一；直行檔位＝合併進 `deliverables/delivery-note.md`）；其他情境用自然語言請 Claude 跑 `explain` skill |
 | 維護 repo 的 `AGENTS.md` | iterate 完工命中維護時機由主線依 docs-policy 直接編輯；或自然語言請求 |
 | 自動連跑（auto） | 環境變數 `LOOPS_AUTO=1`（見 `references/shared/runtime/auto-mode.md`） |
 
@@ -111,8 +111,9 @@ define ─H1─▶ plan ─H2─▶ build ─H3─▶ verify ─H4─▶ finaliz
 | **verify** | 出 P0 才停 | 先跑**不用派人的機械閘**（型別 / lint / 測試 / 計畫與範圍對帳），過了才同一回合派**依風險選出的獨立 reviewer** 各審一面 + 跑真 app + 對嚴重問題二輪確認 → **逐個承諾的行為核證據** → 判 Ready / 退回 → H4 |
 | **finalize** | ✋ 完工 / 回環 | 把 verify 或 PR 回饋分類 → **真問題一律自動全修**（修根因 + 加回歸測試）→ 修完再驗一輪 → 乾淨才收尾開 PR → H5。回環圈數（預設 3）是**軟上限**：到頂只會回報現況給你，**還有沒修完的問題就繼續修**，不會因為「圈數用完」就帶著問題進 PR。**只有最嚴重的一級（P0）是誰都不能繞過的底線**——次一級（P1）照樣會被修完，只是不再由機械閘擋住收尾。**自動連跑時另有絕對上界**（預設 6 圈、`LOOPS_AUTO_MAX_ROUNDS` 可調） |
 
-## 兩個引擎
+## 三個引擎
 
+- **投入檔位（loop 級右尺寸化）**：dispatch 一開始先判「這件事該投多少」——**直行 / 標準 / 加強**。它縮的是**固定 ceremony 的體積與輪數**（施工圖厚度、機制圖、對齊留言版型、完工文件份數、回環軟上限），**不縮任何把關**：開票、進 code 前的拍板、獨立審查、機械閘、真機驗證、「重大問題沒清乾淨不准送審」每一檔都照做。三條邊界：**判不出來一律走標準檔**（不是最省的那檔）、**只升不降**（碰到高風險 / 範圍變大 / 冒出未決問題就當下升檔並回頭補做）、**送審前有機械檢查**（宣稱走直行卻改到高風險的東西 → 開 PR 被擋、要求升檔補做）。判準與逐項對照見 `references/stages/effort-profile.md`。
 - **build 依證據選路徑**：計畫先為每個行為指定**一份**主證據；風險命中的才走紅綠分離（`test-author` 只看需求、看不到 impl → `impl-author` 只轉綠、不准改 test → 條件式 Refactor → 衝突派 `referee` 裁決），其餘沿用既有測試 / 型別 / smoke。讓測試不會遷就實作，也不會為了「有紅燈可跑」而多寫。
 - **verify fan-out**：先跑三道確定性閘，再同回合派 reviewer——**固定 product-contract + code-quality**，其餘（architecture / security / performance / tests）依風險觸發，高風險一律滿 6 軸 + 條件式領域 reviewer + `finding-validator` 二輪，輸出 Ready / Not ready。
 
@@ -131,7 +132,7 @@ define ─H1─▶ plan ─H2─▶ build ─H3─▶ verify ─H4─▶ finaliz
 | 跨 session 接續 | `/loops-workflow:dispatch <slug>`（自動偵測既有 loop.md），見 `references/shared/runtime/journaling.md` |
 | 機器可驗證計畫 + eval | 計畫塊 `scripts/validate-plan.mjs`（見 `references/stages/machine-plan-schema.md`）/ dispatch 場景評測 `scripts/run-eval.mjs`（見 `references/shared/runtime/eval-harness.md`） |
 | 全部開關總覽 | `docs/settings.md` —— settings.json `env` 可設的全部 `LOOPS_*` 參數一頁看完 |
-| 工程師理解包 | 完整迴圈完工一律產 `deliverables/explain.md`（三份 deliverable 之一）；其他情境自然語言請 Claude 跑 `explain` skill（唯讀側用） |
+| 工程師理解包 | 完整迴圈完工一律產（標準／加強＝`deliverables/explain.md` 三份之一；直行＝合併的 `deliverables/delivery-note.md`）；其他情境自然語言請 Claude 跑 `explain` skill（唯讀側用） |
 | code 工作隔離 | 會動 code 的迴圈（issue / fix）在 **git worktree**（自帶 branch）裡做，不擾動主 checkout；用環境提供的 worktree 進入能力，或 `.claude/worktrees/<issue#>-<slug>`（例 `137-trash-delete-permanent`，**不加 `fix/` 前綴**） |
 
 intent→入口對照與全程操作規則見 `AGENTS.md`（marketplace 根）。

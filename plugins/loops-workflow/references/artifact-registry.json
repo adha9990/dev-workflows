@@ -226,6 +226,28 @@
       "gate": "finalize"
     },
     {
+      "artifact_id": "delivery-note",
+      "audience": "engineer",
+      "channel": "local-loop",
+      "path_pattern": ".loops/<slug>/deliverables/delivery-note.md",
+      "template_version": 1,
+      "render_mode": "hybrid",
+      "template": "artifacts/templates/delivery-note.md",
+      "required_sections": [
+        "實作導讀",
+        "合併前手動驗證",
+        "成本輪廓"
+      ],
+      "optional_sections": [],
+      "style_contract": "traditional-chinese-plain-language",
+      "producer": "finalize",
+      "data_source": [],
+      "renderer": null,
+      "validator": "required-sections",
+      "gate": "finalize",
+      "notes": "`direct` 投入檔位的完工交接物（#222）：把 explain／checklist／cost 三份合成一份。**條件式產物**——只有 direct 檔位的完整迴圈產它，standard／deep 照舊產三份，修正型（type=fix）三種檔位都不產。依 #217 的第三條配套，條件式產物不得被無條件要求存在（那會逼人為了過閘生出一份沒有意義的文件）。"
+    },
+    {
       "artifact_id": "merge-checklist",
       "audience": "engineer",
       "channel": "local-loop",
