@@ -1237,6 +1237,79 @@ try {
       assert(safe(m?.verifyReportFootprintBlocks, '完全沒有 marker') === false, '[WN12] verifyReportFootprintBlocks：無 marker → false（fail-open）');
       assert(safe(m?.verifyReportFootprintBlocks, 42) === false, '[WN12b] verifyReportFootprintBlocks：非字串 → false');
     }
+
+    // ── 閘⑨（#222）：投入檔位低於自己的地板（宣稱 direct、實際碰高風險硬閘）───────────────
+    // 只擋 floor=violated 一格。判不出來（marker 缺席 / highrisk=unknown）一律放行——右尺寸化的
+    // 機械閘如果會因為「量不到」而擋人，第一件被繞掉的就是它自己。
+    {
+      const CLEAN = '# verify\n判定：Ready\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 findings=0 validated=0 -->\n'
+        + '<!-- loops-footprint status=ok prod=10 test=0 newtests=0 unslotted=0 unexplained=0 -->\n';
+      const EFF = (fields) => `${CLEAN}<!-- loops-effort ${fields} -->\n`;
+
+      const violated = runHook({ command: DRAFT_FULL, cwd: mkG6('g9-bad', 'e-bad', EFF('profile=direct floor=violated highrisk=yes escalated=0')) });
+      assert(isDeny(violated), '[E1] create：floor=violated → 閘⑨ deny');
+      assert(reasonOf(violated).includes('投入檔位') && reasonOf(violated).includes('LOOPS_PR_EFFORT_GATE'),
+        '[E1-2] reason 講的是投入檔位判錯 + 附閘⑨ 逃生口');
+      assert(reasonOf(violated).includes('升檔補做') && !reasonOf(violated).includes('改 marker 就好'),
+        '[E1-3] 處置寫的是升檔補做，不是「把 marker 改掉」');
+      assert(/不認[^\n]*blocking-waiver/.test(reasonOf(violated)),
+        '[E1-4] 明說不認 waiver（不是指引它當出口）——檔位判錯時該做的驗證還沒跑過，沒有東西可以知情接受');
+
+      assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g9-ok', 'e-ok', EFF('profile=direct floor=ok highrisk=no escalated=0')) })),
+        '[E2] create：floor=ok → allow');
+      assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g9-unknown', 'e-unknown', EFF('profile=direct floor=ok highrisk=unknown escalated=0')) })),
+        '[E3] create：量不到 diff（highrisk=unknown、floor=ok）→ allow（判不出來不等於違規）');
+      assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g9-deep', 'e-deep', EFF('profile=deep floor=ok highrisk=yes escalated=1')) })),
+        '[E4] create：deep 碰高風險是正常的 → allow（閘⑨ 只管「檔位低於地板」）');
+      assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g9-none', 'e-none', CLEAN) })),
+        '[E5] create：沒有 effort marker → fail-open allow（舊 loop 相容）');
+      assert(isDeny(runHook({ command: 'gh pr ready', cwd: mkG6('g9-ready', 'e-ready', EFF('profile=direct floor=violated highrisk=yes escalated=0')) })),
+        '[E6] ready：閘⑨ 同樣作用於 gh pr ready');
+      assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g9-off', 'e-off', EFF('profile=direct floor=violated highrisk=yes escalated=0')), env: { LOOPS_PR_EFFORT_GATE: '0' } })),
+        '[E7] create：LOOPS_PR_EFFORT_GATE=0 → 閘⑨ 關（逃生口）');
+      assert(isDeny(runHook({ command: DRAFT_FULL, cwd: mkG6('g9-indep', 'e-indep', EFF('profile=direct floor=violated highrisk=yes escalated=0')), env: { LOOPS_PR_FOOTPRINT_GATE: '0' } })),
+        '[E8] create：關掉閘⑧ 不會連帶關掉閘⑨（各 flag 互不牽連）');
+      assert(isAllow(runHook({ command: DRAFT_FULL, cwd: mkG6('g9-multi', 'e-multi', `${EFF('profile=direct floor=violated highrisk=yes escalated=0')}<!-- loops-effort profile=deep floor=ok highrisk=yes escalated=1 -->\n`) })),
+        '[E9] create：多輪 marker 取最後一個（升檔補做後那輪 wins）→ allow');
+      {
+        const both = '# verify\n判定：Ready\n<!-- loops-verify verdict=ready p0=0 p1=0 round=1 findings=0 validated=0 -->\n'
+          + '<!-- loops-footprint status=blocked prod=300 test=0 newtests=0 unslotted=2 unexplained=0 -->\n'
+          + '<!-- loops-effort profile=direct floor=violated highrisk=yes escalated=0 -->\n';
+        const res = runHook({ command: DRAFT_FULL, cwd: mkG6('g9-both', 'e-both', both) });
+        assert(isDeny(res), '[E10] create：footprint blocked 與 effort violated 同時 → deny');
+        assert(reasonOf(res).includes('footprint') && !reasonOf(res).includes('投入檔位'),
+          '[E10-2] 先報閘⑧ 的理由（依序、命中即擋），不是把兩條訊息混在一起');
+      }
+
+      // 純函式層直測（含 fence-robust 兩視圖）。
+      const m = prGateModule;
+      const safe = (fn, ...a) => { try { return fn(...a); } catch { return '__throw__'; } };
+      const one = '<!-- loops-effort profile=direct floor=violated highrisk=yes escalated=2 -->';
+      const parsed = safe(m?.extractLatestEffortMarker, one);
+      assert(parsed && parsed.profile === 'direct' && parsed.floor === 'violated' && parsed.highrisk === 'yes' && parsed.escalated === 2,
+        '[EN1] extractLatestEffortMarker：四個欄位都解得出來');
+      assert(safe(m?.extractLatestEffortMarker, '<!-- loops-effort profile=direct -->')?.escalated === undefined,
+        '[EN2] extractLatestEffortMarker：缺欄位 → undefined（**不補 0**）');
+      assert(safe(m?.extractLatestEffortMarker, '完全沒有 marker') === null, '[EN3] extractLatestEffortMarker：無 marker → null');
+      assert(safe(m?.extractLatestEffortMarker, 42) === null, '[EN3b] extractLatestEffortMarker：非字串 → null');
+      assert(safe(m?.effortFloorViolated, { floor: 'violated' }) === true, '[EN4] effortFloorViolated：violated → true');
+      assert(safe(m?.effortFloorViolated, { floor: 'ok' }) === false, '[EN5] effortFloorViolated：ok → false');
+      assert(safe(m?.effortFloorViolated, null) === false, '[EN6] effortFloorViolated：null → false（fail-open）');
+      assert(safe(m?.effortFloorViolated, { floor: 'VIOLATED' }) === false, '[EN6b] effortFloorViolated：嚴格全等小寫字面（大寫非契約值）');
+      assert(safe(m?.verifyReportEffortBlocks,
+        'x\n```\n<!-- loops-effort profile=direct floor=ok highrisk=no escalated=0 -->\n```\n'
+        + '<!-- loops-effort profile=direct floor=violated highrisk=yes escalated=0 -->') === true,
+        '[EN7] verifyReportEffortBlocks：fenced 示範 ok marker 蓋不掉真的 violated → true');
+      assert(safe(m?.verifyReportEffortBlocks,
+        '真的\n<!-- loops-effort profile=direct floor=violated highrisk=yes escalated=0 -->\n```text\n'
+        + '<!-- loops-effort profile=direct floor=ok highrisk=no escalated=0 -->\n```') === true,
+        '[EN8] verifyReportEffortBlocks：真 violated 在前、fenced 示範 ok 在後 → stripped 視圖擋住 → true');
+      assert(safe(m?.verifyReportEffortBlocks,
+        '```\nx\n<!-- loops-effort profile=direct floor=violated highrisk=yes escalated=0 -->') === true,
+        '[EN9] verifyReportEffortBlocks：未閉合 fence 藏住真 marker → raw 視圖仍擋住 → true');
+      assert(safe(m?.verifyReportEffortBlocks, '完全沒有 marker') === false, '[EN10] verifyReportEffortBlocks：無 marker → false（fail-open）');
+      assert(safe(m?.verifyReportEffortBlocks, 42) === false, '[EN10b] verifyReportEffortBlocks：非字串 → false');
+    }
   }
 } finally {
   rmSync(SANDBOX, { recursive: true, force: true });
@@ -1249,6 +1322,7 @@ console.log(`(共 ${total} 條斷言：P1–P8／EXTRA／WIN＝#132 三閘與接
   + `F5＝三 flag 互不牽連、G＝閘⑤ 真 gh spawn 端到端（假 gh，POSIX/CI）、`
   + `B／BN＝#188/#211 閘⑥ P0 未清不准收圈（marker 契約 + 知情豁免 + auto 不繞過 + 純函式；#211 起 p1 不再參與判定）、`
   + `V／VN＝#209 閘⑦ 第二輪確認沒跑不准收圈（findings/validated 欄位 + 缺席 fail-open + 不認 waiver + 純函式）、`
-  + `W／WN＝#215 閘⑧ 未說明的 footprint drift（只擋 blocked、warn 一律放行、marker 契約 + 純函式）；`
+  + `W／WN＝#215 閘⑧ 未說明的 footprint drift（只擋 blocked、warn 一律放行、marker 契約 + 純函式）、`
+  + `E／EN＝#222 閘⑨ 投入檔位低於自己的地板（只擋 floor=violated、unknown 與缺席一律放行、不認 waiver、marker 契約 + 純函式）；`
   + `R5b/c·N9–N11·C10/11·F5·G＝#152 verify/wiring 修正輪)`);
 process.exit(failed.length > 0 ? 1 : 0);
