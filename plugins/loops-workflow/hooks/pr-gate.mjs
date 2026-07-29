@@ -47,6 +47,15 @@
 //     不屬於任何核准 slice）／新測試沒有 `new_test_reason`／重複證據沒有 `distinct_risk`／超出 budget
 //     又沒有 `budget_overrun_reason`。`status=warn`（測試／功能行數比例超標）**一律放行**：比例是提醒、
 //     不是品質標準，本閘絕不以固定 ratio 擋掉正當的測試。marker 缺席 / 無法解析 → fail-open 放行。
+//   ⑨ 投入檔位低於自己的地板（#222，create + ready）：讀第三種 marker
+//     `<!-- loops-effort profile=direct|standard|deep floor=ok|violated highrisk=yes|no|unknown escalated=<n> -->`
+//     （由 `scripts/effort-profile.mjs --audit` 產出）。**只擋 `floor=violated` 一格**——loop 宣稱走
+//     最省的 `direct` 檔位，實際改動卻碰到高風險硬閘路徑（auth／密鑰／金流／schema·migration／
+//     對外契約／並發背景／IaC）。右尺寸化的價值全靠「判準真的成立」撐著，判錯了還照 direct 跑完，
+//     等於用省成本的名義跳過該做的驗證。處置是**升檔補做**（`R-high-risk`），不是改 marker。
+//     `profile=standard|deep`、`highrisk=unknown`（量不到 diff）、marker 缺席 / 無法解析 → 放行。
+//     本閘**不認 `blocking-waiver.md`**：那份豁免的語意是「知情接受這些已評估的風險」，而檔位判錯
+//     時該做的驗證根本還沒跑過，沒有東西可以知情接受。確需繞過：`LOOPS_PR_EFFORT_GATE=0`。
 //
 // 非 loop 分支／非受管 gh pr 指令／任何判不出的情況（含 detached HEAD）一律放行——這是提醒型
 // 守衛，不能因為自己判斷不出來就卡住人。
@@ -68,6 +77,7 @@
 //   LOOPS_PR_BLOCKING_GATE  → 閘⑥（P0 未清不准收圈，作用 create + ready；純讀檔；#211 起只認 p0）
 //   LOOPS_PR_VALIDATION_GATE→ 閘⑦（第二輪確認沒跑不准收圈，作用 create + ready；純讀檔）
 //   LOOPS_PR_FOOTPRINT_GATE → 閘⑧（未說明的 footprint drift，作用 create + ready；純讀檔）
+//   LOOPS_PR_EFFORT_GATE    → 閘⑨（投入檔位低於自己的地板，作用 create + ready；純讀檔）
 //   LOOPS_PR_CONFLICT_GATE  → 閘⑤（合併衝突，作用 create + ready + comment；唯一 spawn gh）
 // fail-open：payload 壞 / 讀檔失敗 / 判不出分支 / gh 錯誤一律放行 exit 0，永不因 hook 故障卡住使用者。
 //
@@ -445,6 +455,50 @@ export function verifyReportFootprintBlocks(text) {
 }
 
 /**
+ * 閘⑨（#222）：取最後一個 effort marker，回 `{ profile, floor, highrisk, escalated }` 或 null。契約：
+ * `<!-- loops-effort profile=direct|standard|deep floor=ok|violated highrisk=yes|no|unknown escalated=<n> -->`
+ * 由 `scripts/effort-profile.mjs --audit` 產出、verify 貼進 `stages/04-verify.md`。取**最後一個**
+ * （多輪 append 最近一輪 wins）；缺欄位回 `undefined`（不補預設值，理由同 `extractLatestMarker`：
+ * 「沒寫」與「寫了某個值」在判定上必須分得出來）。
+ */
+export function extractLatestEffortMarker(text) {
+  if (typeof text !== 'string') return null;
+  const ms = [...text.matchAll(/<!--\s*loops-effort\s+([^>]*?)\s*-->/g)];
+  if (ms.length === 0) return null;
+  const body = ms[ms.length - 1][1];
+  const field = (k) => {
+    const m = new RegExp(String.raw`(?:^|\s)${k}=(\S+)`).exec(body);
+    return m ? m[1] : undefined;
+  };
+  const n = Number.parseInt(field('escalated'), 10);
+  return {
+    profile: field('profile'),
+    floor: field('floor'),
+    highrisk: field('highrisk'),
+    escalated: Number.isNaN(n) ? undefined : n,
+  };
+}
+
+/**
+ * 閘⑨：這份 effort marker 是否代表「檔位低於自己的地板」。**只擋 `floor=violated` 一格**——
+ * `ok` / 缺席 / 無法解析一律放行。特別是 `highrisk=unknown`（量不到 diff）：`effort-profile.mjs`
+ * 在那個情況本來就寫 `floor=ok`，所以本閘不必另外判——**判不出來不等於違規**。
+ */
+export function effortFloorViolated(parsed) {
+  return parsed?.floor === 'violated';
+}
+
+/**
+ * 閘⑨：verify 報告是否代表「投入檔位低於地板」。與閘⑥⑦⑧ 同一套 raw + fence-robust
+ * 兩視圖聯合、任一命中即擋（fail-safe 方向一致）。
+ */
+export function verifyReportEffortBlocks(text) {
+  if (typeof text !== 'string') return false;
+  return effortFloorViolated(extractLatestEffortMarker(text))
+    || effortFloorViolated(extractLatestEffortMarker(stripCodeForMarker(text)));
+}
+
+/**
  * 閘⑥：目前是不是 auto 推進模式（決定豁免 waiver 認不認）。兩訊號：
  *   ①`env.LOOPS_AUTO === '1'`——**唯一防竄改的權威訊號**（hook 讀 session env、agent 動不了；對齊
  *     loop-driver 直讀慣例）；
@@ -575,6 +629,24 @@ function buildFootprintDenyReason(slug, parsed) {
     `\n\n改完重跑 \`node <plugin-root>/scripts/diff-footprint.mjs --base <base> --plan <02-plan.md>\`，` +
     `把新的 marker 寫回 \`stages/04-verify.md\` 再重試。**測試／功能行數比例本身不會擋你**（那只是 ` +
     `warning）。確需繞過本閘：設 LOOPS_PR_FOOTPRINT_GATE=0。`
+  );
+}
+
+function buildEffortDenyReason(slug, parsed) {
+  const fields = `profile=${parsed?.profile ?? '?'} highrisk=${parsed?.highrisk ?? '?'}`
+    + ` escalated=${parsed?.escalated ?? '?'}`;
+  return (
+    `這是 loop \`${slug}\` 的分支，最近一輪的投入檔位稽核判 floor=violated（${fields}）——這條 loop ` +
+    `宣稱走最省的 \`direct\` 檔位，但實際改動碰到了高風險硬閘路徑（auth／密鑰／金流／schema·migration／` +
+    `對外契約／並發背景／IaC 其中之一）。**\`direct\` 的第一條判準（D1）就是「不碰高風險硬閘」** —— ` +
+    `判準不成立還照 direct 跑完，等於用省成本的名義跳過了該做的驗證（滿六核心軸、契約段、深審變體）。` +
+    `\n\n處置是**升檔補做**，不是改 marker：①把 \`loop.md\` 的「投入檔位」改成 \`deep\` 並在 Journal ` +
+    `append 一筆 \`direct → deep｜R-high-risk｜<碰到的路徑>\`；②補做新檔位比舊檔位多的那些 knob` +
+    `（見 \`references/stages/effort-profile.md\` §C 與 §E）；③重跑 ` +
+    `\`node <plugin-root>/scripts/effort-profile.mjs --audit <loop-dir> --base <base>\`，把新的 marker ` +
+    `寫回 \`stages/04-verify.md\` 再重試。` +
+    `\n\n本閘**不認 \`blocking-waiver.md\`**：那份豁免的語意是「知情接受這些已經評估過的風險」，` +
+    `而檔位判錯時該做的驗證根本還沒跑過，沒有東西可以知情接受。確需繞過：設 LOOPS_PR_EFFORT_GATE=0。`
   );
 }
 
@@ -801,8 +873,9 @@ function denyWith(reason) {
  * 依序、命中即 deny；非受管 gh pr 指令 / 非 loop 分支 / 判不出分支一律放行。fail-open：payload 壞 /
  * 缺欄位 / 任何讀檔或 gh 錯誤一律放行。
  *   create  → ①②③（LOOPS_PR_GATE）→ ⑥（LOOPS_PR_BLOCKING_GATE）→ ⑦（LOOPS_PR_VALIDATION_GATE）
+ *             → ⑧（LOOPS_PR_FOOTPRINT_GATE）→ ⑨（LOOPS_PR_EFFORT_GATE）
  *             → ④（LOOPS_PR_REALRUN_GATE）→ ⑤（LOOPS_PR_CONFLICT_GATE）
- *   ready   → ⑥ → ⑦ → ④ → ⑤
+ *   ready   → ⑥ → ⑦ → ⑧ → ⑨ → ④ → ⑤
  *   comment → ⑤
  * 閘⑤（唯一 spawn gh）殿後：廉價的檔案 / 字串判定全過才 spawn，省無謂子行程（仿 merge-guard
  * 「便宜判定放前面」）。
@@ -826,8 +899,9 @@ function main() {
   const runBlocking = flagEnabled('LOOPS_PR_BLOCKING_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ⑥
   const runValidation = flagEnabled('LOOPS_PR_VALIDATION_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ⑦
   const runFootprint = flagEnabled('LOOPS_PR_FOOTPRINT_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ⑧
+  const runEffort = flagEnabled('LOOPS_PR_EFFORT_GATE', process.env) && (kind === 'create' || kind === 'ready'); // ⑨
   const runConflict = flagEnabled('LOOPS_PR_CONFLICT_GATE', process.env); // ⑤（三型皆可能）
-  if (!runClosesGates && !runRealRun && !runBlocking && !runValidation && !runFootprint && !runConflict) return;
+  if (!runClosesGates && !runRealRun && !runBlocking && !runValidation && !runFootprint && !runEffort && !runConflict) return;
 
   const cwd = typeof payload?.cwd === 'string' ? payload.cwd : process.cwd();
 
@@ -873,7 +947,7 @@ function main() {
   // 閘⑥⑦ 共讀同一份 verify 報告：兩閘都是純讀檔、判的是**同一個 marker 的不同欄位**（⑥ 看 p0/p1
   // ＝仍未修的 blocking 條數，⑦ 看 findings/validated ＝這一輪有幾條候選、確認了幾條），沒有理由
   // 讀兩次。⑥ 排在 ⑦ 前：還有未修 P0/P1 時，先講那件更根本的事。
-  if (runBlocking || runValidation || runFootprint) {
+  if (runBlocking || runValidation || runFootprint || runEffort) {
     const verifyText = readVerifyText(loopRoot, slug);
 
     if (runBlocking && verifyReportBlocks(verifyText)) {
@@ -902,6 +976,17 @@ function main() {
       const rawM = extractLatestFootprintMarker(verifyText);
       const parsed = footprintBlocked(rawM) ? rawM : extractLatestFootprintMarker(stripCodeForMarker(verifyText));
       denyWith(buildFootprintDenyReason(slug, parsed));
+      return;
+    }
+
+    // 閘⑨（#222）：投入檔位低於自己的地板（宣稱 direct、實際碰高風險硬閘）→ 不准收圈。純讀檔、
+    // 共用同一份報告；排在 ⑧ 後——前面幾閘問的是「這一輪做對了嗎」，這一閘問的是「這條 loop 一開始
+    // 就用對檔位了嗎」。判錯檔位的後果是**該做的驗證整批沒做**，所以它必須在送審前擋，不能只留在
+    // 報告裡當提醒。
+    if (runEffort && verifyReportEffortBlocks(verifyText)) {
+      const rawM = extractLatestEffortMarker(verifyText);
+      const parsed = effortFloorViolated(rawM) ? rawM : extractLatestEffortMarker(stripCodeForMarker(verifyText));
+      denyWith(buildEffortDenyReason(slug, parsed));
       return;
     }
   }

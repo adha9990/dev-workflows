@@ -143,6 +143,98 @@
     { "id": "resume", "start_phase": null, "default_stop_after": null, "description": "接續既有 loop／handoff：起點與終點由 handoff contract 與 freshness 決定" }
   ],
 
+  "effort_profiles": {
+    "contract_version": "1",
+    "reference": "references/stages/effort-profile.md",
+    "default": "standard",
+    "notes": "投入檔位（#222）——loop 級的右尺寸化。既有的 risk-map／verify-triage／evidence-portfolio 縮的都是『要不要加派』那一段，沒有一個在管『每條 loop 都要付的固定 ceremony』（完整施工圖、機制圖、對齊 comment、三份完工 deliverable、收尾裁測、回環軟上限），於是改一段文案和改一條交易邊界付的基礎成本幾乎一樣。檔位補的就是這一層。\n\n三條邊界寫在資料形狀裡：①**檔位不是品質等級**——三檔交付的品質下界相同，`floor` 列出的東西任何檔位都照做；②**只升不降**（ratchet）——`order` 存在就是為了讓升降可機械判定，降檔要使用者拍板且只有『升檔依據被證偽』一種合法情況；③**判不出來就是 `standard`**——`default` 不是 `direct`，向嚴是預設方向。",
+
+    "profiles": [
+      {
+        "id": "direct",
+        "order": 0,
+        "label": "直行",
+        "when": "小、原因明確、範圍收斂、既有機械證據判得出來、不碰高風險——B2 七條全成立才算",
+        "soft_round_cap": 2,
+        "deliverable_set": ["delivery-note"]
+      },
+      {
+        "id": "standard",
+        "order": 1,
+        "label": "標準",
+        "when": "預設值：deep 未命中、direct 七條沒有全成立",
+        "soft_round_cap": 3,
+        "deliverable_set": ["explain-pack", "merge-checklist", "cost-report"]
+      },
+      {
+        "id": "deep",
+        "order": 2,
+        "label": "加強",
+        "when": "高風險硬閘／risk predicate／high-risk behavior／大波及面／做法未定／使用者要求",
+        "soft_round_cap": 4,
+        "deliverable_set": ["explain-pack", "merge-checklist", "cost-report"]
+      }
+    ],
+
+    "entry_predicates": {
+      "deep_any_of": [
+        { "id": "E-high-risk", "description": "預期改動觸及 verify-triage 的高風險硬閘任一" },
+        { "id": "E-predicate", "description": "risk map 的 domain_complexity 或 external_or_cross_module_contract 為 true" },
+        { "id": "E-behavior-risk", "description": "任一 behavior 的 risk=high" },
+        { "id": "E-blast-radius", "description": "動到廣泛使用的共用元件／核心型別／跨模組契約" },
+        { "id": "E-unknown", "description": "做法未定或有 blocking unknown" },
+        { "id": "E-user", "description": "使用者明講要謹慎／多方案／Fleet" }
+      ],
+      "direct_all_of": [
+        { "id": "D1", "description": "不碰高風險硬閘" },
+        { "id": "D2", "description": "單一關注點、單一模組，不跨子系統與前後端" },
+        { "id": "D3", "description": "沒有新對外契約、沒有新套件、沒有新架構接縫" },
+        { "id": "D4", "description": "預期功能面 footprint ≤2 檔 / ≤50 行（預估值，非硬門檻）" },
+        { "id": "D5", "description": "完成與否用既有機械證據判得出來，不需要新的驗證手段" },
+        { "id": "D6", "description": "沒有 blocking unknown" },
+        { "id": "D7", "description": "使用者沒有要求完整流程" }
+      ]
+    },
+
+    "escalation_triggers": [
+      { "id": "R-high-risk", "to": "deep", "description": "任何階段發現實際改動觸及高風險硬閘" },
+      { "id": "R-contract", "to": "step-up", "description": "冒出新對外契約／新套件／新架構接縫（對外契約直接到 deep）" },
+      { "id": "R-footprint", "to": "step-up", "description": "實際 footprint 明顯超出該檔位量級且非計畫內" },
+      { "id": "R-unknown", "to": "step-up", "description": "冒出 blocking unknown" },
+      { "id": "R-finding", "to": "step-up", "description": "verify 出任何 P0，或同一輪 ≥2 條經確認的 P1" },
+      { "id": "R-rounds", "to": "step-up", "description": "回環圈數達到該檔位的軟上限" },
+      { "id": "R-user", "to": "explicit", "description": "使用者指定檔位" }
+    ],
+
+    "floor": [
+      "issue-first：每件工作都對得上一張 define 建的 issue",
+      "plan→build 拍板 gate：一律停下讓使用者拍板",
+      "設計審查必派：檔位縮的是輸入體積與 tier，不是派不派",
+      "verify 獨立複查：product-contract ＋ code-quality 是所有檔位的下界",
+      "高風險硬閘命中一律滿六核心軸",
+      "三道確定性閘（quality-gate／validate-plan／diff-footprint）每輪照跑",
+      "loops-plan 區塊與 change budget 照寫",
+      "收圈下界 P0 清零",
+      "finding 二輪確認",
+      "真機 receipt",
+      "未解決 blocking unknown 不得進 build",
+      "merge 與 draft→ready 由人",
+      "Metric-Honesty",
+      "worktree 隔離"
+    ],
+
+    "events": [
+      { "id": "workflow.effort-profile-decided", "description": "決定或升高投入檔位。帶 profile／reasons／escalated_from；每次升檔各一筆，cost 報表據此攤出檔位與升檔次數" }
+    ],
+
+    "marker": {
+      "pattern": "<!-- loops-effort profile=direct|standard|deep floor=ok|violated highrisk=yes|no|unknown escalated=<n> -->",
+      "producer": "scripts/effort-profile.mjs",
+      "consumer": "hooks/pr-gate.mjs 閘⑨（LOOPS_PR_EFFORT_GATE）",
+      "notes": "只擋 floor=violated 一格（宣稱 direct、實際碰高風險硬閘）。marker 缺席／highrisk=unknown 一律 fail-open 放行——判不出來不等於違規。"
+    }
+  },
+
   "goal_contract": {
     "contract_version": "1",
     "notes": "Goal 仍是必要概念，但**不是 phase**。任何入口都要能解析出目前有效的 Goal Contract；改變時 revision +1，handoff 記錄自己對應的 goal_revision。reviewer comment **不得**自動升格成新的產品目標——那要走 reconcile-goal 並由使用者拍板。",

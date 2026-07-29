@@ -269,6 +269,25 @@ testCase('M-3', 'tool 的 bytes 不冒充 token', () => {
   assert(/estimated/.test(tool), 'context token 標 estimated');
 });
 
+testCase('M-4', '投入檔位攤在 Executive Summary，沒記過就是 not_measured', () => {
+  const none = M.effortProfileOf(sampleEvents());
+  assert(none.profile === 'not_measured' && none.escalations === 'not_measured',
+    '一筆 effort 事件都沒有 → not_measured（不補成 standard——那個假值會汙染跨 loop 比較）');
+
+  const withProfile = [
+    ...sampleEvents(),
+    ev('workflow.effort-profile-decided', { id: 'ep1', profile: 'direct', reasons: ['direct：D1–D7 全部成立'] }),
+    ev('workflow.effort-profile-decided', { id: 'ep2', profile: 'deep', escalated_from: 'direct', reasons: ['R-high-risk'] }),
+  ];
+  const decided = M.effortProfileOf(withProfile);
+  assert(decided.profile === 'deep', `取最後一筆（升檔後那筆才是生效值；實際 ${decided.profile}）`);
+  assert(decided.escalations === '1', `升檔次數＝事件數 − 1（實際 ${decided.escalations}）`);
+
+  const summary = M.sectionOf(M.renderCostReport(withProfile, { slug: 'demo' }), 'Executive Summary');
+  assert(summary.includes('投入檔位') && summary.includes('deep'), 'Executive Summary 攤得出檔位');
+  assert(summary.includes('升檔次數'), '升檔次數也攤出來——它是「進場判準準不準」的主指標');
+});
+
 // ── T-*：hotspot ────────────────────────────────────────────────────────────
 
 testCase('T-1', 'unattributed 會被列成 hotspot', () => {

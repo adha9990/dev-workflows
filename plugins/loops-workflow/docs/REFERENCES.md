@@ -1,7 +1,7 @@
 <!-- loops-artifact: concept-doc@1 -->
 # references 目錄（幫你找到「該讀哪份規範」）
 
-> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。`references/` 樹全體共 **81 份 reference**：其中 64 份主題文件在這頁**依功能分 7 類**——每份一句「它管什麼、什麼時候會用到你」；另 17 份是 `reviewers/` 底下的 reviewer 人設模板（由 `gen-reviewers.mjs` 從 `reviewer-shared.md` 生成，不逐份列在下面 6 類裡）。
+> `references/` 是 loops-workflow 的「知識模組」：同一條規範只寫一份放這裡，各階段 skill / agent 用到時引用、不重抄。`references/` 樹全體共 **82 份 reference**：其中 65 份主題文件在這頁**依功能分 7 類**——每份一句「它管什麼、什麼時候會用到你」；另 17 份是 `reviewers/` 底下的 reviewer 人設模板（由 `gen-reviewers.mjs` 從 `reviewer-shared.md` 生成，不逐份列在下面 6 類裡）。
 >
 > 想看**流程全貌**（每階段怎麼跑）→ [`FLOW.md`](FLOW.md)；想看**可設定的參數** → [`settings.md`](settings.md)；這份是「規範字典」。（技術註：subagent 讀不到相對路徑，orchestrator 會把絕對路徑塞進 prompt——見 `AGENTS.md`〈參考檔路徑解析〉。）
 
@@ -47,6 +47,7 @@
 | `machine-plan-schema` | 機器可驗證的 `loops-plan` JSON 塊格式（behaviors / slices / evidence_portfolio / change budget、可執行 verification、依賴無環） | plan（有 behavior 一律開）+ `validate-plan.mjs` |
 | `change-summaries` | build 產出的 Change Summaries 三段式格式 | build（`stages/03-build.md`） |
 | `operation-first-move` | 依任務性質（new-feature/change-behavior/bug-fix/refactor）決定「紅燈第一步」怎麼起手＋fail-safe（單一來源） | dispatch（寫 `operation` 欄）· build（讀欄派 test-author） |
+| `effort-profile` | **投入檔位**：這件事該投多少 ceremony。三檔（直行／標準／加強）的判準、每階段可縮什麼、**哪些東西任何檔位都照做**（地板）、只升不降的棘輪與升檔觸發、以及怎麼量「有沒有真的省到」 | dispatch（判檔位）· define · plan · build · verify · iterate |
 | `quality-gate-schema` | quality-gate 腳本輸出 / failures 結構化契約（`file:line [code\|ruleId] message`） | build（派 fixer 帶 failures）· verify（gate 摘要） |
 
 ## 3. 驗證與審查機制（verify 怎麼把關）

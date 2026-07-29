@@ -2633,6 +2633,40 @@
       }
     },
     {
+      "id": "ref-effort-profile",
+      "kind": "reference",
+      "paths": [
+        "plugins/loops-workflow/references/stages/effort-profile.md"
+      ],
+      "stage_role": null,
+      "visibility": "public",
+      "owner_class": "stage",
+      "target_path": "plugins/loops-workflow/references/stages/effort-profile.md",
+      "user_invocable": false,
+      "dependencies": [],
+      "consumers": [
+        "build-skill",
+        "compat-lint",
+        "define-skill",
+        "dispatch-skill",
+        "effort-profile",
+        "iterate-skill",
+        "plan-skill",
+        "skill-lint",
+        "verify-skill"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/pr-gate.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/docs/REFERENCES.md"
+        ],
+        "integrations": []
+      }
+    },
+    {
       "id": "ref-eval-harness",
       "kind": "reference",
       "paths": [
@@ -3083,6 +3117,7 @@
       "consumers": [
         "build-skill",
         "compat-lint",
+        "plan-skill",
         "skill-lint",
         "verify-skill"
       ],
@@ -4174,6 +4209,7 @@
       "dependencies": [],
       "consumers": [
         "compat-lint",
+        "effort-profile",
         "skill-lint",
         "verify-skill"
       ],
@@ -4775,6 +4811,7 @@
         "ref-docs-devex-review",
         "ref-docs-policy",
         "ref-edd-comment-template",
+        "ref-effort-profile",
         "ref-eval-harness",
         "ref-eval-judge-panel",
         "ref-eval-judge-rubric",
@@ -5073,6 +5110,7 @@
         "validate-plan"
       ],
       "consumers": [
+        "effort-profile",
         "verify-skill"
       ],
       "required_checks": {
@@ -5129,6 +5167,37 @@
         "hooks": [],
         "evals": [],
         "docs": [],
+        "integrations": []
+      }
+    },
+    {
+      "id": "effort-profile",
+      "kind": "script",
+      "paths": [
+        "plugins/loops-workflow/scripts/effort-profile.mjs"
+      ],
+      "stage_role": "verify",
+      "visibility": "internal",
+      "owner_class": null,
+      "target_path": "plugins/loops-workflow/scripts/effort-profile.mjs",
+      "user_invocable": false,
+      "dependencies": [
+        "diff-footprint",
+        "ref-effort-profile",
+        "ref-verify-triage"
+      ],
+      "consumers": [
+        "dispatch-skill",
+        "verify-skill"
+      ],
+      "required_checks": {
+        "hooks": [
+          "plugins/loops-workflow/hooks/pr-gate.mjs"
+        ],
+        "evals": [],
+        "docs": [
+          "plugins/loops-workflow/references/stages/effort-profile.md"
+        ],
         "integrations": []
       }
     },
@@ -6468,6 +6537,7 @@
         "ref-docs-devex-review",
         "ref-docs-policy",
         "ref-edd-comment-template",
+        "ref-effort-profile",
         "ref-eval-harness",
         "ref-eval-judge-panel",
         "ref-eval-judge-rubric",
@@ -6837,6 +6907,7 @@
         "ref-commit-spec",
         "ref-context-diet",
         "ref-docs-policy",
+        "ref-effort-profile",
         "ref-evidence-portfolio",
         "ref-handoff",
         "ref-interaction-adapter",
@@ -6915,6 +6986,7 @@
         "ref-bdd-scenarios",
         "ref-comment-policy",
         "ref-decision-queue",
+        "ref-effort-profile",
         "ref-explore-capability",
         "ref-goal-contract",
         "ref-handoff",
@@ -6949,7 +7021,9 @@
       "dependencies": [
         "agents-constitution",
         "capability-registry",
+        "effort-profile",
         "ref-auto-mode",
+        "ref-effort-profile",
         "ref-handoff",
         "ref-interaction-adapter",
         "ref-journaling",
@@ -7026,6 +7100,7 @@
         "ref-context-diet",
         "ref-cross-model-review",
         "ref-docs-policy",
+        "ref-effort-profile",
         "ref-evidence-portfolio",
         "ref-handoff",
         "ref-interaction-adapter",
@@ -7078,6 +7153,7 @@
         "ref-decision-queue",
         "ref-design-patterns",
         "ref-design-plan-schema",
+        "ref-effort-profile",
         "ref-evidence-portfolio",
         "ref-explore-capability",
         "ref-fleet",
@@ -7085,6 +7161,7 @@
         "ref-handoff",
         "ref-interaction-adapter",
         "ref-machine-plan-schema",
+        "ref-model-effort-policy",
         "ref-pr-spec",
         "ref-project-conventions",
         "ref-reuse-check",
@@ -7185,6 +7262,7 @@
         "agents-constitution",
         "capability-registry",
         "diff-footprint",
+        "effort-profile",
         "ref-acceptance-review",
         "ref-architecture-review",
         "ref-bdd-scenarios",
@@ -7197,6 +7275,7 @@
         "ref-correctness-review",
         "ref-design-patterns",
         "ref-docs-devex-review",
+        "ref-effort-profile",
         "ref-evidence-portfolio",
         "ref-finding-author-decision-rule",
         "ref-finding-validation",

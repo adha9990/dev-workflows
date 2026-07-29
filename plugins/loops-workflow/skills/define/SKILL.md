@@ -14,6 +14,8 @@ description: Turns any new work that has no GitHub issue yet into a structured, 
 
 **#219 起 define 也吃模糊的一句話**（原本獨立的釐清階段退場）。差別在做法：**先探索現況，再一次問一個 blocking 決策**。尚未理解現有實作就訪談，只會把問題越問越偏——而且很容易問出「查 code 就有答案」的題目，把 agent 該做的事推回給人。
 
+> **投入檔位在這裡調的是 issue 的下筆深度**（`AGENTS.md` 規則 25，逐項對照表在 `references/stages/effort-profile.md` §C，此處不重抄）：`direct` 用 repo template 但只填**問題 / 期望行為 / 驗收**三段、Unknowns Register 只列 blocking（通常是空的）；`standard` 完整 template；`deep` 再加 `decision-interview` 訪談與 blind-spot pass。**建 issue 本身是地板，任何檔位都不省**（規則 12）。define 期間**只要冒出一條 blocking unknown 就 `R-unknown` 升檔一級**——那正是「這件事沒有想像中清楚」的訊號。define 建 loop.md 時（§7）也一併寫「投入檔位」欄。
+
 ## When to Use
 
 **Use when**：要開始**任何還沒有 GitHub issue 的工作**（功能 / 修正 / 研究），不論需求是清楚還是只有一句話。define 是**所有 issue card 的唯一入口：一律經 define + repo template，不 ad-hoc 直接 `gh issue create`**（AGENTS 規則 12）。（`user-invocable: false`：由 dispatch 對無-issue 工作內部驅動。）
@@ -95,7 +97,7 @@ description: Turns any new work that has no GitHub issue yet into a structured, 
 
 接著兩件事一起做完：
 
-- **loop.md**：slug 用 `<新 issue#>-<kebab>`、類型 = issue / research、**並依性質寫入 `operation` 欄**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`，見 `references/stages/operation-first-move.md`；拿不準向嚴 `new-feature`）——因 define 是無 issue 工作建 loop.md 的入口，operation 由 define 寫；漏寫時 `plan` 會兜底補。
+- **loop.md**：slug 用 `<新 issue#>-<kebab>`、類型 = issue / research、**並依性質寫入 `operation` 欄**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`，見 `references/stages/operation-first-move.md`；拿不準向嚴 `new-feature`）——因 define 是無 issue 工作建 loop.md 的入口，operation 由 define 寫；漏寫時 `plan` 會兜底補。**同時寫「投入檔位」欄**（用 `scripts/effort-profile.mjs --classify` 算，見 `skills/dispatch` §1.3；define 這時已經探索過現況，判準比 dispatch 進場時更有依據——判出來比 dispatch 原本那格嚴就照嚴的寫，比較鬆則維持原值〔只升不降〕）。
 - **Goal Contract**：寫 `.loops/<slug>/goal-contract.md`（骨架與規則見 `references/shared/capability/goal-contract.md`）。逐句抽出的 requirement **收斂成少量 `behavior_id`**（一般 1–5 個，**不是句子數**；behavior ＝ 使用者眼中不同的一件事）；同時讀專案 root ＋ 就近的 `AGENTS.md`/`CLAUDE.md`，把這次會觸及的**跨切面約定**（i18n / logging / a11y / 錯誤處理 / 安全 / 分層）折進 Constraint（見 `references/shared/docs/project-conventions.md`）——**issue 沒寫不代表不用做**。
 
 ### 9. H1 · Issue Ready（`stop_after=issue` 就停在這裡）

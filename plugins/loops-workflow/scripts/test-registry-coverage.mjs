@@ -201,8 +201,10 @@ const rules = readOperatingRules();
 // 不得放寬 linter 設定）補進 §2 —— 它們本來就有 hook 在擋，卻沒有 canonical 正文，正是「多份文件
 // 各寫一份、互相漂移」要治的形狀。#215 再補一條「一個行為一份主證據」（evidence portfolio 主幹，
 // 一條規則承載五個 policy marker）。#218 再補一條「同一條 loop 的共同事實只探索一次」（共享記憶：
-// 共享事實不共享結論、沒有 provenance 就不是 valid）。改這個數字是刻意的一次提交，不是意外漂移。
-assert(rules.length === 24, `AGENTS.md §2 解析出 ${rules.length} 條 Operating Rule（預期 24 條）`);
+// 共享事實不共享結論、沒有 provenance 就不是 valid）。#222 再補一條「投入隨任務調整，但檔位是預算
+// 不是豁免」（loop 級右尺寸化：地板不動、判不出來就從嚴、只升不降）。改這個數字是刻意的一次提交，
+// 不是意外漂移。
+assert(rules.length === 25, `AGENTS.md §2 解析出 ${rules.length} 條 Operating Rule（預期 25 條）`);
 assert(
   rules.every((rule, index) => rule.number === index + 1),
   '規則編號連續、無跳號（解析沒漏塊）',

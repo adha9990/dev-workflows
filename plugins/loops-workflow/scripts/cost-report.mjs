@@ -217,10 +217,27 @@ function renderMeasurementStatus(s, agents) {
   return table(['維度', '狀態', '依據'], rows);
 }
 
-function renderExecutiveSummary(s, slug) {
+/**
+ * 投入檔位與升檔次數（#222）。取最後一筆 `workflow.effort-profile-decided`（升檔會再寫一筆，
+ * 最近一筆就是生效值），升檔次數＝事件數 − 1。**一筆都沒有就是 `not_measured`**——這條 loop
+ * 沒有記過檔位，不是「它是 standard」；把沒記過的補成預設值，跨 loop 比較就會被那個假值汙染。
+ */
+export function effortProfileOf(events) {
+  const decided = normalizeEvents(events).filter((e) => typeOf(e) === 'workflow.effort-profile-decided');
+  if (decided.length === 0) return { profile: NOT_MEASURED, escalations: NOT_MEASURED };
+  const last = payloadOf(decided[decided.length - 1]);
+  const profile = typeof last.profile === 'string' && last.profile !== '' ? last.profile : NOT_MEASURED;
+  return { profile, escalations: String(decided.length - 1) };
+}
+
+function renderExecutiveSummary(s, slug, events) {
   const total = TOKEN_FIELDS.reduce((acc, f) => acc + s.tokens[f], 0);
+  const effort = effortProfileOf(events);
   return table(['項目', '值'], [
     ['loop', slug],
+    // 跨 loop 比成本要**同檔位比同檔位**：全體平均會被「這期剛好接了幾件大工作」整個蓋掉。
+    ['投入檔位', effort.profile],
+    ['升檔次數', effort.escalations],
     ['事件數', String(s.eventCount)],
     ['回合數（usage.turn）', String(s.turns)],
     ['沒量到用量的回合', String(s.notMeasuredTurns)],
@@ -470,7 +487,7 @@ export function renderCostReport(events, { slug = '(unknown)' } = {}) {
     '',
     '## Executive Summary',
     '',
-    renderExecutiveSummary(s, slug),
+    renderExecutiveSummary(s, slug, events),
     '',
     '## By Phase',
     '',

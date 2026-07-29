@@ -27,7 +27,7 @@
   | **Contract-First** | API、event、schema、跨模組 boundary（`references/shared/quality/contract-spec.md`） | `external_or_cross_module_contract=true` |
 
   predicate 的唯一定義處是 **`references/stages/risk-map.md`**（explore 固定產出 reuse map / impact surface / risk map 三張表）。**FDD 不另加一層 ceremony** —— issue 已是 feature 單位，plan 用 **vertical behavior slice**。產物鏈：`issue → behavior 收斂(goal) → risk map(explore) → 設計 + evidence portfolio + change budget(plan) → 依證據型別施工(build) → 逐 behavior 回核(verify)`。
-  - **右尺寸鐵則**：嚴格度由 **predicate ＋ operation（`references/stages/operation-first-move.md`）× size（XS–XL）** 決定，不由感覺決定——predicate 未命中就**不建** glossary / aggregate / port / adapter / 完整 contract 規格，也不固定派滿 reviewer。**小任務不加 ceremony**（呼應規則 10 carve-out：砍非必要 ceremony、不砍 mandatory gate）。各階段 skill 依此框定、各不重複框定細節、以一句指回本節。
+  - **右尺寸鐵則**：嚴格度由 **predicate ＋ operation（`references/stages/operation-first-move.md`）× size（XS–XL）** 決定，不由感覺決定——predicate 未命中就**不建** glossary / aggregate / port / adapter / 完整 contract 規格，也不固定派滿 reviewer。**小任務不加 ceremony**（呼應規則 10 carve-out：砍非必要 ceremony、不砍 mandatory gate）。**上面這幾個 predicate 縮的都是「要不要加派」；每條 loop 都要付的固定 ceremony 由規則 25 的投入檔位（`references/stages/effort-profile.md`）縮**——兩層正交、各管各的。各階段 skill 依此框定、各不重複框定細節、以一句指回本節。
 
 ---
 
@@ -58,6 +58,7 @@
         - **不可省的 gate**：`define` 建 issue / issue-first（規則 12）/ human 決策 gate（規則 2）/ `verify` 獨立複查（規則 11）—— **不因成本而省**。
         - **可省的貴動作**（預設不開、需要才開）：deep-research（便宜 `WebSearch` 先試）/ Fleet 編隊（單一實作優先）/ 額外 reviewer（條件式按領域加派）/ 真機驗證（simulate 優先）。
         - **理由**：砍流程 → rework → 最貴 —— 高成本的不是「跑完整流程」，是「偷工減料後發現問題得重做」（規則 11「寫對遠比被退回重修便宜」）。
+    - **固定 ceremony 由投入檔位縮（規則 25）**：上面幾條管的是「貴動作要不要開」，但每條 loop 還有一份**不論大小都要付的固定成本**（完整施工圖、機制圖、對齊 comment、三份完工 deliverable、收尾裁測、回環軟上限）。那一層由 `references/stages/effort-profile.md` 的檔位縮**體積與輪數**，地板一條都不動。
 
     省 token 不是吝嗇，是讓迴圈**能負擔得起地跑到完成**。
 11. **品質前置（shift-left）：build 寫的當下就達到合併標準，不留給 verify 才抓**。impl-author 寫 code 時就套 verify 會查的**同一套品質標準** —— clean code / clean architecture / **安全（`references/shared/quality/security-checklist.md`）/ 重用（`references/shared/quality/reuse-check.md`）/ 設計模式（`references/shared/quality/design-patterns.md`）**。標準是**同一份 reference、兩處套用**：build 主動寫到位、verify 獨立複查。如此 verify 是「**獨立確認 + 抓盲點**」的安全網，不是第一道品質關 —— **寫對的成本遠低於寫錯被退回重修**（呼應規則 10「不重複勞動」、且減少漏檢風險：寫的人套標準 + 獨立的人複查，比只靠事後查更不會漏）。
@@ -80,6 +81,8 @@
 22. **到達使用者要求的 checkpoint 就停止，而且交接得出去**。PM 可能只要開好 issue、架構師可能只要完成 plan、工程師可能只交 build 給 QA、QA 也可能只完成 verify——這些都是**完整的交付**，不是半成品。`dispatch` 從意圖解析 `stop_after`（明講的 > 意圖字面 > 入口預設），到達就停：先寫 handoff contract（`handoff.created`）、產固定格式的交接文件、才記 `workflow.paused`（順序不可換——反過來崩掉會留下「停住了、但沒有交接內容」的狀態）。停下之後，下一階段的任何 mutating action 都被擋住，直到明確 resume；**`auto` 模式也不得跨越使用者指定的 handoff**。接手時先跑 freshness（來源版本／Goal Contract revision／產物是否還在／pending 是否仍成立）：通過就**不重跑已完成階段**，失敗只回到**最早受影響的那一個階段**、不整條重跑——**「換了一個 session」本身不是重跑的理由**。handoff 是「本次 requested scope 已完成」，不是 error／cancelled／incomplete；事件寫既有 canonical event ledger、再投影 SQLite、人看的 Markdown 依規則 20 的 artifact contract 產，**不另建 handoff database、AI 也不得各自寫格式**。已由 `hooks/handoff-stop-guard.mjs` 機械化（deny 型；只對真的停在 handoff 上的 loop 生效，`.loops/` 底下的寫入一律放行）。完整契約見 `references/shared/capability/handoff.md`。
 23. **先探索再提問，而且一次只問一個 blocking 決策**。`define` 與 `plan` 在**第一次向使用者提問之前**，必須已經有 exploration receipt（事件流裡的 `knowledge.claimed`／`context-pack.built`／`context-gap.detected`——**不要求另外生一份長篇探索報告**）。理由：尚未理解現有實作就訪談，會把問題越問越偏，而且很容易問出「查 code 就有答案」的題目，把 agent 該做的事推回給人。提問本身走 Decision Queue：**一個 user turn 只能有一個 active blocking `decision_id`**，答完先寫回 decision（含 provenance）、重算佇列，被答案消除的問題不得照舊再問；**`plan → build` 的核准是獨立的最後一題**，不得和套件、scope 或架構選擇綁在同一個問題裡。已由 `hooks/decision-gate.mjs` 機械化（deny 型；只對已有 `telemetry/` 的新制 loop 生效，**不判斷問題問得好不好**——那不可機械判定）。細節見 `references/shared/capability/decision-queue.md` 與 `references/shared/capability/explore.md`。
 24. **canonical phase 只有五個，退場的名字不得重新變成 phase**。`define`／`plan`／`build`／`verify`／`finalize` 是唯一的 phase 集合；`dispatch` 與 `iteration-controller` 是 control node；`Goal Contract`／`Explore`／`Decision Queue` 是跨階段 capability。`clarify`／`goal`／`explore`／`iterate` 已於 #219 退場，**不得重新出現在 phase telemetry、cost report 或主流程圖**（成本要落在對應的 activity 上：goal → `create-goal`／`resolve-goal`／`reconcile-goal`；iterate → `remediate`／`reverify`）。所有 phase 值域一律取自 `references/workflow-vocabulary.json`，**不在程式碼裡寫死第二份 stage 清單**——第二份一定會落後，而落後的那份看起來跟正確的一模一樣。舊 `.loops` 不回填、不改寫，只維持讀取與 resume 相容。已由 `scripts/phase-vocabulary-gate.mjs`（文字面與程式碼面）與 `scripts/telemetry-ledger.mjs`（寫入面拒收退場 phase）機械化。
+
+25. **投入隨任務調整，但檔位是預算、不是豁免**。每條 loop 在 dispatch 判一次**投入檔位**（`direct`／`standard`／`deep`，判準與每階段可縮什麼的**唯一正本**在 `references/stages/effort-profile.md`），用它縮**固定 ceremony 的體積與輪數**——施工圖骨架、機制圖、對齊 comment 版型、完工 deliverable 份數、收尾裁測、回環軟上限。要解的問題是實際踩到的：既有的右尺寸化（risk map predicate、verify 風險梯、證據階梯、tier 分層）縮的**全是「要不要加派」那一段**，沒有一個在管每條 loop 都要付的固定成本，於是「改一段文案」和「改一條交易邊界」付的基礎成本幾乎一樣。四條配套把「省」和「偷工」分開：①**地板不動**——issue-first、`plan→build` 拍板 gate、設計審查必派、verify 兩軸下界、三道確定性閘、P0 清零、二輪確認、真機 receipt、blocking unknown 不得進 build、merge 由人、沒實測就標 `not measured` 的誠實紀律（規則 5）、worktree 隔離，**任何檔位都照做**（`direct` 縮的是輸入體積與 tier，不是派不派）；②**判不出來就是 `standard`**，不是 `direct`——向嚴是預設方向，`direct` 要七條判準**全成立**；③**只升不降**（棘輪）——冒出高風險 / 新契約 / blocking unknown / P0 / 圈數到頂就**當下升檔並補做**新檔位多的那些 knob，降檔要使用者拍板且只有「升檔依據被證偽」一種合法情況（理由同 `iterate` 的驗證深度棘輪：降檔之後「ceremony 變少」看起來會跟「本來就不需要」一模一樣）；④**價值用升檔率驗證，不用「跑得比較快」**——跑得快但一半要升檔，代表判準錯了。已由 `scripts/effort-profile.mjs`（判定 ＋ 地板稽核 ＋ marker）與 `hooks/pr-gate.mjs` 閘⑨ 機械化（deny 型；**只擋「宣稱 `direct`、實際改動碰高風險硬閘」一格**，marker 缺席或量不到 diff 一律 fail-open 放行——判不出來不等於違規）。
 
 > **兩個要顯式防的失敗模式（Loop Engineering 詞彙，即規則 10 援引的那套、命名既有實踐）**——這不是新規則，是替上面紀律點名它們在防什麼：
 > - **comprehension debt（理解債）**：loop 跑得快、產出你沒讀懂的 code，理解落差會一圈圈累積。對策＝`explain`（工程師理解包：實作導讀 + ownership 自測 + 方向 recap，見 `skills/explain`；完整迴圈完工**一律產** `deliverables/explain.md`，是三份完工 deliverable 之一）——它存在就是為了讓人補上理解、不被理解債吃掉。
@@ -119,7 +122,7 @@
 
 **`stop_after`（走多遠）**：`issue`（H1）／`plan`（H2）／`build`（H3）／`verified`（H4）／`finalized`（H5）／`research-finalized`（H5R）。優先序＝**使用者明講的 > 意圖字面 > 入口預設**；到達就停、`auto` 也不例外，續跑要明確 resume。完整規則見 `references/shared/capability/handoff.md`。
 
-> `dispatch` 很薄：只做「resume 偵測 + 判入口 + 解析 `stop_after` + 建 `.loops/<slug>/loop.md`（+ 會走到 build 才開 worktree）+ 進起點 phase」，routine 轉場不問，但不替你把整條 loop 自動跑完，**也不會跨過你要求的停點**。
+> `dispatch` 很薄：只做「resume 偵測 + 判入口 + 解析 `stop_after` + 判投入檔位（規則 25） + 建 `.loops/<slug>/loop.md`（+ 會走到 build 才開 worktree）+ 進起點 phase」，routine 轉場不問，但不替你把整條 loop 自動跑完，**也不會跨過你要求的停點**。
 
 ---
 

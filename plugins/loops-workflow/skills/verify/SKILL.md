@@ -22,13 +22,14 @@ build 完成、要 merge 前驗收；或只驗一份 PR／改動（入口 `verif
 
 ### 0. 確定性閘 — 不用派人就能判的，先跑（紅了不派 fan-out）
 
-**三道機械閘，全部在派任何 reviewer 之前跑完**（它們便宜、確定、且失敗時整輪 fan-out 都白費）：
+**四道機械閘，全部在派任何 reviewer 之前跑完**（它們便宜、確定、且失敗時整輪 fan-out 都白費）：
 
 | 閘 | 怎麼跑 | 紅了怎麼辦 |
 |---|---|---|
 | **quality-gate** | `node {loops-workflow-plugin-root}/scripts/loops-quality-gate.mjs --cwd <目標專案>`（讀精簡摘要；**預期 gate 皆 `passed`、非 `not-run` 才算綠**） | 直接判 Not ready 回 iterate，**不派 reviewer** |
 | **計畫對帳** | `node {loops-workflow-plugin-root}/scripts/validate-plan.mjs <stages/02-plan.md>` | 計畫與實作已經對不上（as-built 沒同步）→ 先回 plan 補，再驗 |
 | **footprint 對帳** | `node {loops-workflow-plugin-root}/scripts/diff-footprint.mjs --base <base> --plan <stages/02-plan.md>` | 見下 |
+| **投入檔位地板** | `node {loops-workflow-plugin-root}/scripts/effort-profile.mjs --audit <loop-dir> --base <base> --cwd <目標專案>` | `floor=violated`＝這條 loop 宣稱走 `direct`，實際改動卻碰高風險硬閘 → **升檔補做**（`R-high-risk`，見 `references/stages/effort-profile.md` §E），不是改 marker |
 
 **footprint 對帳**量出功能 / 測試兩面的改動規模，並對 `stages/02-plan.md` 的 evidence portfolio 與 change budget 逐條核（規則正本見 `references/stages/evidence-portfolio.md`）。它擋三件事、提醒一件事：
 
@@ -37,6 +38,8 @@ build 完成、要 merge 前驗收；或只驗一份 PR／改動（入口 `verif
 
 把它輸出的**一行 marker 原樣貼進 `stages/04-verify.md`**（獨立一行、不藏 code fence）：`<!-- loops-footprint status=… -->`。`hooks/pr-gate.mjs` **閘⑧** 讀它判「未說明的 footprint drift」；marker 缺席 → 閘⑧ fail-open 形同關閉，所以**每輪都要吐**。`status=blocked` 的處置是**回 plan 把 living plan 補齊**（納入 slice / 補理由），不是刪 code 或刪測試湊數字。
 
+**投入檔位地板**同樣吐一行 marker 原樣貼進報告：`<!-- loops-effort profile=… floor=… highrisk=… escalated=… -->`，由 `hooks/pr-gate.mjs` **閘⑨** 讀（**只擋 `floor=violated`**；`highrisk=unknown`＝量不到 diff、marker 缺席 → fail-open 放行）。這道閘問的和上面三道不同：前三道問「這一輪做對了嗎」，它問「**這條 loop 一開始就用對檔位了嗎**」——判錯檔位的後果是該做的驗證**整批**沒做，所以要在送審前擋。**每輪都要吐。**
+
 > 這一步是本階段最省成本的地方：**確定性的東西用確定性的方法判**，把 reviewer 的注意力留給真正需要語意判斷的部分。
 
 ### 1. 選軸 — 風險式選 reviewer（固定兩軸 + 依 risk map 加派）
@@ -44,6 +47,8 @@ build 完成、要 merge 前驗收；或只驗一份 PR／改動（入口 `verif
 **固定必派（所有功能改動）**：`product-contract`（有沒有做到）＋ `code-quality`（正確性與狀態流）。**一般 code 不再固定派滿六個核心軸。**
 
 其餘核心軸依 `stages/01-explore.md` 的 risk map 觸發（判準正本見 `references/stages/risk-map.md` §C，此處不重抄）：`tests` ← 有新測試或有 `risk_triggers`；`security` ← `security` trigger 或高風險硬閘；`architecture` ← `domain_complexity` / `external_or_cross_module_contract` / 新架構接縫；`performance` ← 改動落在查詢 / 迴圈 / 大量資料 / 熱路徑。
+
+> **投入檔位不縮選軸的下界**（`AGENTS.md` 規則 25）：`direct` 拿到的仍是固定兩軸 ＋ risk map 觸發的加派，`deep` 則一律六核心滿派 ＋ `security`／`architecture`／`code-quality` 改派 `-deep` 變體。**檔位縮的是中介產物的體積，不是複查的覆蓋面**——這裡少派一軸，省下的是一次複查，不是一份文件。
 
 **三條 fail-safe 上界（右尺寸化不得變成後門）**：
 
@@ -132,6 +137,9 @@ build 完成、要 merge 前驗收；或只驗一份 PR／改動（入口 `verif
   - **同一段落另寫一行 footprint marker**（步驟 0 產出的原樣貼上、獨立一行、不藏 code fence）：
     `<!-- loops-footprint status=ok|warn|blocked prod=<n> test=<n> newtests=<n> unslotted=<n> unexplained=<n> -->`
     `hooks/pr-gate.mjs` **閘⑧**（`LOOPS_PR_FOOTPRINT_GATE`）讀它：`status=blocked` → deny `gh pr create`/`ready`。**`warn`（比例超標）一律放行**——比例是提醒不是品質標準。marker 缺席 → 閘⑧ fail-open 形同關閉，所以每輪都要吐。
+  - **同一段落再寫一行投入檔位 marker**（步驟 0 產出的原樣貼上、獨立一行、不藏 code fence）：
+    `<!-- loops-effort profile=direct|standard|deep floor=ok|violated highrisk=yes|no|unknown escalated=<n> -->`
+    `hooks/pr-gate.mjs` **閘⑨**（`LOOPS_PR_EFFORT_GATE`）讀它：`floor=violated` → deny。**只擋這一格**——`floor=ok`、`highrisk=unknown`（量不到 diff）、marker 缺席一律放行。處置是**升檔補做**，不是把 marker 改掉。
 - **回環再驗（delta re-verify）**：iterate 修完回來，聚焦「改了什麼 + **波及面**（誰用到被改的）」再派 fresh reviewer 驗一輪 —— 不是只重跑 diff、更不是只看測試綠；改到共用元件要把 consumer 一起納入。修完一律再驗，是 closed-loop 預設、不是選項。**再驗一律走本 skill 步驟 1 選軸**（依 fix + 波及面的領域定核心軸 + 加派 conditional reviewer），**不是臨場手挑幾個 reviewer 充當再驗** —— 手挑子集會把改動所在領域最該派的 lens 系統性跳過（例：修同步 / 併發競態 / **前端樂觀狀態層（樂觀更新 / 回滾 / 快照對帳）**卻沒派 `multi-user-concurrency-reviewer`〔窮舉事件順序 / 亂序 / lost-update / read-your-writes ＋前端樂觀層歸屬 / 回滾語意 / 變動歸因 / 本地預測 vs 伺服器真相 / 失敗路徑對稱性〕、修 bug 沒派 `root-cause`），於是 sibling 競態 / 同類入口一輪一輪被外部 reviewer 才抓到、而非內部一次收斂。
   - **驗證深度只進不退（下界棘輪）**：上一輪若有 finding 是被某個**更深的驗證手段**第一次看見的（首次真機驅動 / 首次 scripted 量測 / 某個 lens 第一次看這塊——即 `iterate` §5 的「findings 沒變少先歸因」判成**進展**的那種），**該手段納入本輪與其後每輪再驗的下界、不得退回淺驗證**。否則下一輪的「findings 變少」是**驗證變淺造成的假象**，收斂判斷會被它騙過。
   - **機械化：re-verify 選軸推導表（不靠當下記得、非空殼）**。每輪 delta re-verify **在 fan-out 之前**於 `stages/04-verify.md` 寫一份**選軸推導表**——逐列 `本輪改動領域 / 簽名 → 步驟 1 定的核心軸下界 → 觸發的 conditional lens`（依 `references/stages/optional-reviewers.md` 觸發對照表逐條核：並發 / 前端樂觀狀態層〔樂觀更新 / 回滾 / 快照對帳〕→`multi-user-concurrency`〔專案宣告多人才觸發〕、bug fix→`root-cause`、queue/背景→`processing-reliability`、UI→`frontend-ui`/`accessibility`、migration→`migration`…；**延後回呼 / debounce / timer 捕捉可變 target 的 stale-capture 由恆派的 `code-quality`〔correctness §六〕承接，不必另派 conditional**）。**這份表不是事後補的合理化**：Verification 要求 (1) 表在派 reviewer **之前**寫、(2) **這輪實際派出的 reviewer 集合＝表推導出的集合**（下一輪 verify / 人可對 fan-out 記錄否證）。這是把既有的「走步驟 1 選軸」文字警告變成**必寫、可否證的 checklist gate**，堵住「憑印象手挑子集」。此表**單一真相源在本步驟**；iterate §4 指回這裡、不另立第二份。
@@ -152,6 +160,8 @@ QA / reviewer 只被要求「驗這一份」時，驗完就是完整交付。`st
 ## Red Flags
 
 - **沒跑步驟 0 的確定性閘就派 fan-out**（型別 / lint / 測試紅著、或計畫與實作對不上時，整輪 reviewer 都是白燒）。
+- **投入檔位 marker 沒吐**（閘⑨ 形同關閉），或看到 `floor=violated` 就去**把 marker 改成 `ok`**，而不是升檔補做——那是把「用錯檔位、該做的驗證整批沒做」蓋掉，比任何一條 finding 都嚴重。
+- **拿投入檔位當少派 reviewer 的理由**（`direct` 縮的是中介產物的體積，不是複查的覆蓋面）。
 - **一般 code 仍固定派滿六個核心軸**（沒依 risk map 風險式選軸），或反過來**碰高風險硬閘卻縮軸**（「小 ≠ 安全」，一律滿六）。
 - **沒有 risk map 就自己縮軸** —— 沒有右尺寸依據時要退回 `verify-triage.md` 的既有風險梯，不是憑印象少派。
 - reviewer 不是同一回合並行派出（變序列、互相污染）。
@@ -174,8 +184,8 @@ QA / reviewer 只被要求「驗這一份」時，驗完就是完整交付。`st
 
 ## Verification
 
-- [ ] **步驟 0**：三道確定性閘（quality-gate / validate-plan / diff-footprint）在派任何 reviewer **之前**跑完；quality-gate 紅或計畫對不上時**沒有**照樣派 fan-out。
-- [ ] **步驟 0（marker）**：footprint marker 已原樣貼進 `stages/04-verify.md`（獨立一行、不藏 code fence）；`status=blocked` 的處置是回 plan 補 living plan，不是刪測試 / 刪 code。
+- [ ] **步驟 0**：四道確定性閘（quality-gate / validate-plan / diff-footprint / effort-profile）在派任何 reviewer **之前**跑完；quality-gate 紅或計畫對不上時**沒有**照樣派 fan-out。
+- [ ] **步驟 0（marker）**：footprint marker **與投入檔位 marker** 都已原樣貼進 `stages/04-verify.md`（各獨立一行、不藏 code fence）；`status=blocked` 的處置是回 plan 補 living plan，`floor=violated` 的處置是**升檔補做**——都不是刪測試 / 刪 code / 改 marker。
 - [ ] **步驟 1**：固定派 `product-contract` + `code-quality`，其餘核心軸依 risk map 觸發（`references/stages/risk-map.md` §C）；**高風險硬閘一律滿六軸**；**沒有 risk map 時退回 `verify-triage.md` 風險梯、沒有少派**；拿不準 / 混 code / 碰高風險向嚴升級。
 - [ ] **步驟 1（專案約定）**：已讀專案 root + 就近 `CLAUDE.md`/`AGENTS.md` 枚舉跨切面約定，對每個新 user-facing / 功能面逐條核（不以通過機械 gate 當滿足），違反者當可行 finding（見 `references/shared/docs/project-conventions.md`）。
 - [ ] **步驟 2**：同一回合並行派出、各一軸；只給 artifact + 契約（不給作者辯護）、tests-reviewer 不被告知已過；跑真 app + 本機 `/code-review` 或據實標 `not measured`；參考檔絕對路徑（含 `context-diet.md`）+ `code-retrieval.md` 路徑 + **本次改動檔清單（含 stale 提醒）**已塞進 reviewer prompt。

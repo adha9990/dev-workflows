@@ -14,6 +14,8 @@ description: Implements each planned slice into working, test-protected code, an
 
 > **寫到合併標準（shift-left）**：impl-author 寫的當下就照 verify 會查的同一套品質標準寫（clean code / clean architecture / 安全 / 重用 / 設計模式）—— 標準在 build 與 verify 是**同一份 reference、兩處套用**，build 主動寫到位、verify 獨立複查抓盲點（見 `AGENTS.md` 規則 11）。寫對的成本遠低於寫錯被 verify 退回重修。
 
+> **投入檔位不改 build 的施工方式**（`AGENTS.md` 規則 25）：走哪條路徑一律由 evidence portfolio 指定的 primary evidence 決定，`risk_triggers` 命中就走紅綠分離——**檔位低不是跳過的理由**。build 在檔位上只負責一件事：**發現實際情況比進場判定重就當下升檔**（`references/stages/effort-profile.md` §E）。最常在這裡被觸發的兩條：①動到的檔案其實碰了高風險硬閘（auth／密鑰／金流／schema·migration／對外契約／並發背景／IaC）→ `R-high-risk` 升 `deep`；②實際 footprint 明顯超出該檔位量級（`direct`：>2 檔或 >50 行且非計畫內）→ `R-footprint` 升一檔。升檔＝改 `loop.md` 欄位 ＋ append Journal ＋ **回頭補做**新檔位多出來的 knob（例如 `direct → standard` 要把 micro-plan 補成完整施工圖與機制圖），不是「下個階段開始才算」。
+
 ## When to Use
 
 **Use when**：`stages/02-plan.md` 已拍板（含 evidence portfolio 與 change budget、`validate-plan.mjs` 已通過）、要逐 slice 實作；或 verify 出了 finding 要**修正**（remediate——回環後的修記在 build，不記成一個叫 iterate 的階段）。
@@ -58,7 +60,7 @@ description: Implements each planned slice into working, test-protected code, an
 - **預設是一個 implementation agent 完成一個 slice**；紅綠分離（兩個 agent）只在上表前三列啟用。
 - **派工前先產 context pack**（`references/shared/runtime/shared-memory.md`）：每個 slice 依角色各產一份——`test-author` 拿 behavior／契約／既有證據與範圍內的檔案清單，**拿不到檔案內容與實作事實**（隔離規則不因共享而放寬）；`impl-author` 拿架構、契約、reuse、約定與這輪要修的 finding。**架構事實不必每個 slice 重查一次**，來源沒變就直接重用。
 - **偏離 plan 的證據型別要回去改 plan**（living plan）—— 例如做到一半發現既有證據其實蓋不到，要回 `stages/02-plan.md` 把該條改成 `new_test=true` **並補 `new_test_reason`**，再往下。**不可以在 build 現場自行加測試而不更新計畫**：footprint 對帳（`scripts/diff-footprint.mjs`）會抓到「新測試沒有理由」。
-- **每個 slice 收尾比對 change budget**：實際改動明顯超出 plan 抓的 budget → 回 plan 補 `budget_overrun_reason`（超出不是禁止，沒說明才是）。
+- **每個 slice 收尾比對 change budget**：實際改動明顯超出 plan 抓的 budget → 回 plan 補 `budget_overrun_reason`（超出不是禁止，沒說明才是）。**同時比對投入檔位的量級**：`direct` 實際做出 >2 檔或 >50 行的功能改動且非計畫內 → `R-footprint` 升一檔（兩件事分開判：`budget_overrun_reason` 解釋的是「這個 slice 為什麼比預估大」，升檔回答的是「這件事其實沒那麼小」）。
 
 ### 步驟 B（TDD / contract / acceptance 路徑）：紅 → 綠 → 重構 7 步
 
@@ -95,6 +97,8 @@ description: Implements each planned slice into working, test-protected code, an
 | 「每個 slice 都先寫個紅燈測試比較保險」 | 紅燈是**高風險邏輯**的實作手法，不是所有 slice 的固定控制面。plan 指定 `existing-test` / `static` / `smoke` 就照著做——硬補一條紅燈，守的是既有測試已經守住的東西。 |
 | 「既有測試好像不太夠，我順手加一條」 | 「不太夠」要具體：缺哪個觀察點？寫得出來就回 plan 補 `new_test_reason` 再加（living plan）；寫不出來就是不需要。現場偷加會被 footprint 對帳擋在 PR 前。 |
 | 「順手把週邊也重構乾淨」 | Refactor 的範圍是**這個 slice 動到的 code**、且要對得上一個具名異味。順手擴張會讓 diff 超出 budget、也讓 reviewer 分不清哪些是這次的行為改動。 |
+| 「這條是 `direct`，紅綠分離就先跳過」 | 檔位不改施工方式。走哪條路徑看 evidence portfolio 指定的 primary evidence，`risk_triggers` 命中就走紅綠——省 ceremony 不等於省證據。 |
+| 「發現碰到 migration，但只改了兩行，維持 `direct` 就好」 | 「小 ≠ 安全」。碰高風險硬閘就是 `R-high-risk`，當下升 `deep` 並補做。硬撐到 PR 前會被閘⑨ 擋，那時補的更多。 |
 
 ## Red Flags
 
@@ -117,6 +121,7 @@ description: Implements each planned slice into working, test-protected code, an
 - [ ] 走 TDD / contract / acceptance 路徑的 slice 有「Red 確認 → Green 確認」軌跡記在 `stages/03-build.md`；走既有證據 / static / smoke 路徑的有「跑了哪一份既有證據、結果如何」的軌跡。
 - [ ] `NO_NEW_TEST_REQUIRED` 若出現，已跑指名的既有證據確認它守得住，並回 `stages/02-plan.md` 標 `new_test=false`（living plan）。
 - [ ] build 期間新增的測試**都有 plan 裡的 `new_test_reason`**；實際 footprint 明顯超出 budget 的 slice 已補 `budget_overrun_reason`。
+- [ ] **投入檔位仍對得上實際情況**：動到的檔案沒有碰到高風險硬閘（碰了已依 `R-high-risk` 升 `deep` 並補做）、實際 footprint 沒有超出該檔位量級（超了已依 `R-footprint` 升一檔）；升檔都有 `loop.md` 欄位 ＋ Journal 留痕。
 - [ ] Red/Green 確認點是跑 quality-gate 讀**精簡摘要**（不收完整 `pnpm typecheck && lint && test` 輸出）；派 fixer 只帶結構化 failures（見〈quality-gate 整合〉）。
 - [ ] test-author / impl-author prompt 已含 `references/shared/runtime/context-diet.md` 絕對路徑；quality-gate 以外的原始輸出守其紀律（紅綠不對稱／截斷附落盤路徑）。
 - [ ] impl-author 寫的 code 達到**合併標準**（clean code / clean architecture / 安全 / 重用），不是留給 verify 才抓（shift-left）；每次派工都注入了 `minimalism-ladder.md` 的絕對路徑（orchestrator 確定性帶上）。
