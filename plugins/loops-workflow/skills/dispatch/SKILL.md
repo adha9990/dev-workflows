@@ -7,12 +7,13 @@ description: Routes a work request to the right entry point, sets how far to go 
 
 ## Overview
 
-`dispatch` 是 loops-workflow 的**控制節點**，不是工作階段（phase 報表裡不會有它）。它很薄，只做四件事：
+`dispatch` 是 loops-workflow 的**控制節點**，不是工作階段（phase 報表裡不會有它）。它很薄，只做五件事：
 
 1. **接續**：輸入是既有 loop 的 slug → 走 resume 協定（freshness → 從該回的地方續）。
 2. **判入口**：這份工作從哪個 phase 起跑（見〈判入口〉）。
 3. **決定走多遠**：解析 `stop_after`——使用者只要開 issue？只要規劃？只要驗一份 PR？
-4. **建 `.loops/<slug>/loop.md`**（＋會動 code 的迴圈開 worktree），然後進起點 phase。
+4. **決定投入多少**：判 `effort_profile`——這件事該生多少中介產物（見 §1.3）。
+5. **建 `.loops/<slug>/loop.md`**（＋會動 code 的迴圈開 worktree），然後進起點 phase。
 
 它同時是「中央說明書」的入口：全程不變的紀律集中寫在 `AGENTS.md`，各階段不各自重述。
 
@@ -79,6 +80,28 @@ description: Routes a work request to the right entry point, sets how far to go 
 
 規則：**不在每個 checkpoint 重問要不要繼續**；到達 `stop_after` 必須停（`auto` 模式也一樣）；沒有明確 partial intent 時才用入口預設。
 
+### 1.3 決定投入多少（`effort_profile`）
+
+`stop_after` 管**走多遠**，投入檔位管**每一步生多少中介產物**——兩者正交，同時解析、互不覆寫。
+
+**判準與每階段可縮什麼的唯一正本是 `references/stages/effort-profile.md`，此處不重抄。** dispatch 只做三件事：
+
+1. **逐條核判準**（`deep` 六個觸發、`direct` 七條前提），把結果餵給腳本算檔位——**不心算**：
+
+   ```bash
+   node {loops-workflow-plugin-root}/scripts/effort-profile.mjs --classify '{
+     "deep_triggers": [],
+     "direct_checks": { "D1": true, "D2": true, "D3": true, "D4": true, "D5": false, "D6": true, "D7": true }
+   }'
+   ```
+
+   **沒核到的判準一律當不成立**（腳本就是這樣算的）：判不出來會落在 `standard`，不是 `direct`。
+
+2. **寫進 `loop.md`** 一欄：`投入檔位：<profile>（判準：<腳本回的理由>）`，並 append 一筆 Journal。
+3. **告訴使用者一句**（哪一檔、為什麼）——這是**回報，不是決策點**。使用者可以要求更謹慎的檔位（只能往上調）。
+
+> **拿不準就 `standard`**。`direct` 是給「小、原因明確、範圍收斂、既有機械證據判得出來、不碰高風險」的工作用的；只要有一條講不清楚，它就不是 `direct`。**檔位之後只升不降**（見該檔 §E 的升檔觸發），所以進場判鬆的代價不是「少做一點」，是「做到一半升檔補做」。
+
 ### 1.4 完全乾淨的空專案 → 先 scaffold 骨架
 
 判入口前先看目標專案是不是「完全乾淨」（空目錄 / 沒有原始碼 / 沒有 `package.json` / 沒有 git 歷史）。是的話沒有架構承載 define 出來的 issue、也沒有 code 可改 —— **先把骨架立起來**：
@@ -97,6 +120,7 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 - **operation 性質**（`new-feature` / `change-behavior` / `bug-fix` / `refactor`）—— 依 issue 內容判定，決定 **build 紅燈第一步**（見 `references/stages/operation-first-move.md`）。**拿不準向嚴用 `new-feature`** 並在 Journal 註明。無 issue 工作經 `define` 建 loop.md 時由 define 寫；任何成因導致缺欄時由 `plan` 兜底補。
 - **入口** + **起點 phase** + **當前階段**（每進一個 phase 就更新）
 - **`stop_after`**（見 §1.2）
+- **投入檔位**（見 §1.3）—— `direct` / `standard` / `deep` ＋判準理由；升檔時改這一欄 ＋ append Journal
 - **session**（讀 harness 提供的 session 識別碼填；progress / hook 靠它只顯示「本 session」正在跑的 loop）
   <!-- adapter-projection -->
   - Claude Code：session 識別碼放在環境變數 `CLAUDE_CODE_SESSION_ID`，用 Bash 讀（`echo "$CLAUDE_CODE_SESSION_ID"`）。
@@ -120,11 +144,14 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 | 「需求有點模糊，先問一句再說」 | 模糊 → 進 `define`，它會先探索再一次一問。在 dispatch 停下問一句既沒有 repo 脈絡、也不會被記進 decision graph。 |
 | 「新 session 了，保險起見重新探索一遍」 | 換 session 不是 freshness 失敗。要重跑得說得出哪一項沒過（來源版本／goal revision／產物／pending）。 |
 | 「loop.md 之後再補」 | loop.md 是後續階段認領狀態的唯一依據；現在不建，下個階段就接不住。 |
+| 「這題看起來很小，直接判 `direct` 省時間」 | `direct` 要**七條判準全成立**、而且每一條指得出證據。判鬆的代價不是省下來，是做到一半升檔補做（檔位只升不降），比一開始就走 `standard` 貴。 |
+| 「檔位之後可以再調」 | 只能往上調。往下要使用者拍板，而且只有「升檔依據被證偽」一種合法情況。 |
 
 ## Red Flags
 
 - 你在 dispatch 裡開始讀 codebase / 寫 code / 訪談 —— 那是 define / plan / build 的事，dispatch 只分流。
 - 沒解析 `stop_after` 就往下跑（等於預設「一路做到底」，而使用者可能只要一張 issue）。
+- **沒判投入檔位就往下跑**（等於預設每件事都用完整 ceremony，正是要修的那個問題），或**憑感覺判成 `direct`** 而沒有逐條核那七條判準。
 - resume 時整條重跑，而不是只回到最早受影響的階段。
 - `stop_after=issue`／`plan` 卻先開了 worktree。
 - 沒建 loop.md 就交棒。
@@ -135,6 +162,7 @@ slug：**issue / fix 迴圈用 `<issue#>-<kebab 描述>`**（例 `137-trash-dele
 - [ ] 輸入是既有 slug 時走 resume：跑過 freshness、依 verdict 決定從哪續、記了 `handoff.accepted` ＋ `workflow.resumed`。
 - [ ] 入口分類正確（對得上 `entries` 值域），起點是五個 canonical phase 之一。
 - [ ] `stop_after` 已解析並寫進 loop.md（明講 > 意圖 > 入口預設）。
+- [ ] **投入檔位已用 `effort-profile.mjs --classify` 算出**（不是心算）、寫進 loop.md 並回報給使用者；判不出來的判準沒有被當成成立（那會讓檔位落太低）。
 - [ ] 目標若是**完全乾淨的空專案**，已先開決策點確認 + scaffold（或使用者選跳過 / 要別的棧）才往下；既有 / 半成品專案不 scaffold。
 - [ ] **所有無 issue 的工作都先經 `define` 用 repo template 建 issue**——不 ad-hoc `gh issue create`（規則 12）。
 - [ ] `.loops/<slug>/loop.md` 已建立（或既有的已認領），含類型 / 入口 / 起點 / `stop_after`，**且落在主 repo 根 `$LOOPS_ROOT/.loops/`（絕對路徑錨定、不在任何 `.claude/worktrees/*/` 內）**。

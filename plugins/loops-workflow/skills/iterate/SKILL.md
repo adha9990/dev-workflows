@@ -101,7 +101,11 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 
 **「收圈」＝結束回環、進完工收尾 / 交 PR**（本節沿用這個詞）。
 
-圈數**預設上限 3 圈，但那是軟上限** —— 它的意義是「**到這裡要向使用者回報現況**」，**不是「可以停止修正」**。決定能不能收圈的是 **findings，不是圈數**：
+圈數**依投入檔位取軟上限**（`direct` 2 圈／`standard` 3 圈／`deep` 4 圈，正本見 `references/stages/effort-profile.md` §C）**，但那是軟上限** —— 它的意義是「**到這裡要向使用者回報現況**」，**不是「可以停止修正」**。決定能不能收圈的是 **findings，不是圈數**：
+
+> **碰到軟上限同時觸發 `R-rounds` 升檔一級**（同檔 §E）。理由：一件被判成 `direct` 的工作要繞到第二圈，多半代表它其實沒那麼小——升檔讓後面幾圈用該有的深度跑，而不是繼續用「它應該很簡單」的假設修。升檔是**回報不是決策點**，回報現況那一段一併講。
+>
+> **另一條在這裡最常被觸發的是 `R-finding`**：verify 出任何 P0、或同一輪有 ≥2 條經確認的 P1 → **當下升檔一級**。那是「進場對這件事的難度判斷已經被推翻」的直接證據，不必等圈數到頂。
 
 - **機械下界：最近一輪 verify 沒有未修的 P0**（severity 判準沿用 `references/personas/reviewer-severity.md`）。**只要還有未修的 P0，任何理由都不得收圈** —— 碰到軟上限就**回報現況 → 繼續修**，直到清零、或使用者**知情豁免**（見下）。**圈數持續累加、不因回報重置**（「計數重置」只用在使用者授權再繞那條分支）。
   - **「下界」與「完工條件」是兩層，別混**：下界回答的只有一個問題 —— **什麼東西是誰都不能繞過的**。完工要什麼是 §6 在管：「最近一輪 verify 無 actionable findings」**照舊沒變**，**P1 / P2 / P3 一樣全修**（§2–3 的紀律一個字都沒動）。下界是最低要求，不是新的完工門檻。
@@ -137,11 +141,15 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 **交接物依迴圈類型而定 —— 都先寫暫存 tmp 草稿（不進專案）→ 使用者確認 → `--body-file` post → 刪 tmp，不自動 post**：
 
 - **修正型（`type=fix`，從 PR reviewer 回饋進來、PR 已存在）→ 只產一份：修正回覆 comment**，**固定套 `references/shared/delivery/comment-policy.md` §8「修正回覆 comment 版型」**：開場「這輪 N 個 blocking 點都修了」→ 每點「**工程角度**（根因 / 怎麼修 `<file:line>` / 怎麼驗）＋**客戶角度**（修正前 → 後）」→ 結尾 gate 綠。**不 `@` 點名 reviewer、不寫客套**；婉拒項（contract misread）只陳述技術理由。**不另寫 PR body as-built 條目、不另發 issue comment**（除非使用者明確要）。
-- **完整迴圈（`type=issue/design`，交新 PR）→ PR 收尾 comment**（`references/shared/delivery/pr-spec.md` + `references/shared/delivery/comment-policy.md`：成果 + 驗證證據 + 回覆）**＋固定產三份 loop 收尾檔到 `.loops/<slug>/deliverables/`（無編號檔名）**：
+- **完整迴圈（`type=issue/design`，交新 PR）→ PR 收尾 comment**（`references/shared/delivery/pr-spec.md` + `references/shared/delivery/comment-policy.md`：成果 + 驗證證據 + 回覆）**＋依投入檔位產 loop 收尾檔到 `.loops/<slug>/deliverables/`（無編號檔名）**：
+
+  **`direct` 檔位改產一份合併的 `delivery-note.md`**（`<!-- loops-artifact: delivery-note@1 -->` ＋三段：`實作導讀`／`合併前手動驗證`／`成本輪廓`）。理由：為一個兩檔五十行的改動生三份文件，其中兩份會是「無」——**理解債的對策是讓人真的讀得懂，不是讓檔案數字好看**。`standard` / `deep` 照下面三份產：
   - **`explain.md`** — 理解包（跑 `explain` skill、或主線直接寫等效內容：實作導讀 + ownership 自測題 + 設計方向 recap）。
   - **`checklist.md`** — 合併前手動驗證 + 已知取捨確認清單（尤其**只有手動守、非 CI 常駐**的點：互動行為、a11y 取捨、像素/版面等 jsdom 測不到的）。
   - **`cost.md`** — 成本 / 規模輪廓（展開 `loop.md` Journal 的 outcome 度量：sub-agent 數 + 各 stage token 粗估 + 回環圈數 + findings + 交付物）。
   三份**一律產、不再由 `LOOPS_EXPLAIN` gate**（旗標舊行為只 gate explain 一份；現三份都是完工標準交接物、皆放 `deliverables/`）。PR 收尾 comment 仍先 tmp 草稿→確認→post（不進 `.loops/`）。**修正型（`type=fix`）維持分類排除：不產這三份**（只產一份修正回覆 comment；要理解包時以自然語言請 Claude 跑 `explain` skill）。
+
+  > **檔位縮的是份數不是內容**：`direct` 的 `delivery-note.md` 三段都要**真的寫**（導讀要說得出「這段改了什麼、為什麼這樣改」，手動驗證要寫得出可執行步驟，成本輪廓照 `journaling.md` 的 outcome 度量欄位）。寫不出導讀＝沒人讀得懂這次改動＝這條 loop 不該是 `direct`。
 
 **follow-up：能當圈做完的一律當圈做完，不留在 PR 上當延後項**。發現的後續項分兩種、處置不同：
 
@@ -217,7 +225,9 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - **verify 出 actionable findings（含 P2/P3）還問使用者「修多少 / 要不要修」** —— actionable 一律自動全修，不是使用者決策。
 - **用戶回饋要求的改動反轉 / 抵觸某條書面 issue AC，卻默默實作、沒 surface 讓使用者知情 descope**（規格默默漂移、到外部 reviewer 才點名「偏離規格」）—— 撞書面 AC 的反轉要先開一個決策點知情拍板、確認 descope 後同步 issue/PR 留痕（見〈AC-衝突檢查〉）；但別把它擴大成「每條用戶回饋都問要不要修」（那違反 actionable 全修）。
 - 修正型（`type=fix`）收尾還產一堆草稿（PR body as-built / 另發 issue comment）—— 只該一份修正回覆 comment（§8）。
-- **完整迴圈完工沒產齊三份 deliverable**（`explain.md` + `checklist.md` + `cost.md`）到 `.loops/<slug>/deliverables/`；或**放錯位置**（平放 loop 根、或塞進 PR comment 而非 `deliverables/`）；或**修正型卻產這三份**（修正型只該一份修正回覆 comment）。
+- **完整迴圈完工沒產齊該檔位的 deliverable**（`standard`／`deep`＝`explain.md` + `checklist.md` + `cost.md` 三份；`direct`＝一份 `delivery-note.md`）到 `.loops/<slug>/deliverables/`；或**放錯位置**（平放 loop 根、或塞進 PR comment 而非 `deliverables/`）；或**修正型卻產這些**（修正型只該一份修正回覆 comment）。
+- **拿 `direct` 當「交接文件可以敷衍」的理由** —— 合併成一份縮的是份數，三段內容照樣要寫得出來；寫不出導讀代表這條 loop 根本不該是 `direct`。
+- **碰到該檔位的軟上限卻沒依 `R-rounds` 升檔**（繼續用「它應該很簡單」的假設修下去）。
 - **把當圈能做完的 actionable 寫成「PR 上的 follow-up 待辦」延後**（＝把該修的 actionable 偷渡成不修）；交出去的 PR 帶一串本可當圈做掉的 follow-up 清單。
 - 把本可在當前 issue 解決的 follow-up 擅自另開新 issue。
 - issue-driven PR 的 body 沒放關閉關鍵字 `Closes #<issue>`（只寫標題 `(#issue)` / 內文提及 = 不連結、merge 不自動關 issue，見 `references/shared/delivery/pr-spec.md`）。
@@ -248,7 +258,8 @@ verify 報告 / PR reviewer comment / CI 失敗。彙整成一張清單。
 - [ ] 完工前對照 Goal Contract 停止條件全達成。
 - [ ] `stop_after=finalized`／`research-finalized` ⇒ 已產 H5 handoff（`handoff.created` → handoff note → `workflow.paused`），內含 owner 還要親自做的動作（draft→ready／指派 reviewer／按合併）。
 - [ ] **完工 / 中止已在 `loop.md` Journal append 一行 outcome 度量**（依 `references/shared/runtime/journaling.md`〈完工 outcome 度量〉，欄位齊全、token 帶 `est`／級距標粗估）。
-- [ ] 收尾交接物依迴圈類型：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」；完整迴圈產 PR 收尾 comment **＋三份 loop 收尾檔 `deliverables/{explain,checklist,cost}.md`（無編號、一律產）**；對外的 comment 經使用者確認才送、未自動 post、回環途中不產。
+- [ ] 收尾交接物依迴圈類型 ＋ 投入檔位：修正型只一份「修正回覆 comment（`comment-policy` §8、不@reviewer）」；完整迴圈產 PR 收尾 comment **＋ loop 收尾檔（`standard`／`deep`＝`deliverables/{explain,checklist,cost}.md` 三份；`direct`＝`deliverables/delivery-note.md` 一份，三段內容真的寫齊）**；對外的 comment 經使用者確認才送、未自動 post、回環途中不產。
+- [ ] **回環軟上限取的是該檔位的值**（`direct` 2／`standard` 3／`deep` 4），碰到時除了回報現況也**已依 `R-rounds` 升檔一級**（`loop.md` 欄位 ＋ Journal 留痕）。
 - [ ] **AGENTS.md 同步已判**：docs-policy 檢查命中「慣例 / 規則改變」→ 主線已依 docs-policy（含〈怎麼寫〉守門）直接編輯對應段落；未命中 → 未動也未問（不對無關迴圈加噪音）。
 - [ ] **actionable 的 follow-up 都當圈做完了**（沒把能做完的 actionable 寫成 PR 上的延後待辦）；只有 genuinely out-of-scope（需獨立拍板 / 等外部輸入）才記成帶留痕理由的 follow-up，且在當前 issue / PR thread、沒擅自另開新 issue。
 - [ ] **收尾清理兩時機都做了**：① loop 結束時清掉臨時 scratch（草稿 / 截圖 / gif / scratch，不等 PR）—— **有開著的 PR 時 worktree 不在這步清**（只有沒交 PR 的純中止才連 worktree 一起清）；② PR merge / close 後刪分支 + 清 worktree（solo 自己合併自己清，只留 `main` + 進行中）。loop 暫存沒被推上去（未追蹤 / `.gitignore` 涵蓋，`git ls-files` 掃一遍確認）。
